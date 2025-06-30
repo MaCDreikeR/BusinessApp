@@ -2,10 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, ScrollView, Alert, Linking, Modal } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
-import { useRouter, Stack } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import * as Contacts from 'expo-contacts';
 import { useFocusEffect, useNavigation, DrawerActions } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Cliente = {
   id: string;
@@ -30,6 +30,7 @@ export default function ClientesScreen() {
   const [menuAberto, setMenuAberto] = useState(false);
   const router = useRouter();
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
 
   useFocusEffect(
     useCallback(() => {
@@ -46,7 +47,6 @@ export default function ClientesScreen() {
         return;
       }
 
-      // Buscar clientes
       const { data: clientesData, error: clientesError } = await supabase
         .from('clientes')
         .select('*')
@@ -59,7 +59,6 @@ export default function ClientesScreen() {
         return;
       }
 
-      // Buscar agendamentos
       const { data: agendamentosData, error: agendamentosError } = await supabase
         .from('agendamentos')
         .select('*')
@@ -72,7 +71,6 @@ export default function ClientesScreen() {
         return;
       }
 
-      // Combinar os dados
       const clientesComAgendamentos = clientesData?.map(cliente => {
         const agendamentosDoCliente = agendamentosData?.filter(agendamento => 
           agendamento.cliente === cliente.nome
@@ -88,7 +86,6 @@ export default function ClientesScreen() {
         };
       }) || [];
 
-      console.log('Clientes com agendamentos:', clientesComAgendamentos);
       setClientes(clientesComAgendamentos);
     } catch (error) {
       console.error('Erro ao carregar clientes:', error);
@@ -101,14 +98,12 @@ export default function ClientesScreen() {
     
     let clientesFiltrados = clientes;
     
-    // Aplicar filtro de pesquisa por nome
     if (pesquisa) {
       clientesFiltrados = clientesFiltrados.filter(cliente => 
         cliente.nome.toLowerCase().includes(pesquisa.toLowerCase())
       );
     }
     
-    // Aplicar filtros específicos
     switch (filtro) {
       case 'com_debito':
         clientesFiltrados = clientesFiltrados.filter(cliente => cliente.debito === true);
@@ -130,7 +125,6 @@ export default function ClientesScreen() {
           });
         });
 
-        // Ordenar por data e horário do agendamento mais próximo
         clientesFiltrados.sort((a, b) => {
           const dataA = a.agendamentos && a.agendamentos.length > 0 
             ? new Date(a.agendamentos[0].data).getTime() 
@@ -142,7 +136,6 @@ export default function ClientesScreen() {
         });
         break;
       default:
-        // 'todos' - não aplica filtro adicional
         break;
     }
     
@@ -156,10 +149,7 @@ export default function ClientesScreen() {
     Linking.canOpenURL(url)
       .then(supported => {
         if (!supported) {
-          Alert.alert(
-            'Erro',
-            'WhatsApp não está instalado neste dispositivo'
-          );
+          Alert.alert('Erro', 'WhatsApp não está instalado neste dispositivo');
           return;
         }
         return Linking.openURL(url);
@@ -196,26 +186,34 @@ export default function ClientesScreen() {
         fields: [Contacts.Fields.Name, Contacts.Fields.PhoneNumbers],
       });
 
-      if (data.length > 0) {
-        const contatosValidos = data.filter(c => c.phoneNumbers && c.phoneNumbers.length > 0);
-        
-        if (contatosValidos.length === 0) {
-          Alert.alert('Nenhum contato', 'Não foram encontrados contatos com número de telefone.');
-          return;
-        }
-
-        router.push({
-          pathname: '/clientes/selecionar-contato',
-          params: {
-            contatos: JSON.stringify(contatosValidos.map(c => ({
-              nome: c.name,
-              telefone: c.phoneNumbers[0].number,
-            })))
-          }
-        });
-      } else {
+      if (data.length === 0) {
         Alert.alert('Nenhum contato', 'Não foram encontrados contatos no dispositivo.');
+        return;
       }
+
+      const contatosValidos = data
+        .map(contato => {
+          const numero = contato.phoneNumbers?.[0]?.number;
+          const nome = contato.name;
+          if (nome && numero) {
+            return { nome, telefone: numero };
+          }
+          return null;
+        })
+        .filter(contato => contato !== null);
+
+      if (contatosValidos.length === 0) {
+        Alert.alert('Nenhum contato válido', 'Não foram encontrados contatos com nome e número de telefone válidos.');
+        return;
+      }
+      
+      router.push({
+        pathname: '/clientes/selecionar-contato',
+        params: {
+          contatos: JSON.stringify(contatosValidos)
+        }
+      });
+
     } catch (error) {
       console.error('Erro ao acessar contatos:', error);
       Alert.alert('Erro', 'Não foi possível acessar os contatos do dispositivo.');
@@ -227,173 +225,176 @@ export default function ClientesScreen() {
   };
 
   return (
-    <>
-      <View style={styles.container}>
-        <View style={styles.header}>
+    <View style={styles.container}>
+      {/* --- CABEÇALHO COM LAYOUT CORRIGIDO --- */}
+      <View style={[styles.header, { paddingTop: insets.top, paddingBottom: 16 }]}>
+        <View style={styles.headerLeft}>
           <TouchableOpacity 
-            style={[styles.headerButton, styles.headerButtonImport]}
+            style={styles.headerButton}
             onPress={abrirDrawer}
           >
             <FontAwesome5 name="bars" size={20} color="#7C3AED" />
           </TouchableOpacity>
           <Text style={styles.title}>Clientes</Text>
-          <TouchableOpacity 
-            style={[styles.headerButton, styles.headerButtonImport]}
-            onPress={abrirMenu}
-          >
-            <FontAwesome5 name="plus" size={20} color="#7C3AED" />
-          </TouchableOpacity>
         </View>
 
-        <View style={styles.filtrosWrapper}>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false} 
-            style={styles.filtrosContainer}
-            contentContainerStyle={{ paddingRight: 16 }}
-          >
-            <TouchableOpacity 
-              style={[styles.filtroItem, filtro === 'todos' && styles.filtroAtivo]}
-              onPress={() => setFiltro('todos')}
-            >
-              <View style={[styles.filtroIcone, filtro === 'todos' && styles.filtroIconeAtivo]}>
-                <FontAwesome5 name="users" size={16} color={filtro === 'todos' ? '#7C3AED' : '#666'} />
-              </View>
-              <Text style={[styles.filtroTexto, filtro === 'todos' && styles.filtroTextoAtivo]}>Todos</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.filtroItem, filtro === 'agendados' && styles.filtroAtivo]}
-              onPress={() => setFiltro('agendados')}
-            >
-              <View style={[styles.filtroIcone, filtro === 'agendados' && styles.filtroIconeAtivo]}>
-                <FontAwesome5 name="calendar" size={16} color={filtro === 'agendados' ? '#7C3AED' : '#666'} />
-              </View>
-              <Text style={[styles.filtroTexto, filtro === 'agendados' && styles.filtroTextoAtivo]}>Agendados</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.filtroItem, filtro === 'com_credito' && styles.filtroAtivo]}
-              onPress={() => setFiltro('com_credito')}
-            >
-              <View style={[styles.filtroIcone, filtro === 'com_credito' && styles.filtroIconeAtivo]}>
-                <FontAwesome5 name="user" size={16} color={filtro === 'com_credito' ? '#7C3AED' : '#666'} />
-              </View>
-              <Text style={[styles.filtroTexto, filtro === 'com_credito' && styles.filtroTextoAtivo]}>Com crédito</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.filtroItem, filtro === 'com_debito' && styles.filtroAtivo]}
-              onPress={() => setFiltro('com_debito')}
-            >
-              <View style={[styles.filtroIcone, filtro === 'com_debito' && styles.filtroIconeAtivo]}>
-                <FontAwesome5 name="exclamation-circle" size={16} color={filtro === 'com_debito' ? '#7C3AED' : '#666'} />
-              </View>
-              <Text style={[styles.filtroTexto, filtro === 'com_debito' && styles.filtroTextoAtivo]}>Com Débito</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-
-        <View style={styles.pesquisaContainer}>
-          <FontAwesome5 name="search" size={16} color="#9CA3AF" style={styles.pesquisaIcone} />
-          <TextInput
-            style={styles.pesquisaInput}
-            placeholder="Pesquisar por nome..."
-            value={pesquisa}
-            onChangeText={setPesquisa}
-            placeholderTextColor="#9CA3AF"
-          />
-        </View>
-
-        <Text style={styles.totalClientes}>
-          <Text style={styles.totalClientesNumero}>{filtrarClientes().length}</Text> clientes
-        </Text>
-
-        <ScrollView 
-          style={styles.listaClientes}
-          showsVerticalScrollIndicator={false}
+        <TouchableOpacity 
+          style={styles.headerButton}
+          onPress={abrirMenu}
         >
-          {filtrarClientes().map(cliente => (
-            <TouchableOpacity 
-              key={cliente.id} 
-              style={styles.clienteCard}
-              onPress={() => router.push(`/clientes/${cliente.id}`)}
-            >
-              <View style={styles.clienteFotoContainer}>
-                {cliente.foto_url ? (
-                  <Image 
-                    source={{ uri: cliente.foto_url }}
-                    style={styles.clienteFoto}
-                  />
-                ) : (
-                  <View style={styles.clienteFotoPlaceholder}>
-                    <FontAwesome5 name="user" size={24} color="#9CA3AF" />
-                  </View>
-                )}
-              </View>
-              <View style={styles.clienteInfo}>
-                <Text style={styles.clienteNome}>{cliente.nome}</Text>
-                {filtro === 'agendados' ? (
-                  <Text style={styles.clienteTelefone}>
-                    {cliente.agendamentos && cliente.agendamentos.length > 0
-                      ? new Date(cliente.agendamentos[0].data).toLocaleDateString('pt-BR', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })
-                      : 'Sem agendamento'}
-                  </Text>
-                ) : (
-                  <Text style={styles.clienteTelefone}>{cliente.telefone}</Text>
-                )}
-              </View>
-              <TouchableOpacity 
-                style={styles.whatsappButton}
-                onPress={() => abrirWhatsApp(cliente.telefone)}
-              >
-                <FontAwesome5 name="whatsapp" size={20} color="#25D366" />
-              </TouchableOpacity>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        <Modal
-          visible={menuAberto}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={fecharMenu}
-        >
-          <TouchableOpacity 
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={fecharMenu}
-          >
-            <View style={styles.menuContainer}>
-              <TouchableOpacity 
-                style={styles.menuItem}
-                onPress={novoCliente}
-              >
-                <FontAwesome5 name="user-plus" size={20} color="#7C3AED" />
-                <Text style={styles.menuItemTexto}>Novo Cliente</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.menuItem}
-                onPress={importarContato}
-              >
-                <FontAwesome5 name="address-book" size={20} color="#7C3AED" />
-                <Text style={styles.menuItemTexto}>Importar contatos</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </Modal>
+          <FontAwesome5 name="plus" size={20} color="#7C3AED" />
+        </TouchableOpacity>
       </View>
-    </>
+
+      <View style={styles.filtrosWrapper}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          style={styles.filtrosContainer}
+          contentContainerStyle={{ paddingHorizontal: 16 }}
+        >
+          <TouchableOpacity 
+            style={[styles.filtroItem, filtro === 'todos' && styles.filtroAtivo]}
+            onPress={() => setFiltro('todos')}
+          >
+            <View style={[styles.filtroIcone, filtro === 'todos' && styles.filtroIconeAtivo]}>
+              <FontAwesome5 name="users" size={16} color={filtro === 'todos' ? '#7C3AED' : '#666'} />
+            </View>
+            <Text style={[styles.filtroTexto, filtro === 'todos' && styles.filtroTextoAtivo]}>Todos</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.filtroItem, filtro === 'agendados' && styles.filtroAtivo]}
+            onPress={() => setFiltro('agendados')}
+          >
+            <View style={[styles.filtroIcone, filtro === 'agendados' && styles.filtroIconeAtivo]}>
+              <FontAwesome5 name="calendar" size={16} color={filtro === 'agendados' ? '#7C3AED' : '#666'} />
+            </View>
+            <Text style={[styles.filtroTexto, filtro === 'agendados' && styles.filtroTextoAtivo]}>Agendados</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.filtroItem, filtro === 'com_credito' && styles.filtroAtivo]}
+            onPress={() => setFiltro('com_credito')}
+          >
+            <View style={[styles.filtroIcone, filtro === 'com_credito' && styles.filtroIconeAtivo]}>
+              <FontAwesome5 name="user" size={16} color={filtro === 'com_credito' ? '#7C3AED' : '#666'} />
+            </View>
+            <Text style={[styles.filtroTexto, filtro === 'com_credito' && styles.filtroTextoAtivo]}>Com crédito</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.filtroItem, filtro === 'com_debito' && styles.filtroAtivo]}
+            onPress={() => setFiltro('com_debito')}
+          >
+            <View style={[styles.filtroIcone, filtro === 'com_debito' && styles.filtroIconeAtivo]}>
+              <FontAwesome5 name="exclamation-circle" size={16} color={filtro === 'com_debito' ? '#7C3AED' : '#666'} />
+            </View>
+            <Text style={[styles.filtroTexto, filtro === 'com_debito' && styles.filtroTextoAtivo]}>Com Débito</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+
+      <View style={styles.pesquisaContainer}>
+        <FontAwesome5 name="search" size={16} color="#9CA3AF" style={styles.pesquisaIcone} />
+        <TextInput
+          style={styles.pesquisaInput}
+          placeholder="Pesquisar por nome..."
+          value={pesquisa}
+          onChangeText={setPesquisa}
+          placeholderTextColor="#9CA3AF"
+        />
+      </View>
+
+      <Text style={styles.totalClientes}>
+        <Text style={styles.totalClientesNumero}>{filtrarClientes().length}</Text> clientes
+      </Text>
+
+      <ScrollView 
+        style={styles.listaClientes}
+        showsVerticalScrollIndicator={false}
+      >
+        {filtrarClientes().map(cliente => (
+          <TouchableOpacity 
+            key={cliente.id} 
+            style={styles.clienteCard}
+            onPress={() => router.push(`/clientes/${cliente.id}`)}
+          >
+            <View style={styles.clienteFotoContainer}>
+              {cliente.foto_url ? (
+                <Image 
+                  source={{ uri: cliente.foto_url }}
+                  style={styles.clienteFoto}
+                />
+              ) : (
+                <View style={styles.clienteFotoPlaceholder}>
+                  <FontAwesome5 name="user" size={24} color="#9CA3AF" />
+                </View>
+              )}
+            </View>
+            <View style={styles.clienteInfo}>
+              <Text style={styles.clienteNome}>{cliente.nome}</Text>
+              {filtro === 'agendados' ? (
+                <Text style={styles.clienteTelefone}>
+                  {cliente.agendamentos && cliente.agendamentos.length > 0
+                    ? new Date(cliente.agendamentos[0].data).toLocaleDateString('pt-BR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })
+                    : 'Sem agendamento'}
+                </Text>
+              ) : (
+                <Text style={styles.clienteTelefone}>{cliente.telefone}</Text>
+              )}
+            </View>
+            <TouchableOpacity 
+              style={styles.whatsappButton}
+              onPress={() => abrirWhatsApp(cliente.telefone)}
+            >
+              <FontAwesome5 name="whatsapp" size={20} color="#25D366" />
+            </TouchableOpacity>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      <Modal
+        visible={menuAberto}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={fecharMenu}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={fecharMenu}
+        >
+          <View style={styles.menuContainer}>
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={novoCliente}
+            >
+              <FontAwesome5 name="user-plus" size={20} color="#7C3AED" />
+              <Text style={styles.menuItemTexto}>Novo Cliente</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={importarContato}
+            >
+              <FontAwesome5 name="address-book" size={20} color="#7C3AED" />
+              <Text style={styles.menuItemTexto}>Importar contatos</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </View>
   );
 }
 
+// --- STYLESHEET COM AS MUDANÇAS ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -402,11 +403,15 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
+    justifyContent: 'space-between', // Mantém os grupos da esquerda e direita separados
+    paddingHorizontal: 16,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
+  },
+  headerLeft: { // Novo estilo para o grupo da esquerda
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   headerButton: {
     width: 40,
@@ -414,15 +419,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
-  },
-  headerButtonImport: {
-    backgroundColor: 'transparent',
   },
   title: {
     fontSize: 20,
-    fontWeight: 'bold',
     color: '#7C3AED',
+    marginLeft: 10, // Espaçamento entre o ícone de menu e o título
   },
   filtrosWrapper: {
     backgroundColor: '#fff',
@@ -431,8 +432,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F3F4F6',
   },
   filtrosContainer: {
-    paddingLeft: 16,
-    paddingRight: 16,
+    //
   },
   filtroItem: {
     flexDirection: 'row',
@@ -569,4 +569,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#111827',
   },
-}); 
+});

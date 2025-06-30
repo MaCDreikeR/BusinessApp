@@ -562,7 +562,18 @@ export default function AppLayout() {
           ),
           drawerItemStyle: { display: 'flex' },
         }}
-      />
+      />  
+      <Drawer.Screen
+  name="clientes" // Nome da pasta/rota
+  options={{
+    title: 'Clientes',
+    headerShown: false, // <-- ADICIONE ESTA LINHA
+    drawerIcon: ({ color }) => (
+      <FontAwesome5 name="users" size={20} color={color} />
+    ),
+    drawerItemStyle: { display: 'flex' },
+  }}
+/>
 
       <Drawer.Screen
         name="aniversariantes"
