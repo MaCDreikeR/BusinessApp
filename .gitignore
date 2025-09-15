@@ -2,12 +2,22 @@
 
 # dependencies
 node_modules/
-
+.idea/
+.tmp.driveupload/
+*.keystore
 # Expo
 .expo/
 dist/
 web-build/
 expo-env.d.ts
+local.properties.txt
+debug.keystore
+*.log
+*.tmp
+*.bak
+desktop.ini
+android/build/
+app/build/
 
 # Native
 *.orig.*
