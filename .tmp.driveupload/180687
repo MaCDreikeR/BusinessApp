@@ -1,0 +1,16 @@
+0000000000000000000000000000000000000000 27e5afaa440a6b3b1ecd89956aafba51f959b6c5 MaCDreikeR <borgespereira87@gmail.com> 1751240217 -0300	commit (initial): Primeiro commit do projeto BusinessApp
+27e5afaa440a6b3b1ecd89956aafba51f959b6c5 9ba67b47140609918c36f194e0117bde20d60793 MaCDreikeR <borgespereira87@gmail.com> 1751246424 -0300	commit: Cabeçalho e titulo da tela de "Clientes" e opção "Clientes" add no menu
+9ba67b47140609918c36f194e0117bde20d60793 fae68fdcf18fce779be0685a8761e064dadf137b MaCDreikeR <borgespereira87@gmail.com> 1757888910 -0300	commit: Tela de login, tela inicial, tela de cadastro
+fae68fdcf18fce779be0685a8761e064dadf137b 1aaed390ec0ded6549c5844b709d3e88039369a3 MaCDreikeR <borgespereira87@gmail.com> 1757889012 -0300	commit (amend): Tela de login, tela inicial, tela de cadastro
+1aaed390ec0ded6549c5844b709d3e88039369a3 09013905e820598cd2d3c1cfd585ee81c2b3be16 MaCDreikeR <borgespereira87@gmail.com> 1757910537 -0300	commit: git
+09013905e820598cd2d3c1cfd585ee81c2b3be16 3f8250d164bc98b5b8eb100249b5c12622e69493 MaCDreikeR <borgespereira87@gmail.com> 1757910634 -0300	commit: arquivos deletados
+3f8250d164bc98b5b8eb100249b5c12622e69493 efe3b22522e7bdad722ecf8aad1324c0ee85baa3 MaCDreikeR <borgespereira87@gmail.com> 1757911214 -0300	commit (merge): repositorio atualizadoMerge branch 'master' of https://github.com/MaCDreikeR/BusinessApp
+efe3b22522e7bdad722ecf8aad1324c0ee85baa3 d3dde078f0722d308b5d0ef44eaa6989f2c7f1ab MaCDreikeR <borgespereira87@gmail.com> 1757911347 -0300	commit: Remove .env do controle do Git
+d3dde078f0722d308b5d0ef44eaa6989f2c7f1ab 8c66a26aea1909a047ba7bfc06839f5ae20e0816 MaCDreikeR <borgespereira87@gmail.com> 1757911785 -0300	commit: Remove my-release-key.keystore do controle do Git
+8c66a26aea1909a047ba7bfc06839f5ae20e0816 369daa22a523bf45f740499375fd527bb49c7a49 MaCDreikeR <borgespereira87@gmail.com> 1757911975 -0300	commit: Atualização de repositorio
+369daa22a523bf45f740499375fd527bb49c7a49 dbea2041ad295622202ab652dd4e87c30e94f853 MaCDreikeR <borgespereira87@gmail.com> 1757912214 -0300	commit: Add binary files for drive upload with IDs 524471 and 524475
+dbea2041ad295622202ab652dd4e87c30e94f853 48b016de4f9756da90aab6edf9566573e8dc88eb MaCDreikeR <borgespereira87@gmail.com> 1757912345 -0300	commit: Add temporary drive upload files with binary data for processing
+48b016de4f9756da90aab6edf9566573e8dc88eb f80625dba32f1006456832c083f7e8e37790928d MaCDreikeR <borgespereira87@gmail.com> 1757912510 -0300	commit: Remoção de arquivos
+f80625dba32f1006456832c083f7e8e37790928d 73f34d9f3e4de59380bc1aafd3af9d9e85aa3f84 MaCDreikeR <borgespereira87@gmail.com> 1757913885 -0300	commit: Tela de cadastro, avatar do perfil, e permissões de contatos!
+73f34d9f3e4de59380bc1aafd3af9d9e85aa3f84 0152b55e32a1adba9f0508c69bd9ed5d508ebaaa MaCDreikeR <borgespereira87@gmail.com> 1757913950 -0300	commit: Atualização
+0152b55e32a1adba9f0508c69bd9ed5d508ebaaa 7036b23293e57bebc6f2dca7c63faa90102f4dc8 MaCDreikeR <borgespereira87@gmail.com> 1757913966 -0300	commit: al
