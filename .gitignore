@@ -31,6 +31,7 @@ yarn-error.*
 
 # local env files
 .env
+my-release-key.keystore
 
 # typescript
 *.tsbuildinfo
