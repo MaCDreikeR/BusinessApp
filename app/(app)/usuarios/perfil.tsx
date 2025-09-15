@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator, ScrollView, Image, Platform, DeviceEventEmitter } from 'react-native';
+import {
+  View, Text, StyleSheet, TouchableOpacity, TextInput, Alert,
+  ActivityIndicator, ScrollView, Image, Platform, Switch
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useNavigation } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
-import * as FileSystem from 'expo-file-system';
 import { Picker } from '@react-native-picker/picker';
-import { decode } from 'base-64';
 
 const SEGMENTOS = [
   { label: 'Selecione um segmento', value: '' },
@@ -18,6 +19,28 @@ const SEGMENTOS = [
   { label: 'Saúde', value: 'saude' },
   { label: 'Outros', value: 'outros' }
 ];
+
+const formatarCNPJ = (valor: string) => {
+  const cnpj = valor.replace(/\D/g, '');
+  if (cnpj.length <= 2) return cnpj;
+  if (cnpj.length <= 5) return `${cnpj.slice(0, 2)}.${cnpj.slice(2)}`;
+  if (cnpj.length <= 8) return `${cnpj.slice(0, 2)}.${cnpj.slice(2, 5)}.${cnpj.slice(5)}`;
+  if (cnpj.length <= 12) return `${cnpj.slice(0, 2)}.${cnpj.slice(2, 5)}.${cnpj.slice(5, 8)}/${cnpj.slice(8)}`;
+  return `${cnpj.slice(0, 2)}.${cnpj.slice(2, 5)}.${cnpj.slice(5, 8)}/${cnpj.slice(8, 12)}-${cnpj.slice(12, 14)}`;
+};
+const formatarCPF = (valor: string) => {
+  const cpf = valor.replace(/\D/g, '');
+  if (cpf.length <= 3) return cpf;
+  if (cpf.length <= 6) return `${cpf.slice(0, 3)}.${cpf.slice(3)}`;
+  if (cpf.length <= 9) return `${cpf.slice(0, 3)}.${cpf.slice(3, 6)}.${cpf.slice(6)}`;
+  return `${cpf.slice(0, 3)}.${cpf.slice(3, 6)}.${cpf.slice(6, 9)}-${cpf.slice(9, 11)}`;
+};
+const formatarCelular = (valor: string) => {
+  const celular = valor.replace(/\D/g, '');
+  if (celular.length <= 2) return `(${celular}`;
+  if (celular.length <= 7) return `(${celular.slice(0, 2)}) ${celular.slice(2)}`;
+  return `(${celular.slice(0, 2)}) ${celular.slice(2, 7)}-${celular.slice(7, 11)}`;
+};
 
 export default function PerfilScreen() {
   const { session } = useAuth();
@@ -33,8 +56,6 @@ export default function PerfilScreen() {
   const [tipoDocumento, setTipoDocumento] = useState('CPF');
   const [numeroDocumento, setNumeroDocumento] = useState('');
   const [segmento, setSegmento] = useState('');
-  const [receberTutorial, setReceberTutorial] = useState(false);
-  const [aceitarTermos, setAceitarTermos] = useState(false);
   const [senhaAtual, setSenhaAtual] = useState('');
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
@@ -49,7 +70,7 @@ export default function PerfilScreen() {
       carregarPerfil();
     } else {
       setLoading(false);
-      Alert.alert('Erro', 'Usuário não autenticado');
+      Alert.alert('Erro', 'Usuário não autenticado.');
       router.replace('/(auth)/login');
     }
   }, [session?.user?.id]);
@@ -59,10 +80,7 @@ export default function PerfilScreen() {
       headerShown: true,
       headerTitle: 'Editar Perfil',
       headerLeft: () => (
-        <TouchableOpacity 
-          onPress={() => router.replace('/usuarios')}
-          style={{ marginLeft: 16 }}
-        >
+        <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 16 }}>
           <Ionicons name="arrow-back" size={24} color="#7C3AED" />
         </TouchableOpacity>
       ),
@@ -70,399 +88,207 @@ export default function PerfilScreen() {
   }, [navigation]);
 
   const carregarPerfil = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      if (!session?.user?.id) throw new Error("ID do usuário não encontrado na sessão.");
       
-      if (!user) {
-        router.replace('/login');
-        return;
-      }
-
-      // Buscar dados do usuário
-      const { data: usuarioData, error: usuarioError } = await supabase
+      const { data, error } = await supabase
         .from('usuarios')
-        .select(`
-          *,
-          conta:contas (
-            nome_estabelecimento,
-            tipo_documento,
-            numero_documento,
-            telefone,
-            segmento
-          )
-        `)
-        .eq('id', user.id)
+        .select(`*, estabelecimento:estabelecimentos(*)`)
+        .eq('id', session.user.id)
         .single();
 
-      if (usuarioError) {
-        console.error('Erro ao buscar dados do usuário:', usuarioError);
-        throw usuarioError;
-      }
+      if (error) throw error;
 
-      if (!usuarioData) {
-        throw new Error('Usuário não encontrado');
-      }
-
-      setUsuarioData(usuarioData);
-      setNome(usuarioData.nome_completo);
-      setEmail(usuarioData.email);
-      setCelular(usuarioData.telefone);
-      setReceberTutorial(usuarioData.receber_tutorial);
-      setAceitarTermos(usuarioData.aceitar_termos);
-      setFazAtendimento(usuarioData.faz_atendimento || false);
-
-      // Se o usuário for principal, carrega os dados da conta
-      if (usuarioData.is_principal && usuarioData.conta) {
-        setNomeEstabelecimento(usuarioData.conta.nome_estabelecimento);
-        setTipoDocumento(usuarioData.conta.tipo_documento);
-        setNumeroDocumento(usuarioData.conta.numero_documento);
-        setSegmento(usuarioData.conta.segmento);
-      }
-
-      if (usuarioData.avatar_url) {
-        setAvatarUrl(`${usuarioData.avatar_url}?v=${Date.now()}`);
-        } else {
-          setAvatarUrl(null);
+      if (data) {
+        setUsuarioData(data);
+        setNome(data.nome || '');
+        setEmail(data.email || '');
+        setCelular(formatarCelular(data.celular || ''));
+        setIsPrincipal(data.is_principal || false);
+        setFazAtendimento(data.faz_atendimento || false);
+        setAvatarUrl(data.avatar_url);
+        if (data.estabelecimento) {
+          setNomeEstabelecimento(data.estabelecimento.nome || '');
+          setTipoDocumento(data.estabelecimento.tipo_documento || 'CPF');
+          const doc = data.estabelecimento.numero_documento || '';
+          setNumeroDocumento(data.estabelecimento.tipo_documento === 'CPF' ? formatarCPF(doc) : formatarCNPJ(doc));
+          setSegmento(data.estabelecimento.segmento || '');
         }
-
-      console.log('Dados do usuário carregados:', usuarioData);
-    } catch (error) {
-      console.error('Erro ao carregar perfil:', error);
-      Alert.alert('Erro', 'Não foi possível carregar os dados do perfil');
+      }
+    } catch (error: any) {
+      Alert.alert('Erro ao Carregar Perfil', error.message);
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const handleUploadAvatar = async () => {
+    const oldAvatarUrl = avatarUrl;
+
+    try {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert('Permissão Necessária', 'Precisamos de permissão para acessar suas fotos.');
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.5,
+        });
+
+        if (result.canceled || !result.assets[0]) {
+            return;
+        }
+
+        setSaving(true);
+        const file = result.assets[0];
+        const fileExt = file.uri.split('.').pop()?.toLowerCase() ?? 'jpg';
+        const fileName = `${session!.user.id}-${Date.now()}.${fileExt}`;
+        const contentType = `image/${fileExt}`;
+
+        const formData = new FormData();
+        formData.append('file', {
+            uri: file.uri,
+            name: fileName,
+            type: contentType,
+        } as any);
+
+        const { error: uploadError } = await supabase.storage
+            .from('avatars')
+            .upload(fileName, formData, { upsert: true });
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+            .from('avatars')
+            .getPublicUrl(fileName);
+
+        if (!publicUrl) throw new Error("Não foi possível obter a URL pública da nova imagem.");
+
+        const { error: updateError } = await supabase
+            .from('usuarios')
+            .update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
+            .eq('id', session!.user.id);
+
+        if (updateError) {
+            await supabase.storage.from('avatars').remove([fileName]);
+            throw updateError;
+        }
+
+        if (oldAvatarUrl) {
+            const oldFileNameMatch = oldAvatarUrl.match(/avatars\/(.*)/);
+            if (oldFileNameMatch && oldFileNameMatch[1]) {
+                const oldFileName = oldFileNameMatch[1].split('?')[0];
+                await supabase.storage.from('avatars').remove([oldFileName]);
+            }
+        }
+
+        setAvatarUrl(publicUrl);
+        Alert.alert('Sucesso', 'Imagem de perfil atualizada!');
+
+    } catch (error: any) {
+        Alert.alert('Erro', `Não foi possível fazer o upload da imagem: ${error.message}`);
+    } finally {
+        setSaving(false);
     }
   };
 
   const handleDeleteAvatar = async () => {
-    try {
-      setSaving(true);
+    if (!avatarUrl) return;
 
-      if (!session?.user?.id || !avatarUrl) {
-        return;
-      }
+    Alert.alert(
+        "Remover Foto",
+        "Tem certeza de que deseja remover sua foto de perfil?",
+        [
+            { text: "Cancelar", style: "cancel" },
+            {
+                text: "Remover",
+                style: "destructive",
+                onPress: async () => {
+                    setSaving(true);
+                    try {
+                        const fileNameMatch = avatarUrl.match(/avatars\/(.*)/);
+                        if (!fileNameMatch || !fileNameMatch[1]) {
+                            throw new Error("Não foi possível extrair o nome do arquivo da URL.");
+                        }
+                        const fileName = fileNameMatch[1].split('?')[0];
 
-      // Extrair o nome do arquivo da URL
-      const fileNameMatch = avatarUrl.match(/avatars\/([^?]+)/);
-      if (!fileNameMatch) {
-        throw new Error('Nome do arquivo não encontrado na URL');
-      }
-      const fileName = fileNameMatch[1];
+                        const { error: removeError } = await supabase.storage.from('avatars').remove([fileName]);
+                        if (removeError) throw removeError;
 
-      // Excluir o arquivo do storage
-      const { error: deleteError } = await supabase.storage
-        .from('avatars')
-        .remove([fileName]);
+                        const { error: updateError } = await supabase.from('usuarios').update({ avatar_url: null, updated_at: new Date().toISOString() }).eq('id', session!.user.id);
+                        if (updateError) throw updateError;
 
-      if (deleteError) {
-        throw deleteError;
-      }
-
-      // Atualizar o perfil removendo a URL do avatar
-      const { error: updateError } = await supabase
-        .from('usuarios')
-        .update({ 
-          avatar_url: null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', session.user.id);
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      setAvatarUrl(null);
-      Alert.alert('Sucesso', 'Foto de perfil removida com sucesso!');
-    } catch (error) {
-      console.error('Erro ao excluir avatar:', error);
-      Alert.alert('Erro', 'Não foi possível excluir a foto de perfil');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleUploadAvatar = async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Erro', 'Precisamos de permissão para acessar suas fotos');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.5,
-      });
-
-      console.log('Resultado da seleção de imagem:', result);
-
-      if (!result.canceled && result.assets[0]) {
-        setSaving(true);
-        const file = result.assets[0];
-
-        // Se já existe um avatar, excluir primeiro
-        if (avatarUrl) {
-          const fileNameMatch = avatarUrl.match(/avatars\/([^?]+)/);
-          if (fileNameMatch) {
-            const oldFileName = fileNameMatch[1];
-            await supabase.storage
-              .from('avatars')
-              .remove([oldFileName]);
-          }
-        }
-
-        // Criar um FormData
-        const formData = new FormData();
-        formData.append('file', {
-          uri: file.uri,
-          type: 'image/jpeg',
-          name: 'avatar.jpg'
-        } as any);
-
-        // Forçar extensão .jpg
-        const fileName = `${session?.user.id}-${Date.now()}.jpg`;
-        
-        console.log('Iniciando upload do arquivo:', fileName);
-
-        const { data, error } = await supabase.storage
-          .from('avatars')
-          .upload(fileName, formData, {
-            contentType: 'multipart/form-data',
-            upsert: true
-          });
-
-        if (error) {
-          console.error('Erro no upload:', error);
-          throw error;
-        }
-
-        console.log('Upload concluído, obtendo URL pública');
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('avatars')
-          .getPublicUrl(fileName);
-
-        console.log('URL pública obtida:', publicUrl);
-
-        const { error: updateError } = await supabase
-          .from('usuarios')
-          .update({ 
-            avatar_url: publicUrl,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', session?.user.id);
-
-        if (updateError) {
-          console.error('Erro ao atualizar perfil:', updateError);
-          throw updateError;
-        }
-
-        // Atualizar a URL com timestamp para forçar recarregamento
-        setAvatarUrl(publicUrl + '?v=' + Date.now());
-        Alert.alert('Sucesso', 'Imagem de perfil atualizada com sucesso!');
-      }
-    } catch (error) {
-      console.error('Erro detalhado:', error);
-      Alert.alert('Erro', 'Não foi possível fazer o upload da imagem. Por favor, tente novamente.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // Componente de imagem otimizado
-  const AvatarImage = React.useMemo(() => {
-    if (!avatarUrl) {
-      return (
-        <View style={styles.avatarPlaceholder}>
-          <Ionicons name="person" size={40} color="#7C3AED" />
-        </View>
-      );
-    }
-
-    // Adicionar timestamp para forçar recarregamento da imagem
-    const imageUrlWithTimestamp = `${avatarUrl}?v=${Date.now()}`;
-
-    return (
-      <Image
-        source={{ 
-          uri: imageUrlWithTimestamp,
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
-        }}
-        style={styles.avatar}
-        onLoadStart={() => console.log('Iniciando carregamento da imagem:', imageUrlWithTimestamp)}
-        onLoadEnd={() => console.log('Carregamento da imagem concluído')}
-        onError={(e) => {
-          console.error('Erro ao carregar imagem:', imageUrlWithTimestamp, e.nativeEvent);
-          setAvatarUrl(null);
-        }}
-      />
+                        setAvatarUrl(null);
+                        Alert.alert('Sucesso', 'Sua foto de perfil foi removida.');
+                    } catch (error: any) {
+                        Alert.alert('Erro', `Não foi possível remover a foto: ${error.message}`);
+                    } finally {
+                        setSaving(false);
+                    }
+                },
+            },
+        ]
     );
-  }, [avatarUrl]);
-
-  const formatarCNPJ = (valor: string) => {
-    // Remove todos os caracteres não numéricos
-    const apenasNumeros = valor.replace(/\D/g, '');
-    
-    // Aplica a máscara XX.XXX.XXX/XXXX-XX
-    return apenasNumeros.replace(
-      /^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,
-      '$1.$2.$3/$4-$5'
-    );
-  };
-
-  const handleCNPJChange = (texto: string) => {
-    // Remove caracteres não numéricos para o estado
-    const apenasNumeros = texto.replace(/\D/g, '');
-    
-    // Limita a 14 dígitos
-    if (apenasNumeros.length <= 14) {
-      // Guarda os números puros no estado
-      setNumeroDocumento(apenasNumeros);
-    }
-  };
-
-  const formatarCPF = (valor: string) => {
-    // Remove todos os caracteres não numéricos
-    const apenasNumeros = valor.replace(/\D/g, '');
-    
-    // Aplica a máscara XXX.XXX.XXX-XX
-    return apenasNumeros.replace(
-      /^(\d{3})(\d{3})(\d{3})(\d{2})$/,
-      '$1.$2.$3-$4'
-    );
-  };
-
-  const formatarCelular = (valor: string) => {
-    // Remove todos os caracteres não numéricos
-    const apenasNumeros = valor.replace(/\D/g, '');
-    
-    // Aplica a máscara (XX) XXXX-XXXX
-    return apenasNumeros.replace(
-      /^(\d{2})(\d{4})(\d{4})$/,
-      '($1) $2-$3'
-    );
-  };
-
-  const handleAlterarSenha = async () => {
-    if (!senhaAtual) {
-      Alert.alert('Erro', 'A senha atual é obrigatória');
-      return;
-    }
-
-    if (novaSenha !== confirmarSenha) {
-      Alert.alert('Erro', 'As senhas não coincidem');
-      return;
-    }
-
-    if (novaSenha.length < 6) {
-      Alert.alert('Erro', 'A nova senha deve ter pelo menos 6 caracteres');
-      return;
-    }
-
-    try {
-      setSaving(true);
-
-      // Primeiro, reautenticar o usuário com a senha atual
-      const { error: reauthError } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: senhaAtual,
-      });
-
-      if (reauthError) {
-        throw new Error('Senha atual incorreta');
-      }
-
-      // Se a reautenticação foi bem sucedida, atualizar a senha
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: novaSenha 
-      });
-
-      if (updateError) throw updateError;
-
-      Alert.alert('Sucesso', 'Senha atualizada com sucesso!');
-      
-      // Limpar os campos
-      setSenhaAtual('');
-      setNovaSenha('');
-      setConfirmarSenha('');
-    } catch (error: any) {
-      console.error('Erro ao alterar senha:', error);
-      Alert.alert('Erro', error.message || 'Não foi possível alterar a senha');
-    } finally {
-      setSaving(false);
-    }
   };
 
   const handleSalvar = async () => {
+    setSaving(true);
     try {
-      setLoading(true);
+        const { error: userError } = await supabase.from('usuarios').update({
+            nome,
+            celular: celular.replace(/\D/g, ''),
+            faz_atendimento: fazAtendimento,
+            updated_at: new Date().toISOString(),
+        }).eq('id', session!.user.id);
 
-      // Validar campos obrigatórios
-      if (!nome || !email || !celular) {
-        Alert.alert('Erro', 'Preencha todos os campos obrigatórios');
-        return;
-      }
+        if (userError) throw userError;
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.replace('/login');
-        return;
-      }
+        if (isPrincipal && usuarioData?.estabelecimento?.id) {
+            const { error: estabError } = await supabase.from('estabelecimentos').update({
+                nome: nomeEstabelecimento,
+                tipo_documento: tipoDocumento,
+                numero_documento: numeroDocumento.replace(/\D/g, ''),
+                segmento,
+                updated_at: new Date().toISOString(),
+            }).eq('id', usuarioData.estabelecimento.id);
 
-      // Atualizar dados do usuário
-      const { error: usuarioError } = await supabase
-        .from('usuarios')
-        .update({
-          nome_completo: nome,
-          email: email,
-          telefone: celular,
-          receber_tutorial: receberTutorial,
-          aceitar_termos: aceitarTermos,
-          faz_atendimento: fazAtendimento,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
-
-      if (usuarioError) throw usuarioError;
-
-      // Se o usuário for principal, atualizar dados da conta
-      if (usuarioData?.is_principal) {
-        // Formatar documento
-        let documentoFormatado = numeroDocumento;
-        if (tipoDocumento === 'CPF') {
-          documentoFormatado = formatarCPF(numeroDocumento);
-        } else if (tipoDocumento === 'CNPJ') {
-          documentoFormatado = formatarCNPJ(numeroDocumento);
+            if (estabError) throw estabError;
         }
 
-        // Atualizar dados da conta
-        const { error: contaError } = await supabase
-          .from('contas')
-            .update({
-            nome_estabelecimento: nomeEstabelecimento,
-              tipo_documento: tipoDocumento,
-              numero_documento: documentoFormatado,
-              segmento: segmento
-            })
-          .eq('id', usuarioData.conta_id);
-
-        if (contaError) throw contaError;
-      }
-
-      Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
-      await carregarPerfil();
-      router.replace('/usuarios');
-    } catch (error) {
-      console.error('Erro ao salvar perfil:', error);
-      Alert.alert('Erro', 'Não foi possível salvar as alterações');
+        Alert.alert('Sucesso!', 'Seus dados foram atualizados.');
+    } catch (error: any) {
+        Alert.alert('Erro ao Salvar', error.message);
     } finally {
-      setLoading(false);
+        setSaving(false);
+    }
+  };
+
+  const handleAlterarSenha = async () => {
+    if (novaSenha !== confirmarSenha) {
+        Alert.alert('Erro', 'As novas senhas não coincidem.');
+        return;
+    }
+    if (novaSenha.length < 8) {
+        Alert.alert('Erro', 'A nova senha deve ter no mínimo 8 caracteres.');
+        return;
+    }
+    setSaving(true);
+    try {
+        const { error } = await supabase.auth.updateUser({ password: novaSenha });
+        if (error) throw error;
+        Alert.alert('Sucesso', 'Sua senha foi alterada.');
+        setSenhaAtual('');
+        setNovaSenha('');
+        setConfirmarSenha('');
+    } catch (error: any) {
+        Alert.alert('Erro ao Alterar Senha', error.message);
+    } finally {
+        setSaving(false);
     }
   };
 
@@ -476,25 +302,22 @@ export default function PerfilScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: 40 }}>
         <View style={styles.formContainer}>
-          {/* Seção de Foto de Perfil */}
           <View style={styles.avatarContainer}>
             <View style={styles.avatarWrapper}>
-              {AvatarImage}
-              <TouchableOpacity 
-                style={styles.editAvatarButton}
-                onPress={handleUploadAvatar}
-                disabled={saving}
-              >
-                <Ionicons name="camera" size={20} color="#FFFFFF" />
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Ionicons name="person" size={40} color="#7C3AED" />
+                </View>
+              )}
+              <TouchableOpacity style={styles.editAvatarButton} onPress={handleUploadAvatar} disabled={saving}>
+                {saving ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name="camera" size={20} color="#FFFFFF" />}
               </TouchableOpacity>
               {avatarUrl && (
-                <TouchableOpacity 
-                  style={styles.deleteAvatarButton}
-                  onPress={handleDeleteAvatar}
-                  disabled={saving}
-                >
+                <TouchableOpacity style={styles.deleteAvatarButton} onPress={handleDeleteAvatar} disabled={saving}>
                   <Ionicons name="trash" size={20} color="#FFFFFF" />
                 </TouchableOpacity>
               )}
@@ -502,210 +325,77 @@ export default function PerfilScreen() {
             <Text style={styles.avatarLabel}>Foto de Perfil</Text>
           </View>
 
-        <Text style={styles.sectionTitle}>Dados Pessoais</Text>
-        
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Nome Completo *</Text>
-          <TextInput
-            style={styles.input}
-            value={nome}
-            onChangeText={setNome}
-              placeholder="Digite seu nome completo"
-          />
-        </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>E-mail *</Text>
-          <TextInput
-              style={styles.input}
-            value={email}
-              onChangeText={setEmail}
-              placeholder="Digite seu e-mail"
-              keyboardType="email-address"
-              autoCapitalize="none"
-          />
-        </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Celular *</Text>
-          <TextInput
-            style={styles.input}
-              value={celular}
-              onChangeText={setCelular}
-            placeholder="(00) 00000-0000"
-            keyboardType="phone-pad"
-          />
-        </View>
-
-          {usuarioData?.is_principal && (
-          <>
-              <Text style={styles.sectionTitle}>Dados do Estabelecimento</Text>
-            
-              <View style={styles.inputContainer}>
-              <Text style={styles.label}>Nome do Estabelecimento</Text>
-              <TextInput
-                style={styles.input}
-                value={nomeEstabelecimento}
-                onChangeText={setNomeEstabelecimento}
-                  placeholder="Digite o nome do estabelecimento"
-              />
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Dados Pessoais</Text>
+            <View style={styles.inputContainer}>
+                <Text style={styles.label}>Nome Completo</Text>
+                <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Seu nome completo"/>
             </View>
-
+            <View style={styles.inputContainer}>
+                <Text style={styles.label}>E-mail</Text>
+                <TextInput style={[styles.input, styles.inputDisabled]} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" editable={false} />
+            </View>
+            <View style={styles.inputContainer}>
+                <Text style={styles.label}>Celular</Text>
+                <TextInput style={styles.input} value={celular} onChangeText={(text) => setCelular(formatarCelular(text))} keyboardType="phone-pad" placeholder="(00) 00000-0000"/>
+            </View>
+            <View style={styles.switchContainer}>
+                <Text style={styles.label}>Este usuário faz atendimentos/agendamentos</Text>
+                <Switch trackColor={{ false: "#767577", true: "#81b0ff" }} thumbColor={fazAtendimento ? "#7C3AED" : "#f4f3f4"} value={fazAtendimento} onValueChange={setFazAtendimento} />
+            </View>
+          </View>
+          
+          {isPrincipal && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Dados do Estabelecimento</Text>
+              <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Nome do Estabelecimento</Text>
+                  <TextInput style={styles.input} value={nomeEstabelecimento} onChangeText={setNomeEstabelecimento} placeholder="Nome da sua empresa"/>
+              </View>
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Tipo de Documento</Text>
-                <View style={styles.radioContainer}>
-                  <TouchableOpacity
-                    style={[styles.radioButton, tipoDocumento === 'cpf' && styles.radioButtonSelected]}
-                    onPress={() => setTipoDocumento('cpf')}
-                  >
-                    <Text style={[styles.radioText, tipoDocumento === 'cpf' && styles.radioTextSelected]}>CPF</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.radioButton, tipoDocumento === 'cnpj' && styles.radioButtonSelected]}
-                    onPress={() => setTipoDocumento('cnpj')}
-                  >
-                    <Text style={[styles.radioText, tipoDocumento === 'cnpj' && styles.radioTextSelected]}>CNPJ</Text>
-                  </TouchableOpacity>
+                <View style={styles.pickerContainer}>
+                  <Picker selectedValue={tipoDocumento} onValueChange={(itemValue) => setTipoDocumento(itemValue)}>
+                    <Picker.Item label="CPF" value="CPF" />
+                    <Picker.Item label="CNPJ" value="CNPJ" />
+                  </Picker>
                 </View>
               </View>
-
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Número do Documento</Text>
-              <TextInput
-                style={styles.input}
-                  value={numeroDocumento}
-                  onChangeText={setNumeroDocumento}
-                  placeholder={tipoDocumento === 'cpf' ? '000.000.000-00' : '00.000.000/0000-00'}
-                keyboardType="numeric"
-              />
-            </View>
-
+                  <Text style={styles.label}>{tipoDocumento}</Text>
+                  <TextInput style={styles.input} value={numeroDocumento} onChangeText={(text) => setNumeroDocumento(tipoDocumento === 'CPF' ? formatarCPF(text) : formatarCNPJ(text))} keyboardType="numeric"/>
+              </View>
               <View style={styles.inputContainer}>
-              <Text style={styles.label}>Segmento</Text>
-                  <Picker
-                    selectedValue={segmento}
-                    onValueChange={setSegmento}
-                    style={styles.picker}
-                  >
-                  {SEGMENTOS.map((item) => (
-                    <Picker.Item key={item.value} label={item.label} value={item.value} />
-                    ))}
-                  </Picker>
+                <Text style={styles.label}>Segmento</Text>
+                <View style={styles.pickerContainer}>
+                    <Picker selectedValue={segmento} onValueChange={(itemValue) => setSegmento(itemValue)}>
+                        {SEGMENTOS.map(s => <Picker.Item key={s.value} label={s.label} value={s.value} />)}
+                    </Picker>
+                </View>
+              </View>
             </View>
-          </>
-        )}
+          )}
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Faz Atendimento?</Text>
-          <View style={styles.radioContainer}>
-            <TouchableOpacity
-              style={[styles.radioButton, fazAtendimento && styles.radioButtonSelected]}
-              onPress={() => setFazAtendimento(true)}
-            >
-              <Text style={[styles.radioText, fazAtendimento && styles.radioTextSelected]}>Sim</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.radioButton, !fazAtendimento && styles.radioButtonSelected]}
-              onPress={() => setFazAtendimento(false)}
-            >
-              <Text style={[styles.radioText, !fazAtendimento && styles.radioTextSelected]}>Não</Text>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Alterar Senha</Text>
+            <View style={styles.inputContainer}>
+                <Text style={styles.label}>Nova Senha</Text>
+                <TextInput style={styles.input} value={novaSenha} onChangeText={setNovaSenha} secureTextEntry={!showNovaSenha} placeholder="Mínimo 8 caracteres"/>
+            </View>
+            <View style={styles.inputContainer}>
+                <Text style={styles.label}>Confirmar Nova Senha</Text>
+                <TextInput style={styles.input} value={confirmarSenha} onChangeText={setConfirmarSenha} secureTextEntry={!showConfirmarSenha} placeholder="Repita a nova senha"/>
+            </View>
+            <TouchableOpacity style={styles.saveButton} onPress={handleAlterarSenha} disabled={saving}>
+                <Text style={styles.saveButtonText}>Alterar Senha</Text>
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity style={[styles.saveButton, styles.mainSaveButton]} onPress={handleSalvar} disabled={saving}>
+              {saving ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.saveButtonText}>Salvar Alterações</Text>}
+          </TouchableOpacity>
         </View>
-
-        {/* Seção de Troca de Senha */}
-        <Text style={styles.sectionTitle}>Alterar Senha</Text>
-        
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Senha Atual</Text>
-          <View style={styles.passwordInputContainer}>
-            <TextInput
-              style={styles.passwordInput}
-              value={senhaAtual}
-              onChangeText={setSenhaAtual}
-              placeholder="Digite sua senha atual"
-              secureTextEntry={!showSenhaAtual}
-            />
-            <TouchableOpacity 
-              style={styles.eyeIcon}
-              onPress={() => setShowSenhaAtual(!showSenhaAtual)}
-            >
-              <Ionicons 
-                name={showSenhaAtual ? "eye-off" : "eye"} 
-                size={24} 
-                color="#6B7280" 
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Nova Senha</Text>
-          <View style={styles.passwordInputContainer}>
-            <TextInput
-              style={styles.passwordInput}
-              value={novaSenha}
-              onChangeText={setNovaSenha}
-              placeholder="Digite a nova senha"
-              secureTextEntry={!showNovaSenha}
-            />
-            <TouchableOpacity 
-              style={styles.eyeIcon}
-              onPress={() => setShowNovaSenha(!showNovaSenha)}
-            >
-              <Ionicons 
-                name={showNovaSenha ? "eye-off" : "eye"} 
-                size={24} 
-                color="#6B7280" 
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Confirmar Nova Senha</Text>
-          <View style={styles.passwordInputContainer}>
-            <TextInput
-              style={styles.passwordInput}
-              value={confirmarSenha}
-              onChangeText={setConfirmarSenha}
-              placeholder="Confirme a nova senha"
-              secureTextEntry={!showConfirmarSenha}
-            />
-            <TouchableOpacity 
-              style={styles.eyeIcon}
-              onPress={() => setShowConfirmarSenha(!showConfirmarSenha)}
-            >
-              <Ionicons 
-                name={showConfirmarSenha ? "eye-off" : "eye"} 
-                size={24} 
-                color="#6B7280" 
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <TouchableOpacity 
-          style={[styles.button, styles.alterarSenhaButton]}
-          onPress={handleAlterarSenha}
-          disabled={saving}
-        >
-          <Text style={styles.buttonText}>
-            {saving ? 'Alterando senha...' : 'Alterar Senha'}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-            style={styles.button}
-          onPress={handleSalvar}
-            disabled={loading}
-        >
-            <Text style={styles.buttonText}>
-              {loading ? 'Salvando...' : 'Salvar Alterações'}
-            </Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+      </ScrollView>
     </View>
   );
 }
@@ -716,139 +406,36 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   scrollView: {
-    padding: 16,
+    flex: 1,
   },
   formContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 16,
-    marginTop: 8,
-  },
-  inputContainer: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: '#111827',
-  },
-  radioContainer: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  radioButton: {
-    flex: 1,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  radioButtonSelected: {
-    borderColor: '#7C3AED',
-    backgroundColor: '#F3E8FF',
-  },
-  radioText: {
-    fontSize: 16,
-    color: '#374151',
-  },
-  radioTextSelected: {
-    fontWeight: '600',
-    color: '#7C3AED',
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  checkbox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  checkboxBox: {
-    width: 24,
-    height: 24,
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 6,
-    marginRight: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxBoxChecked: {
-    borderColor: '#7C3AED',
-    backgroundColor: '#F3E8FF',
-  },
-  checkboxCheck: {
-    fontSize: 16,
-    color: '#7C3AED',
-    fontWeight: 'bold',
-  },
-  checkboxLabel: {
-    fontSize: 14,
-    color: '#374151',
-    flex: 1,
-  },
-  button: {
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 24,
-    backgroundColor: '#7C3AED',
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  picker: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 12,
+    padding: 24,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  errorText: {
-    color: '#DC2626',
-    fontSize: 14,
-    marginTop: 8,
-  },
   avatarContainer: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
   },
   avatarWrapper: {
     position: 'relative',
     marginBottom: 8,
+  },
+  avatar: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+  },
+  avatarPlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   editAvatarButton: {
     position: 'absolute',
@@ -879,42 +466,69 @@ const styles = StyleSheet.create({
   avatarLabel: {
     fontSize: 14,
     color: '#6B7280',
-    marginTop: 8,
+    marginTop: 4,
   },
-  avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-  },
-  avatarPlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#E5E7EB',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  alterarSenhaButton: {
-    backgroundColor: '#4F46E5',
+  section: {
     marginBottom: 24,
   },
-  passwordInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    paddingBottom: 8,
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    color: '#374151',
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  input: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  inputDisabled: {
+    backgroundColor: '#F3F4F6',
+    color: '#6B7280',
+  },
+  pickerContainer: {
     borderWidth: 1,
     borderColor: '#D1D5DB',
     borderRadius: 8,
     backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
   },
-  passwordInput: {
-    flex: 1,
+  switchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  saveButton: {
+    backgroundColor: '#8B5CF6',
+    borderRadius: 8,
     padding: 12,
+    alignItems: 'center',
+  },
+  mainSaveButton: {
+    backgroundColor: '#7C3AED',
+    padding: 16,
+    marginTop: 16,
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
-    color: '#111827',
+    fontWeight: '600',
   },
-  eyeIcon: {
-    padding: 12,
-    borderLeftWidth: 1,
-    borderLeftColor: '#D1D5DB',
-  },
-}); 
+});
