@@ -42,38 +42,79 @@ export default function CadastroScreen() {
   const [saving, setSaving] = useState(false);
 
   const handleSignUp = async () => {
-    // Suas validações de formulário continuam aqui...
     if (!nomeCompleto || !email || !senha) {
-        Alert.alert('Erro', 'Por favor, preencha todos os campos do responsável.');
-        return;
+      Alert.alert('Erro', 'Por favor, preencha todos os campos do responsável.');
+      return;
     }
 
     setSaving(true);
 
-    // Agora, a chamada é uma só e muito mais simples
+    // 1. Cria o usuário no auth
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password: senha,
-      options: {
-        data: {
-          // Passamos todos os dados extras aqui. O gatilho no backend vai usar isso.
-          nome: nomeCompleto,
-          nome_estabelecimento: nomeEstabelecimento,
-          tipo_documento: tipoDocumento,
-          numero_documento: numeroDocumento.replace(/\D/g, ''),
-          telefone: telefone.replace(/\D/g, ''),
-          segmento: segmento,
-        }
-      }
     });
 
-    if (error) {
-      Alert.alert('Erro no Cadastro', error.message || 'Não foi possível criar o usuário.');
-    } else if (data.user) {
-      Alert.alert('Cadastro Realizado!', 'Enviamos um e-mail de confirmação para você. Por favor, verifique sua caixa de entrada para ativar sua conta.');
-      router.replace('/(auth)/login');
+    if (error || !data.user) {
+      Alert.alert('Erro no Cadastro', error?.message || 'Não foi possível criar o usuário.');
+      setSaving(false);
+      return;
     }
-    
+
+    // 2. Cria ou vincula o estabelecimento
+    let estabelecimentoId = null;
+    if (nomeEstabelecimento) {
+      // Tenta buscar estabelecimento existente
+      const { data: estabData } = await supabase
+        .from('estabelecimentos')
+        .select('id')
+        .eq('nome', nomeEstabelecimento)
+        .single();
+
+      if (estabData) {
+        estabelecimentoId = estabData.id;
+      } else {
+        // Cria novo estabelecimento
+        const { data: newEstab, error: newEstabError } = await supabase
+          .from('estabelecimentos')
+          .insert({
+            nome: nomeEstabelecimento,
+            segmento,
+            tipo_documento: tipoDocumento,
+            numero_documento: numeroDocumento.replace(/\D/g, ''),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .select('id')
+          .single();
+        if (newEstab) estabelecimentoId = newEstab.id;
+      }
+    }
+
+    // 3. Cria registro completo do usuário na tabela usuarios
+    const { error: usuarioError } = await supabase
+      .from('usuarios')
+      .insert({
+        id: data.user.id,
+        nome_completo: nomeCompleto,
+        email: email.trim(),
+        telefone: telefone.replace(/\D/g, ''),
+        is_principal: !!nomeEstabelecimento,
+        faz_atendimento: true,
+        avatar_url: null,
+        estabelecimento_id: estabelecimentoId,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+
+    if (usuarioError) {
+      Alert.alert('Erro no Cadastro', usuarioError.message || 'Não foi possível salvar os dados do usuário.');
+      setSaving(false);
+      return;
+    }
+
+    Alert.alert('Cadastro Realizado!', 'Enviamos um e-mail de confirmação para você. Por favor, verifique sua caixa de entrada para ativar sua conta.');
+    router.replace('/(auth)/login');
     setSaving(false);
   };
 

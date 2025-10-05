@@ -27,6 +27,10 @@ export default function UsuariosLayout() {
         }}
       />
       <Stack.Screen
+       name="[id]"
+        options={{
+           headerShown: false }} />
+      <Stack.Screen
         name="perfil"
         options={{
           title: 'Editar Perfil',

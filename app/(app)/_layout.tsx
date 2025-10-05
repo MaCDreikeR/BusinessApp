@@ -1,4 +1,6 @@
+import React from 'react';
 import { Drawer } from 'expo-router/drawer';
+import { useFocusEffect } from '@react-navigation/native';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { usePathname } from 'expo-router';
 import { TouchableOpacity, View, Text, StyleSheet, Image, Alert, ActivityIndicator } from 'react-native';
@@ -25,9 +27,11 @@ export default function AppLayout() {
   const [loadingAvatar, setLoadingAvatar] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    carregarUsuario();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      carregarUsuario();
+    }, [])
+  );
 
   useEffect(() => {
     if (usuario?.avatar_url) {
@@ -45,19 +49,10 @@ export default function AppLayout() {
 
       console.log('Buscando dados do usuário:', user.id);
       
-      // Busca os dados do usuário incluindo os dados da conta
+      // Busca os dados do usuário incluindo o relacionamento com estabelecimento
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
-        .select(`
-          *,
-          conta:contas (
-            nome_estabelecimento,
-            tipo_documento,
-            numero_documento,
-            telefone,
-            segmento
-          )
-        `)
+        .select(`*, estabelecimento:estabelecimentos(*)`)
         .eq('id', user.id)
         .single();
 
@@ -66,21 +61,18 @@ export default function AppLayout() {
         throw userError;
       }
 
-      console.log('Dados do usuário:', userData);
       setUsuario(userData);
-      
-      // Define os dados do estabelecimento da conta
-      if (userData.conta) {
-        console.log('Usando dados da conta:', userData.conta);
+
+      // Define os dados do estabelecimento vinculado
+      if (userData.estabelecimento) {
         setEstabelecimento({
-          nome_estabelecimento: userData.conta.nome_estabelecimento,
-          tipo_documento: userData.conta.tipo_documento,
-          numero_documento: userData.conta.numero_documento,
-          telefone: userData.conta.telefone,
-          segmento: userData.conta.segmento
+          nome_estabelecimento: userData.estabelecimento.nome,
+          tipo_documento: userData.estabelecimento.tipo_documento,
+          numero_documento: userData.estabelecimento.numero_documento,
+          telefone: userData.estabelecimento.telefone,
+          segmento: userData.estabelecimento.segmento
         });
       } else {
-        console.log('Usuário não tem dados de conta');
         setEstabelecimento(null);
       }
     } catch (error) {
@@ -235,12 +227,7 @@ export default function AppLayout() {
         },
         drawerActiveBackgroundColor: '#F3E8FF',
         drawerInactiveBackgroundColor: 'transparent',
-        drawerItemContainerStyle: {
-          marginHorizontal: 8,
-          marginVertical: 4,
-          borderRadius: 8,
-          paddingRight: 8,
-        },
+        // Removido drawerItemContainerStyle inválido
         headerRight: () => {
           if (isOrcamentos) {
             return (

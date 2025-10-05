@@ -91,7 +91,7 @@ export default function PerfilScreen() {
     setLoading(true);
     try {
       if (!session?.user?.id) throw new Error("ID do usuário não encontrado na sessão.");
-      
+
       const { data, error } = await supabase
         .from('usuarios')
         .select(`*, estabelecimento:estabelecimentos(*)`)
@@ -102,9 +102,9 @@ export default function PerfilScreen() {
 
       if (data) {
         setUsuarioData(data);
-        setNome(data.nome || '');
+        setNome(data.nome_completo || '');
         setEmail(data.email || '');
-        setCelular(formatarCelular(data.celular || ''));
+        setCelular(formatarCelular(data.telefone || ''));
         setIsPrincipal(data.is_principal || false);
         setFazAtendimento(data.faz_atendimento || false);
         setAvatarUrl(data.avatar_url);
@@ -239,32 +239,59 @@ export default function PerfilScreen() {
   const handleSalvar = async () => {
     setSaving(true);
     try {
-        const { error: userError } = await supabase.from('usuarios').update({
-            nome,
-            celular: celular.replace(/\D/g, ''),
-            faz_atendimento: fazAtendimento,
+      let estabelecimentoId = usuarioData?.estabelecimento?.id;
+
+      // Se for principal e não tiver estabelecimento vinculado, cria um novo
+      if (isPrincipal && !estabelecimentoId) {
+        const { data: newEstab, error: newEstabError } = await supabase
+          .from('estabelecimentos')
+          .insert({
+            nome: nomeEstabelecimento,
+            tipo_documento: tipoDocumento,
+            numero_documento: numeroDocumento.replace(/\D/g, ''),
+            segmento,
+            created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-        }).eq('id', session!.user.id);
+          })
+          .select('id')
+          .single();
+        if (newEstab) estabelecimentoId = newEstab.id;
+      }
 
-        if (userError) throw userError;
+      // Atualiza dados do usuário, incluindo vínculo ao estabelecimento
+      const { error: userError } = await supabase.from('usuarios').update({
+        nome_completo: nome,
+        telefone: celular.replace(/\D/g, ''),
+        faz_atendimento: fazAtendimento,
+        estabelecimento_id: isPrincipal ? estabelecimentoId : null,
+        updated_at: new Date().toISOString(),
+      }).eq('id', session!.user.id);
 
-        if (isPrincipal && usuarioData?.estabelecimento?.id) {
-            const { error: estabError } = await supabase.from('estabelecimentos').update({
-                nome: nomeEstabelecimento,
-                tipo_documento: tipoDocumento,
-                numero_documento: numeroDocumento.replace(/\D/g, ''),
-                segmento,
-                updated_at: new Date().toISOString(),
-            }).eq('id', usuarioData.estabelecimento.id);
+      if (userError) throw userError;
 
-            if (estabError) throw estabError;
-        }
+      // Atualiza dados do estabelecimento se já existir
+      if (isPrincipal && estabelecimentoId) {
+        const { error: estabError } = await supabase.from('estabelecimentos').update({
+          nome: nomeEstabelecimento,
+          tipo_documento: tipoDocumento,
+          numero_documento: numeroDocumento.replace(/\D/g, ''),
+          segmento,
+          updated_at: new Date().toISOString(),
+        }).eq('id', estabelecimentoId);
 
-        Alert.alert('Sucesso!', 'Seus dados foram atualizados.');
+        if (estabError) throw estabError;
+      }
+
+      Alert.alert('Sucesso!', 'Seus dados foram atualizados.', [
+        {
+          text: 'OK',
+          onPress: () => router.replace('/usuarios'),
+        },
+      ]);
     } catch (error: any) {
-        Alert.alert('Erro ao Salvar', error.message);
+      Alert.alert('Erro ao Salvar', error.message);
     } finally {
-        setSaving(false);
+      setSaving(false);
     }
   };
 
