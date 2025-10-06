@@ -59,6 +59,5 @@ export default {
       tsconfigPaths: true,
       typedRoutes: true,
     },
-    sdkVersion: '53.0.0',
   },
 };
