@@ -1,10 +1,11 @@
-import { View, Text, StyleSheet, ScrollView, FlatList, RefreshControl, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useRouter } from 'expo-router';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface Agendamento {
   id: string;
@@ -29,6 +30,8 @@ interface Produto {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { user, estabelecimentoId } = useAuth();
+
   const [agendamentosHoje, setAgendamentosHoje] = useState(0);
   const [vendasHoje, setVendasHoje] = useState(0);
   const [clientesAtivos, setClientesAtivos] = useState(0);
@@ -37,157 +40,82 @@ export default function HomeScreen() {
   const [produtosBaixoEstoque, setProdutosBaixoEstoque] = useState<Produto[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await carregarDados();
-    setRefreshing(false);
-  };
-
-  useEffect(() => {
-    carregarDados();
-  }, []);
-
-  const carregarDados = async () => {
+  const carregarProdutosBaixoEstoque = useCallback(async () => {
+    if (!estabelecimentoId) return;
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.user?.id) {
-        console.error('Usuário não autenticado');
-        Alert.alert('Erro', 'Usuário não autenticado. Por favor, faça login novamente.');
-        router.replace('/(auth)/login');
-        return;
-      }
+      console.log(`Iniciando consulta de produtos com baixo estoque para o estabelecimento: ${estabelecimentoId}`);
+      const { data: produtos, error } = await supabase
+        .rpc('get_produtos_baixo_estoque', { p_org_id: estabelecimentoId })
+        .limit(5);
 
+      if (error) throw error;
+      setProdutosBaixoEstoque(produtos || []);
+    } catch (error) {
+      console.error('Erro inesperado ao carregar produtos baixo estoque:', error);
+    }
+  }, [estabelecimentoId]);
+
+  const carregarDados = useCallback(async () => {
+    if (!user || !estabelecimentoId) return;
+    try {
+      console.log('Buscando dados para o estabelecimento:', estabelecimentoId);
       const hoje = new Date();
-      hoje.setHours(hoje.getHours() - 3); // Ajuste para o fuso horário do Brasil
+      hoje.setHours(hoje.getHours() - 3);
       const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 0, 0, 0);
       const fimHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 23, 59, 59);
 
-      console.log('Buscando agendamentos entre:', inicioHoje.toISOString(), 'e', fimHoje.toISOString());
+      const [
+        { data: agendamentos, error: agendamentosError },
+        { data: vendasHojeData, error: vendasError },
+        { count: clientesCount, error: clientesError },
+        { data: proxAgendamentos, error: proxError },
+        { data: vendasRecentesData, error: vendasRecentesError },
+      ] = await Promise.all([
+        // Carregar agendamentos de hoje
+        supabase.from('agendamentos').select('*', { count: 'exact' }).eq('organization_id', estabelecimentoId).gte('data_hora', inicioHoje.toISOString()).lte('data_hora', fimHoje.toISOString()),
+        // Carregar vendas de hoje - CORREÇÃO APLICADA
+        supabase.from('comandas_itens').select(`preco_total, comandas(status, organization_id)`).eq('comandas.organization_id', estabelecimentoId).eq('comandas.status', 'fechada').gte('created_at', inicioHoje.toISOString()).lte('created_at', fimHoje.toISOString()),
+        // Carregar clientes ativos
+        supabase.from('clientes').select('*', { count: 'exact', head: true }).eq('organization_id', estabelecimentoId),
+        // Carregar próximos agendamentos
+        supabase.from('agendamentos').select('*').eq('organization_id', estabelecimentoId).gte('data_hora', new Date().toISOString()).order('data_hora').limit(5),
+        // Carregar vendas recentes - CORREÇÃO APLICADA
+        supabase.from('comandas_itens').select(`id, preco_total, created_at, comandas(cliente_nome, organization_id)`).eq('comandas.organization_id', estabelecimentoId).eq('comandas.status', 'fechada').order('created_at', { ascending: false }).limit(5),
+      ]);
 
-      // Carregar agendamentos de hoje
-      const { data: agendamentos, error: agendamentosError } = await supabase
-        .from('agendamentos')
-        .select('*')
-        .gte('data_hora', inicioHoje.toISOString())
-        .lte('data_hora', fimHoje.toISOString())
-        .order('data_hora');
-
-      if (agendamentosError) {
-        console.error('Erro ao carregar agendamentos:', agendamentosError);
-      } else {
-        console.log('Agendamentos encontrados:', agendamentos);
-        setAgendamentosHoje(agendamentos?.length || 0);
-      }
-
-      // Carregar vendas de hoje
-      const { data: vendasHojeData, error: vendasError } = await supabase
-        .from('comandas_itens')
-        .select(`
-          preco_total,
-          comandas (
-            status
-          )
-        `)
-        .eq('comandas.status', 'fechada')
-        .gte('created_at', inicioHoje.toISOString())
-        .lte('created_at', fimHoje.toISOString());
-
-      if (vendasError) {
-        console.error('Erro ao carregar vendas de hoje:', vendasError);
-      } else {
-        console.log('Vendas de hoje encontradas:', vendasHojeData);
-        const totalVendas = vendasHojeData?.reduce((total, venda) => total + (venda.preco_total || 0), 0) || 0;
-        setVendasHoje(totalVendas);
-      }
-
-      // Carregar clientes ativos
-      const { count } = await supabase
-        .from('clientes')
-        .select('*', { count: 'exact', head: true });
-      setClientesAtivos(count || 0);
-
-      // Carregar próximos agendamentos
-      const { data: proxAgendamentos, error: proxError } = await supabase
-        .from('agendamentos')
-        .select('*')
-        .gte('data_hora', new Date().toISOString())
-        .order('data_hora')
-        .limit(5);
-
+      if (agendamentosError) console.error('Erro agendamentos:', agendamentosError); else setAgendamentosHoje(agendamentos?.length || 0);
+      if (vendasError) console.error('Erro vendas hoje:', vendasError); else setVendasHoje(vendasHojeData?.reduce((total, v) => total + (v.preco_total || 0), 0) || 0);
+      if (clientesError) console.error('Erro clientes:', clientesError); else setClientesAtivos(clientesCount || 0);
       if (proxError) {
-        console.error('Erro ao carregar próximos agendamentos:', proxError);
-      } else {
-        console.log('Próximos agendamentos encontrados:', proxAgendamentos);
-        if (proxAgendamentos) {
-          const agendamentosFormatados = proxAgendamentos.map(agendamento => ({
-            ...agendamento,
-            cliente_nome: agendamento.cliente || 'Cliente não informado',
-            servico: Array.isArray(agendamento.servicos) && agendamento.servicos.length > 0 
-              ? agendamento.servicos[0].nome 
-              : 'Serviço não informado',
-            horario: agendamento.data_hora
-          }));
-          setProximosAgendamentos(agendamentosFormatados);
-        }
+        console.error('Erro próximos agendamentos:', proxError);
+      } else if (proxAgendamentos) {
+        setProximosAgendamentos(proxAgendamentos.map(ag => ({ ...ag, cliente_nome: ag.cliente || '?', servico: ag.servicos?.[0]?.nome || '?', horario: ag.data_hora })));
       }
-
-      // Carregar vendas recentes
-      const { data: vendasRecentesData, error: vendasRecentesError } = await supabase
-        .from('comandas_itens')
-        .select(`
-          id,
-          preco_total,
-          created_at,
-          comandas (
-            cliente_nome
-          )
-        `)
-        .eq('comandas.status', 'fechada')
-        .order('created_at', { ascending: false })
-        .limit(5);
-
       if (vendasRecentesError) {
-        console.error('Erro ao carregar vendas recentes:', vendasRecentesError);
-      } else {
-        console.log('Vendas recentes encontradas:', vendasRecentesData);
-        setVendasRecentes(vendasRecentesData?.map(venda => ({
-          id: venda.id,
-          cliente_nome: venda.comandas?.cliente_nome || 'Cliente não informado',
-          valor: venda.preco_total,
-          data: venda.created_at
-        })) || []);
+        console.error('Erro vendas recentes:', vendasRecentesError);
+      } else if (vendasRecentesData) {
+        setVendasRecentes(vendasRecentesData.map(v => ({ id: v.id, cliente_nome: v.comandas?.cliente_nome || '?', valor: v.preco_total || 0, data: v.created_at })));
       }
 
-      // Carregar produtos com baixo estoque
-      await carregarProdutosBaixoEstoque();
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
       Alert.alert('Erro', 'Não foi possível carregar os dados');
     }
-  };
+  }, [user, estabelecimentoId]);
 
-  const carregarProdutosBaixoEstoque = async () => {
-    try {
-      console.log('Iniciando consulta de produtos com baixo estoque...');
-      const { data: produtos, error } = await supabase
-        .rpc('get_produtos_baixo_estoque')
-        .limit(5);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([carregarDados(), carregarProdutosBaixoEstoque()]);
+    setRefreshing(false);
+  }, [carregarDados, carregarProdutosBaixoEstoque]);
 
-      if (error) {
-        console.error('Erro ao carregar produtos baixo estoque:', error.message);
-        return;
-      }
-
-      console.log(`Encontrados ${produtos?.length || 0} produtos com baixo estoque:`, produtos);
-      setProdutosBaixoEstoque(produtos || []);
-    } catch (error) {
-      console.error('Erro ao carregar produtos baixo estoque:', error);
-    }
-  };
+  useEffect(() => {
+    carregarDados();
+    carregarProdutosBaixoEstoque();
+  }, [carregarDados, carregarProdutosBaixoEstoque]);
 
   return (
-    <ScrollView 
+    <ScrollView
       style={styles.container}
       refreshControl={
         <RefreshControl
@@ -201,7 +129,7 @@ export default function HomeScreen() {
       }
     >
       <View style={styles.grid}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.card, styles.cardPrimary]}
           onPress={() => router.push('/agenda')}
         >
@@ -213,7 +141,7 @@ export default function HomeScreen() {
           <Text style={styles.cardSubtitle}>Ver agenda</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.card, styles.cardSuccess]}
           onPress={() => router.push('/vendas')}
         >
@@ -225,7 +153,7 @@ export default function HomeScreen() {
           <Text style={styles.cardSubtitle}>Total do dia</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.card, styles.cardInfo]}
           onPress={() => router.push('/clientes')}
         >
@@ -237,7 +165,7 @@ export default function HomeScreen() {
           <Text style={styles.cardSubtitle}>Ver clientes</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.card, styles.cardDanger]}
           onPress={() => router.push('/estoque')}
         >
@@ -259,8 +187,8 @@ export default function HomeScreen() {
         </View>
         {proximosAgendamentos.length > 0 ? (
           proximosAgendamentos.map((agendamento, index) => (
-            <View 
-              key={agendamento.id} 
+            <View
+              key={agendamento.id}
               style={[
                 styles.agendamentoItem,
                 index === 0 && styles.primeiroAgendamento,
@@ -275,7 +203,7 @@ export default function HomeScreen() {
                   {agendamento.horario ? format(new Date(agendamento.horario), "HH:mm", { locale: ptBR }) : '--:--'}
                 </Text>
               </View>
-              
+
               <View style={styles.agendamentoContent}>
                 <Text style={styles.agendamentoCliente} numberOfLines={1}>
                   {agendamento.cliente_nome}
@@ -313,7 +241,7 @@ export default function HomeScreen() {
               <View style={styles.vendaContent}>
                 <Text style={styles.vendaCliente}>{venda.cliente_nome}</Text>
                 <Text style={styles.vendaData}>
-                  {format(new Date(venda.data), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                  {venda.data ? format(new Date(venda.data), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : 'Data indisponível'}
                 </Text>
               </View>
               <Text style={styles.vendaValor}>
@@ -354,10 +282,10 @@ export default function HomeScreen() {
                 </View>
               </View>
               <View style={styles.produtoStatus}>
-                <FontAwesome5 
-                  name={produto.quantidade === 0 ? "times-circle" : "exclamation-circle"} 
-                  size={20} 
-                  color={produto.quantidade === 0 ? "#EF4444" : "#F59E0B"} 
+                <FontAwesome5
+                  name={produto.quantidade === 0 ? "times-circle" : "exclamation-circle"}
+                  size={20}
+                  color={produto.quantidade === 0 ? "#EF4444" : "#F59E0B"}
                 />
               </View>
             </View>
@@ -633,4 +561,4 @@ const styles = StyleSheet.create({
     color: '#F59E0B',
     fontWeight: 'bold'
   },
-}); 
+});
