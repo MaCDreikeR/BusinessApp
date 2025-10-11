@@ -48,6 +48,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .eq('id', currentUser.id)
           .single();
 
+        // LOG para debug detalhado
+        console.log('[AuthContext] profileData:', profileData);
+        console.log('[AuthContext] profileError:', profileError);
+
         if (profileError) {
           throw new Error(`Erro ao buscar perfil do usuário: ${profileError.message}`);
         }
@@ -123,7 +127,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       user,
       session,
       estabelecimentoId,
-      role, // ADICIONADO: expõe o role para o resto do app
+      role, 
       loading,
     }),
     [user, session, estabelecimentoId, role, loading]

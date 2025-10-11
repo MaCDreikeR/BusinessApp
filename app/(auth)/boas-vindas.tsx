@@ -19,10 +19,11 @@ export default function BoasVindas() {
     setIsLoading(true);
     try {
       await AsyncStorage.setItem('@hasSeenWelcome', 'true');
-      router.replace('/login');
+      // Use o caminho absoluto com o grupo para evitar conflitos com o guardião do layout
+      router.replace('/(auth)/login');
     } catch (error) {
       console.error('Erro ao salvar estado de boas-vindas:', error);
-      router.replace('/login');
+      router.replace('/(auth)/login');
     } finally {
       setIsLoading(false);
     }

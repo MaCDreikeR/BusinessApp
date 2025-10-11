@@ -1,72 +1,118 @@
-import { useEffect, useState } from 'react';
-import { Slot, useRouter, useSegments, Stack } from 'expo-router';
-import { supabase } from '../lib/supabase';
+import React, { useEffect, useState } from 'react';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { AuthProvider, useAuth } from '../contexts/AuthContext';
+import { View, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { View } from 'react-native';
-import { AuthProvider } from '../contexts/AuthContext';
 
-export default function RootLayout() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [isFirstTime, setIsFirstTime] = useState(true);
+// Componente "Porteiro" que contém a lógica de redirecionamento
+const MainLayout = () => {
+  const { user, role, loading: authLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const [isFirstTime, setIsFirstTime] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const initializeApp = async () => {
+    // 1. Verifica se é a primeira vez que o usuário abre o app
+    const checkFirstTime = async () => {
       try {
-        await checkFirstTime();
-        // Apenas verifica se tem sessão, sem tentar carregar dados
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!isFirstTime) {
-          if (session) {
-            if (segments[0] !== '(app)') {
-              router.replace('/');
-            }
-          } else {
-            if (segments[0] !== '(auth)' || segments[1] === 'boas-vindas') {
-              router.replace('/login');
-            }
-          }
-        } else {
-          // Se for a primeira vez, redireciona para a tela de boas-vindas
-          if (segments[0] !== '(auth)' || segments[1] !== 'boas-vindas') {
-            router.replace('/boas-vindas');
-          }
-        }
+        const hasSeenWelcome = await AsyncStorage.getItem('@hasSeenWelcome');
+        setIsFirstTime(hasSeenWelcome === null);
       } catch (error) {
-        console.error('Erro na inicialização:', error);
-      } finally {
-        setIsLoading(false);
+        console.error('Erro ao verificar primeira visita:', error);
+        setIsFirstTime(false); // Assume que não é a primeira vez em caso de erro
       }
     };
-
-    initializeApp();
+    checkFirstTime();
   }, []);
 
-  const checkFirstTime = async () => {
-    try {
-      const hasSeenWelcome = await AsyncStorage.getItem('@hasSeenWelcome');
-      if (!hasSeenWelcome) {
-        setIsFirstTime(true);
-      } else {
-        setIsFirstTime(false);
+  // Revalida o flag de primeira visita sempre que os segmentos mudarem
+  useEffect(() => {
+    const syncWelcomeFlag = async () => {
+      try {
+        const hasSeenWelcome = await AsyncStorage.getItem('@hasSeenWelcome');
+        if (hasSeenWelcome !== null && isFirstTime !== false) {
+          setIsFirstTime(false);
+        }
+      } catch (error) {
+        // silenciosamente ignore, manteremos o estado atual
       }
-    } catch (error) {
-      console.error('Erro ao verificar primeira visita:', error);
+    };
+    syncWelcomeFlag();
+  }, [segments]);
+
+  useEffect(() => {
+    // Espera o AuthContext e a verificação de primeira visita terminarem
+    if (authLoading || isFirstTime === null) {
+      return;
     }
-  };
 
-  if (isLoading) {
-    return <View />;
+    const inAuthGroup = segments[0] === '(auth)';
+    const inAppGroup = segments[0] === '(app)';
+    const inAdminGroup = segments[0] === '(admin)';
+
+    // 2. Lógica de redirecionamento
+    if (isFirstTime) {
+      // Permite acessar login/cadastro mesmo se o flag ainda não foi revalidado,
+      // para evitar loop de navegação quando o usuário sai da tela de boas-vindas.
+      const isAuthAllowed = inAuthGroup && (segments[1] === 'login' || segments[1] === 'cadastro');
+      if (!isAuthAllowed) {
+        // Se for a primeira vez, força a ida para a tela de boas-vindas
+        if (segments[1] !== 'boas-vindas') {
+          router.replace('/(auth)/boas-vindas');
+        }
+        return;
+      }
+    }
+
+    if (!user && !inAuthGroup) {
+      // 3. Se não é a primeira vez E não está logado, manda para o login
+      router.replace('/(auth)/login');
+      return;
+    }
+
+    if (user && role === 'super_admin') {
+      // Superusuário: só pode acessar rotas do grupo (admin)
+      if (!inAdminGroup) {
+        router.replace('/(admin)/dashboard');
+        return;
+      }
+      // Se já está em (admin), não faz nada
+      return;
+    }
+
+    if (user && role && role !== 'super_admin') {
+      // Usuário comum: só pode acessar rotas do grupo (app)
+      if (!inAppGroup) {
+        router.replace('/(app)');
+        return;
+      }
+      // Se já está em (app), não faz nada
+      return;
+    }
+  }, [user, role, authLoading, isFirstTime, segments, router]);
+
+  // Enquanto carrega, mostra uma tela de loading para evitar "piscar" a tela
+  if (authLoading || isFirstTime === null) {
+    return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }} />
+    );
   }
+  
+  // O Stack gerencia as telas. O Expo Router cuida do resto.
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(app)" />
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(admin)" />
+    </Stack>
+  );
+};
 
+// Componente raiz que "envolve" todo o aplicativo com o provedor de autenticação
+export default function RootLayout() {
   return (
     <AuthProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(app)" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      </Stack>
+      <MainLayout />
     </AuthProvider>
   );
 }
