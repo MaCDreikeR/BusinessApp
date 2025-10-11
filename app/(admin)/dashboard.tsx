@@ -1,19 +1,12 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator, RefreshControl, ScrollView, Alert } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { FontAwesome5 } from '@expo/vector-icons';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
-interface Estabelecimento {
+interface EstabelecimentoSlim {
   id: string;
-  nome: string;
   status: 'ativa' | 'suspensa' | 'banida';
   created_at: string;
-  usuarios: {
-    email: string;
-    is_principal: boolean;
-  }[];
 }
 
 // Componente para os cartões de resumo
@@ -26,33 +19,32 @@ const SummaryCard = ({ title, value, icon, color }: { title: string, value: stri
 );
 
 export default function AdminDashboardScreen() {
-  const [estabelecimentos, setEstabelecimentos] = useState<Estabelecimento[]>([]);
+  const [estabelecimentos, setEstabelecimentos] = useState<EstabelecimentoSlim[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   
   // States para os contadores
   const [totalContas, setTotalContas] = useState(0);
   const [contasAtivas, setContasAtivas] = useState(0);
+  const [contasSuspensas, setContasSuspensas] = useState(0);
 
   const fetchAllEstabelecimentos = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('estabelecimentos')
-      .select(`
-        id, nome, status, created_at,
-        usuarios ( email, is_principal )
-      `)
+      .select('id, status, created_at')
       .order('created_at', { ascending: false });
 
     if (error) {
       console.error("Erro ao buscar estabelecimentos:", error);
       Alert.alert("Erro", "Não foi possível buscar a lista de estabelecimentos.");
     } else {
-      const fetchedData = data || [];
+      const fetchedData = (data || []) as EstabelecimentoSlim[];
       setEstabelecimentos(fetchedData);
       // Calcula os totais
       setTotalContas(fetchedData.length);
       setContasAtivas(fetchedData.filter(e => e.status === 'ativa').length);
+      setContasSuspensas(fetchedData.filter(e => e.status === 'suspensa').length);
     }
     setLoading(false);
   };
@@ -66,93 +58,61 @@ export default function AdminDashboardScreen() {
     await fetchAllEstabelecimentos();
     setRefreshing(false);
   }, []);
+  // Calcula séries dos últimos 6 meses
+  const monthlySeries = useMemo(() => {
+    const now = new Date();
+    const months: { label: string; count: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const label = d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
+      const count = estabelecimentos.filter(e => {
+        const created = new Date(e.created_at);
+        return created.getFullYear() === d.getFullYear() && created.getMonth() === d.getMonth();
+      }).length;
+      months.push({ label, count });
+    }
+    return months;
+  }, [estabelecimentos]);
 
-  const handleUpdateStatus = async (id: string, newStatus: 'ativa' | 'suspensa' | 'banida') => {
-    Alert.alert(
-      `Confirmar ${newStatus}`,
-      `Tem certeza que deseja alterar o status deste estabelecimento para "${newStatus}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Confirmar',
-          onPress: async () => {
-            const { error } = await supabase
-              .from('estabelecimentos')
-              .update({ status: newStatus })
-              .eq('id', id);
+  const maxCount = useMemo(() => Math.max(1, ...monthlySeries.map(m => m.count)), [monthlySeries]);
 
-            if (error) Alert.alert("Erro", "Não foi possível atualizar o status.");
-            else {
-              Alert.alert("Sucesso", "Status atualizado com sucesso!");
-              fetchAllEstabelecimentos();
-            }
-          },
-          style: 'destructive'
-        },
-      ]
-    );
-  };
-  
-  const getStatusStyle = (status: string) => {
-    if (status === 'ativa') return styles.statusAtiva;
-    if (status === 'suspensa') return styles.statusSuspensa;
-    if (status === 'banida') return styles.statusBanida;
-    return {};
-  };
-
-  const renderItem = ({ item }: { item: Estabelecimento }) => {
-    const principal = item.usuarios.find(u => u.is_principal);
-    return (
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.estabelecimentoNome}>{item.nome}</Text>
-          <View style={[styles.statusBadge, getStatusStyle(item.status)]}>
-            <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
-          </View>
-        </View>
-        <View style={styles.cardBody}>
-          <View style={styles.infoRow}><FontAwesome5 name="user-shield" size={14} color="#9CA3AF" /><Text style={styles.infoText}>{principal?.email || 'N/A'}</Text></View>
-          <View style={styles.infoRow}><FontAwesome5 name="calendar-alt" size={14} color="#9CA3AF" /><Text style={styles.infoText}>Criado em: {format(new Date(item.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}</Text></View>
-          <View style={styles.infoRow}><FontAwesome5 name="users" size={14} color="#9CA3AF" /><Text style={styles.infoText}>Usuários: {item.usuarios.length}</Text></View>
-        </View>
-        <View style={styles.cardActions}>
-            <TouchableOpacity style={styles.actionButton} onPress={() => handleUpdateStatus(item.id, 'ativa')}><FontAwesome5 name="check-circle" size={16} color="#22c55e" /><Text style={[styles.actionText, { color: '#22c55e' }]}>Ativar</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton} onPress={() => handleUpdateStatus(item.id, 'suspensa')}><FontAwesome5 name="user-clock" size={16} color="#f59e0b" /><Text style={[styles.actionText, { color: '#f59e0b' }]}>Suspender</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton} onPress={() => handleUpdateStatus(item.id, 'banida')}><FontAwesome5 name="user-slash" size={16} color="#ef4444" /><Text style={[styles.actionText, { color: '#ef4444' }]}>Banir</Text></TouchableOpacity>
-        </View>
-      </View>
-    );
-  };
-  
   if (loading && !refreshing) {
     return (
       <View style={[styles.container, styles.center]}>
         <ActivityIndicator size="large" color="#a78bfa" />
-        <Text style={{ marginTop: 10, color: '#fff' }}>Carregando Contas...</Text>
+  <Text style={{ marginTop: 10, color: '#fff' }}>Carregando dados...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={estabelecimentos}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
-        ListHeaderComponent={
-          <>
-            <Text style={styles.headerTitle}>Visão Geral</Text>
-            <View style={styles.summaryContainer}>
-              <SummaryCard title="Total de Contas" value={totalContas} icon="store" color="#a78bfa" />
-              <SummaryCard title="Contas Ativas" value={contasAtivas} icon="check-circle" color="#4ade80" />
-            </View>
-            <Text style={styles.listHeader}>Todos os Estabelecimentos</Text>
-          </>
-        }
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />}
-      />
-    </View>
+    <ScrollView style={styles.container} contentContainerStyle={styles.listContainer}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />}
+    >
+      <Text style={styles.headerTitle}>Visão Geral</Text>
+      <View style={styles.summaryContainer}>
+        <SummaryCard title="Total de Contas" value={totalContas} icon="store" color="#a78bfa" />
+        <SummaryCard title="Ativas" value={contasAtivas} icon="check-circle" color="#4ade80" />
+      </View>
+      <View style={styles.summaryContainer}>
+        <SummaryCard title="Suspensas" value={contasSuspensas} icon="pause-circle" color="#f59e0b" />
+      </View>
+
+      <Text style={styles.listHeader}>Cadastros por Mês</Text>
+      <View style={styles.chartCard}>
+        <View style={styles.chartRow}>
+          {monthlySeries.map((m, idx) => {
+            const height = (m.count / maxCount) * 120 + (m.count > 0 ? 4 : 0);
+            return (
+              <View key={idx} style={styles.chartBarContainer}>
+                <View style={[styles.chartBar, { height }]} />
+                <Text style={styles.chartLabel}>{m.label}</Text>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -166,18 +126,9 @@ const styles = StyleSheet.create({
   summaryValue: { fontSize: 24, fontWeight: 'bold', color: '#fff', marginVertical: 8, },
   summaryTitle: { fontSize: 14, color: '#9CA3AF', },
   listHeader: { fontSize: 20, fontWeight: '600', color: '#fff', marginBottom: 16, },
-  card: { backgroundColor: '#1f2937', borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#374151', },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, },
-  estabelecimentoNome: { fontSize: 18, fontWeight: '600', color: '#fff', flex: 1, },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, },
-  statusText: { color: '#fff', fontSize: 12, fontWeight: 'bold', },
-  statusAtiva: { backgroundColor: 'rgba(34, 197, 94, 0.2)', borderWidth:1, borderColor: '#22c55e' },
-  statusSuspensa: { backgroundColor: 'rgba(245, 158, 11, 0.2)', borderWidth:1, borderColor: '#f59e0b' },
-  statusBanida: { backgroundColor: 'rgba(239, 68, 68, 0.2)', borderWidth:1, borderColor: '#ef4444' },
-  cardBody: { marginBottom: 16, },
-  infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, },
-  infoText: { color: '#d1d5db', fontSize: 14, marginLeft: 10, },
-  cardActions: { flexDirection: 'row', justifyContent: 'space-around', borderTopWidth: 1, borderTopColor: '#374151', paddingTop: 16, },
-  actionButton: { flexDirection: 'row', alignItems: 'center', gap: 6, },
-  actionText: { fontSize: 14, fontWeight: '500', },
+  chartCard: { backgroundColor: '#1f2937', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#374151' },
+  chartRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', height: 150 },
+  chartBarContainer: { alignItems: 'center', flex: 1 },
+  chartBar: { width: 20, backgroundColor: '#60a5fa', borderTopLeftRadius: 6, borderTopRightRadius: 6, marginHorizontal: 6 },
+  chartLabel: { color: '#9CA3AF', fontSize: 12, marginTop: 8 },
 });

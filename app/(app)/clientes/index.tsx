@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, ScrollView,
 import { FontAwesome5 } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
 import { useRouter } from 'expo-router';
+import { useAuth } from '../../../contexts/AuthContext';
 import * as Contacts from 'expo-contacts';
 import { useFocusEffect, useNavigation, DrawerActions } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,6 +25,7 @@ type Cliente = {
 };
 
 export default function ClientesScreen() {
+  const { estabelecimentoId } = useAuth();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [filtro, setFiltro] = useState('todos');
   const [pesquisa, setPesquisa] = useState('');
@@ -40,17 +42,15 @@ export default function ClientesScreen() {
 
   const carregarClientes = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        Alert.alert('Erro', 'Usuário não autenticado');
+      if (!estabelecimentoId) {
+        Alert.alert('Erro', 'Estabelecimento não identificado');
         return;
       }
 
       const { data: clientesData, error: clientesError } = await supabase
         .from('clientes')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('organization_id', estabelecimentoId)
         .order('nome');
 
       if (clientesError) {
@@ -62,7 +62,7 @@ export default function ClientesScreen() {
       const { data: agendamentosData, error: agendamentosError } = await supabase
         .from('agendamentos')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('organization_id', estabelecimentoId)
         .order('data_hora');
 
       if (agendamentosError) {

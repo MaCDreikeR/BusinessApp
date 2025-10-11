@@ -169,7 +169,7 @@ export default function ComandasScreen() {
   const translateYItens = useRef(new Animated.Value(500)).current;
 
   const router = useRouter();
-  const { session } = useAuth(); // Usando o hook useAuth para pegar a sessão
+  const { session, estabelecimentoId } = useAuth(); // Usando o hook useAuth para pegar a sessão e estabelecimento
 
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -569,13 +569,16 @@ export default function ComandasScreen() {
     try {
       setLoading(true);
       setError(null);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      
+      if (!estabelecimentoId) {
+        console.error('Estabelecimento ID não encontrado');
+        return;
+      }
 
       const { data, error } = await supabase
         .from('comandas')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('organization_id', estabelecimentoId)
         .order('data_abertura', { ascending: false });
 
       if (error) {
@@ -1099,13 +1102,15 @@ export default function ComandasScreen() {
   // Função para carregar clientes iniciais
   const carregarClientesIniciais = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!estabelecimentoId) {
+        console.error('Estabelecimento ID não encontrado');
+        return;
+      }
 
       const { data, error } = await supabase
         .from('clientes')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('organization_id', estabelecimentoId)
         .order('nome')
         .limit(10);
 
@@ -1119,13 +1124,15 @@ export default function ComandasScreen() {
   // Função para carregar todos os clientes
   const carregarClientes = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!estabelecimentoId) {
+        console.error('Estabelecimento ID não encontrado');
+        return;
+      }
 
       const { data, error } = await supabase
         .from('clientes')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('organization_id', estabelecimentoId)
         .order('nome');
 
       if (error) throw error;

@@ -28,13 +28,13 @@ export default function AdminLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#a78bfa', // Cor do ícone ativo
+        tabBarActiveTintColor: '#a78bfa',
         tabBarStyle: {
-          backgroundColor: '#1f2937', // Cor da barra
+          backgroundColor: '#1f2937',
           borderTopColor: '#374151',
         },
         headerStyle: {
-          backgroundColor: '#111827', // Cor do cabeçalho
+          backgroundColor: '#111827',
         },
         headerTintColor: '#fff',
       }}
@@ -50,12 +50,12 @@ export default function AdminLayout() {
       <Tabs.Screen
         name="users"
         options={{
-          title: 'Usuários',
-          headerTitle: 'Todos os Usuários',
+          title: 'Contas',
+          headerTitle: 'Todas as Contas',
           tabBarIcon: ({ color }) => <FontAwesome5 name="users" size={24} color={color} />,
         }}
       />
-       <Tabs.Screen
+      <Tabs.Screen
         name="settings"
         options={{
           title: 'Ajustes',

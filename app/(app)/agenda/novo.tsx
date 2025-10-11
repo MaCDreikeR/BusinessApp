@@ -35,8 +35,9 @@ interface ServicoSelecionado extends Servico {
 interface Usuario {
   id: string;
   nome_completo: string;
-  foto_url: string | null;
-  ativo: boolean;
+  email: string;
+  avatar_url: string | null;
+  faz_atendimento: boolean;
 }
 
 export default function NovoAgendamentoScreen() {
@@ -193,10 +194,10 @@ export default function NovoAgendamentoScreen() {
         return;
       }
 
-      // Busca os dados do usuário para obter a conta_id
+      // Busca os dados do usuário para obter o estabelecimento_id
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
-        .select('conta_id')
+        .select('estabelecimento_id')
         .eq('id', user.id)
         .single();
 
@@ -205,16 +206,16 @@ export default function NovoAgendamentoScreen() {
         return;
       }
 
-      if (!userData?.conta_id) {
-        console.error('Usuário não tem conta associada');
+      if (!userData?.estabelecimento_id) {
+        console.error('Usuário não tem estabelecimento associado');
         return;
       }
 
-      // Agora busca os usuários da mesma conta
+      // Agora busca os usuários do mesmo estabelecimento
       const { data, error } = await supabase
         .from('usuarios')
         .select('id, nome_completo, email, avatar_url, faz_atendimento')
-        .eq('conta_id', userData.conta_id)
+        .eq('estabelecimento_id', userData.estabelecimento_id)
         .eq('faz_atendimento', true)
         .order('nome_completo');
 
@@ -1184,9 +1185,9 @@ export default function NovoAgendamentoScreen() {
                     onPress={() => handleSelecionarUsuario(usuario)}
                   >
                     <View style={styles.sugestaoItemContent}>
-                      {usuario.foto_url ? (
+                      {usuario.avatar_url ? (
                         <Image 
-                          source={{ uri: usuario.foto_url }} 
+                          source={{ uri: usuario.avatar_url }} 
                           style={styles.sugestaoAvatar} 
                         />
                       ) : (

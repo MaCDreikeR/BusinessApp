@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, S
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
 import { router } from 'expo-router';
+import { useAuth } from '../../../contexts/AuthContext';
 import { DeviceEventEmitter } from 'react-native';
 
 interface Produto {
@@ -46,6 +47,7 @@ interface Marca {
 type FiltroTab = 'estoque' | 'categorias' | 'fornecedores' | 'marcas';
 
 export default function EstoqueScreen() {
+  const { estabelecimentoId } = useAuth();
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -157,20 +159,18 @@ export default function EstoqueScreen() {
 
   const carregarCategorias = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       console.log('Iniciando carregamento de categorias...');
       
-      if (!session?.user?.id) {
-        console.error('Usuário não autenticado');
-        Alert.alert('Erro', 'Usuário não autenticado. Por favor, faça login novamente.');
-        router.replace('/(auth)/login');
+      if (!estabelecimentoId) {
+        console.error('Estabelecimento não identificado');
+        Alert.alert('Erro', 'Estabelecimento não identificado');
         return;
       }
 
       const { data, error } = await supabase
         .from('categorias_produtos')
         .select('*')
-        .eq('user_id', session.user.id)
+        .eq('organization_id', estabelecimentoId)
         .order('nome');
 
       if (error) {
@@ -219,12 +219,10 @@ export default function EstoqueScreen() {
   const carregarProdutos = async () => {
     try {
       setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session?.user?.id) {
-        console.error('Usuário não autenticado');
-        Alert.alert('Erro', 'Usuário não autenticado. Por favor, faça login novamente.');
-        router.replace('/(auth)/login');
+      if (!estabelecimentoId) {
+        console.error('Estabelecimento não identificado');
+        Alert.alert('Erro', 'Estabelecimento não identificado');
         return;
       }
 
@@ -236,7 +234,7 @@ export default function EstoqueScreen() {
           fornecedor:fornecedores(nome),
           marca:marcas(nome)
         `)
-        .eq('user_id', session.user.id)
+        .eq('organization_id', estabelecimentoId)
         .order('nome');
 
       // Aplicar filtros
@@ -572,10 +570,8 @@ export default function EstoqueScreen() {
         return;
       }
 
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.user?.id) {
-        Alert.alert('Erro', 'Usuário não autenticado');
+      if (!estabelecimentoId) {
+        Alert.alert('Erro', 'Estabelecimento não identificado');
         return;
       }
 
@@ -586,7 +582,7 @@ export default function EstoqueScreen() {
             nome: novaCategoria.trim()
           })
           .eq('id', categoriaEmEdicao.id)
-          .eq('user_id', session.user.id);
+          .eq('organization_id', estabelecimentoId);
 
         if (error) {
           console.error('Erro detalhado:', error);
@@ -597,7 +593,7 @@ export default function EstoqueScreen() {
           .from('categorias_produtos')
           .insert({ 
             nome: novaCategoria.trim(),
-            user_id: session.user.id
+            organization_id: estabelecimentoId
           })
           .select();
 
@@ -636,10 +632,8 @@ export default function EstoqueScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const { data: { session } } = await supabase.auth.getSession();
-      
-              if (!session?.user?.id) {
-                Alert.alert('Erro', 'Usuário não autenticado');
+              if (!estabelecimentoId) {
+                Alert.alert('Erro', 'Estabelecimento não identificado');
                 return;
               }
 
@@ -647,7 +641,7 @@ export default function EstoqueScreen() {
                 .from('categorias_produtos')
                 .delete()
                 .eq('id', categoria.id)
-                .eq('user_id', session.user.id);
+                .eq('organization_id', estabelecimentoId);
 
               if (error) throw error;
 
@@ -664,22 +658,24 @@ export default function EstoqueScreen() {
 
   const handleSalvarMarca = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) return;
+      if (!estabelecimentoId) {
+        Alert.alert('Erro', 'Estabelecimento não identificado');
+        return;
+      }
 
       if (marcaEmEdicao) {
         const { error } = await supabase
           .from('marcas')
           .update({ nome: novaMarca })
           .eq('id', marcaEmEdicao.id)
-          .eq('user_id', session.user.id);
+          .eq('organization_id', estabelecimentoId);
 
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from('marcas')
           .insert([
-            { nome: novaMarca, user_id: session.user.id }
+            { nome: novaMarca, organization_id: estabelecimentoId }
           ]);
 
         if (error) throw error;
@@ -702,14 +698,16 @@ export default function EstoqueScreen() {
 
   const handleExcluirMarca = async (marca: Marca) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) return;
+      if (!estabelecimentoId) {
+        Alert.alert('Erro', 'Estabelecimento não identificado');
+        return;
+      }
 
       const { error } = await supabase
         .from('marcas')
         .delete()
         .eq('id', marca.id)
-        .eq('user_id', session.user.id);
+        .eq('organization_id', estabelecimentoId);
 
       if (error) throw error;
 

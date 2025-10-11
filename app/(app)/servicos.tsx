@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useThemeColor } from '../../hooks/useThemeColor';
+import { useAuth } from '../../contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Servico {
@@ -27,6 +28,7 @@ interface Categoria {
 }
 
 export default function ServicosScreen() {
+  const { estabelecimentoId } = useAuth();
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,16 +152,15 @@ export default function ServicosScreen() {
     try {
       setLoadingCategorias(true);
       
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        Alert.alert('Erro', 'Você precisa estar autenticado para visualizar as categorias');
+      if (!estabelecimentoId) {
+        Alert.alert('Erro', 'Estabelecimento não identificado');
         return;
       }
 
       const { data, error } = await supabase
         .from('categorias_servicos')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('organization_id', estabelecimentoId)
         .order('nome')
         .order('created_at', { ascending: false });
 
@@ -198,8 +199,10 @@ export default function ServicosScreen() {
   const carregarServicos = async () => {
     try {
       console.log('Iniciando carregamento de serviços...');
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
+      
+      if (!estabelecimentoId) {
+        throw new Error('Estabelecimento não identificado');
+      }
 
       const { data, error } = await supabase
         .from('servicos')
@@ -207,7 +210,7 @@ export default function ServicosScreen() {
           *,
           categoria:categorias_servicos(nome)
         `)
-        .eq('user_id', user.id)
+        .eq('organization_id', estabelecimentoId)
         .order('nome');
 
       if (error) {
@@ -250,10 +253,8 @@ export default function ServicosScreen() {
     try {
       console.log('Iniciando salvamento de serviço...');
       
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('Usuário não autenticado');
+      if (!estabelecimentoId) {
+        throw new Error('Estabelecimento não identificado');
       }
 
       console.log('Dados do serviço:', {
@@ -261,7 +262,7 @@ export default function ServicosScreen() {
         preco: precoServico,
         categoria_id: categoriaServico,
         descricao: descricaoServico,
-        user_id: user.id
+        organization_id: estabelecimentoId
       });
 
       const precoNumerico = parseFloat(precoServico) / 100;
@@ -275,7 +276,7 @@ export default function ServicosScreen() {
             preco: precoNumerico,
             categoria_id: categoriaServico,
             descricao: descricaoServico,
-            user_id: user.id,
+            organization_id: estabelecimentoId,
             updated_at: new Date().toISOString()
           })
           .eq('id', servicoEditando.id);
@@ -294,7 +295,7 @@ export default function ServicosScreen() {
             preco: precoNumerico,
             categoria_id: categoriaServico,
             descricao: descricaoServico,
-            user_id: user.id,
+            organization_id: estabelecimentoId,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           })

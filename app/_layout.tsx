@@ -50,6 +50,10 @@ const MainLayout = () => {
     const inAppGroup = segments[0] === '(app)';
     const inAdminGroup = segments[0] === '(admin)';
 
+    console.log('[MainLayout] Current segments:', segments);
+    console.log('[MainLayout] User role:', role);
+    console.log('[MainLayout] In admin group:', inAdminGroup);
+
     // 2. Lógica de redirecionamento
     if (isFirstTime) {
       // Permite acessar login/cadastro mesmo se o flag ainda não foi revalidado,

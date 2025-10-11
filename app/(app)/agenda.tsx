@@ -32,10 +32,8 @@ type Usuario = {
   id: string;
   nome_completo: string | null;
   email: string | null;
-  cargo: string | null;
-  foto_url: string | null;
-  ativo: boolean | null;
   avatar_url?: string | null;
+  faz_atendimento: boolean | null;
 };
 
 type Agendamento = {
@@ -48,7 +46,7 @@ type Agendamento = {
 };
 
 export default function AgendaScreen() {
-  const { session } = useAuth();
+  const { session, estabelecimentoId } = useAuth();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -148,7 +146,7 @@ export default function AgendaScreen() {
   }, [usuarios]);
 
   useEffect(() => {
-    carregarAgendamentos(selectedDate);
+    carregarAgendamentos();
   }, [selectedDate, selectedUser]);
 
   useEffect(() => {
@@ -258,10 +256,10 @@ export default function AgendaScreen() {
         return;
       }
 
-      // Busca os dados do usuário para obter a conta_id
+      // Busca os dados do usuário para obter o estabelecimento_id
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
-        .select('conta_id')
+        .select('estabelecimento_id')
         .eq('id', user.id)
         .single();
 
@@ -270,16 +268,16 @@ export default function AgendaScreen() {
         return;
       }
 
-      if (!userData?.conta_id) {
-        console.error('Usuário não tem conta associada');
+      if (!userData?.estabelecimento_id) {
+        console.error('Usuário não tem estabelecimento associado');
         return;
       }
 
-      // Agora busca os usuários da mesma conta
+      // Agora busca os usuários do mesmo estabelecimento
       const { data: usuarios, error } = await supabase
         .from('usuarios')
         .select('id, nome_completo, email, avatar_url, faz_atendimento')
-        .eq('conta_id', userData.conta_id)
+        .eq('estabelecimento_id', userData.estabelecimento_id)
         .eq('faz_atendimento', true)
         .order('nome_completo');
 
@@ -301,16 +299,23 @@ export default function AgendaScreen() {
   const carregarAgendamentos = async () => {
     try {
       setLoading(true);
+      
+      if (!estabelecimentoId) {
+        console.error('Estabelecimento ID não encontrado');
+        return;
+      }
+      
       let query = supabase
         .from('agendamentos')
-        .select('id, data_hora, cliente, servicos, user_id, observacoes')
+        .select('*')
+        .eq('organization_id', estabelecimentoId)
         .gte('data_hora', new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 0, 0, 0).toISOString())
         .lt('data_hora', new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 23, 59, 59).toISOString());
 
-      // Se tiver um usuário selecionado, filtra por ele
-      if (selectedUser) {
-        query = query.eq('user_id', selectedUser);
-      }
+      // Se tiver um usuário selecionado, filtra por ele (verificar se a coluna existe)
+      // if (selectedUser) {
+      //   query = query.eq('user_id', selectedUser);
+      // }
 
       const { data, error } = await query;
 
@@ -318,8 +323,8 @@ export default function AgendaScreen() {
 
       console.log('Agendamentos carregados:', data?.length || 0);
       console.log('Agendamentos brutos:', JSON.stringify(data));
+      console.log('Estrutura do primeiro agendamento:', data?.[0] ? Object.keys(data[0]) : 'Nenhum agendamento');
       
-      // Não filtra por presença inicialmente para depuração
       setAgendamentos(data || []);
     } catch (error) {
       console.error('Erro ao carregar agendamentos:', error);
@@ -331,13 +336,19 @@ export default function AgendaScreen() {
 
   const carregarAgendamentosMes = async () => {
     try {
+      if (!estabelecimentoId) {
+        console.error('Estabelecimento ID não encontrado');
+        return;
+      }
+      
       // Determinar o primeiro e último dia do mês
       const primeiroDiaMes = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
       const ultimoDiaMes = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
       
       const { data, error } = await supabase
         .from('agendamentos')
-        .select('id, data_hora, cliente, servicos, user_id, observacoes')
+        .select('*')
+        .eq('organization_id', estabelecimentoId)
         .gte('data_hora', primeiroDiaMes.toISOString())
         .lte('data_hora', ultimoDiaMes.toISOString());
 
