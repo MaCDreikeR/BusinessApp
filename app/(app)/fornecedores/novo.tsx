@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../contexts/AuthContext';
 import { router } from 'expo-router';
 import MaskInput, { Masks } from 'react-native-mask-input';
 
@@ -9,6 +10,7 @@ interface ValidationErrors {
 }
 
 export default function NovoFornecedorScreen() {
+  const { estabelecimentoId } = useAuth();
   const [loading, setLoading] = useState(false);
   const [loadingCep, setLoadingCep] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -101,10 +103,8 @@ export default function NovoFornecedorScreen() {
       }
 
       setLoading(true);
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) {
-        Alert.alert('Erro', 'Usuário não autenticado');
+      if (!estabelecimentoId) {
+        Alert.alert('Erro', 'Estabelecimento não identificado. Entre novamente.');
         return;
       }
 
@@ -119,12 +119,14 @@ export default function NovoFornecedorScreen() {
         estado: formData.estado.toUpperCase(),
         cep: formData.cep.replace(/[^\d]/g, ''),
         observacoes: sanitizeString(formData.observacoes),
-        user_id: session.user.id
+        estabelecimento_id: estabelecimentoId
       };
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('fornecedores')
-        .insert([sanitizedData]);
+        .insert([sanitizedData])
+        .select()
+        .single();
 
       if (error) throw error;
 
@@ -132,13 +134,13 @@ export default function NovoFornecedorScreen() {
         {
           text: 'OK',
           onPress: () => {
-            router.push('/fornecedores/');
+            router.push('/(app)/fornecedores');
           },
         },
       ]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao cadastrar fornecedor:', error);
-      Alert.alert('Erro', 'Não foi possível cadastrar o fornecedor');
+      Alert.alert('Erro', error?.message ?? 'Não foi possível cadastrar o fornecedor');
     } finally {
       setLoading(false);
     }

@@ -22,7 +22,6 @@ import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'expo-router';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { useAuth } from '../../contexts/AuthContext';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -32,7 +31,7 @@ interface Cliente {
   nome: string;
   telefone?: string;
   email?: string;
-  user_id: string;
+  estabelecimento_id: string;
   created_at?: string;
 }
 
@@ -210,7 +209,7 @@ export default function ComandasScreen() {
         const novoCliente: Cliente = {
           id: data.clienteId,
           nome: data.clienteNome,
-          user_id: ''
+          estabelecimento_id: ''
         };
         
         selecionarCliente(novoCliente);
@@ -351,7 +350,7 @@ export default function ComandasScreen() {
       const { data, error } = await supabase
         .from('produtos')
         .select('id, nome, preco, quantidade')
-        .eq('user_id', user.id)
+  .eq('estabelecimento_id', estabelecimentoId)
         .ilike('nome', `%${query}%`)
         .order('nome');
 
@@ -386,7 +385,7 @@ export default function ComandasScreen() {
       const { data, error } = await supabase
         .from('servicos')
         .select('*')
-        .eq('user_id', user.id)
+  .eq('estabelecimento_id', estabelecimentoId)
         .ilike('nome', `%${query}%`)
         .order('nome');
 
@@ -410,7 +409,7 @@ export default function ComandasScreen() {
       const { data, error } = await supabase
         .from('pacotes')
         .select('*')
-        .eq('user_id', user.id)
+  .eq('estabelecimento_id', estabelecimentoId)
         .ilike('nome', `%${query}%`)
         .order('nome');
 
@@ -578,7 +577,7 @@ export default function ComandasScreen() {
       const { data, error } = await supabase
         .from('comandas')
         .select('*')
-        .eq('organization_id', estabelecimentoId)
+        .eq('estabelecimento_id', estabelecimentoId)
         .order('data_abertura', { ascending: false });
 
       if (error) {
@@ -665,7 +664,7 @@ export default function ComandasScreen() {
         .from('clientes')
         .select('*')
         .ilike('nome', `%${query}%`)
-        .eq('user_id', user.id)
+  .eq('estabelecimento_id', estabelecimentoId)
         .limit(10);
       
       console.log("Clientes encontrados:", data ? data.length : 0);
@@ -677,7 +676,7 @@ export default function ComandasScreen() {
         const { data: altData, error: altError } = await supabase
           .from('clientes')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('estabelecimento_id', estabelecimentoId)
           .limit(10);
           
         if (altError) {
@@ -769,7 +768,7 @@ export default function ComandasScreen() {
           status: 'aberta',
           valor_total: valorTotal,
           observacoes: observacoes || null,
-          user_id: user.id,
+          estabelecimento_id: estabelecimentoId,
           created_by_user_id: user.id,
           created_by_user_nome: userData?.nome_completo
         })
@@ -793,7 +792,7 @@ export default function ComandasScreen() {
           preco_unitario: item.preco,
           preco_total: item.quantidade * item.preco,
           item_id: item.id,
-          user_id: user.id // Adicionando o user_id
+          estabelecimento_id: estabelecimentoId // Adicionando o estabelecimento_id
         }));
 
         const { error: itensError } = await supabase
@@ -1085,7 +1084,7 @@ export default function ComandasScreen() {
       const { data, error } = await supabase
         .from('clientes')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('estabelecimento_id', estabelecimentoId)
         .limit(5);
         
       if (error) {
@@ -1110,7 +1109,7 @@ export default function ComandasScreen() {
       const { data, error } = await supabase
         .from('clientes')
         .select('*')
-        .eq('organization_id', estabelecimentoId)
+        .eq('estabelecimento_id', estabelecimentoId)
         .order('nome')
         .limit(10);
 
@@ -1132,7 +1131,7 @@ export default function ComandasScreen() {
       const { data, error } = await supabase
         .from('clientes')
         .select('*')
-        .eq('organization_id', estabelecimentoId)
+        .eq('estabelecimento_id', estabelecimentoId)
         .order('nome');
 
       if (error) throw error;
@@ -1143,7 +1142,7 @@ export default function ComandasScreen() {
   };
 
   const renderCardComanda = (item: any) => {
-    const horarioFormatado = format(new Date(item.data_abertura), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+  const horarioFormatado = format(new Date(item.data_abertura), "dd/MM/yyyy 'às' HH:mm");
     
     return (
       <TouchableOpacity
@@ -1157,13 +1156,13 @@ export default function ComandasScreen() {
         <View style={styles.comandaCardHeader}>
           <Text style={styles.comandaCardCliente}>{item.cliente_nome}</Text>
           <Text style={styles.comandaCardData}>
-            Data: {format(new Date(item.data_abertura), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}{'\n'}
+            Data: {format(new Date(item.data_abertura), "dd/MM/yyyy 'às' HH:mm")}{'\n'}
             Criado por: {item.created_by_user_nome}{'\n'}
             {(item.status === 'fechada' || item.status === 'cancelada') && item.finalized_by_user_nome && (
               `Finalizado por: ${item.finalized_by_user_nome}${'\n'}`
             )}
             {(item.status === 'fechada' || item.status === 'cancelada') && item.finalized_at && (
-              `Em: ${format(new Date(item.finalized_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`
+              `Em: ${format(new Date(item.finalized_at), "dd/MM/yyyy 'às' HH:mm")}`
             )}
           </Text>
         </View>
@@ -1851,7 +1850,7 @@ export default function ComandasScreen() {
                   <View style={styles.comandaDetailInfo}>
                     <Text style={styles.comandaDetailCliente}>{comandaEmEdicao.cliente_nome}</Text>
                     <Text style={styles.comandaDetailData}>
-                      Data: {format(new Date(comandaEmEdicao.data_abertura), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}{'\n'}
+                      Data: {format(new Date(comandaEmEdicao.data_abertura), "dd/MM/yyyy 'às' HH:mm")}{'\n'}
                       {comandaEmEdicao.created_by_user_nome && `Criado por: ${comandaEmEdicao.created_by_user_nome}`}
                     </Text>
                   </View>
@@ -3555,17 +3554,17 @@ const styles = StyleSheet.create({
   pagamentoComprovanteContainer: {
     marginTop: 16,
   },
-  comprovantePreviewContainer: {
+  comprovantePreviewContainerSmall: {
     marginTop: 8,
     alignItems: 'center',
   },
-  comprovantePreview: {
+  comprovantePreviewSmall: {
     width: 200,
     height: 150,
     borderRadius: 8,
     marginBottom: 8,
   },
-  comprovanteButton: {
+  comprovanteButtonSmall: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -3574,7 +3573,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 8,
   },
-  comprovanteButtonText: {
+  comprovanteButtonTextSmall: {
     color: '#7C3AED',
     fontWeight: '600',
   },

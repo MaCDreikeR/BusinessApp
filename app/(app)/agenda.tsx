@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, DeviceEventEmitter, Modal, TextInput, ActivityIndicator, FlatList, Alert } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
-import { format, parse, isValid } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { format, isValid } from 'date-fns';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
@@ -41,7 +40,7 @@ type Agendamento = {
   data_hora: string;
   cliente: string;
   servicos: any[];
-  user_id: string;
+  estabelecimento_id: string;
   observacoes?: string;
 };
 
@@ -308,14 +307,10 @@ export default function AgendaScreen() {
       let query = supabase
         .from('agendamentos')
         .select('*')
-        .eq('organization_id', estabelecimentoId)
+        .eq('estabelecimento_id', estabelecimentoId)
         .gte('data_hora', new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 0, 0, 0).toISOString())
         .lt('data_hora', new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 23, 59, 59).toISOString());
 
-      // Se tiver um usuário selecionado, filtra por ele (verificar se a coluna existe)
-      // if (selectedUser) {
-      //   query = query.eq('user_id', selectedUser);
-      // }
 
       const { data, error } = await query;
 
@@ -348,7 +343,7 @@ export default function AgendaScreen() {
       const { data, error } = await supabase
         .from('agendamentos')
         .select('*')
-        .eq('organization_id', estabelecimentoId)
+        .eq('estabelecimento_id', estabelecimentoId)
         .gte('data_hora', primeiroDiaMes.toISOString())
         .lte('data_hora', ultimoDiaMes.toISOString());
 
@@ -410,13 +405,17 @@ export default function AgendaScreen() {
         console.error('Usuário não autenticado ao carregar bloqueios');
         return;
       }
+      if (!estabelecimentoId) {
+        console.error('Estabelecimento ID não encontrado ao carregar bloqueios');
+        return;
+      }
       
       // Carregar dias da semana bloqueados
       const { data: diasData, error: diasError } = await supabase
         .from('configuracoes')
         .select('valor')
         .eq('chave', 'dias_semana_bloqueados')
-        .eq('user_id', user.id)
+        .eq('estabelecimento_id', estabelecimentoId)
         .maybeSingle();
         
       if (diasError) {
@@ -434,7 +433,7 @@ export default function AgendaScreen() {
         .from('configuracoes')
         .select('valor')
         .eq('chave', 'datas_bloqueadas')
-        .eq('user_id', user.id)
+        .eq('estabelecimento_id', estabelecimentoId)
         .maybeSingle();
         
       if (datasError) {
@@ -458,13 +457,14 @@ export default function AgendaScreen() {
       // Obter o usuário atual
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
+      if (!estabelecimentoId) throw new Error('Estabelecimento ID não encontrado');
       
       // Verificar se os registros já existem
       const { data: registros, error: checkError } = await supabase
         .from('configuracoes')
         .select('id, chave')
         .in('chave', ['dias_semana_bloqueados', 'datas_bloqueadas'])
-        .eq('user_id', user.id);
+        .eq('estabelecimento_id', estabelecimentoId);
         
       if (checkError) {
         console.error('Erro ao verificar registros existentes:', checkError);
@@ -505,7 +505,7 @@ export default function AgendaScreen() {
           .insert({
             chave: 'dias_semana_bloqueados',
             valor: dias,
-            user_id: user.id
+              estabelecimento_id: estabelecimentoId
           });
           
         if (insertError) {
@@ -540,7 +540,7 @@ export default function AgendaScreen() {
           .insert({
             chave: 'datas_bloqueadas',
             valor: datas,
-            user_id: user.id
+              estabelecimento_id: estabelecimentoId
           });
           
         if (insertError) {
@@ -579,8 +579,12 @@ export default function AgendaScreen() {
     if (!novaDataBloqueada) return;
     
     try {
-      // Tenta fazer o parse da data no formato DD/MM/YYYY
-      const parsedDate = parse(novaDataBloqueada, 'dd/MM/yyyy', new Date());
+      // Parse manual da data no formato DD/MM/YYYY
+      const [diaStr, mesStr, anoStr] = novaDataBloqueada.split('/');
+      const dia = Number(diaStr);
+      const mes = Number(mesStr);
+      const ano = Number(anoStr);
+      const parsedDate = new Date(ano, mes - 1, dia);
       
       if (!isValid(parsedDate)) {
         console.error('Data inválida');
@@ -642,6 +646,11 @@ export default function AgendaScreen() {
         inicializarHorariosPadrao();
         return;
       }
+      if (!estabelecimentoId) {
+        console.error('Estabelecimento ID não encontrado ao carregar horários');
+        inicializarHorariosPadrao();
+        return;
+      }
       
       // Carregar configurações de horários
       const { data, error } = await supabase
@@ -655,7 +664,7 @@ export default function AgendaScreen() {
           'intervalo_agendamentos',
           'limite_simultaneos'
         ])
-        .eq('user_id', user.id);
+        .eq('estabelecimento_id', estabelecimentoId);
         
       if (error) {
         console.error('Erro ao carregar configurações de horários:', error);
@@ -812,6 +821,7 @@ export default function AgendaScreen() {
       // Obter o usuário atual
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
+      if (!estabelecimentoId) throw new Error('Estabelecimento ID não encontrado');
       
       // Preparar configurações para salvar
       const configs = [
@@ -835,7 +845,7 @@ export default function AgendaScreen() {
         .from('configuracoes')
         .select('id, chave')
         .in('chave', configs.map(c => c.chave))
-        .eq('user_id', user.id);
+        .eq('estabelecimento_id', estabelecimentoId);
         
       if (checkError) {
         console.error('Erro ao verificar registros existentes:', checkError);
@@ -874,7 +884,7 @@ export default function AgendaScreen() {
             .insert({
               chave,
               valor,
-              user_id: user.id
+              estabelecimento_id: estabelecimentoId
             });
             
           if (error) {
@@ -1060,7 +1070,7 @@ export default function AgendaScreen() {
         >
           <Ionicons name="calendar-outline" size={20} color="#000" />
           <Text style={styles.dateText}>
-            {format(selectedDate, "EEE, dd/MM/yyyy", { locale: ptBR })}
+            {format(selectedDate, "EEE, dd/MM/yyyy")}
           </Text>
           <Ionicons name={showCalendar ? "chevron-up" : "chevron-down"} size={20} color="#000" />
         </TouchableOpacity>
@@ -1388,7 +1398,9 @@ export default function AgendaScreen() {
               
               <View style={styles.datasBloqueadasList}>
                 {datasBloqueadas.map((data, index) => {
-                  const parsedDate = parse(data, 'yyyy-MM-dd', new Date());
+                  // Parse manual de yyyy-MM-dd
+                  const [anoStr, mesStr, diaStr] = data.split('-');
+                  const parsedDate = new Date(Number(anoStr), Number(mesStr) - 1, Number(diaStr));
                   const dataFormatada = format(parsedDate, 'dd/MM/yyyy');
                   
                   return (
@@ -1593,7 +1605,7 @@ export default function AgendaScreen() {
       {/* Botão de adicionar agendamento */}
       <TouchableOpacity
         style={[styles.addButton, { opacity: 0 }]}
-        onPress={() => router.push('/agenda/novo')}
+        onPress={() => router.push('/(app)/agenda/novo')}
       >
         <Ionicons name="add" size={30} color="#fff" />
       </TouchableOpacity>

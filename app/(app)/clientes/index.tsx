@@ -13,7 +13,7 @@ type Cliente = {
   nome: string;
   telefone: string;
   foto_url?: string;
-  user_id: string;
+  estabelecimento_id: string;
   created_at: string;
   debito?: boolean;
   credito?: boolean;
@@ -50,7 +50,7 @@ export default function ClientesScreen() {
       const { data: clientesData, error: clientesError } = await supabase
         .from('clientes')
         .select('*')
-        .eq('organization_id', estabelecimentoId)
+        .eq('estabelecimento_id', estabelecimentoId)
         .order('nome');
 
       if (clientesError) {
@@ -62,7 +62,7 @@ export default function ClientesScreen() {
       const { data: agendamentosData, error: agendamentosError } = await supabase
         .from('agendamentos')
         .select('*')
-        .eq('organization_id', estabelecimentoId)
+        .eq('estabelecimento_id', estabelecimentoId)
         .order('data_hora');
 
       if (agendamentosError) {

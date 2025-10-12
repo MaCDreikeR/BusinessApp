@@ -157,12 +157,12 @@ export default function ServicosScreen() {
         return;
       }
 
-      const { data, error } = await supabase
-        .from('categorias_servicos')
-        .select('*')
-        .eq('organization_id', estabelecimentoId)
-        .order('nome')
-        .order('created_at', { ascending: false });
+        const { data, error } = await supabase
+          .from('categorias_servicos')
+          .select('*')
+          .eq('estabelecimento_id', estabelecimentoId)
+          .order('nome')
+          .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Erro ao carregar categorias:', error);
@@ -204,14 +204,14 @@ export default function ServicosScreen() {
         throw new Error('Estabelecimento não identificado');
       }
 
-      const { data, error } = await supabase
-        .from('servicos')
-        .select(`
-          *,
-          categoria:categorias_servicos(nome)
-        `)
-        .eq('organization_id', estabelecimentoId)
-        .order('nome');
+        const { data, error } = await supabase
+          .from('servicos')
+          .select(`
+            *,
+            categoria:categorias_servicos(nome)
+          `)
+          .eq('estabelecimento_id', estabelecimentoId)
+          .order('nome');
 
       if (error) {
         console.error('Erro ao carregar serviços:', error);
@@ -262,7 +262,7 @@ export default function ServicosScreen() {
         preco: precoServico,
         categoria_id: categoriaServico,
         descricao: descricaoServico,
-        organization_id: estabelecimentoId
+           estabelecimento_id: estabelecimentoId
       });
 
       const precoNumerico = parseFloat(precoServico) / 100;
@@ -276,7 +276,7 @@ export default function ServicosScreen() {
             preco: precoNumerico,
             categoria_id: categoriaServico,
             descricao: descricaoServico,
-            organization_id: estabelecimentoId,
+               estabelecimento_id: estabelecimentoId,
             updated_at: new Date().toISOString()
           })
           .eq('id', servicoEditando.id);
@@ -295,7 +295,7 @@ export default function ServicosScreen() {
             preco: precoNumerico,
             categoria_id: categoriaServico,
             descricao: descricaoServico,
-            organization_id: estabelecimentoId,
+               estabelecimento_id: estabelecimentoId,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           })
@@ -454,7 +454,7 @@ export default function ServicosScreen() {
           .from('categorias_servicos')
           .update({
             nome: nomeCategoria,
-            user_id: user.id,
+               estabelecimento_id: estabelecimentoId,
             updated_at: new Date().toISOString()
           })
           .eq('id', categoriaEditando.id);
@@ -467,7 +467,7 @@ export default function ServicosScreen() {
           .from('categorias_servicos')
           .insert({
             nome: nomeCategoria,
-            user_id: user.id,
+               estabelecimento_id: estabelecimentoId,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           })

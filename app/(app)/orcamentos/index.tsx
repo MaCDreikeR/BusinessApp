@@ -1,4 +1,11 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Animated, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Animated, ActivityIndicator, TextInput, ScrollView } from 'react-native';
+// Filtros de status
+const STATUS_FILTROS = [
+  { label: 'Todos', value: null },
+  { label: 'Aprovados', value: 'aprovado' },
+  { label: 'Pendentes', value: 'pendente' },
+  { label: 'Rejeitados', value: 'rejeitado' },
+];
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState, useEffect, useRef } from 'react';
@@ -65,20 +72,24 @@ export default function OrcamentosScreen() {
   const [busca, setBusca] = useState('');
   const [orcamentosFiltrados, setOrcamentosFiltrados] = useState<Orcamento[]>([]);
 
+  const [statusFiltro, setStatusFiltro] = useState<null | string>(null);
+
   useEffect(() => {
     carregarOrcamentosLista();
   }, []);
 
   useEffect(() => {
-    if (busca.trim() === '') {
-      setOrcamentosFiltrados(orcamentos);
-    } else {
-      const filtrados = orcamentos.filter(orcamento => 
+    let filtrados = orcamentos;
+    if (statusFiltro) {
+      filtrados = filtrados.filter(o => (o.status || '').toLowerCase() === statusFiltro);
+    }
+    if (busca.trim() !== '') {
+      filtrados = filtrados.filter(orcamento => 
         orcamento.cliente.toLowerCase().includes(busca.toLowerCase())
       );
-      setOrcamentosFiltrados(filtrados);
     }
-  }, [busca, orcamentos]);
+    setOrcamentosFiltrados(filtrados);
+  }, [busca, orcamentos, statusFiltro]);
 
   async function carregarOrcamentosLista() {
     try {
@@ -132,6 +143,20 @@ export default function OrcamentosScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Filtros de status */}
+      <View style={styles.filtrosContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtrosScroll}>
+          {STATUS_FILTROS.map(filtro => (
+            <TouchableOpacity
+              key={filtro.label}
+              style={[styles.filtroButton, statusFiltro === filtro.value && styles.filtroButtonSelected]}
+              onPress={() => setStatusFiltro(filtro.value)}
+            >
+              <Text style={[styles.filtroButtonText, statusFiltro === filtro.value && styles.filtroButtonTextSelected]}>{filtro.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
       <View style={styles.header}>
         <View style={styles.searchContainer}>
           <Ionicons name="search-outline" size={20} color="#6B7280" />
@@ -170,6 +195,40 @@ export default function OrcamentosScreen() {
 }
 
 const styles = StyleSheet.create({
+  list: {
+    padding: 16,
+  },
+  filtrosContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 4,
+  },
+  filtrosScroll: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  filtroButton: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    marginRight: 8,
+    minWidth: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filtroButtonSelected: {
+    backgroundColor: '#7C3AED',
+  },
+  filtroButtonText: {
+    color: '#6B7280',
+    fontWeight: '500',
+    fontSize: 15,
+  },
+  filtroButtonTextSelected: {
+    color: '#FFF',
+    fontWeight: '700',
+  },
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',

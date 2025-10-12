@@ -44,12 +44,32 @@ export default function HomeScreen() {
     if (!estabelecimentoId) return;
     try {
       console.log(`Iniciando consulta de produtos com baixo estoque para o estabelecimento: ${estabelecimentoId}`);
-      const { data: produtos, error } = await supabase
-        .rpc('get_produtos_baixo_estoque', { p_org_id: estabelecimentoId })
+      // Tenta via RPC (pode estar desatualizada no banco)
+      const { data: produtosRpc, error } = await supabase
+        .rpc('get_produtos_baixo_estoque', { p_estabelecimento_id: estabelecimentoId })
         .limit(5);
 
-      if (error) throw error;
-      setProdutosBaixoEstoque(produtos || []);
+      if (error) {
+        console.warn('RPC get_produtos_baixo_estoque falhou, aplicando fallback:', error);
+        // Fallback: buscar produtos e filtrar em JS
+        const { data: produtosRaw, error: errProdutos } = await supabase
+          .from('produtos')
+          .select('id, nome, quantidade, quantidade_minima, estabelecimento_id')
+          .eq('estabelecimento_id', estabelecimentoId)
+          .order('quantidade', { ascending: true })
+          .limit(50);
+
+        if (errProdutos) throw errProdutos;
+
+        const filtrados = (produtosRaw || [])
+          .filter(p => (p.quantidade ?? 0) <= (p.quantidade_minima ?? 5))
+          .slice(0, 5);
+
+        setProdutosBaixoEstoque(filtrados);
+        return;
+      }
+
+      setProdutosBaixoEstoque(produtosRpc || []);
     } catch (error) {
       console.error('Erro inesperado ao carregar produtos baixo estoque:', error);
     }
@@ -72,15 +92,15 @@ export default function HomeScreen() {
         { data: vendasRecentesData, error: vendasRecentesError },
       ] = await Promise.all([
         // Carregar agendamentos de hoje
-        supabase.from('agendamentos').select('*', { count: 'exact' }).eq('organization_id', estabelecimentoId).gte('data_hora', inicioHoje.toISOString()).lte('data_hora', fimHoje.toISOString()),
+        supabase.from('agendamentos').select('*', { count: 'exact' }).eq('estabelecimento_id', estabelecimentoId).gte('data_hora', inicioHoje.toISOString()).lte('data_hora', fimHoje.toISOString()),
         // Carregar vendas de hoje - CORREÇÃO APLICADA
-        supabase.from('comandas_itens').select(`preco_total, comandas(status, organization_id)`).eq('comandas.organization_id', estabelecimentoId).eq('comandas.status', 'fechada').gte('created_at', inicioHoje.toISOString()).lte('created_at', fimHoje.toISOString()),
+        supabase.from('comandas_itens').select(`preco_total, comandas(status, estabelecimento_id)`).eq('comandas.estabelecimento_id', estabelecimentoId).eq('comandas.status', 'fechada').gte('created_at', inicioHoje.toISOString()).lte('created_at', fimHoje.toISOString()),
         // Carregar clientes ativos
-        supabase.from('clientes').select('*', { count: 'exact', head: true }).eq('organization_id', estabelecimentoId),
+        supabase.from('clientes').select('*', { count: 'exact', head: true }).eq('estabelecimento_id', estabelecimentoId),
         // Carregar próximos agendamentos
-        supabase.from('agendamentos').select('*').eq('organization_id', estabelecimentoId).gte('data_hora', new Date().toISOString()).order('data_hora').limit(5),
+        supabase.from('agendamentos').select('*').eq('estabelecimento_id', estabelecimentoId).gte('data_hora', new Date().toISOString()).order('data_hora').limit(5),
         // Carregar vendas recentes - CORREÇÃO APLICADA
-        supabase.from('comandas_itens').select(`id, preco_total, created_at, comandas(cliente_nome, organization_id)`).eq('comandas.organization_id', estabelecimentoId).eq('comandas.status', 'fechada').order('created_at', { ascending: false }).limit(5),
+        supabase.from('comandas_itens').select(`id, preco_total, created_at, comandas(cliente_nome, estabelecimento_id)`).eq('comandas.estabelecimento_id', estabelecimentoId).eq('comandas.status', 'fechada').order('created_at', { ascending: false }).limit(5),
       ]);
 
       if (agendamentosError) console.error('Erro agendamentos:', agendamentosError); else setAgendamentosHoje(agendamentos?.length || 0);
@@ -94,7 +114,7 @@ export default function HomeScreen() {
       if (vendasRecentesError) {
         console.error('Erro vendas recentes:', vendasRecentesError);
       } else if (vendasRecentesData) {
-        setVendasRecentes(vendasRecentesData.map(v => ({ id: v.id, cliente_nome: v.comandas?.cliente_nome || '?', valor: v.preco_total || 0, data: v.created_at })));
+        setVendasRecentes(vendasRecentesData.map((v: any) => ({ id: v.id, cliente_nome: v.comandas?.cliente_nome || '?', valor: v.preco_total || 0, data: v.created_at })));
       }
 
     } catch (error) {
@@ -200,7 +220,7 @@ export default function HomeScreen() {
                   <FontAwesome5 name="calendar-alt" size={16} color="#7C3AED" />
                 </View>
                 <Text style={styles.agendamentoHorario}>
-                  {agendamento.horario ? format(new Date(agendamento.horario), "HH:mm", { locale: ptBR }) : '--:--'}
+                  {agendamento.horario ? format(new Date(agendamento.horario), "HH:mm") : '--:--'}
                 </Text>
               </View>
 
@@ -215,7 +235,7 @@ export default function HomeScreen() {
 
               <View style={styles.agendamentoData}>
                 <Text style={styles.agendamentoDia}>
-                  {agendamento.horario ? format(new Date(agendamento.horario), "dd/MM", { locale: ptBR }) : '--/--'}
+                  {agendamento.horario ? format(new Date(agendamento.horario), "dd/MM") : '--/--'}
                 </Text>
               </View>
             </View>
@@ -241,7 +261,7 @@ export default function HomeScreen() {
               <View style={styles.vendaContent}>
                 <Text style={styles.vendaCliente}>{venda.cliente_nome}</Text>
                 <Text style={styles.vendaData}>
-                  {venda.data ? format(new Date(venda.data), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : 'Data indisponível'}
+                  {venda.data ? format(new Date(venda.data), "dd/MM/yyyy 'às' HH:mm") : 'Data indisponível'}
                 </Text>
               </View>
               <Text style={styles.vendaValor}>

@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert,
 import { Link, router } from 'expo-router';
 import { Picker } from '@react-native-picker/picker';
 import MaskInput from 'react-native-mask-input';
-import { supabase } from '../../lib/supabase';
+import { supabase, testConnection } from '../../lib/supabase';
 
 export default function SignupScreen() {
   const [formData, setFormData] = useState({
@@ -78,27 +78,28 @@ export default function SignupScreen() {
 
     setLoading(true);
     try {
-      const { user, error } = await supabase.auth.signUp(
-        formData.email,
-        formData.senha,
-        {
-          email: formData.email,
-          estabelecimento: {
-            nome: formData.nomeEstabelecimento,
-            cnpj: formData.cnpj.replace(/\D/g, ''),
-            celular: formData.celular.replace(/\D/g, ''),
-            segmento: formData.segmento,
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.senha,
+        options: {
+          data: {
+            nome_completo: formData.nomeCompleto,
+            receber_tutorial: formData.receberTutorial,
+            estabelecimento: {
+              nome: formData.nomeEstabelecimento,
+              cnpj: formData.cnpj.replace(/\D/g, ''),
+              celular: formData.celular.replace(/\D/g, ''),
+              segmento: formData.segmento,
+            },
           },
-          nome_completo: formData.nomeCompleto,
-          receber_tutorial: formData.receberTutorial,
-        }
-      );
+        },
+      });
 
       if (error) {
         console.error('Erro detalhado:', error);
         Alert.alert(
           'Erro ao criar conta',
-          `Detalhes do erro: ${error.message}\n${error.details ? `\nDetalhes adicionais: ${error.details}` : ''}`
+          `Detalhes do erro: ${error.message}`
         );
         return;
       }
@@ -109,7 +110,7 @@ export default function SignupScreen() {
         [
           {
             text: 'OK',
-            onPress: () => router.push('/login')
+            onPress: () => router.push('/(auth)/login')
           }
         ]
       );
@@ -127,15 +128,9 @@ export default function SignupScreen() {
   const handleTestConnection = async () => {
     setLoading(true);
     try {
-      const result = await testConnection();
-      if (result.success) {
-        Alert.alert('Sucesso', result.message);
-      } else {
-        Alert.alert(
-          'Erro de Conexão',
-          `${result.message}\n\nErro: ${result.error}\n${result.details ? `\nDetalhes: ${result.details}` : ''}\n${result.hint ? `\nDica: ${result.hint}` : ''}`
-        );
-      }
+      const ok = await testConnection();
+      if (ok) Alert.alert('Sucesso', 'Conexão com o Supabase bem-sucedida.');
+      else Alert.alert('Erro de Conexão', 'Não foi possível conectar ao Supabase.');
     } catch (error: any) {
       Alert.alert(
         'Erro Inesperado',
@@ -268,8 +263,8 @@ export default function SignupScreen() {
           </TouchableOpacity>
           <Text style={styles.checkboxLabel}>
             Li e aceito os{' '}
-            <Link href="/terms" style={styles.link}>Termos de Uso</Link> e a{' '}
-            <Link href="/privacy" style={styles.link}>Política de Privacidade</Link>
+            <Text style={styles.link}>Termos de Uso</Text> e a{' '}
+            <Text style={styles.link}>Política de Privacidade</Text>
           </Text>
         </View>
 
@@ -287,7 +282,7 @@ export default function SignupScreen() {
 
         <View style={styles.loginContainer}>
           <Text style={styles.loginText}>Já tem uma conta? </Text>
-          <Link href="/login" style={styles.loginLink}>
+          <Link href="/(auth)/login" style={styles.loginLink}>
             Fazer login
           </Link>
         </View>

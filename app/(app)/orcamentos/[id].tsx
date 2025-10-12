@@ -39,9 +39,24 @@ export default function DetalhesOrcamentoScreen() {
     try {
       setLoading(true);
       console.log('Carregando orçamento:', id);
-      const orcamentoData = await carregarOrcamentoPorId(id as string);
-      console.log('Orçamento carregado:', orcamentoData);
-      setOrcamento(orcamentoData);
+      const o = await carregarOrcamentoPorId(id as string);
+      console.log('Orçamento carregado:', o);
+      // Normaliza para o tipo Orcamento esperado, preenchendo campos ausentes
+      setOrcamento({
+        id: o.id,
+        cliente: o.cliente,
+        cliente_id: o.cliente_id,
+        data: new Date(o.data),
+        valor_total: Number(o.valor_total) || 0,
+        forma_pagamento: o.forma_pagamento ?? 'dinheiro',
+        parcelas: Number(o.parcelas) || 1,
+        desconto: Number(o.desconto) || 0,
+        status: (o.status as any) ?? 'pendente',
+        observacoes: o.observacoes ?? '',
+        created_by: '',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
       
       console.log('Carregando itens do orçamento');
       const itensData = await carregarItensOrcamento(id as string);
@@ -67,7 +82,7 @@ export default function DetalhesOrcamentoScreen() {
           onPress: async () => {
             try {
               await excluirOrcamento(id as string);
-              router.replace('/orcamentos/');
+              router.replace('/(app)/orcamentos');
             } catch (error) {
               console.error('Erro ao excluir orçamento:', error);
               Alert.alert('Erro', 'Não foi possível excluir o orçamento');
@@ -199,9 +214,9 @@ export default function DetalhesOrcamentoScreen() {
               <div class="info-row">
                 <span class="label">Forma de Pagamento:</span> 
                 <span>${
-                  orcamento?.forma_pagamento.charAt(0).toUpperCase() + 
-                  orcamento?.forma_pagamento.slice(1)
-                }${orcamento?.parcelas > 1 ? ` - ${orcamento.parcelas}x` : ''}</span>
+                  (orcamento?.forma_pagamento ?? '').charAt(0).toUpperCase() + 
+                  (orcamento?.forma_pagamento ?? '').slice(1)
+                }${(orcamento?.parcelas ?? 1) > 1 ? ` - ${orcamento?.parcelas}x` : ''}</span>
               </div>
               ${orcamento?.desconto ? `
                 <div class="info-row">
@@ -364,7 +379,7 @@ export default function DetalhesOrcamentoScreen() {
         <View style={styles.headerLeft}>
           <TouchableOpacity 
             style={styles.backButton}
-            onPress={() => router.replace('/orcamentos/')}
+            onPress={() => router.replace('/(app)/orcamentos')}
           >
             <Ionicons name="arrow-back" size={24} color="#7C3AED" />
           </TouchableOpacity>

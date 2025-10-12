@@ -338,19 +338,13 @@ export default function NovoOrcamentoScreen() {
       return;
     }
 
-    if (!validarValor(valorItemAtual)) {
-      Alert.alert('Erro', 'Valor inválido');
-      return;
-    }
-
     const quantidade = parseInt(quantidadeAtual);
     if (isNaN(quantidade) || quantidade <= 0) {
       Alert.alert('Erro', 'Quantidade inválida');
       return;
     }
 
-    const valor = parseFloat(valorItemAtual.replace(',', '.'));
-
+    let valor = 0;
     let produto_id, servico_id, pacote_id;
 
     switch (tipoItem) {
@@ -360,6 +354,7 @@ export default function NovoOrcamentoScreen() {
           return;
         }
         produto_id = produtoSelecionado.id;
+        valor = produtoSelecionado.preco;
         break;
       case 'servico':
         if (!servicoSelecionado?.id) {
@@ -367,6 +362,7 @@ export default function NovoOrcamentoScreen() {
           return;
         }
         servico_id = servicoSelecionado.id;
+        valor = servicoSelecionado.preco;
         break;
       case 'pacote':
         if (!pacoteSelecionado?.id) {
@@ -374,6 +370,7 @@ export default function NovoOrcamentoScreen() {
           return;
         }
         pacote_id = pacoteSelecionado.id;
+        valor = pacoteSelecionado.preco; // Sempre usar o valor final do pacote
         break;
     }
 
@@ -661,7 +658,7 @@ export default function NovoOrcamentoScreen() {
       Alert.alert('Sucesso', 'Orçamento criado com sucesso!', [
         {
           text: 'OK',
-          onPress: () => router.replace('/orcamentos-tab/')
+          onPress: () => router.replace('/(app)/orcamentos')
         }
       ]);
     } catch (error) {

@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, PanResponder, Animated, Platform, ActivityIndicator, Image, DeviceEventEmitter, FlatList, BackHandler, KeyboardAvoidingView, GestureResponderEvent, NativeSyntheticEvent } from 'react-native';
 import { TextInput } from 'react-native-paper';
-import { format, parse } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { format } from 'date-fns';
 import { useRouter, useNavigation } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import MaskInput from 'react-native-mask-input';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useAuth } from '../../../contexts/AuthContext';
 
 interface Cliente {
   id: string;
@@ -43,6 +43,7 @@ interface Usuario {
 export default function NovoAgendamentoScreen() {
   const router = useRouter();
   const navigation = useNavigation();
+  const { estabelecimentoId } = useAuth();
   const [loading, setLoading] = useState(false);
   const [cliente, setCliente] = useState('');
   const [telefone, setTelefone] = useState('');
@@ -246,7 +247,7 @@ export default function NovoAgendamentoScreen() {
           *,
           categoria:categorias_servicos(nome)
         `)
-        .eq('user_id', user.id)
+        .eq('estabelecimento_id', estabelecimentoId)
         .order('nome');
 
       if (error) throw error;
@@ -452,7 +453,7 @@ export default function NovoAgendamentoScreen() {
           servicos: detalhesServicos,
           valor_total: valorTotalAgendamento,
           observacoes: observacoes.trim() || null,
-          user_id: usuarioSelecionado?.id,
+          estabelecimento_id: estabelecimentoId,
           status: 'agendado'
         });
 
@@ -473,7 +474,7 @@ export default function NovoAgendamentoScreen() {
             // Limpar todos os campos
             limparFormulario();
             // Navegar para a tela de agenda
-            router.push('/agenda');
+            router.push('/(app)/agenda');
           }
         }]
       );
@@ -543,7 +544,7 @@ export default function NovoAgendamentoScreen() {
         .from('clientes')
         .select('*')
         .ilike('nome', `%${nome}%`)
-        .eq('user_id', user.id)
+        .eq('estabelecimento_id', estabelecimentoId)
         .order('nome')
         .limit(10);
 
@@ -576,7 +577,7 @@ export default function NovoAgendamentoScreen() {
   };
 
   const handleCadastrarCliente = () => {
-    router.push('/clientes/novo');
+  router.push('/(app)/clientes/novo');
   };
 
   const buscarServicos = (nome: string) => {
@@ -677,7 +678,7 @@ export default function NovoAgendamentoScreen() {
           'horario_fim',
           'intervalo_agendamentos'
         ])
-        .eq('user_id', user.id);
+        .eq('estabelecimento_id', estabelecimentoId);
         
       if (error) {
         console.error('Erro ao carregar configurações de horários:', error);
@@ -959,16 +960,16 @@ export default function NovoAgendamentoScreen() {
   // Modificar o useEffect que trata o botão de voltar
   useEffect(() => {
     // Adicionar um listener para o evento de hardware back (Android)
-    const backHandler = async () => {
+    const backHandler = () => {
       if (temDadosPreenchidos()) {
-        // Retornar true impede o comportamento padrão de voltar
-        const descartar = await confirmarDescarte();
-        if (descartar) {
-          router.push('/agenda');
-        }
-        return true; // Previne o comportamento padrão de voltar
+        confirmarDescarte().then((descartar) => {
+          if (descartar) {
+            router.push('/(app)/agenda');
+          }
+        });
+        return true;
       }
-      return false; // Permite o comportamento padrão de voltar
+      return false;
     };
     
     // Adicionar o handler para o botão voltar no Android
@@ -981,7 +982,7 @@ export default function NovoAgendamentoScreen() {
   }, [cliente, telefone, data, hora, servicosSelecionados, observacoes]);
 
   // Modificar o handleFecharModal para não solicitar confirmação ao adicionar serviços
-  const handleFecharModal = () => {
+  const handleFecharModal = (_confirmar?: boolean) => {
     setMostrarSeletorHorario(false);
   };
 
@@ -1095,9 +1096,9 @@ export default function NovoAgendamentoScreen() {
             {mostrarLista && (
               <View style={styles.sugestoesList}>
                 {buscandoClientes ? (
-                  <View style={styles.loadingContainer}>
+                  <View style={styles.listLoadingContainer}>
                     <ActivityIndicator size="small" color="#7C3AED" />
-                    <Text style={styles.loadingText}>Buscando clientes...</Text>
+                    <Text style={styles.listLoadingText}>Buscando clientes...</Text>
                   </View>
                 ) : clientesEncontrados.length > 0 ? (
                   clientesEncontrados.map((cliente) => (
@@ -1321,12 +1322,12 @@ export default function NovoAgendamentoScreen() {
           <Modal
             visible={modalVisible}
             transparent={true}
-            onRequestClose={handleFecharModal}
+            onRequestClose={() => handleFecharModal()}
           >
             <TouchableOpacity 
               style={styles.modalContainer} 
               activeOpacity={1} 
-              onPress={handleFecharModal}
+              onPress={() => handleFecharModal()}
             >
               <Animated.View 
                 style={[
@@ -1501,9 +1502,9 @@ export default function NovoAgendamentoScreen() {
           activeOpacity={0.7}
         >
           {loading ? (
-            <View style={styles.loadingContainer}>
+            <View style={styles.savingLoadingContainer}>
               <ActivityIndicator color="#FFFFFF" size="small" />
-              <Text style={[styles.saveButtonText, styles.loadingText]}>
+              <Text style={[styles.saveButtonText, styles.savingLoadingText]}>
                 Salvando...
               </Text>
             </View>
@@ -2131,12 +2132,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-  loadingContainer: {
+  savingLoadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  loadingText: {
+  savingLoadingText: {
     marginLeft: 8,
   },
   clienteContainer: {
@@ -2160,13 +2161,13 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
     marginTop: 8,
   },
-  loadingContainer: {
+  listLoadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 16,
   },
-  loadingText: {
+  listLoadingText: {
     fontSize: 14,
     color: '#6B7280',
     marginLeft: 8,

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView,
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../contexts/AuthContext';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 
@@ -13,13 +14,14 @@ type Cliente = {
   email: string | null;
   observacoes: string | null;
   foto_url: string | null;
-  user_id: string;
+  estabelecimento_id: string;
   data_nascimento?: string;
 };
 
 export default function EditarClienteScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const { estabelecimentoId, user } = useAuth();
   const [activeTab, setActiveTab] = useState('dados');
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [nome, setNome] = useState('');
@@ -46,9 +48,8 @@ export default function EditarClienteScreen() {
 
   const carregarCliente = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        Alert.alert('Erro', 'Usuário não autenticado');
+      if (!estabelecimentoId) {
+        Alert.alert('Erro', 'Estabelecimento não identificado');
         return;
       }
 
@@ -56,7 +57,7 @@ export default function EditarClienteScreen() {
         .from('clientes')
         .select('*')
         .eq('id', id)
-        .eq('user_id', user.id)
+        .eq('estabelecimento_id', estabelecimentoId)
         .single();
 
       if (error) {
@@ -158,7 +159,7 @@ export default function EditarClienteScreen() {
                 .from('clientes')
                 .delete()
                 .eq('id', id)
-                .eq('user_id', user.id);
+                .eq('estabelecimento_id', estabelecimentoId);
 
               if (error) {
                 console.error('Erro ao excluir cliente:', error);
@@ -247,7 +248,7 @@ export default function EditarClienteScreen() {
           data_nascimento: dataFormatada,
         })
         .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('estabelecimento_id', estabelecimentoId);
 
       if (error) {
         console.error('Erro ao atualizar cliente:', error);

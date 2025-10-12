@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, Image, DeviceEventEmitter } from 'react-native';
 import { useRouter, Stack, useLocalSearchParams } from 'expo-router';
+import { useAuth } from '../../../contexts/AuthContext';
 import { FontAwesome5, MaterialIcons, Feather } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
@@ -9,6 +10,7 @@ import { decode } from 'base64-arraybuffer';
 export default function NovoClienteScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { estabelecimentoId, user } = useAuth();
   const [activeTab, setActiveTab] = useState('dados');
   const [nome, setNome] = useState(params.nome as string || '');
   const [telefone, setTelefone] = useState('');
@@ -215,9 +217,8 @@ export default function NovoClienteScreen() {
     try {
       setSalvando(true);
       
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        Alert.alert('Erro', 'Usuário não autenticado. Por favor, faça login novamente.');
+      if (!user || !estabelecimentoId) {
+        Alert.alert('Erro', 'Usuário ou estabelecimento não identificado');
         return;
       }
 
@@ -251,7 +252,7 @@ export default function NovoClienteScreen() {
           data_nascimento: dataNascimento ? new Date(dataNascimento.split('/').reverse().join('-')).toISOString().split('T')[0] : null,
           observacoes: observacoes.trim() || null,
           foto_url,
-          user_id: user.id,
+          estabelecimento_id: estabelecimentoId,
         })
         .select()
         .single();
@@ -271,7 +272,7 @@ export default function NovoClienteScreen() {
             valor: parseFloat(saldoInicial),
             tipo: 'credito',
             descricao: 'Saldo inicial',
-            user_id: user.id,
+            estabelecimento_id: estabelecimentoId,
           });
 
         if (saldoError) {
@@ -297,7 +298,7 @@ export default function NovoClienteScreen() {
             data_hora: dataHora.toISOString(),
             servico: servicoAgendado.trim(),
             status: 'agendado',
-            user_id: user.id,
+            estabelecimento_id: estabelecimentoId,
           });
 
         if (agendamentoError) {

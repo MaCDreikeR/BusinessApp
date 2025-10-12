@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../contexts/AuthContext';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import MaskInput from 'react-native-mask-input';
 
@@ -58,6 +59,7 @@ const PRECO_MASK = [
 ];
 
 export default function EditarProdutoScreen() {
+  const { estabelecimentoId } = useAuth();
   const { id } = useLocalSearchParams();
   const [loading, setLoading] = useState(false);
   const [produto, setProduto] = useState<Produto | null>(null);
@@ -206,8 +208,10 @@ export default function EditarProdutoScreen() {
 
   const handleSalvar = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) return;
+      if (!estabelecimentoId) {
+        Alert.alert('Erro', 'Estabelecimento não identificado. Entre novamente.');
+        return;
+      }
 
       // Converter preço de string formatada para número
       const precoNumerico = parseFloat(formData.preco.replace(/[^\d,]/g, '').replace(',', '.'));
@@ -238,8 +242,8 @@ export default function EditarProdutoScreen() {
           preco: precoNumerico,
           quantidade_minima: quantidadeMinima
         })
-        .eq('id', id)
-        .eq('user_id', session.user.id);
+  .eq('id', id)
+  .eq('estabelecimento_id', estabelecimentoId);
 
       if (error) throw error;
 

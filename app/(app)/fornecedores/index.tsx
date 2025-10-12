@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, S
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
 import { router, usePathname } from 'expo-router';
+import { useAuth } from '../../../contexts/AuthContext';
 
 interface Fornecedor {
   id: string;
@@ -23,27 +24,26 @@ export default function FornecedoresScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const pathname = usePathname();
 
+  const { estabelecimentoId } = useAuth();
+
   useEffect(() => {
-    carregarFornecedores();
-  }, [pathname]);
+    if (estabelecimentoId) {
+      carregarFornecedores();
+    }
+  }, [pathname, estabelecimentoId]);
 
   const carregarFornecedores = async () => {
     try {
       setLoading(true);
       console.log('Iniciando carregamento de fornecedores...');
-      
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) {
-        console.error('Usuário não autenticado');
-        Alert.alert('Erro', 'Usuário não autenticado. Por favor, faça login novamente.');
-        router.replace('/(auth)/login');
+      if (!estabelecimentoId) {
+        Alert.alert('Erro', 'Estabelecimento não identificado.');
         return;
       }
-
       const { data, error } = await supabase
         .from('fornecedores')
         .select('*')
-        .eq('user_id', session.user.id)
+        .eq('estabelecimento_id', estabelecimentoId)
         .order('nome');
 
       if (error) {
@@ -64,11 +64,11 @@ export default function FornecedoresScreen() {
   };
 
   const handleNovoFornecedor = () => {
-    router.push('/fornecedores/novo');
+    router.push('/(app)/fornecedores/novo');
   };
 
   const handleEditarFornecedor = (fornecedor: Fornecedor) => {
-    router.push(`/fornecedores/${fornecedor.id}`);
+    router.push(`/(app)/fornecedores/${fornecedor.id}`);
   };
 
   const handleExcluirFornecedor = async (fornecedor: Fornecedor) => {

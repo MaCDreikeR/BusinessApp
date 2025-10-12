@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../contexts/AuthContext';
 import { router } from 'expo-router';
 import MaskInput from 'react-native-mask-input';
 
@@ -36,6 +37,7 @@ const PRECO_MASK = [
 ];
 
 export default function NovoProdutoScreen() {
+  const { estabelecimentoId } = useAuth();
   const [loading, setLoading] = useState(false);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
@@ -122,8 +124,10 @@ export default function NovoProdutoScreen() {
 
   const handleSalvar = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) return;
+      if (!estabelecimentoId) {
+        Alert.alert('Erro', 'Estabelecimento não identificado. Entre novamente.');
+        return;
+      }
 
       // Converter preço de string formatada para número
       const precoNumerico = parseFloat(formData.preco.replace(/[^\d,]/g, '').replace(',', '.'));
@@ -154,7 +158,7 @@ export default function NovoProdutoScreen() {
             quantidade: quantidadeNumerica,
             preco: precoNumerico,
             quantidade_minima: quantidadeMinima,
-            user_id: session.user.id
+            estabelecimento_id: estabelecimentoId
           }
         ]);
 
@@ -166,7 +170,7 @@ export default function NovoProdutoScreen() {
         [
           {
             text: 'OK',
-            onPress: () => router.push('/estoque/')
+            onPress: () => router.push('/(app)/estoque')
           }
         ]
       );

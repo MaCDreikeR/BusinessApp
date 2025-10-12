@@ -35,7 +35,7 @@ interface Pacote {
   valor: number;
   desconto: number;
   data_cadastro: string;
-  user_id: string;
+  estabelecimento_id: string;
   produtos?: ProdutoPacote[];
   servicos?: ServicoPacote[];
 }
@@ -71,6 +71,7 @@ interface ServicoPacoteData {
 }
 
 export default function PacotesScreen() {
+  const { estabelecimentoId } = useAuth();
   const [pacotes, setPacotes] = useState<Pacote[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -101,9 +102,7 @@ export default function PacotesScreen() {
 
   useEffect(() => {
     carregarPacotes();
-    carregarProdutos();
-    carregarServicos();
-
+    
     const subscription = DeviceEventEmitter.addListener('addPacote', () => {
       handleNovoPacote();
     });
@@ -112,6 +111,14 @@ export default function PacotesScreen() {
       subscription.remove();
     };
   }, []);
+
+  // Carregar produtos e serviços quando estabelecimentoId estiver disponível
+  useEffect(() => {
+    if (estabelecimentoId) {
+      carregarProdutos();
+      carregarServicos();
+    }
+  }, [estabelecimentoId]);
 
   useEffect(() => {
     if (mostrarModal) {
@@ -222,7 +229,7 @@ export default function PacotesScreen() {
             )
           )
         `)
-        .eq('user_id', session.user.id)
+  .eq('estabelecimento_id', estabelecimentoId)
         .order('nome');
 
       if (error) throw error;
@@ -257,23 +264,20 @@ export default function PacotesScreen() {
 
   const carregarProdutos = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.user?.id) {
-        console.error('Usuário não autenticado');
-        Alert.alert('Erro', 'Usuário não autenticado. Por favor, faça login novamente.');
-        router.replace('/(auth)/login');
+      if (!estabelecimentoId) {
+        console.error('Estabelecimento não identificado');
         return;
       }
 
       const { data, error } = await supabase
         .from('produtos')
         .select('id, nome, preco')
-        .eq('user_id', session.user.id)
+        .eq('estabelecimento_id', estabelecimentoId)
         .order('nome');
 
       if (error) throw error;
       setProdutos(data || []);
+      console.log('Produtos carregados para pacotes:', data?.length || 0);
     } catch (error) {
       console.error('Erro ao carregar produtos:', error);
       Alert.alert('Erro', 'Não foi possível carregar os produtos');
@@ -282,18 +286,20 @@ export default function PacotesScreen() {
 
   const carregarServicos = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.user?.id) return;
+      if (!estabelecimentoId) {
+        console.error('Estabelecimento não identificado');
+        return;
+      }
 
       const { data, error } = await supabase
         .from('servicos')
         .select('id, nome, preco')
-        .eq('user_id', session.user.id)
+        .eq('estabelecimento_id', estabelecimentoId)
         .order('nome');
 
       if (error) throw error;
       setServicos(data || []);
+      console.log('Serviços carregados para pacotes:', data?.length || 0);
     } catch (error) {
       console.error('Erro ao carregar serviços:', error);
       Alert.alert('Erro', 'Não foi possível carregar os serviços');
@@ -364,6 +370,11 @@ export default function PacotesScreen() {
         return;
       }
 
+      if (!estabelecimentoId) {
+        Alert.alert('Erro', 'Estabelecimento não identificado. Entre novamente.');
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.user?.id) {
@@ -371,12 +382,14 @@ export default function PacotesScreen() {
         return;
       }
 
+      const valorNum = Number(novoPacote.valor.replace(',', '.'));
+      const descontoNum = Number(novoPacote.desconto.replace(',', '.'));
       const pacoteData = {
         nome: novoPacote.nome.trim(),
         descricao: novoPacote.descricao.trim(),
-        valor: parseFloat(novoPacote.valor.replace(',', '.')),
-        desconto: parseFloat(novoPacote.desconto.replace(',', '.')),
-        user_id: session.user.id
+        valor: isNaN(valorNum) ? 0 : valorNum,
+        desconto: isNaN(descontoNum) ? 0 : descontoNum,
+        estabelecimento_id: estabelecimentoId,
       };
 
       let pacoteId;
@@ -411,7 +424,7 @@ export default function PacotesScreen() {
           pacote_id: pacoteId,
           produto_id: produto.produto_id,
           quantidade: produto.quantidade,
-          user_id: session.user.id
+          estabelecimento_id: estabelecimentoId
         }));
 
         const { error: produtosError } = await supabase
@@ -427,7 +440,7 @@ export default function PacotesScreen() {
           pacote_id: pacoteId,
           servico_id: servico.servico_id,
           quantidade: servico.quantidade,
-          user_id: session.user.id
+          estabelecimento_id: estabelecimentoId
         }));
 
         const { error: servicosError } = await supabase
@@ -590,8 +603,20 @@ export default function PacotesScreen() {
     });
   };
 
-  const handleMostrarModalProdutos = () => {
+  const handleMostrarModalProdutos = async () => {
+    // Garantir que os produtos estejam carregados
+    if (produtos.length === 0) {
+      await carregarProdutos();
+    }
     setMostrarModalProdutos(true);
+  };
+
+  const handleMostrarModalServicos = async () => {
+    // Garantir que os serviços estejam carregados
+    if (servicos.length === 0) {
+      await carregarServicos();
+    }
+    setMostrarModalServicos(true);
   };
 
   const renderItem = ({ item }: { item: Pacote }) => (
@@ -831,7 +856,7 @@ export default function PacotesScreen() {
                     <Text style={styles.label}>Serviços</Text>
                     <TouchableOpacity
                       style={styles.addButton}
-                      onPress={() => setMostrarModalServicos(true)}
+                      onPress={handleMostrarModalServicos}
                     >
                       <Ionicons name="add-circle-outline" size={24} color="#7C3AED" />
                       <Text style={styles.addButtonText}>Adicionar Serviços</Text>
@@ -897,7 +922,7 @@ export default function PacotesScreen() {
 
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>Valor final</Text>
-                    <View style={[styles.valorFinalContainer, styles.valorInput, styles.valorFinalInput]}>
+                    <View style={[styles.valorFinalContainer, styles.valorBox]}>
                       <Text style={[styles.valorFinalText, { fontSize: 22 }]}>
                         {(parseFloat(novoPacote.valor || '0') - parseFloat(novoPacote.desconto || '0')).toLocaleString('pt-BR', {
                           style: 'currency',
@@ -1370,6 +1395,13 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     height: 44,
   } as TextStyle,
+  valorBox: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    padding: 12,
+    minHeight: 44,
+    justifyContent: 'center',
+  },
   modalDragIndicator: {
     width: 40,
     height: 4,
@@ -1560,9 +1592,7 @@ const styles = StyleSheet.create({
   valorItemsInput: {
     fontSize: 16,
   } as TextStyle,
-  valorFinalInput: {
-    fontSize: 22,
-  } as TextStyle,
+  // valorFinalInput era TextStyle aplicado em View; removido do uso na View
   inputGroup: {
     marginBottom: 16,
   },

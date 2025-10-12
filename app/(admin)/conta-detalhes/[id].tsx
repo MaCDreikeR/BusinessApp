@@ -98,147 +98,35 @@ export default function ContaDetalhes() {
     if (!estab) return;
     Alert.alert(
       `Confirmar ${status}`,
-      <View style={styles.container}>
-        <View style={styles.headerBar}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <FontAwesome5 name="arrow-left" size={18} color="#fff" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Detalhes da Conta</Text>
-          <View style={{ width: 18 }} />
-        </View>
-
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={styles.titleRow}>
-            <Text style={styles.title}>{nomeEstabelecimento}</Text>
-            <View style={[styles.statusDot, { backgroundColor: statusColor(estab?.status) }]} />
-          </View>
-
-          <View style={styles.tabsRow}>
-            <TouchableOpacity onPress={() => setTab('info')} style={[styles.tabBtn, tab === 'info' && styles.tabBtnActive]}>
-              <Text style={[styles.tabText, tab === 'info' && styles.tabTextActive]}>Informações</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setTab('users')} style={[styles.tabBtn, tab === 'users' && styles.tabBtnActive]}>
-              <Text style={[styles.tabText, tab === 'users' && styles.tabTextActive]}>Usuários ({usuarios.length})</Text>
-            </TouchableOpacity>
-          </View>
-
-          {tab === 'info' ? (
-            <>
-              <View style={styles.metricsRow}>
-                <View style={styles.metricCard}>
-                  <Text style={styles.metricLabel}>Total de Usuários</Text>
-                  <Text style={styles.metricValue}>{usuarios.length}</Text>
-                </View>
-                <View style={styles.metricCard}>
-                  <Text style={styles.metricLabel}>Criado em</Text>
-                  <Text style={styles.metricValue}>{estab?.created_at ? format(new Date(estab.created_at), 'dd/MM/yyyy') : '-'}</Text>
-                </View>
-              </View>
-
-              <View style={styles.sectionCard}>
-                <Text style={styles.sectionTitle}>Dados da Conta</Text>
-
-                <View style={styles.formRow}>
-                  <Text style={styles.formLabel}>E-mail Principal</Text>
-                  <TextInput style={styles.input} value={emailPrincipal} onChangeText={setEmailPrincipal} placeholderTextColor="#9CA3AF" autoCapitalize="none" autoCorrect={false} keyboardType="email-address" />
-                </View>
-                <View style={styles.formRow}>
-                  <Text style={styles.formLabel}>Telefone</Text>
-                  <TextInput style={styles.input} value={telefone} onChangeText={setTelefone} placeholder="(99) 99999-9999" placeholderTextColor="#9CA3AF" keyboardType="phone-pad" />
-                </View>
-
-                <View style={styles.formRow}>
-                  <Text style={styles.formLabel}>Nome do Estabelecimento</Text>
-                  <TextInput style={styles.input} value={nomeEstabelecimento} onChangeText={setNomeEstabelecimento} placeholderTextColor="#9CA3AF" />
-                </View>
-
-                <View style={styles.formRow}>
-                  <Text style={styles.formLabel}>Segmento</Text>
-                  <Dropdown
-                    style={styles.input}
-                    data={segmentos}
-                    labelField="label"
-                    valueField="value"
-                    value={segmento}
-                    onChange={item => setSegmento(item.value)}
-                    placeholder="Selecione o segmento"
-                    placeholderStyle={{ color: '#9CA3AF' }}
-                    selectedTextStyle={{ color: '#fff' }}
-                    itemTextStyle={{ color: '#111827' }}
-                    containerStyle={{ backgroundColor: '#fff' }}
-                  />
-                </View>
-
-                <View style={styles.formRow}>
-                  <Text style={styles.formLabel}>Tipo de Documento</Text>
-                  <View style={styles.pickerContainer}>
-                    <TouchableOpacity 
-                      style={[styles.pickerOption, tipoDocumento === 'CPF' && styles.pickerOptionActive]}
-                      onPress={() => setTipoDocumento('CPF')}
-                    >
-                      <Text style={[styles.pickerText, tipoDocumento === 'CPF' && styles.pickerTextActive]}>CPF</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={[styles.pickerOption, tipoDocumento === 'CNPJ' && styles.pickerOptionActive]}
-                      onPress={() => setTipoDocumento('CNPJ')}
-                    >
-                      <Text style={[styles.pickerText, tipoDocumento === 'CNPJ' && styles.pickerTextActive]}>CNPJ</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                <View style={styles.formRow}>
-                  <Text style={styles.formLabel}>{tipoDocumento}</Text>
-                  <TextInput style={styles.input} value={numeroDocumento} onChangeText={setNumeroDocumento} placeholderTextColor="#9CA3AF" />
-                </View>
-
-                <TouchableOpacity style={styles.saveBtn} onPress={salvarAlteracoes} disabled={saving}>
-                  <Text style={styles.saveBtnText}>{saving ? 'Salvando...' : 'Salvar alterações'}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={[styles.saveBtn, { backgroundColor: '#6366f1', marginTop: 8 }]} onPress={() => {
-                  if (!emailPrincipal) return Alert.alert('Erro', 'E-mail do usuário principal não encontrado.');
-                  supabase.auth.resetPasswordForEmail(emailPrincipal)
-                    .then(({ error }) => {
-                      if (error) Alert.alert('Erro', 'Não foi possível enviar o e-mail de redefinição.');
-                      else Alert.alert('Sucesso', 'E-mail de redefinição enviado!');
-                    });
-                }}>
-                  <Text style={[styles.saveBtnText, { color: '#fff' }]}>Redefinir senha do usuário principal</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.actionsRow}>
-                <TouchableOpacity style={[styles.adminBtn, { backgroundColor: '#ef4444' }]} onPress={() => Alert.alert('Excluir', 'Funcionalidade em desenvolvimento')}>
-                  <FontAwesome5 name="trash" size={14} color="#111827" />
-                  <Text style={styles.adminBtnText}>Excluir</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.adminBtn, { backgroundColor: '#f59e0b' }]} onPress={() => alterarStatus('suspensa')}>
-                  <FontAwesome5 name="pause" size={14} color="#111827" />
-                  <Text style={styles.adminBtnText}>Suspender</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.adminBtn, { backgroundColor: '#22c55e' }]} onPress={() => alterarStatus('ativa')}>
-                  <FontAwesome5 name="check" size={14} color="#111827" />
-                  <Text style={styles.adminBtnText}>Ativar</Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          ) : (
-            <View style={styles.sectionCard}>
-              {usuarios.map(u => (
-                <View key={u.id} style={styles.userRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.userName}>{u.nome_completo ?? '—'}</Text>
-                    <Text style={styles.userEmail}>{u.email}</Text>
-                  </View>
-                  {u.is_principal && <Text style={styles.principalTag}>Principal</Text>}
-                </View>
-              ))}
-            </View>
-          )}
-        </ScrollView>
-      </View>
+      `Deseja realmente alterar o status da conta para "${status}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Confirmar', style: 'destructive', onPress: async () => {
+            try {
+              await supabase.from('estabelecimentos').update({ status }).eq('id', id);
+              setEstab({ ...estab, status });
+              Alert.alert('Sucesso', 'Status atualizado com sucesso.');
+            } catch (e: any) {
+              Alert.alert('Erro', e.message ?? 'Não foi possível atualizar o status.');
+            }
+          }
+        }
+      ]
     );
+  };
+
+  // Helper para cor por status
+  const statusColor = (s?: string) => {
+    switch (s) {
+      case 'ativa':
+        return '#22c55e';
+      case 'suspensa':
+        return '#f59e0b';
+      case 'banida':
+        return '#ef4444';
+      default:
+        return '#9CA3AF';
+    }
   };
 
   if (loading) {

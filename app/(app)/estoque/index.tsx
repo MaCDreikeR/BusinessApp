@@ -170,7 +170,7 @@ export default function EstoqueScreen() {
       const { data, error } = await supabase
         .from('categorias_produtos')
         .select('*')
-        .eq('organization_id', estabelecimentoId)
+        .eq('estabelecimento_id', estabelecimentoId)
         .order('nome');
 
       if (error) {
@@ -190,9 +190,14 @@ export default function EstoqueScreen() {
 
   const carregarFornecedores = async () => {
     try {
+      if (!estabelecimentoId) {
+        console.error('Estabelecimento não identificado');
+        return;
+      }
       const { data, error } = await supabase
         .from('fornecedores')
         .select('id, nome')
+        .eq('estabelecimento_id', estabelecimentoId)
         .order('nome');
 
       if (error) throw error;
@@ -204,9 +209,14 @@ export default function EstoqueScreen() {
 
   const carregarMarcas = async () => {
     try {
+      if (!estabelecimentoId) {
+        console.error('Estabelecimento não identificado');
+        return;
+      }
       const { data, error } = await supabase
         .from('marcas')
         .select('id, nome')
+        .eq('estabelecimento_id', estabelecimentoId)
         .order('nome');
 
       if (error) throw error;
@@ -234,7 +244,7 @@ export default function EstoqueScreen() {
           fornecedor:fornecedores(nome),
           marca:marcas(nome)
         `)
-        .eq('organization_id', estabelecimentoId)
+        .eq('estabelecimento_id', estabelecimentoId)
         .order('nome');
 
       // Aplicar filtros
@@ -582,7 +592,7 @@ export default function EstoqueScreen() {
             nome: novaCategoria.trim()
           })
           .eq('id', categoriaEmEdicao.id)
-          .eq('organization_id', estabelecimentoId);
+          .eq('estabelecimento_id', estabelecimentoId);
 
         if (error) {
           console.error('Erro detalhado:', error);
@@ -593,7 +603,7 @@ export default function EstoqueScreen() {
           .from('categorias_produtos')
           .insert({ 
             nome: novaCategoria.trim(),
-            organization_id: estabelecimentoId
+            estabelecimento_id: estabelecimentoId
           })
           .select();
 
@@ -641,7 +651,7 @@ export default function EstoqueScreen() {
                 .from('categorias_produtos')
                 .delete()
                 .eq('id', categoria.id)
-                .eq('organization_id', estabelecimentoId);
+                .eq('estabelecimento_id', estabelecimentoId);
 
               if (error) throw error;
 
@@ -668,14 +678,14 @@ export default function EstoqueScreen() {
           .from('marcas')
           .update({ nome: novaMarca })
           .eq('id', marcaEmEdicao.id)
-          .eq('organization_id', estabelecimentoId);
+          .eq('estabelecimento_id', estabelecimentoId);
 
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from('marcas')
           .insert([
-            { nome: novaMarca, organization_id: estabelecimentoId }
+            { nome: novaMarca, estabelecimento_id: estabelecimentoId }
           ]);
 
         if (error) throw error;
@@ -707,7 +717,7 @@ export default function EstoqueScreen() {
         .from('marcas')
         .delete()
         .eq('id', marca.id)
-        .eq('organization_id', estabelecimentoId);
+        .eq('estabelecimento_id', estabelecimentoId);
 
       if (error) throw error;
 
@@ -1290,5 +1300,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textAlign: 'center',
     marginTop: 20,
+  },
+  emptyContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 }); 
