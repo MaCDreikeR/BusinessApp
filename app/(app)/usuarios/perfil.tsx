@@ -421,11 +421,14 @@ export default function PerfilScreen() {
 
     setLoadingPermissions(true);
     try {
-      // Buscar permissões do usuário atual (ou do usuário selecionado)
+      // Usar o ID do usuário que está sendo editado, não o usuário logado
+      const targetUserId = editandoOutroUsuario ? userId as string : session.user.id;
+      
+      // Buscar permissões do usuário correto
       const { data, error } = await supabase
         .from('permissoes_usuario')
         .select('*')
-        .eq('user_id', session.user.id)
+        .eq('user_id', targetUserId)
         .eq('estabelecimento_id', estabelecimentoId)
         .single();
 
@@ -467,8 +470,11 @@ export default function PerfilScreen() {
     if (!session?.user?.id) return;
 
     try {
+      // Usar o ID do usuário que está sendo editado, não o usuário logado
+      const targetUserId = editandoOutroUsuario ? userId as string : session.user.id;
+      
       const dadosPermissoes = {
-        user_id: session.user.id,
+        user_id: targetUserId,
         estabelecimento_id: estabelecimentoId,
         ...permissoesParaSalvar,
         updated_at: new Date().toISOString()
@@ -628,7 +634,9 @@ export default function PerfilScreen() {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Permissões de Acesso</Text>
+            <Text style={styles.modalTitle}>
+              {editandoOutroUsuario ? `Permissões - ${nome}` : 'Permissões de Acesso'}
+            </Text>
             <TouchableOpacity
               onPress={() => setModalPermissionsVisible(false)}
               style={styles.modalCloseButton}
