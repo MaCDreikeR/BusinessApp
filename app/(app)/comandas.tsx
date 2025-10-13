@@ -408,8 +408,8 @@ export default function ComandasScreen() {
 
       const { data, error } = await supabase
         .from('pacotes')
-        .select('*')
-  .eq('estabelecimento_id', estabelecimentoId)
+        .select('id, nome, valor, desconto')
+        .eq('estabelecimento_id', estabelecimentoId)
         .ilike('nome', `%${query}%`)
         .order('nome');
 
@@ -495,7 +495,9 @@ export default function ComandasScreen() {
       }
 
       // Adiciona o item à lista de selecionados
-      const preco = 'valor' in item ? Number(item.valor) : Number(item.preco);
+      // Para pacotes, sempre usar o valor final (valor - desconto)
+      const preco = tipoItem === 'pacote' ? Number((item as Pacote).valor) - Number((item as Pacote).desconto || 0) : 
+                   ('valor' in item ? Number(item.valor) : Number((item as Produto | Servico).preco));
       const itemSelecionado: ItemSelecionado = {
         id: item.id,
         nome: item.nome,
@@ -727,6 +729,11 @@ export default function ComandasScreen() {
       return;
     }
 
+    if (!estabelecimentoId) {
+      Alert.alert('Erro', 'Estabelecimento não identificado. Por favor, faça login novamente.');
+      return;
+    }
+
     try {
       // Obter o usuário logado
       const { data: { user } } = await supabase.auth.getUser();
@@ -735,43 +742,56 @@ export default function ComandasScreen() {
         return;
       }
 
-      // Buscar dados do usuário na tabela usuarios
-      let { data: userData, error: userError } = await supabase
+      console.log('Criando comanda para usuário:', user.id);
+      console.log('Estabelecimento ID:', estabelecimentoId);
+
+      // Verificar se o usuário existe na tabela usuarios com estabelecimento_id
+      const { data: usuarioData, error: usuarioError } = await supabase
         .from('usuarios')
-        .select('nome_completo')
+        .select('id, nome_completo, estabelecimento_id')
         .eq('id', user.id)
         .single();
 
-      if (userError) {
-        console.error('Erro ao buscar dados do usuário:', userError);
-        // Se não encontrar na tabela usuarios, tentar buscar do metadata
-        const nomeCompleto = user.user_metadata?.nome_completo || user.email;
-        
-        // Atualizar a tabela usuarios com o nome do metadata
-        await supabase
-          .from('usuarios')
-          .upsert({
-            id: user.id,
-            nome_completo: nomeCompleto,
-            email: user.email
-          });
-
-        userData = { nome_completo: nomeCompleto };
+      if (usuarioError) {
+        console.error('Erro ao verificar usuário:', usuarioError);
+        Alert.alert('Erro', 'Usuário não encontrado na base de dados. Entre em contato com o suporte.');
+        return;
       }
 
+      if (!usuarioData.estabelecimento_id) {
+        console.error('Usuário sem estabelecimento_id:', usuarioData);
+        Alert.alert('Erro', 'Usuário não está associado a um estabelecimento. Entre em contato com o suporte.');
+        return;
+      }
+
+      if (usuarioData.estabelecimento_id !== estabelecimentoId) {
+        console.error('Estabelecimento ID não confere:', {
+          usuario: usuarioData.estabelecimento_id,
+          contexto: estabelecimentoId
+        });
+        Alert.alert('Erro', 'Inconsistência nos dados do estabelecimento. Faça login novamente.');
+        return;
+      }
+
+      console.log('Dados do usuário verificados:', usuarioData);
+
       // Criar comanda no banco de dados
+      const comandaData = {
+        cliente_id: selectedCliente.id,
+        cliente_nome: selectedCliente.nome,
+        status: 'aberta',
+        valor_total: valorTotal,
+        observacoes: observacoes || null,
+        estabelecimento_id: estabelecimentoId,
+        created_by_user_id: user.id,
+        created_by_user_nome: usuarioData.nome_completo
+      };
+
+      console.log('Dados da comanda a ser criada:', comandaData);
+
       const { data, error } = await supabase
         .from('comandas')
-        .insert({
-          cliente_id: selectedCliente.id,
-          cliente_nome: selectedCliente.nome,
-          status: 'aberta',
-          valor_total: valorTotal,
-          observacoes: observacoes || null,
-          estabelecimento_id: estabelecimentoId,
-          created_by_user_id: user.id,
-          created_by_user_nome: userData?.nome_completo
-        })
+        .insert(comandaData)
         .select()
         .single();
 
@@ -1173,7 +1193,12 @@ export default function ComandasScreen() {
           </Text>
           <View style={styles.comandaAcoes}>
             <Text style={styles.comandaValor}>
-              R$ {item.valor_total.toFixed(2).replace('.', ',')}
+              {item.valor_total.toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+              })}
             </Text>
             {isAdmin && (
               <TouchableOpacity
@@ -1285,7 +1310,7 @@ export default function ComandasScreen() {
   // Função para calcular troco/falta
   const calcularValores = (valor: string) => {
     // Limpar o valor recebido (remover R$ e espaços)
-    const valorLimpo = valor.replace('R$', '').trim();
+    const valorLimpo = valor.replace('R$', '').trim().replace(/\./g, '');
     
     // Converter para número
     const valorNumerico = parseFloat(valorLimpo.replace(',', '.')) || 0;
@@ -1297,7 +1322,7 @@ export default function ComandasScreen() {
     }));
     
     // Calcular troco ou falta
-    const valorTotal = comandaEmEdicao?.valor_total || 0;
+    const valorTotal = valorTotalPagamento;
     const diferenca = valorNumerico - valorTotal;
     
     if (diferenca >= 0) {
@@ -1885,12 +1910,22 @@ export default function ComandasScreen() {
                           <View style={styles.comandaItemDetails}>
                             <Text style={styles.comandaItemName}>{item.nome}</Text>
                             <Text style={styles.comandaItemPrice}>
-                              {item.quantidade}x R$ {((item.preco || item.preco_unitario || 0)).toFixed(2).replace('.', ',')}
+                              {item.quantidade}x {((item.preco || item.preco_unitario || 0)).toLocaleString('pt-BR', {
+                                style: 'currency',
+                                currency: 'BRL',
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                              })}
                             </Text>
                           </View>
                         </View>
                         <Text style={styles.comandaItemTotal}>
-                          R$ {item.preco_total.toFixed(2).replace('.', ',')}
+                          {item.preco_total.toLocaleString('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL',
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                          })}
                         </Text>
                       </View>
                     ))
@@ -1912,7 +1947,12 @@ export default function ComandasScreen() {
                   <View style={styles.comandaTotalRow}>
                     <Text style={styles.comandaTotalLabel}>Total:</Text>
                     <Text style={styles.comandaTotalValue}>
-                      R$ {(comandaEmEdicao.valor_total || 0).toFixed(2).replace('.', ',')}
+                      {(comandaEmEdicao.valor_total || 0).toLocaleString('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      })}
                     </Text>
                   </View>
                 </View>
@@ -1928,7 +1968,12 @@ export default function ComandasScreen() {
                     </Text>
                     {comandaEmEdicao.forma_pagamento === 'cartao_credito' && comandaEmEdicao.parcelas && (
                       <Text style={styles.comandaParcelas}>
-                        {comandaEmEdicao.parcelas}x de R$ {(comandaEmEdicao.valor_total / comandaEmEdicao.parcelas).toFixed(2).replace('.', ',')}
+                        {comandaEmEdicao.parcelas}x de {(comandaEmEdicao.valor_total / comandaEmEdicao.parcelas).toLocaleString('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })}
                       </Text>
                     )}
                   </View>
@@ -2082,7 +2127,15 @@ export default function ComandasScreen() {
                           </Text>
                           <View style={styles.modalItemDetalhes}>
                             <Text style={styles.modalItemPreco}>
-                              R$ {('valor' in item ? Number(item.valor) : Number(item.preco)).toFixed(2).replace('.', ',')}
+                              R$ {(() => {
+                                if ('valor' in item && 'desconto' in item) {
+                                  // Para pacotes, usar valor final (valor - desconto)
+                                  return (Number(item.valor) - Number(item.desconto || 0)).toFixed(2).replace('.', ',');
+                                } else {
+                                  // Para produtos e serviços, usar preço normal
+                                  return Number(item.preco).toFixed(2).replace('.', ',');
+                                }
+                              })()}
                             </Text>
                             {'quantidade' in item && (
                               <Text style={styles.modalItemEstoque}>
@@ -2189,7 +2242,12 @@ export default function ComandasScreen() {
               <View style={styles.pagamentoInfo}>
                 <Text style={styles.pagamentoLabel}>Total a Pagar:</Text>
                 <Text style={styles.pagamentoValor}>
-                  R$ {valorTotalPagamento.toFixed(2).replace('.', ',')}
+                  {valorTotalPagamento.toLocaleString('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  })}
                 </Text>
               </View>
 
@@ -2301,7 +2359,12 @@ export default function ComandasScreen() {
                     <View style={styles.pagamentoInfoContainer}>
                       <Text style={styles.pagamentoInfoLabel}>Troco:</Text>
                       <Text style={styles.pagamentoInfoValor}>
-                        R$ {troco.toFixed(2).replace('.', ',')}
+                        {troco.toLocaleString('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })}
                       </Text>
                     </View>
                   )}
@@ -2309,7 +2372,12 @@ export default function ComandasScreen() {
                     <View style={[styles.pagamentoInfoContainer, styles.pagamentoFaltaContainer]}>
                       <Text style={styles.pagamentoInfoLabel}>Falta:</Text>
                       <Text style={styles.pagamentoInfoValor}>
-                        R$ {falta.toFixed(2).replace('.', ',')}
+                        {falta.toLocaleString('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })}
                       </Text>
                     </View>
                   )}
@@ -2338,7 +2406,12 @@ export default function ComandasScreen() {
                     ))}
                   </View>
                   <Text style={styles.pagamentoValorParcela}>
-                    Valor da parcela: R$ {(comandaEmEdicao?.valor_total ? comandaEmEdicao.valor_total / (pagamento.parcelas || 1) : 0).toFixed(2).replace('.', ',')}
+                    Valor da parcela: {(comandaEmEdicao?.valor_total ? comandaEmEdicao.valor_total / (pagamento.parcelas || 1) : 0).toLocaleString('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL',
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    })}
                   </Text>
                 </View>
               )}

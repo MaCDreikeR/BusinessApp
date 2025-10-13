@@ -67,6 +67,7 @@ export interface Pacote {
   nome: string;
   descricao?: string;
   valor: number;
+  desconto: number;
 }
 
 export async function carregarOrcamentos() {
@@ -360,6 +361,7 @@ export async function buscarPacotes(nome: string): Promise<Pacote[]> {
         nome,
         descricao,
         valor,
+        desconto,
         pacotes_produtos (
           id,
           quantidade,
@@ -384,10 +386,11 @@ export async function buscarPacotes(nome: string): Promise<Pacote[]> {
 
     if (error) throw error;
 
-    // Garante que valor seja número
+    // Garante que valor e desconto sejam números
     const pacotesFormatados = (data || []).map(pacote => ({
       ...pacote,
-      valor: Number(pacote.valor)
+      valor: Number(pacote.valor),
+      desconto: Number(pacote.desconto || 0)
     }));
 
     console.log('Pacotes encontrados:', pacotesFormatados); // Debug

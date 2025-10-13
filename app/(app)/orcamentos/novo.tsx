@@ -327,7 +327,7 @@ export default function NovoOrcamentoScreen() {
     }
     setPacoteSelecionado(pacote);
     setItemAtual(pacote.nome);
-    setValorItemAtual(pacote.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+    setValorItemAtual((pacote.valor - (pacote.desconto || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
     setPacotesEncontrados([]);
     setMostrarListaPacotes(false);
   };
@@ -370,7 +370,7 @@ export default function NovoOrcamentoScreen() {
           return;
         }
         pacote_id = pacoteSelecionado.id;
-        valor = pacoteSelecionado.preco; // Sempre usar o valor final do pacote
+        valor = (pacoteSelecionado.valor - (pacoteSelecionado.desconto || 0)); // Valor final do pacote (valor - desconto)
         break;
     }
 
@@ -457,7 +457,9 @@ export default function NovoOrcamentoScreen() {
       const itemSelecionado: ItemSelecionado = {
         id: item.id,
         nome: item.nome,
-        preco: 'valor' in item ? Number(item.valor) : 'preco' in item ? Number(item.preco) : 0,
+        preco: 'valor' in item && 'desconto' in item 
+          ? Number(item.valor) - Number(item.desconto || 0) // Para pacotes: valor final
+          : 'preco' in item ? Number(item.preco) : 0, // Para produtos/serviços: preço normal
         quantidade: 1,
         tipo: tipo // Usa o tipo do modal
       };
@@ -1024,13 +1026,27 @@ export default function NovoOrcamentoScreen() {
                         </Text>
                         <View style={styles.modalItemDetalhes}>
                           <Text style={styles.modalItemPreco}>
-                            {('valor' in item ? Number(item.valor) : 'preco' in item ? Number(item.preco) : 0)
-                              .toLocaleString('pt-BR', { 
-                                style: 'currency', 
-                                currency: 'BRL',
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2 
-                              })}
+                            {(() => {
+                              if ('valor' in item && 'desconto' in item) {
+                                // Para pacotes, usar valor final (valor - desconto)
+                                return (Number(item.valor) - Number(item.desconto || 0))
+                                  .toLocaleString('pt-BR', { 
+                                    style: 'currency', 
+                                    currency: 'BRL',
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2 
+                                  });
+                              } else {
+                                // Para produtos e serviços, usar preço normal
+                                return Number(item.preco || 0)
+                                  .toLocaleString('pt-BR', { 
+                                    style: 'currency', 
+                                    currency: 'BRL',
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2 
+                                  });
+                              }
+                            })()}
                           </Text>
                           {'quantidade_disponivel' in item && (
                             <Text style={styles.modalItemEstoque}>

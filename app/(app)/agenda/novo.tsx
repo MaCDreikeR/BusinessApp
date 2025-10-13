@@ -360,9 +360,10 @@ export default function NovoAgendamentoScreen() {
       novosErros.usuario = 'Selecione um profissional';
     }
 
-    if (servicosSelecionados.length === 0) {
-      novosErros.servico = 'Selecione pelo menos um serviço';
-    }
+    // Remover validação obrigatória de serviços
+    // if (servicosSelecionados.length === 0) {
+    //   novosErros.servico = 'Selecione pelo menos um serviço';
+    // }
 
     setErrors(novosErros);
     return Object.keys(novosErros).length === 0;
@@ -431,7 +432,7 @@ export default function NovoAgendamentoScreen() {
         return;
       }
 
-      // Preparar os detalhes dos serviços
+      // Preparar os detalhes dos serviços (pode estar vazio)
       const detalhesServicos = servicosSelecionados.map(s => ({
         nome: s.nome,
         quantidade: s.quantidade,
@@ -439,10 +440,9 @@ export default function NovoAgendamentoScreen() {
         servico_id: s.id
       }));
 
-      const valorTotalAgendamento = servicosSelecionados.reduce(
-        (total, s) => total + (s.preco * s.quantidade), 
-        0
-      );
+      const valorTotalAgendamento = servicosSelecionados.length > 0 
+        ? servicosSelecionados.reduce((total, s) => total + (s.preco * s.quantidade), 0)
+        : 0;
 
       const { error } = await supabase
         .from('agendamentos')
@@ -981,8 +981,19 @@ export default function NovoAgendamentoScreen() {
     };
   }, [cliente, telefone, data, hora, servicosSelecionados, observacoes]);
 
-  // Modificar o handleFecharModal para não solicitar confirmação ao adicionar serviços
-  const handleFecharModal = (_confirmar?: boolean) => {
+  // Modificar o handleFecharModal para fechar o modal e aplicar serviços
+  const handleFecharModal = (confirmar?: boolean) => {
+    if (confirmar === false) {
+      // Cancelar - limpar seleções e fechar modal
+      setServicosSelecionados([]);
+      setModalVisible(false);
+    } else if (confirmar === true) {
+      // Adicionar - manter seleções e fechar modal
+      setModalVisible(false);
+    } else {
+      // Fechar modal sem parâmetro - apenas fechar
+      setModalVisible(false);
+    }
     setMostrarSeletorHorario(false);
   };
 
@@ -1282,7 +1293,7 @@ export default function NovoAgendamentoScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Serviço *</Text>
+            <Text style={styles.label}>Serviço</Text>
             <TouchableOpacity
               style={[
                 styles.servicoButton,

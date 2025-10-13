@@ -328,109 +328,38 @@ export default function ServicosScreen() {
   };
 
   const handleExcluirServico = async (servico: Servico) => {
-    try {
-      const { data: orcamentosAprovados, error: errorOrcamentosAprovados } = await supabase
-        .from('orcamento_itens')
-        .select('id, orcamento:orcamentos(status)')
-        .eq('servico_id', servico.id)
-        .eq('orcamento.status', 'Aprovado');
+    Alert.alert(
+      'Confirmar exclusão',
+      `Deseja realmente excluir o serviço ${servico.nome}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              console.log('Iniciando exclusão do serviço:', servico.id);
+              
+              const { error } = await supabase
+                .from('servicos')
+                .delete()
+                .eq('id', servico.id);
 
-      if (errorOrcamentosAprovados) {
-        console.error('Erro ao verificar orçamentos aprovados:', errorOrcamentosAprovados);
-        throw errorOrcamentosAprovados;
-      }
-
-      const { data: orcamentosPendentes, error: errorOrcamentosPendentes } = await supabase
-        .from('orcamento_itens')
-        .select('id, orcamento:orcamentos(status)')
-        .eq('servico_id', servico.id)
-        .eq('orcamento.status', 'Pendente');
-
-      if (errorOrcamentosPendentes) {
-        console.error('Erro ao verificar orçamentos pendentes:', errorOrcamentosPendentes);
-        throw errorOrcamentosPendentes;
-      }
-
-      const { data: comandasAbertas, error: errorComandas } = await supabase
-        .from('comanda_itens')
-        .select('id, comanda:comandas(status)')
-        .eq('servico_id', servico.id)
-        .eq('comanda.status', 'Aberta');
-
-      if (errorComandas) {
-        console.error('Erro ao verificar comandas:', errorComandas);
-        throw errorComandas;
-      }
-
-      const { data: agendamentos, error: errorAgendamentos } = await supabase
-        .from('agendamento_servicos')
-        .select('id, agendamento:agendamentos(status)')
-        .eq('servico_id', servico.id)
-        .in('agendamento.status', ['Agendado', 'Confirmado']);
-
-      if (errorAgendamentos) {
-        console.error('Erro ao verificar agendamentos:', errorAgendamentos);
-        throw errorAgendamentos;
-      }
-
-      const impedimentos = [];
-      if (orcamentosAprovados && orcamentosAprovados.length > 0) {
-        impedimentos.push('orçamentos aprovados');
-      }
-      if (orcamentosPendentes && orcamentosPendentes.length > 0) {
-        impedimentos.push('orçamentos pendentes');
-      }
-      if (comandasAbertas && comandasAbertas.length > 0) {
-        impedimentos.push('comandas abertas');
-      }
-      if (agendamentos && agendamentos.length > 0) {
-        impedimentos.push('agendamentos marcados');
-      }
-
-      if (impedimentos.length > 0) {
-        Alert.alert(
-          'Não é possível excluir',
-          `Este serviço está sendo usado em ${impedimentos.join(', ')}. Remova-o de todas as ocorrências antes de excluí-lo.`
-        );
-        return;
-      }
-
-      Alert.alert(
-        'Confirmar exclusão',
-        `Deseja realmente excluir o serviço ${servico.nome}?`,
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Excluir',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                console.log('Iniciando exclusão do serviço:', servico.id);
-                
-        const { error } = await supabase
-          .from('servicos')
-          .delete()
-                    .eq('id', servico.id);
-
-                if (error) {
-                  console.error('Erro ao excluir serviço:', error);
-                  throw error;
-                }
-
-                console.log('Serviço excluído com sucesso');
-                await carregarServicos();
-      } catch (error) {
-        console.error('Erro ao excluir serviço:', error);
-        Alert.alert('Erro', 'Não foi possível excluir o serviço');
+              if (error) {
+                console.error('Erro ao excluir serviço:', error);
+                throw error;
               }
+
+              console.log('Serviço excluído com sucesso');
+              await carregarServicos();
+            } catch (error) {
+              console.error('Erro ao excluir serviço:', error);
+              Alert.alert('Erro', 'Não foi possível excluir o serviço');
             }
           }
-        ]
-      );
-    } catch (error) {
-      console.error('Erro ao verificar impedimentos:', error);
-      Alert.alert('Erro', 'Não foi possível verificar se o serviço está em uso');
-    }
+        }
+      ]
+    );
   };
 
   const handleSalvarCategoria = async () => {

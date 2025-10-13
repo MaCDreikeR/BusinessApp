@@ -93,18 +93,23 @@ export default function HomeScreen() {
       ] = await Promise.all([
         // Carregar agendamentos de hoje
         supabase.from('agendamentos').select('*', { count: 'exact' }).eq('estabelecimento_id', estabelecimentoId).gte('data_hora', inicioHoje.toISOString()).lte('data_hora', fimHoje.toISOString()),
-        // Carregar vendas de hoje - CORREÇÃO APLICADA
-        supabase.from('comandas_itens').select(`preco_total, comandas(status, estabelecimento_id)`).eq('comandas.estabelecimento_id', estabelecimentoId).eq('comandas.status', 'fechada').gte('created_at', inicioHoje.toISOString()).lte('created_at', fimHoje.toISOString()),
+        // Carregar vendas de hoje - SOMENTE COMANDAS FECHADAS HOJE
+        supabase.from('comandas_itens').select(`preco_total, comandas!inner(status, estabelecimento_id, finalized_at)`).eq('comandas.estabelecimento_id', estabelecimentoId).eq('comandas.status', 'fechada').gte('comandas.finalized_at', inicioHoje.toISOString()).lte('comandas.finalized_at', fimHoje.toISOString()),
         // Carregar clientes ativos
         supabase.from('clientes').select('*', { count: 'exact', head: true }).eq('estabelecimento_id', estabelecimentoId),
         // Carregar próximos agendamentos
         supabase.from('agendamentos').select('*').eq('estabelecimento_id', estabelecimentoId).gte('data_hora', new Date().toISOString()).order('data_hora').limit(5),
-        // Carregar vendas recentes - CORREÇÃO APLICADA
-        supabase.from('comandas_itens').select(`id, preco_total, created_at, comandas(cliente_nome, estabelecimento_id)`).eq('comandas.estabelecimento_id', estabelecimentoId).eq('comandas.status', 'fechada').order('created_at', { ascending: false }).limit(5),
+        // Carregar vendas recentes - SOMENTE COMANDAS FECHADAS
+        supabase.from('comandas_itens').select(`id, preco_total, created_at, comandas!inner(cliente_nome, estabelecimento_id, status, finalized_at)`).eq('comandas.estabelecimento_id', estabelecimentoId).eq('comandas.status', 'fechada').order('created_at', { ascending: false }).limit(5),
       ]);
 
       if (agendamentosError) console.error('Erro agendamentos:', agendamentosError); else setAgendamentosHoje(agendamentos?.length || 0);
-      if (vendasError) console.error('Erro vendas hoje:', vendasError); else setVendasHoje(vendasHojeData?.reduce((total, v) => total + (v.preco_total || 0), 0) || 0);
+      if (vendasError) {
+        console.error('Erro vendas hoje:', vendasError);
+      } else {
+        console.log('Vendas hoje dados:', vendasHojeData);
+        setVendasHoje(vendasHojeData?.reduce((total, v) => total + (v.preco_total || 0), 0) || 0);
+      }
       if (clientesError) console.error('Erro clientes:', clientesError); else setClientesAtivos(clientesCount || 0);
       if (proxError) {
         console.error('Erro próximos agendamentos:', proxError);
@@ -114,7 +119,13 @@ export default function HomeScreen() {
       if (vendasRecentesError) {
         console.error('Erro vendas recentes:', vendasRecentesError);
       } else if (vendasRecentesData) {
-        setVendasRecentes(vendasRecentesData.map((v: any) => ({ id: v.id, cliente_nome: v.comandas?.cliente_nome || '?', valor: v.preco_total || 0, data: v.created_at })));
+        console.log('Vendas recentes dados:', vendasRecentesData);
+        setVendasRecentes(vendasRecentesData.map((v: any) => ({ 
+          id: v.id, 
+          cliente_nome: v.comandas?.cliente_nome || '?', 
+          valor: v.preco_total || 0, 
+          data: v.comandas?.finalized_at || v.created_at 
+        })));
       }
 
     } catch (error) {
@@ -163,7 +174,10 @@ export default function HomeScreen() {
 
         <TouchableOpacity
           style={[styles.card, styles.cardSuccess]}
-          onPress={() => router.push('/vendas')}
+          onPress={() => {
+            console.log('Navegando para vendas...');
+            router.push('/(app)/vendas');
+          }}
         >
           <View style={styles.cardIconContainer}>
             <FontAwesome5 name="dollar-sign" size={24} color="#22C55E" />
@@ -251,7 +265,10 @@ export default function HomeScreen() {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Vendas Recentes</Text>
-          <TouchableOpacity onPress={() => router.push('/vendas')}>
+          <TouchableOpacity onPress={() => {
+            console.log('Navegando para vendas via Ver todas...');
+            router.push('/(app)/vendas');
+          }}>
             <Text style={styles.sectionAction}>Ver todas</Text>
           </TouchableOpacity>
         </View>

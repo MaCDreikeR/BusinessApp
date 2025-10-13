@@ -505,7 +505,7 @@ export default function AgendaScreen() {
           .insert({
             chave: 'dias_semana_bloqueados',
             valor: dias,
-              estabelecimento_id: estabelecimentoId
+            estabelecimento_id: estabelecimentoId
           });
           
         if (insertError) {
@@ -540,7 +540,7 @@ export default function AgendaScreen() {
           .insert({
             chave: 'datas_bloqueadas',
             valor: datas,
-              estabelecimento_id: estabelecimentoId
+            estabelecimento_id: estabelecimentoId
           });
           
         if (insertError) {
