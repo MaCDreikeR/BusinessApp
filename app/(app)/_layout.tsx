@@ -12,6 +12,7 @@ import { DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawe
 import { DrawerContentComponentProps } from '@react-navigation/drawer';
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { usePermissions } from '../../hooks/usePermissions';
 
 export default function AppLayout() {
   const pathname = usePathname();
@@ -26,6 +27,7 @@ export default function AppLayout() {
   const [estabelecimento, setEstabelecimento] = useState<any>(null);
   const [loadingAvatar, setLoadingAvatar] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const { permissions } = usePermissions();
 
   useFocusEffect(
     React.useCallback(() => {
@@ -174,13 +176,15 @@ export default function AppLayout() {
           </View>
         </DrawerContentScrollView>
         <View style={styles.drawerFooter}>
-          <TouchableOpacity 
-            style={styles.footerButton}
-            onPress={() => router.push('/configuracoes')}
-          >
-            <FontAwesome5 name="cog" size={20} color="#666" />
-            <Text style={styles.footerButtonText}>Configurações</Text>
-          </TouchableOpacity>
+          {permissions.pode_ver_configuracoes && (
+            <TouchableOpacity 
+              style={styles.footerButton}
+              onPress={() => router.push('/configuracoes')}
+            >
+              <FontAwesome5 name="cog" size={20} color="#666" />
+              <Text style={styles.footerButtonText}>Configurações</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity 
             style={styles.footerButton}
             onPress={() => router.push('/suporte')}
@@ -375,7 +379,7 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="calendar-alt" size={20} color={color} />
           ),
-          drawerItemStyle: { display: 'flex' },
+          drawerItemStyle: { display: permissions.pode_ver_agenda ? 'flex' : 'none' },
           headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16 }}>
               <TouchableOpacity 
@@ -419,7 +423,7 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="receipt" size={20} color={color} />
           ),
-          drawerItemStyle: { display: 'flex' },
+          drawerItemStyle: { display: permissions.pode_ver_comandas ? 'flex' : 'none' },
           headerRight: () => (
             <TouchableOpacity
               onPress={() => {
@@ -447,7 +451,7 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="file-invoice-dollar" size={20} color={color} />
           ),
-          drawerItemStyle: { display: 'flex' },
+          drawerItemStyle: { display: permissions.pode_ver_orcamentos ? 'flex' : 'none' },
         }}
       />
 
@@ -458,7 +462,7 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="shopping-cart" size={20} color={color} />
           ),
-          drawerItemStyle: { display: 'flex' },
+          drawerItemStyle: { display: permissions.pode_ver_vendas ? 'flex' : 'none' },
         }}
       />
 
@@ -469,7 +473,7 @@ export default function AppLayout() {
           drawerIcon: ({ color, size }) => (
             <Ionicons name="cut" size={size} color={color} />
           ),
-          drawerItemStyle: { display: 'flex' },
+          drawerItemStyle: { display: permissions.pode_ver_servicos ? 'flex' : 'none' },
           headerRight: () => (
             <View style={{ flexDirection: 'row', gap: 8, marginRight: 8 }}>
               <TouchableOpacity 
@@ -507,7 +511,7 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="box" size={20} color={color} />
           ),
-          drawerItemStyle: { display: 'flex' },
+          drawerItemStyle: { display: permissions.pode_ver_pacotes ? 'flex' : 'none' },
           headerRight: () => (
             <TouchableOpacity 
               style={{ marginRight: 16 }}
@@ -536,7 +540,7 @@ export default function AppLayout() {
           drawerIcon: ({ color, size }) => (
             <Ionicons name="cube" size={size} color={color} />
           ),
-          drawerItemStyle: { display: 'flex' },
+          drawerItemStyle: { display: permissions.pode_ver_estoque ? 'flex' : 'none' },
         }}
       />
 
@@ -547,7 +551,7 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="chart-bar" size={20} color={color} />
           ),
-          drawerItemStyle: { display: 'flex' },
+          drawerItemStyle: { display: permissions.pode_ver_relatorios ? 'flex' : 'none' },
         }}
       />  
       <Drawer.Screen
@@ -558,7 +562,7 @@ export default function AppLayout() {
     drawerIcon: ({ color }) => (
       <FontAwesome5 name="users" size={20} color={color} />
     ),
-    drawerItemStyle: { display: 'flex' },
+    drawerItemStyle: { display: permissions.pode_ver_clientes ? 'flex' : 'none' },
   }}
 />
 
@@ -569,7 +573,7 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="birthday-cake" size={20} color={color} />
           ),
-          drawerItemStyle: { display: 'flex' },
+          drawerItemStyle: { display: permissions.pode_ver_aniversariantes ? 'flex' : 'none' },
         }}
       />
 
@@ -581,7 +585,7 @@ export default function AppLayout() {
             <FontAwesome5 name="users" size={20} color={color} />
           ),
           headerShown: false,
-          drawerItemStyle: { display: 'flex' },
+          drawerItemStyle: { display: 'flex' }, // Sempre visível para admins
         }}
       />
 
@@ -593,7 +597,7 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="truck" size={20} color={color} />
           ),
-          drawerItemStyle: { display: 'flex' },
+          drawerItemStyle: { display: permissions.pode_ver_fornecedores ? 'flex' : 'none' },
         }}
       />
 
@@ -604,7 +608,7 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="bullseye" size={20} color={color} />
           ),
-          drawerItemStyle: { display: 'flex' },
+          drawerItemStyle: { display: permissions.pode_ver_metas ? 'flex' : 'none' },
         }}
       />
 
@@ -615,7 +619,7 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="money-bill-alt" size={20} color={color} />
           ),
-          drawerItemStyle: { display: 'flex' },
+          drawerItemStyle: { display: permissions.pode_ver_despesas ? 'flex' : 'none' },
         }}
       />
 
@@ -626,7 +630,7 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="globe" size={20} color={color} />
           ),
-          drawerItemStyle: { display: 'flex' },
+          drawerItemStyle: { display: permissions.pode_ver_agendamentos_online ? 'flex' : 'none' },
         }}
       />
 
@@ -637,7 +641,7 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="robot" size={20} color={color} />
           ),
-          drawerItemStyle: { display: 'flex' },
+          drawerItemStyle: { display: permissions.pode_ver_automacao ? 'flex' : 'none' },
         }}
       />
 
@@ -659,7 +663,7 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="bell" size={20} color={color} />
           ),
-          drawerItemStyle: { display: 'flex' },
+          drawerItemStyle: { display: permissions.pode_ver_notificacoes ? 'flex' : 'none' },
         }}
       />
 

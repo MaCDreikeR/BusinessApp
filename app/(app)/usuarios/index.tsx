@@ -118,6 +118,20 @@ export default function ListaUsuariosScreen() {
 
   return (
     <View style={styles.mainContainer}>
+      {/* Header com botão adicionar */}
+      {isPrincipal && (
+        <View style={styles.header}>
+          <ThemedText style={styles.headerTitle}>Usuários</ThemedText>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => router.push('/usuarios/novo')}
+          >
+            <Ionicons name="add" size={20} color="#FFFFFF" />
+            <ThemedText style={styles.addButtonText}>Novo Usuário</ThemedText>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <ScrollView 
         style={styles.container} 
         contentContainerStyle={styles.contentContainer}
@@ -310,5 +324,34 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  header: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  addButton: {
+    backgroundColor: '#7C3AED',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  addButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 }); 

@@ -1,8 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View, Text, StyleSheet, TouchableOpacity, TextInput, Alert,
-  ActivityIndicator, ScrollView, Image, Platform, Switch
-} from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ScrollView, Image, Modal, FlatList, ActivityIndicator, DeviceEventEmitter, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useNavigation } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -18,6 +15,43 @@ const SEGMENTOS = [
   { label: 'Beleza e Estética', value: 'beleza' },
   { label: 'Saúde', value: 'saude' },
   { label: 'Outros', value: 'outros' }
+];
+
+const PERMISSOES = [
+  { key: 'pode_ver_agenda', label: 'Ver Agenda', icon: 'calendar-outline' },
+  { key: 'pode_editar_agenda', label: 'Editar Agenda', icon: 'calendar' },
+  { key: 'pode_ver_clientes', label: 'Ver Clientes', icon: 'people-outline' },
+  { key: 'pode_editar_clientes', label: 'Editar Clientes', icon: 'people' },
+  { key: 'pode_ver_servicos', label: 'Ver Serviços', icon: 'construct-outline' },
+  { key: 'pode_editar_servicos', label: 'Editar Serviços', icon: 'construct' },
+  { key: 'pode_ver_vendas', label: 'Ver Vendas', icon: 'cash-outline' },
+  { key: 'pode_editar_vendas', label: 'Editar Vendas', icon: 'cash' },
+  { key: 'pode_ver_comandas', label: 'Ver Comandas', icon: 'receipt-outline' },
+  { key: 'pode_editar_comandas', label: 'Editar Comandas', icon: 'receipt' },
+  { key: 'pode_ver_orcamentos', label: 'Ver Orçamentos', icon: 'document-text-outline' },
+  { key: 'pode_editar_orcamentos', label: 'Editar Orçamentos', icon: 'document-text' },
+  { key: 'pode_ver_pacotes', label: 'Ver Pacotes', icon: 'cube-outline' },
+  { key: 'pode_editar_pacotes', label: 'Editar Pacotes', icon: 'cube' },
+  { key: 'pode_ver_estoque', label: 'Ver Estoque', icon: 'archive-outline' },
+  { key: 'pode_editar_estoque', label: 'Editar Estoque', icon: 'archive' },
+  { key: 'pode_ver_fornecedores', label: 'Ver Fornecedores', icon: 'business-outline' },
+  { key: 'pode_editar_fornecedores', label: 'Editar Fornecedores', icon: 'business' },
+  { key: 'pode_ver_aniversariantes', label: 'Ver Aniversariantes', icon: 'gift-outline' },
+  { key: 'pode_editar_aniversariantes', label: 'Editar Aniversariantes', icon: 'gift' },
+  { key: 'pode_ver_metas', label: 'Ver Metas', icon: 'flag-outline' },
+  { key: 'pode_editar_metas', label: 'Editar Metas', icon: 'flag' },
+  { key: 'pode_ver_despesas', label: 'Ver Despesas', icon: 'card-outline' },
+  { key: 'pode_editar_despesas', label: 'Editar Despesas', icon: 'card' },
+  { key: 'pode_ver_agendamentos_online', label: 'Ver Agendamentos Online', icon: 'globe-outline' },
+  { key: 'pode_editar_agendamentos_online', label: 'Editar Agendamentos Online', icon: 'globe' },
+  { key: 'pode_ver_automacao', label: 'Ver Automação', icon: 'settings-outline' },
+  { key: 'pode_editar_automacao', label: 'Editar Automação', icon: 'settings' },
+  { key: 'pode_ver_notificacoes', label: 'Ver Notificações', icon: 'notifications-outline' },
+  { key: 'pode_editar_notificacoes', label: 'Editar Notificações', icon: 'notifications' },
+  { key: 'pode_ver_relatorios', label: 'Ver Relatórios', icon: 'bar-chart-outline' },
+  { key: 'pode_ver_configuracoes', label: 'Ver Configurações', icon: 'cog-outline' },
+  { key: 'pode_editar_configuracoes', label: 'Editar Configurações', icon: 'cog' },
+  { key: 'pode_gerenciar_usuarios', label: 'Gerenciar Usuários', icon: 'person-add-outline' }
 ];
 
 const formatarCNPJ = (valor: string) => {
@@ -43,7 +77,7 @@ const formatarCelular = (valor: string) => {
 };
 
 export default function PerfilScreen() {
-  const { session } = useAuth();
+  const { session, estabelecimentoId } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [usuarioData, setUsuarioData] = useState<any>(null);
@@ -63,6 +97,13 @@ export default function PerfilScreen() {
   const [showSenhaAtual, setShowSenhaAtual] = useState(false);
   const [showNovaSenha, setShowNovaSenha] = useState(false);
   const [showConfirmarSenha, setShowConfirmarSenha] = useState(false);
+  
+  // Estados para modal de permissões
+  const [modalPermissionsVisible, setModalPermissionsVisible] = useState(false);
+  const [permissoes, setPermissoes] = useState<{[key: string]: boolean}>({});
+  const [loadingPermissions, setLoadingPermissions] = useState(false);
+  const [isUserAdmin, setIsUserAdmin] = useState(false);
+  
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -82,6 +123,11 @@ export default function PerfilScreen() {
       headerLeft: () => (
         <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 16 }}>
           <Ionicons name="arrow-back" size={24} color="#7C3AED" />
+        </TouchableOpacity>
+      ),
+      headerRight: () => (
+        <TouchableOpacity onPress={handleOpenPermissionsModal} style={{ marginRight: 16 }}>
+          <Ionicons name="shield-checkmark" size={24} color="#7C3AED" />
         </TouchableOpacity>
       ),
     });
@@ -319,6 +365,136 @@ export default function PerfilScreen() {
     }
   };
 
+  // Funções para gerenciar permissões
+  const handleOpenPermissionsModal = async () => {
+    if (!session?.user?.id) {
+      Alert.alert('Erro', 'Usuário não autenticado.');
+      return;
+    }
+
+    try {
+      // Verificar se o usuário é admin
+      const { data: userData, error: userError } = await supabase
+        .from('usuarios')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+
+      if (userError) throw userError;
+
+      if (userData?.role !== 'admin') {
+        Alert.alert('Acesso Negado', 'Você não tem permissão para acessar esta área.');
+        return;
+      }
+
+      setIsUserAdmin(true);
+      await carregarPermissoes();
+      setModalPermissionsVisible(true);
+    } catch (error: any) {
+      console.error('Erro ao verificar permissões:', error);
+      Alert.alert('Erro', 'Não foi possível verificar as permissões do usuário.');
+    }
+  };
+
+  const carregarPermissoes = async () => {
+    if (!session?.user?.id) return;
+
+    setLoadingPermissions(true);
+    try {
+      // Buscar permissões do usuário atual (ou do usuário selecionado)
+      const { data, error } = await supabase
+        .from('permissoes_usuario')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('estabelecimento_id', estabelecimentoId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+
+      // Se não existir registro de permissões, criar com todas liberadas por padrão
+      if (!data) {
+        const permissoesIniciais: {[key: string]: boolean} = {};
+        PERMISSOES.forEach(p => {
+          permissoesIniciais[p.key] = true;
+        });
+        setPermissoes(permissoesIniciais);
+        await salvarPermissoes(permissoesIniciais);
+      } else {
+        // Converter as permissões do banco para o estado local
+        const permissoesUsuario: {[key: string]: boolean} = {};
+        PERMISSOES.forEach(p => {
+          permissoesUsuario[p.key] = data[p.key] ?? true;
+        });
+        setPermissoes(permissoesUsuario);
+      }
+    } catch (error: any) {
+      console.error('Erro ao carregar permissões:', error);
+      Alert.alert('Erro', 'Não foi possível carregar as permissões.');
+    } finally {
+      setLoadingPermissions(false);
+    }
+  };
+
+  const togglePermissao = (key: string) => {
+    const novasPermissoes = {
+      ...permissoes,
+      [key]: !permissoes[key]
+    };
+    setPermissoes(novasPermissoes);
+  };
+
+  const salvarPermissoes = async (permissoesParaSalvar: {[key: string]: boolean} = permissoes) => {
+    if (!session?.user?.id) return;
+
+    try {
+      const dadosPermissoes = {
+        user_id: session.user.id,
+        estabelecimento_id: estabelecimentoId,
+        ...permissoesParaSalvar,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await supabase
+        .from('permissoes_usuario')
+        .upsert(dadosPermissoes, { onConflict: 'user_id,estabelecimento_id' });
+
+      if (error) throw error;
+
+      Alert.alert('Sucesso', 'Permissões salvas com sucesso!');
+      setModalPermissionsVisible(false);
+      
+      // Emitir evento para atualizar permissões em outros componentes
+      DeviceEventEmitter.emit('permissoesAtualizadas');
+    } catch (error: any) {
+      console.error('Erro ao salvar permissões:', error);
+      Alert.alert('Erro', 'Não foi possível salvar as permissões.');
+    }
+  };
+
+  const renderPermissionItem = ({ item }: { item: typeof PERMISSOES[0] }) => (
+    <TouchableOpacity
+      style={styles.permissionItem}
+      onPress={() => togglePermissao(item.key)}
+    >
+      <View style={styles.permissionLeft}>
+        <Ionicons 
+          name={item.icon as any} 
+          size={24} 
+          color="#7C3AED" 
+          style={styles.permissionIcon} 
+        />
+        <Text style={styles.permissionLabel}>{item.label}</Text>
+      </View>
+      <View style={styles.checkboxContainer}>
+        <Ionicons
+          name={permissoes[item.key] ? "checkbox" : "square-outline"}
+          size={24}
+          color={permissoes[item.key] ? "#7C3AED" : "#9CA3AF"}
+        />
+      </View>
+    </TouchableOpacity>
+  );
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -423,6 +599,57 @@ export default function PerfilScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Modal de Permissões */}
+      <Modal
+        visible={modalPermissionsVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Permissões de Acesso</Text>
+            <TouchableOpacity
+              onPress={() => setModalPermissionsVisible(false)}
+              style={styles.modalCloseButton}
+            >
+              <Ionicons name="close" size={24} color="#6B7280" />
+            </TouchableOpacity>
+          </View>
+
+          {loadingPermissions ? (
+            <View style={styles.modalLoadingContainer}>
+              <ActivityIndicator size="large" color="#7C3AED" />
+              <Text style={styles.loadingText}>Carregando permissões...</Text>
+            </View>
+          ) : (
+            <>
+              <FlatList
+                data={PERMISSOES}
+                renderItem={renderPermissionItem}
+                keyExtractor={(item) => item.key}
+                style={styles.permissionsList}
+                ItemSeparatorComponent={() => <View style={styles.separator} />}
+              />
+
+              <View style={styles.modalFooter}>
+                <TouchableOpacity
+                  style={styles.modalCancelButton}
+                  onPress={() => setModalPermissionsVisible(false)}
+                >
+                  <Text style={styles.modalCancelText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.modalSaveButton}
+                  onPress={() => salvarPermissoes()}
+                >
+                  <Text style={styles.modalSaveText}>Salvar Alterações</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -557,5 +784,100 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Estilos do Modal de Permissões
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  modalCloseButton: {
+    padding: 8,
+  },
+  modalLoadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#6B7280',
+  },
+  permissionsList: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  permissionItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 4,
+  },
+  permissionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  permissionIcon: {
+    marginRight: 12,
+  },
+  permissionLabel: {
+    fontSize: 16,
+    color: '#111827',
+    flex: 1,
+  },
+  checkboxContainer: {
+    padding: 4,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#F3F4F6',
+    marginHorizontal: 4,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    gap: 12,
+  },
+  modalCancelButton: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  modalSaveButton: {
+    flex: 1,
+    backgroundColor: '#7C3AED',
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+  },
+  modalSaveText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
