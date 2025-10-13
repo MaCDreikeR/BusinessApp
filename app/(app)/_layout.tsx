@@ -13,6 +13,7 @@ import { DrawerContentComponentProps } from '@react-navigation/drawer';
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function AppLayout() {
   const pathname = usePathname();
@@ -28,6 +29,7 @@ export default function AppLayout() {
   const [loadingAvatar, setLoadingAvatar] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const { permissions } = usePermissions();
+  const { role } = useAuth();
 
   useFocusEffect(
     React.useCallback(() => {
@@ -317,31 +319,33 @@ export default function AppLayout() {
           drawerItemStyle: { display: 'flex' },
           headerRight: () => (
             <View style={{ flexDirection: 'row', gap: 8, marginRight: 16 }}>
-              <TouchableOpacity
-                onPress={() => {
-                  if (pathname === '/comandas') {
-                    DeviceEventEmitter.emit('novaComanda');
-                  } else {
-                    router.push('/comandas');
-                    setTimeout(() => {
+              {role !== 'profissional' && (
+                <TouchableOpacity
+                  onPress={() => {
+                    if (pathname === '/comandas') {
                       DeviceEventEmitter.emit('novaComanda');
-                    }, 100);
-                  }
-                }}
-                style={{ 
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 4,
-                  backgroundColor: '#F3E8FF',
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: '#7C3AED'
-                }}
-              >
-                <FontAwesome5 name="receipt" size={16} color="#7C3AED" />
-              </TouchableOpacity>
+                    } else {
+                      router.push('/comandas');
+                      setTimeout(() => {
+                        DeviceEventEmitter.emit('novaComanda');
+                      }, 100);
+                    }
+                  }}
+                  style={{ 
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 4,
+                    backgroundColor: '#F3E8FF',
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: '#7C3AED'
+                  }}
+                >
+                  <FontAwesome5 name="receipt" size={16} color="#7C3AED" />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 onPress={() => {
                   if (pathname === '/agenda') {

@@ -30,7 +30,7 @@ interface Produto {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { user, estabelecimentoId } = useAuth();
+  const { user, estabelecimentoId, role } = useAuth();
 
   const [agendamentosHoje, setAgendamentosHoje] = useState(0);
   const [vendasHoje, setVendasHoje] = useState(0);
@@ -160,56 +160,64 @@ export default function HomeScreen() {
       }
     >
       <View style={styles.grid}>
-        <TouchableOpacity
-          style={[styles.card, styles.cardPrimary]}
-          onPress={() => router.push('/agenda')}
-        >
-          <View style={styles.cardIconContainer}>
-            <FontAwesome5 name="calendar-check" size={24} color="#7C3AED" />
-          </View>
-          <Text style={styles.cardTitle}>Agendamentos Hoje</Text>
-          <Text style={styles.cardValue}>{agendamentosHoje}</Text>
-          <Text style={styles.cardSubtitle}>Ver agenda</Text>
-        </TouchableOpacity>
+        {role !== 'profissional' && (
+          <TouchableOpacity
+            style={[styles.card, styles.cardPrimary]}
+            onPress={() => router.push('/agenda')}
+          >
+            <View style={styles.cardIconContainer}>
+              <FontAwesome5 name="calendar-check" size={24} color="#7C3AED" />
+            </View>
+            <Text style={styles.cardTitle}>Agendamentos Hoje</Text>
+            <Text style={styles.cardValue}>{agendamentosHoje}</Text>
+            <Text style={styles.cardSubtitle}>Ver agenda</Text>
+          </TouchableOpacity>
+        )}
 
-        <TouchableOpacity
-          style={[styles.card, styles.cardSuccess]}
-          onPress={() => {
-            console.log('Navegando para vendas...');
-            router.push('/(app)/vendas');
-          }}
-        >
-          <View style={styles.cardIconContainer}>
-            <FontAwesome5 name="dollar-sign" size={24} color="#22C55E" />
-          </View>
-          <Text style={styles.cardTitle}>Vendas Hoje</Text>
-          <Text style={styles.cardValue}>R$ {vendasHoje.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</Text>
-          <Text style={styles.cardSubtitle}>Total do dia</Text>
-        </TouchableOpacity>
+        {role !== 'profissional' && (
+          <TouchableOpacity
+            style={[styles.card, styles.cardSuccess]}
+            onPress={() => {
+              console.log('Navegando para vendas...');
+              router.push('/(app)/vendas');
+            }}
+          >
+            <View style={styles.cardIconContainer}>
+              <FontAwesome5 name="dollar-sign" size={24} color="#22C55E" />
+            </View>
+            <Text style={styles.cardTitle}>Vendas Hoje</Text>
+            <Text style={styles.cardValue}>R$ {vendasHoje.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</Text>
+            <Text style={styles.cardSubtitle}>Total do dia</Text>
+          </TouchableOpacity>
+        )}
 
-        <TouchableOpacity
-          style={[styles.card, styles.cardInfo]}
-          onPress={() => router.push('/clientes')}
-        >
-          <View style={styles.cardIconContainer}>
-            <FontAwesome5 name="users" size={24} color="#0066FF" />
-          </View>
-          <Text style={styles.cardTitle}>Clientes Ativos</Text>
-          <Text style={styles.cardValue}>{clientesAtivos}</Text>
-          <Text style={styles.cardSubtitle}>Ver clientes</Text>
-        </TouchableOpacity>
+        {role !== 'profissional' && (
+          <TouchableOpacity
+            style={[styles.card, styles.cardInfo]}
+            onPress={() => router.push('/clientes')}
+          >
+            <View style={styles.cardIconContainer}>
+              <FontAwesome5 name="users" size={24} color="#0066FF" />
+            </View>
+            <Text style={styles.cardTitle}>Clientes Ativos</Text>
+            <Text style={styles.cardValue}>{clientesAtivos}</Text>
+            <Text style={styles.cardSubtitle}>Ver clientes</Text>
+          </TouchableOpacity>
+        )}
 
-        <TouchableOpacity
-          style={[styles.card, styles.cardDanger]}
-          onPress={() => router.push('/estoque')}
-        >
-          <View style={styles.cardIconContainer}>
-            <FontAwesome5 name="exclamation-triangle" size={24} color="#EF4444" />
-          </View>
-          <Text style={styles.cardTitle}>Produtos Baixo Estoque</Text>
-          <Text style={styles.cardValue}>{produtosBaixoEstoque?.length || 0}</Text>
-          <Text style={styles.cardSubtitle}>Ver estoque</Text>
-        </TouchableOpacity>
+        {role !== 'profissional' && (
+          <TouchableOpacity
+            style={[styles.card, styles.cardDanger]}
+            onPress={() => router.push('/estoque')}
+          >
+            <View style={styles.cardIconContainer}>
+              <FontAwesome5 name="exclamation-triangle" size={24} color="#EF4444" />
+            </View>
+            <Text style={styles.cardTitle}>Produtos Baixo Estoque</Text>
+            <Text style={styles.cardValue}>{produtosBaixoEstoque?.length || 0}</Text>
+            <Text style={styles.cardSubtitle}>Ver estoque</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.section}>
@@ -262,78 +270,82 @@ export default function HomeScreen() {
         )}
       </View>
 
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Vendas Recentes</Text>
-          <TouchableOpacity onPress={() => {
-            console.log('Navegando para vendas via Ver todas...');
-            router.push('/(app)/vendas');
-          }}>
-            <Text style={styles.sectionAction}>Ver todas</Text>
-          </TouchableOpacity>
-        </View>
-        {vendasRecentes.length > 0 ? (
-          vendasRecentes.map(venda => (
-            <View key={venda.id} style={styles.vendaItem}>
-              <View style={styles.vendaContent}>
-                <Text style={styles.vendaCliente}>{venda.cliente_nome}</Text>
-                <Text style={styles.vendaData}>
-                  {venda.data ? format(new Date(venda.data), "dd/MM/yyyy 'às' HH:mm") : 'Data indisponível'}
-                </Text>
-              </View>
-              <Text style={styles.vendaValor}>
-                R$ {venda.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </Text>
-            </View>
-          ))
-        ) : (
-          <View style={styles.emptyState}>
-            <FontAwesome5 name="receipt" size={24} color="#9CA3AF" />
-            <Text style={styles.emptyText}>Nenhuma venda recente</Text>
+      {role !== 'profissional' && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Vendas Recentes</Text>
+            <TouchableOpacity onPress={() => {
+              console.log('Navegando para vendas via Ver todas...');
+              router.push('/(app)/vendas');
+            }}>
+              <Text style={styles.sectionAction}>Ver todas</Text>
+            </TouchableOpacity>
           </View>
-        )}
-      </View>
-
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Produtos com Baixo Estoque</Text>
-          <TouchableOpacity onPress={() => router.push('/estoque')}>
-            <Text style={styles.sectionAction}>Ver estoque</Text>
-          </TouchableOpacity>
-        </View>
-        {produtosBaixoEstoque && produtosBaixoEstoque.length > 0 ? (
-          produtosBaixoEstoque.map(produto => (
-            <View key={produto.id} style={styles.produtoItem}>
-              <View style={styles.produtoContent}>
-                <Text style={styles.produtoNome}>{produto.nome}</Text>
-                <View style={styles.produtoInfo}>
-                  <Text style={[
-                    styles.produtoQuantidade,
-                    produto.quantidade === 0 ? styles.produtoZerado : styles.produtoBaixo
-                  ]}>
-                    Estoque: {produto.quantidade}
-                  </Text>
-                  <Text style={styles.produtoMinimo}>
-                    Mínimo: {produto.quantidade_minima}
+          {vendasRecentes.length > 0 ? (
+            vendasRecentes.map(venda => (
+              <View key={venda.id} style={styles.vendaItem}>
+                <View style={styles.vendaContent}>
+                  <Text style={styles.vendaCliente}>{venda.cliente_nome}</Text>
+                  <Text style={styles.vendaData}>
+                    {venda.data ? format(new Date(venda.data), "dd/MM/yyyy 'às' HH:mm") : 'Data indisponível'}
                   </Text>
                 </View>
+                <Text style={styles.vendaValor}>
+                  R$ {venda.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </Text>
               </View>
-              <View style={styles.produtoStatus}>
-                <FontAwesome5
-                  name={produto.quantidade === 0 ? "times-circle" : "exclamation-circle"}
-                  size={20}
-                  color={produto.quantidade === 0 ? "#EF4444" : "#F59E0B"}
-                />
-              </View>
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <FontAwesome5 name="receipt" size={24} color="#9CA3AF" />
+              <Text style={styles.emptyText}>Nenhuma venda recente</Text>
             </View>
-          ))
-        ) : (
-          <View style={styles.emptyState}>
-            <FontAwesome5 name="check-circle" size={24} color="#9CA3AF" />
-            <Text style={styles.emptyText}>Nenhum produto com estoque baixo</Text>
+          )}
+        </View>
+      )}
+
+      {role !== 'profissional' && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Produtos com Baixo Estoque</Text>
+            <TouchableOpacity onPress={() => router.push('/estoque')}>
+              <Text style={styles.sectionAction}>Ver estoque</Text>
+            </TouchableOpacity>
           </View>
-        )}
-      </View>
+          {produtosBaixoEstoque && produtosBaixoEstoque.length > 0 ? (
+            produtosBaixoEstoque.map(produto => (
+              <View key={produto.id} style={styles.produtoItem}>
+                <View style={styles.produtoContent}>
+                  <Text style={styles.produtoNome}>{produto.nome}</Text>
+                  <View style={styles.produtoInfo}>
+                    <Text style={[
+                      styles.produtoQuantidade,
+                      produto.quantidade === 0 ? styles.produtoZerado : styles.produtoBaixo
+                    ]}>
+                      Estoque: {produto.quantidade}
+                    </Text>
+                    <Text style={styles.produtoMinimo}>
+                      Mínimo: {produto.quantidade_minima}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.produtoStatus}>
+                  <FontAwesome5
+                    name={produto.quantidade === 0 ? "times-circle" : "exclamation-circle"}
+                    size={20}
+                    color={produto.quantidade === 0 ? "#EF4444" : "#F59E0B"}
+                  />
+                </View>
+              </View>
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <FontAwesome5 name="check-circle" size={24} color="#9CA3AF" />
+              <Text style={styles.emptyText}>Nenhum produto com estoque baixo</Text>
+            </View>
+          )}
+        </View>
+      )}
     </ScrollView>
   );
 }
