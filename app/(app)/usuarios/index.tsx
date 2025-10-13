@@ -22,12 +22,17 @@ export default function ListaUsuariosScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isPrincipal, setIsPrincipal] = useState(false);
+  const [isPrincipal, setIsPrincipal] = useState<boolean | null>(null);
 
   useEffect(() => {
     verificarPrincipal();
-    carregarUsuarios();
   }, []);
+
+  useEffect(() => {
+    if (isPrincipal !== null) {
+      carregarUsuarios();
+    }
+  }, [isPrincipal]);
 
   async function verificarPrincipal() {
     try {
@@ -57,13 +62,52 @@ export default function ListaUsuariosScreen() {
         throw new Error('Usuário não autenticado');
       }
 
-      // Se for principal, carrega todos os usuários
+      // Se for principal, carrega todos os usuários do mesmo estabelecimento
       if (isPrincipal) {
-        const { data, error } = await supabase
+        // Primeiro busca o estabelecimento do usuário logado
+        const { data: currentUser, error: userError } = await supabase
+          .from('usuarios')
+          .select('estabelecimento_id')
+          .eq('id', user.id)
+          .single();
+
+        if (userError) throw userError;
+
+
+
+        // TESTE TEMPORÁRIO: Busca TODOS os usuários (sem filtro)
+        // Usar função RPC para contornar políticas RLS
+        const { data, error } = await supabase.rpc('get_usuarios_estabelecimento', {
+          estabelecimento_uuid: currentUser.estabelecimento_id
+        });
+
+        // Segundo teste: consulta específica para Borges por ID
+        console.log('🔍 DEBUG: Buscando usuário Borges por ID...');
+        const { data: borgesData, error: borgesError } = await supabase
           .from('usuarios')
           .select('*')
-          .eq('faz_atendimento', true)
-          .order('created_at', { ascending: false });
+          .eq('id', '3f09a534-8bd7-4534-9b53-60eb341ca1f3');
+        
+        console.log('👤 DEBUG: Resultado busca Borges por ID:', borgesData);
+        console.log('❌ DEBUG: Erro busca Borges:', borgesError);
+
+        // Terceiro teste: busca por email
+        console.log('📧 DEBUG: Buscando usuário Borges por email...');
+        const { data: borgesEmail, error: emailError } = await supabase
+          .from('usuarios')
+          .select('*')
+          .eq('email', 'fofopereira@gmail.com');
+        
+        console.log('� DEBUG: Resultado busca por email:', borgesEmail);
+        console.log('❌ DEBUG: Erro busca por email:', emailError);
+
+        console.log('🔍 DEBUG: Total usuários no DB:', data?.length);
+        console.log('📋 DEBUG: TODOS os usuários no DB:', data?.map(u => ({
+          nome: u.nome_completo,
+          email: u.email,
+          estabelecimento_id: u.estabelecimento_id,
+          id: u.id
+        })));
 
         if (error) throw error;
         setUsuarios(data || []);
@@ -153,7 +197,7 @@ export default function ListaUsuariosScreen() {
           usuarios.map(usuario => (
             <TouchableOpacity
               key={usuario.id}
-              onPress={() => router.push('/usuarios/perfil')}
+              onPress={() => router.push(`/usuarios/perfil?userId=${usuario.id}`)}
               style={styles.cardContainer}
             >
               <Card style={styles.card}>

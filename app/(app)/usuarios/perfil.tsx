@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ScrollView, Image, Modal, FlatList, ActivityIndicator, DeviceEventEmitter, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router, useNavigation } from 'expo-router';
+import { router, useNavigation, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -78,6 +78,8 @@ const formatarCelular = (valor: string) => {
 
 export default function PerfilScreen() {
   const { session, estabelecimentoId } = useAuth();
+  const { userId } = useLocalSearchParams();
+  const editandoOutroUsuario = userId && userId !== session?.user?.id;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [usuarioData, setUsuarioData] = useState<any>(null);
@@ -114,12 +116,12 @@ export default function PerfilScreen() {
       Alert.alert('Erro', 'Usuário não autenticado.');
       router.replace('/(auth)/login');
     }
-  }, [session?.user?.id]);
+  }, [session?.user?.id, userId]);
 
   useEffect(() => {
     navigation.setOptions({
       headerShown: true,
-      headerTitle: 'Editar Perfil',
+      headerTitle: editandoOutroUsuario ? 'Editar Usuário' : 'Editar Perfil',
       headerLeft: () => (
         <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 16 }}>
           <Ionicons name="arrow-back" size={24} color="#7C3AED" />
@@ -138,11 +140,28 @@ export default function PerfilScreen() {
     try {
       if (!session?.user?.id) throw new Error("ID do usuário não encontrado na sessão.");
 
-      const { data, error } = await supabase
-        .from('usuarios')
-        .select(`*, estabelecimento:estabelecimentos(*)`)
-        .eq('id', session.user.id)
-        .single();
+      const targetUserId = editandoOutroUsuario ? userId as string : session.user.id;
+      
+      // Se estiver editando outro usuário, usar função RPC para contornar RLS
+      let data, error;
+      if (editandoOutroUsuario) {
+        const result = await supabase.rpc('get_usuarios_estabelecimento', {
+          estabelecimento_uuid: estabelecimentoId
+        });
+        error = result.error;
+        data = result.data?.find((u: any) => u.id === userId);
+        if (!data && !error) {
+          throw new Error('Usuário não encontrado ou sem permissão para visualizar');
+        }
+      } else {
+        const result = await supabase
+          .from('usuarios')
+          .select(`*, estabelecimento:estabelecimentos(*)`)
+          .eq('id', targetUserId)
+          .single();
+        data = result.data;
+        error = result.error;
+      }
 
       if (error) throw error;
 
@@ -304,14 +323,15 @@ export default function PerfilScreen() {
         if (newEstab) estabelecimentoId = newEstab.id;
       }
 
-      // Atualiza dados do usuário, incluindo vínculo ao estabelecimento
-      const { error: userError } = await supabase.from('usuarios').update({
-        nome_completo: nome,
-        telefone: celular.replace(/\D/g, ''),
-        faz_atendimento: fazAtendimento,
-        estabelecimento_id: isPrincipal ? estabelecimentoId : null,
-        updated_at: new Date().toISOString(),
-      }).eq('id', session!.user.id);
+      // Atualiza dados do usuário usando função RPC (contorna RLS)
+      const targetUserId = editandoOutroUsuario ? userId as string : session!.user.id;
+      
+      const { data: updateResult, error: userError } = await supabase.rpc('update_usuario_estabelecimento', {
+        usuario_id: targetUserId,
+        p_nome_completo: nome,
+        p_telefone: celular.replace(/\D/g, '') || null,
+        p_faz_atendimento: fazAtendimento
+      });
 
       if (userError) throw userError;
 
