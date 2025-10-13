@@ -188,40 +188,44 @@ export default function NovoAgendamentoScreen() {
 
   const carregarUsuarios = async () => {
     try {
-      // Primeiro, obtém o usuário atual
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.error('Usuário não autenticado');
+      console.log('Carregando usuários para novo agendamento - estabelecimento:', estabelecimentoId);
+      
+      if (!estabelecimentoId) {
+        console.error('ID do estabelecimento não disponível');
         return;
       }
 
-      // Busca os dados do usuário para obter o estabelecimento_id
-      const { data: userData, error: userError } = await supabase
-        .from('usuarios')
-        .select('estabelecimento_id')
-        .eq('id', user.id)
-        .single();
+      // Tenta usar RPC function primeiro (pode não existir já)
+      const { data: usuariosRpc, error: rpcError } = await supabase
+        .rpc('get_usuarios_estabelecimento', { estabelecimento_uuid: estabelecimentoId });
 
-      if (userError) {
-        console.error('Erro ao buscar dados do usuário:', userError);
+      if (!rpcError && usuariosRpc) {
+        console.log('Usuários carregados via RPC:', usuariosRpc.length);
+        const usuariosFiltrados = usuariosRpc.filter((usuario: any) => usuario.faz_atendimento === true);
+        console.log('Usuários que fazem atendimento:', usuariosFiltrados.length);
+        setUsuarios(usuariosFiltrados || []);
+        
+        // Inicializa o estado de presença para todos os usuários
+        const presencaInicial = (usuariosFiltrados || []).reduce((acc: Record<string, boolean>, usuario: any) => {
+          acc[usuario.id] = true; // Por padrão, todos estão presentes
+          return acc;
+        }, {} as Record<string, boolean>);
+        setPresencaUsuarios(presencaInicial);
         return;
       }
 
-      if (!userData?.estabelecimento_id) {
-        console.error('Usuário não tem estabelecimento associado');
-        return;
-      }
-
-      // Agora busca os usuários do mesmo estabelecimento
+      // Fallback para consulta direta
+      console.log('RPC não disponível, usando consulta direta...');
       const { data, error } = await supabase
         .from('usuarios')
         .select('id, nome_completo, email, avatar_url, faz_atendimento')
-        .eq('estabelecimento_id', userData.estabelecimento_id)
+        .eq('estabelecimento_id', estabelecimentoId)
         .eq('faz_atendimento', true)
         .order('nome_completo');
 
       if (error) throw error;
 
+      console.log('Usuários encontrados via consulta direta:', data?.length);
       setUsuarios(data || []);
       
       // Inicializa o estado de presença para todos os usuários
