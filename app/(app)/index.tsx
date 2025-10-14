@@ -12,6 +12,7 @@ interface Agendamento {
   cliente_nome: string;
   servico: string;
   horario: string;
+  usuario_nome?: string;
 }
 
 interface Venda {
@@ -97,8 +98,8 @@ export default function HomeScreen() {
         supabase.from('comandas_itens').select(`preco_total, comandas!inner(status, estabelecimento_id, finalized_at)`).eq('comandas.estabelecimento_id', estabelecimentoId).eq('comandas.status', 'fechada').gte('comandas.finalized_at', inicioHoje.toISOString()).lte('comandas.finalized_at', fimHoje.toISOString()),
         // Carregar clientes ativos
         supabase.from('clientes').select('*', { count: 'exact', head: true }).eq('estabelecimento_id', estabelecimentoId),
-        // Carregar próximos agendamentos
-        supabase.from('agendamentos').select('*').eq('estabelecimento_id', estabelecimentoId).gte('data_hora', new Date().toISOString()).order('data_hora').limit(5),
+        // Carregar próximos agendamentos - usando RPC para contornar problemas de policy
+        supabase.rpc('get_agendamentos_com_usuarios', { p_estabelecimento_id: estabelecimentoId }),
         // Carregar vendas recentes - SOMENTE COMANDAS FECHADAS
         supabase.from('comandas_itens').select(`id, preco_total, created_at, comandas!inner(cliente_nome, estabelecimento_id, status, finalized_at)`).eq('comandas.estabelecimento_id', estabelecimentoId).eq('comandas.status', 'fechada').order('created_at', { ascending: false }).limit(5),
       ]);
@@ -114,7 +115,20 @@ export default function HomeScreen() {
       if (proxError) {
         console.error('Erro próximos agendamentos:', proxError);
       } else if (proxAgendamentos) {
-        setProximosAgendamentos(proxAgendamentos.map(ag => ({ ...ag, cliente_nome: ag.cliente || '?', servico: ag.servicos?.[0]?.nome || '?', horario: ag.data_hora })));
+        console.log('Agendamentos retornados via RPC:', proxAgendamentos);
+        console.log('Dados completos dos agendamentos:', JSON.stringify(proxAgendamentos, null, 2));
+        setProximosAgendamentos(proxAgendamentos.map((ag: any) => {
+          console.log('Processando agendamento:', ag.id, 'Usuario_id:', ag.usuario_id, 'Usuario_nome:', ag.usuario_nome);
+          
+          // Com RPC, usuario_nome já vem preenchido diretamente
+          return {
+            ...ag, 
+            cliente_nome: ag.cliente || 'Cliente não informado', 
+            servico: ag.servicos?.[0]?.nome || 'Serviço não especificado', 
+            horario: ag.data_hora,
+            usuario_nome: ag.usuario_nome // Já vem da RPC
+          };
+        }));
       }
       if (vendasRecentesError) {
         console.error('Erro vendas recentes:', vendasRecentesError);
@@ -253,6 +267,14 @@ export default function HomeScreen() {
                 <Text style={styles.agendamentoServico} numberOfLines={1}>
                   {agendamento.servico}
                 </Text>
+                {agendamento.usuario_nome && (
+                  <View style={styles.agendamentoProfissionalContainer}>
+                    <FontAwesome5 name="user" size={10} color="#7C3AED" style={{ marginRight: 4 }} />
+                    <Text style={styles.agendamentoProfissional} numberOfLines={1}>
+                      {agendamento.usuario_nome}
+                    </Text>
+                  </View>
+                )}
               </View>
 
               <View style={styles.agendamentoData}>
@@ -583,6 +605,17 @@ const styles = StyleSheet.create({
   agendamentoServico: {
     fontSize: 14,
     color: '#6B7280',
+  },
+  agendamentoProfissional: {
+    fontSize: 12,
+    color: '#7C3AED',
+    fontWeight: '500',
+    flex: 1,
+  },
+  agendamentoProfissionalContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
   },
   agendamentoData: {
     backgroundColor: '#F3F4F6',

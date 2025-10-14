@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, PanResponder, Animated, Platform, ActivityIndicator, Image, DeviceEventEmitter, FlatList, BackHandler, KeyboardAvoidingView, GestureResponderEvent, NativeSyntheticEvent } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import { format } from 'date-fns';
-import { useRouter, useNavigation } from 'expo-router';
+import { useRouter, useNavigation, useFocusEffect } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import MaskInput from 'react-native-mask-input';
@@ -150,6 +150,15 @@ export default function NovoAgendamentoScreen() {
       subscription.remove();
     };
   }, [usuarioSelecionado]);
+
+  // Garantir que o loading seja resetado quando a tela for focada
+  useFocusEffect(
+    useCallback(() => {
+      // Resetar loading ao entrar na tela
+      setLoading(false);
+      console.log('Tela de novo agendamento focada - loading resetado');
+    }, [])
+  );
 
   const formatarData = (texto: string) => {
     const numeros = texto.replace(/\D/g, '');
@@ -458,7 +467,8 @@ export default function NovoAgendamentoScreen() {
           valor_total: valorTotalAgendamento,
           observacoes: observacoes.trim() || null,
           estabelecimento_id: estabelecimentoId,
-          status: 'agendado'
+          status: 'agendado',
+          usuario_id: usuarioSelecionado?.id || null // Salvar o ID do usuário selecionado
         });
 
       if (error) throw error;
@@ -485,6 +495,8 @@ export default function NovoAgendamentoScreen() {
     } catch (error) {
       console.error('Erro ao criar agendamento:', error);
       Alert.alert('Erro', 'Não foi possível criar o agendamento');
+    } finally {
+      // Sempre resetar loading, independente de sucesso ou erro
       setLoading(false);
     }
   };
@@ -524,6 +536,9 @@ export default function NovoAgendamentoScreen() {
     
     // Resetar horários disponíveis
     atualizarHorariosDisponiveis();
+    
+    // Resetar loading (importante para destravar o botão)
+    setLoading(false);
     
     console.log('Formulário limpo com sucesso');
   };

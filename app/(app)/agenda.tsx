@@ -309,6 +309,13 @@ export default function AgendaScreen() {
         .gte('data_hora', new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 0, 0, 0).toISOString())
         .lt('data_hora', new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 23, 59, 59).toISOString());
 
+      // Filtrar por usuário se selecionado
+      if (selectedUser) {
+        console.log('Filtrando agendamentos para o usuário:', selectedUser);
+        query = query.eq('usuario_id', selectedUser);
+      } else {
+        console.log('Carregando agendamentos de todos os usuários');
+      }
 
       const { data, error } = await query;
 
@@ -338,12 +345,20 @@ export default function AgendaScreen() {
       const primeiroDiaMes = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
       const ultimoDiaMes = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('agendamentos')
         .select('*')
         .eq('estabelecimento_id', estabelecimentoId)
         .gte('data_hora', primeiroDiaMes.toISOString())
         .lte('data_hora', ultimoDiaMes.toISOString());
+
+      // Filtrar por usuário se selecionado
+      if (selectedUser) {
+        console.log('Filtrando agendamentos do mês para o usuário:', selectedUser);
+        query = query.eq('usuario_id', selectedUser);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
