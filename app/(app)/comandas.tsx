@@ -71,7 +71,7 @@ interface ItemSelecionado {
   nome: string;
   preco: number;
   quantidade: number;
-  tipo: 'produto' | 'servico' | 'pacote';
+  tipo: 'produto' | 'servico' | 'pacote' | 'pagamento';
   quantidade_disponivel?: number;
 }
 
@@ -86,7 +86,7 @@ interface Comanda {
   observacoes?: string;
   usuario_id?: string;
   usuario_nome?: string;
-  forma_pagamento?: 'dinheiro' | 'cartao_credito' | 'cartao_debito' | 'pix';
+  forma_pagamento?: 'dinheiro' | 'cartao_credito' | 'cartao_debito' | 'pix' | 'crediario';
   valor_pago?: number;
   troco?: number;
   comprovante_pix?: string | null;
@@ -99,7 +99,7 @@ interface Comanda {
 }
 
 interface Pagamento {
-  forma_pagamento: 'dinheiro' | 'cartao_credito' | 'cartao_debito' | 'pix';
+  forma_pagamento: 'dinheiro' | 'cartao_credito' | 'cartao_debito' | 'pix' | 'crediario';
   valor_pago: number;
   troco: number;
   parcelas?: number; // Adicionando campo de parcelas
@@ -135,7 +135,8 @@ export default function ComandasScreen() {
   const [itensSelecionados, setItensSelecionados] = useState<ItemSelecionado[]>([]);
   const [valorTotal, setValorTotal] = useState(0);
   const [modalItensVisible, setModalItensVisible] = useState(false);
-  const [tipoItem, setTipoItem] = useState<'produto' | 'servico' | 'pacote'>('produto');
+  const [tipoItem, setTipoItem] = useState<'produto' | 'servico' | 'pacote' | 'pagamento'>('produto');
+  const [valorPagamento, setValorPagamento] = useState('');
   const [termoBusca, setTermoBusca] = useState('');
   const [itensEncontrados, setItensEncontrados] = useState<(Produto | Servico | Pacote)[]>([]);
   const [buscandoItens, setBuscandoItens] = useState(false);
@@ -152,6 +153,11 @@ export default function ComandasScreen() {
     parcelas: undefined
   });
   const [valorTotalPagamento, setValorTotalPagamento] = useState(0);
+  // Estados para integração do crediário
+  const [saldoCrediario, setSaldoCrediario] = useState<number | null>(null);
+  const [mostrarModalSaldo, setMostrarModalSaldo] = useState(false);
+  const [usarSaldoCrediario, setUsarSaldoCrediario] = useState(false);
+  const [valorAplicadoSaldo, setValorAplicadoSaldo] = useState(0);
 
   // Dentro do componente, adicione:
   const [valorRecebido, setValorRecebido] = useState('');
@@ -161,6 +167,11 @@ export default function ComandasScreen() {
 
   // Adicione após o estado uploading:
   const [showOptionsModal, setShowOptionsModal] = useState(false);
+  
+  // Modal para adicionar troco/falta ao crediário
+  const [modalTrocoFaltaVisible, setModalTrocoFaltaVisible] = useState(false);
+  const [valorTrocoFalta, setValorTrocoFalta] = useState(0);
+  const [tipoTrocoFalta, setTipoTrocoFalta] = useState<'troco' | 'falta'>('troco');
 
   // Animações para modais
   const translateY = useRef(new Animated.Value(500)).current;
@@ -538,24 +549,39 @@ export default function ComandasScreen() {
     setItensSelecionados(prev => prev.filter(item => item.id !== id));
   };
 
+  // Função para adicionar pagamento como item da comanda
+  const adicionarPagamento = () => {
+    if (!valorPagamento) return;
+    
+    const valor = parseFloat(valorPagamento.replace(',', '.'));
+    if (isNaN(valor) || valor <= 0) {
+      alert('Por favor, informe um valor válido para o pagamento.');
+      return;
+    }
+
+    const novoItem: ItemSelecionado = {
+      id: `pagamento_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // ID único para uso interno
+      nome: 'Pagamento',
+      preco: valor,
+      quantidade: 1,
+      tipo: 'pagamento'
+    };
+
+    setItensSelecionados([...itensSelecionados, novoItem]);
+    setValorPagamento('');
+    setTipoItem('produto'); // Voltar para o tipo produto após adicionar
+  };
+
   // Função para adicionar os itens selecionados à comanda
   const adicionarItensSelecionados = () => {
-    // Calcular o valor total dos itens selecionados
-    const total = itensSelecionados.reduce((soma, item) => {
-      return soma + (item.quantidade * item.preco);
-    }, 0);
-    
-    // Atualizar o valor total
-    setValorTotal(total);
-    
-    // Fechar o modal de itens
+    // Fechar o modal de itens (o valor total será calculado automaticamente pelo useEffect)
     fecharModalItens();
   };
 
   // Função para limpar os itens selecionados
   const limparItensSelecionados = () => {
     setItensSelecionados([]);
-    setValorTotal(0);
+    // O valorTotal será automaticamente calculado para 0 pelo useEffect
   };
 
   // useEffect para carregar itens quando o modal é aberto
@@ -564,6 +590,14 @@ export default function ComandasScreen() {
       carregarItensIniciais();
     }
   }, [modalItensVisible, tipoItem]);
+
+  // useEffect para recalcular o valor total sempre que os itens selecionados mudarem
+  useEffect(() => {
+    const total = itensSelecionados.reduce((soma, item) => {
+      return soma + (item.quantidade * item.preco);
+    }, 0);
+    setValorTotal(total);
+  }, [itensSelecionados]);
 
   // Função para carregar comandas do banco de dados
   const carregarComandas = async () => {
@@ -803,17 +837,30 @@ export default function ComandasScreen() {
 
       // Adicionar itens à comanda (se houver)
       if (itensSelecionados.length > 0) {
-        const itensComanda = itensSelecionados.map(item => ({
-          comanda_id: data.id,
-          tipo: item.tipo,
-          nome: item.nome,
-          quantidade: item.quantidade,
-          preco: item.preco,
-          preco_unitario: item.preco,
-          preco_total: item.quantidade * item.preco,
-          item_id: item.id,
-          estabelecimento_id: estabelecimentoId // Adicionando o estabelecimento_id
-        }));
+        const itensComanda = itensSelecionados.map(item => {
+          const baseItem = {
+            comanda_id: data.id,
+            tipo: item.tipo,
+            nome: item.nome,
+            quantidade: item.quantidade,
+            preco: item.preco,
+            preco_unitario: item.preco,
+            preco_total: item.quantidade * item.preco,
+            estabelecimento_id: estabelecimentoId
+          };
+
+          // Para pagamentos, não incluir item_id
+          if (item.tipo !== 'pagamento') {
+            return {
+              ...baseItem,
+              item_id: item.id
+            };
+          }
+
+          return baseItem;
+        });
+
+        console.log('DEBUG: Itens da comanda a serem inseridos:', JSON.stringify(itensComanda, null, 2));
 
         const { error: itensError } = await supabase
           .from('comandas_itens')
@@ -829,16 +876,27 @@ export default function ComandasScreen() {
       const novaComandaCompleta: Comanda = {
         ...data,
         cliente_nome: selectedCliente.nome,
-        itens: itensSelecionados.map(item => ({
-          id: '', // Será preenchido pelo servidor, mas precisamos de um valor temporário
-          tipo: item.tipo,
-          nome: item.nome,
-          quantidade: item.quantidade,
-          preco: item.preco,
-          preco_unitario: item.preco, // Adicionado para compatibilidade com o banco de dados
-          preco_total: item.quantidade * item.preco,
-          item_id: item.id
-        }))
+        itens: itensSelecionados.map(item => {
+          const baseItem = {
+            id: '', // Será preenchido pelo servidor, mas precisamos de um valor temporário
+            tipo: item.tipo,
+            nome: item.nome,
+            quantidade: item.quantidade,
+            preco: item.preco,
+            preco_unitario: item.preco, // Adicionado para compatibilidade com o banco de dados
+            preco_total: item.quantidade * item.preco
+          };
+
+          // Para pagamentos, não incluir item_id
+          if (item.tipo !== 'pagamento') {
+            return {
+              ...baseItem,
+              item_id: item.id
+            };
+          }
+
+          return baseItem;
+        })
       };
       
       setComandas(prevComandas => [novaComandaCompleta, ...prevComandas]);
@@ -873,7 +931,7 @@ export default function ComandasScreen() {
     setObservacoes('');
     setMostrarListaClientes(false);
     setItensSelecionados([]);
-    setValorTotal(0);
+    // O valorTotal será automaticamente calculado para 0 pelo useEffect
   };
   
   // Função para abrir uma comanda e exibir seus detalhes
@@ -986,9 +1044,48 @@ export default function ComandasScreen() {
 
       if (error) throw error;
 
+      // Registrar movimentação de crediário caso saldo tenha sido aplicado
+      if (usarSaldoCrediario && valorAplicadoSaldo !== 0 && comandaEmEdicao?.cliente_id) {
+        try {
+          const tipoMov = saldoCrediario && saldoCrediario > 0 ? 'debito' : 'credito';
+          const valorMov = saldoCrediario && saldoCrediario > 0 ? -Math.abs(valorAplicadoSaldo) : Math.abs(valorAplicadoSaldo);
+          await supabase.from('crediario_movimentacoes').insert({
+            cliente_id: comandaEmEdicao.cliente_id,
+            valor: valorMov,
+            tipo: tipoMov,
+            descricao: 'Uso de saldo em comanda'
+          });
+        } catch (e) {
+          console.warn('Falha ao registrar movimentação de crediário:', e);
+        }
+      }
+
+      // Se pagamento foi em Crediário, adicionar valor total como débito
+      if (pagamento.forma_pagamento === 'crediario' && comandaEmEdicao?.cliente_id) {
+        try {
+          await supabase.from('crediario_movimentacoes').insert({
+            cliente_id: comandaEmEdicao.cliente_id,
+            valor: -valorTotalPagamento, // Valor negativo = débito
+            tipo: 'debito',
+            descricao: 'Compra a crediário',
+            data: new Date().toISOString().slice(0, 10)
+          });
+        } catch (e) {
+          console.warn('Falha ao registrar compra a crediário:', e);
+        }
+      }
+
       await carregarComandas();
       setModalPagamentoVisible(false);
       setModalVisible(false);
+      
+      // Verificar se há troco ou falta e perguntar se deseja adicionar ao crediário
+      // Não perguntar se pagamento foi em crediário
+      if (comandaEmEdicao?.cliente_id && (troco > 0 || falta > 0) && pagamento.forma_pagamento !== 'crediario') {
+        setValorTrocoFalta(troco > 0 ? troco : falta);
+        setTipoTrocoFalta(troco > 0 ? 'troco' : 'falta');
+        setModalTrocoFaltaVisible(true);
+      }
     } catch (error: any) {
       console.error('Erro ao fechar comanda:', error);
       Alert.alert('Erro', error.message || 'Não foi possível fechar a comanda');
@@ -1277,7 +1374,21 @@ export default function ComandasScreen() {
     setValorRecebido('');
     setTroco(0);
     setFalta(0);
-    setModalPagamentoVisible(true);
+    setUsarSaldoCrediario(false);
+    setValorAplicadoSaldo(0);
+    // Carrega saldo do crediário e decide exibir modal
+    if (comanda.cliente_id) {
+      carregarSaldoCrediario(comanda.cliente_id).then(saldo => {
+        setSaldoCrediario(saldo);
+        if (saldo !== 0) {
+          setMostrarModalSaldo(true);
+        } else {
+          setModalPagamentoVisible(true);
+        }
+      });
+    } else {
+      setModalPagamentoVisible(true);
+    }
   };
 
   // Função para calcular o troco
@@ -1288,6 +1399,80 @@ export default function ComandasScreen() {
       valor_pago: valorPago,
       troco: troco > 0 ? troco : 0
     }));
+  };
+
+  // ======== INTEGRAÇÃO CREDIÁRIO ========
+  const carregarSaldoCrediario = async (clienteId: string): Promise<number> => {
+    try {
+      const { data, error } = await supabase
+        .from('crediario_movimentacoes')
+        .select('valor')
+        .eq('cliente_id', clienteId);
+      if (error) return 0;
+      return (data || []).reduce((acc, mov) => acc + (typeof mov.valor === 'number' ? mov.valor : parseFloat(mov.valor)), 0);
+    } catch {
+      return 0;
+    }
+  };
+
+  const aplicarSaldoCrediario = () => {
+    if (!saldoCrediario || saldoCrediario === 0) {
+      setMostrarModalSaldo(false);
+      setModalPagamentoVisible(true);
+      return;
+    }
+    let total = comandaEmEdicao?.valor_total || 0;
+    let aplicado = 0;
+    if (saldoCrediario > 0) {
+      aplicado = Math.min(saldoCrediario, total);
+      total -= aplicado;
+    } else {
+      aplicado = Math.min(Math.abs(saldoCrediario), 9999999);
+      total += aplicado;
+    }
+    setValorAplicadoSaldo(aplicado);
+    setValorTotalPagamento(total);
+    setUsarSaldoCrediario(true);
+    setMostrarModalSaldo(false);
+    setModalPagamentoVisible(true);
+  };
+
+  const ignorarSaldoCrediario = () => {
+    setUsarSaldoCrediario(false);
+    setValorAplicadoSaldo(0);
+    setMostrarModalSaldo(false);
+    setModalPagamentoVisible(true);
+  };
+
+  // Funções para adicionar troco/falta ao crediário
+  const adicionarTrocoFaltaCrediario = async () => {
+    if (!comandaEmEdicao?.cliente_id) return;
+    
+    try {
+      const valor = tipoTrocoFalta === 'troco' ? valorTrocoFalta : -valorTrocoFalta;
+      const tipo = tipoTrocoFalta === 'troco' ? 'credito' : 'debito';
+      const descricao = tipoTrocoFalta === 'troco' 
+        ? 'Troco convertido em crédito' 
+        : 'Falta convertida em débito';
+      
+      await supabase.from('crediario_movimentacoes').insert({
+        cliente_id: comandaEmEdicao.cliente_id,
+        valor,
+        tipo,
+        descricao,
+        data: new Date().toISOString().slice(0, 10)
+      });
+      
+      setModalTrocoFaltaVisible(false);
+      Alert.alert('Sucesso', `${tipoTrocoFalta === 'troco' ? 'Troco' : 'Falta'} adicionado ao crediário do cliente!`);
+    } catch (error) {
+      console.error('Erro ao adicionar ao crediário:', error);
+      Alert.alert('Erro', 'Não foi possível adicionar ao crediário.');
+    }
+  };
+
+  const ignorarTrocoFalta = () => {
+    setModalTrocoFaltaVisible(false);
   };
 
   // Função para formatar valor em BRL
@@ -1735,7 +1920,40 @@ export default function ComandasScreen() {
                         tipoItem === 'pacote' && styles.tipoItemButtonTextActive
                       ]}>Pacote</Text>
                     </TouchableOpacity>
+
+                    <TouchableOpacity 
+                      style={[ 
+                        styles.tipoItemButton,
+                        tipoItem === 'pagamento' && styles.tipoItemButtonActive
+                      ]}
+                      onPress={() => {
+                        setTipoItem('pagamento');
+                        // Só adiciona se não houver pagamento já na lista
+                        if (!itensSelecionados.some(item => item.tipo === 'pagamento')) {
+                          const novoItem: ItemSelecionado = {
+                            id: `pagamento_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                            nome: 'Pagamento',
+                            preco: 0,
+                            quantidade: 1,
+                            tipo: 'pagamento'
+                          };
+                          setItensSelecionados([...itensSelecionados, novoItem]);
+                        }
+                      }}
+                    >
+                      <Ionicons 
+                        name="card-outline" 
+                        size={24} 
+                        color={tipoItem === 'pagamento' ? '#fff' : '#7C3AED'} 
+                      />
+                      <Text style={[ 
+                        styles.tipoItemButtonText,
+                        tipoItem === 'pagamento' && styles.tipoItemButtonTextActive
+                      ]}>Pagamento</Text>
+                    </TouchableOpacity>
                   </View>
+
+
                 </View>
                 
                 {itensSelecionados.length > 0 ? (
@@ -1746,7 +1964,8 @@ export default function ComandasScreen() {
                           <View style={styles.itemBadge}>
                             <Text style={styles.itemBadgeText}>
                               {item.tipo === 'produto' ? 'P' : 
-                               item.tipo === 'servico' ? 'S' : 'PC'}
+                               item.tipo === 'servico' ? 'S' : 
+                               item.tipo === 'pacote' ? 'PC' : 'PG'}
                             </Text>
                           </View>
                           <View style={styles.itemDetails}>
@@ -1838,6 +2057,49 @@ export default function ComandasScreen() {
           </Animated.View>
         </View>
       </Modal>
+
+      {/* Modal de Saldo do Crediário */}
+      <Modal
+        visible={mostrarModalSaldo}
+        transparent
+        animationType="fade"
+        onRequestClose={ignorarSaldoCrediario}
+      >
+        <View style={styles.optionsModalContainer}>
+          <View style={[styles.optionsModalContent, { maxWidth: 420 }]}> 
+            <Text style={[styles.modalTitle, { textAlign: 'center', marginBottom: 8 }]}>Saldo de Crediário</Text>
+            <Text style={{ textAlign: 'center', marginBottom: 12, color: '#374151' }}>
+              {selectedCliente ? `O cliente ${selectedCliente.nome} possui:` : 'Este cliente possui:'}
+            </Text>
+            <Text style={{
+              fontSize: 22,
+              fontWeight: 'bold',
+              color: (saldoCrediario || 0) >= 0 ? '#10B981' : '#EF4444',
+              textAlign: 'center',
+              marginBottom: 16
+            }}>
+              {(saldoCrediario || 0) >= 0 ? '+ ' : '- '} {Math.abs(saldoCrediario || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            </Text>
+            <Text style={{ textAlign: 'center', marginBottom: 20, color: '#6B7280' }}>
+              Deseja aplicar este saldo na comanda atual?
+            </Text>
+            <View style={{ flexDirection: 'row' }}>
+              <TouchableOpacity
+                style={[styles.cancelButton, { flex: 1, marginRight: 8 }]}
+                onPress={ignorarSaldoCrediario}
+              >
+                <Text style={styles.cancelButtonText}>Não usar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalConfirmButton, { flex: 1, marginLeft: 8 }]}
+                onPress={aplicarSaldoCrediario}
+              >
+                <Text style={styles.modalConfirmButtonText}>Usar Saldo</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       
       {/* Modal de Detalhes da Comanda */}
       <Modal
@@ -1904,7 +2166,8 @@ export default function ComandasScreen() {
                           <View style={styles.itemBadge}>
                             <Text style={styles.itemBadgeText}>
                               {item.tipo === 'produto' ? 'P' : 
-                               item.tipo === 'servico' ? 'S' : 'PC'}
+                               item.tipo === 'servico' ? 'S' : 
+                               item.tipo === 'pacote' ? 'PC' : 'PG'}
                             </Text>
                           </View>
                           <View style={styles.comandaItemDetails}>
@@ -2239,6 +2502,61 @@ export default function ComandasScreen() {
             </View>
 
             <View style={styles.modalBody}>
+              {/* Indicador de Saldo Aplicado */}
+              {usarSaldoCrediario && valorAplicadoSaldo !== 0 && (
+                <View style={{
+                  backgroundColor: saldoCrediario && saldoCrediario > 0 ? '#E8FFF3' : '#FFF1F2',
+                  borderRadius: 12,
+                  padding: 12,
+                  marginBottom: 16,
+                  borderWidth: 1,
+                  borderColor: saldoCrediario && saldoCrediario > 0 ? '#10B981' : '#EF4444',
+                }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>
+                        {saldoCrediario && saldoCrediario > 0 ? '✓ Crédito aplicado' : '⚠ Débito adicionado'}
+                      </Text>
+                      <Text style={{ 
+                        fontSize: 16, 
+                        fontWeight: 'bold',
+                        color: saldoCrediario && saldoCrediario > 0 ? '#10B981' : '#EF4444'
+                      }}>
+                        {saldoCrediario && saldoCrediario > 0 ? '- ' : '+ '}
+                        {Math.abs(valorAplicadoSaldo).toLocaleString('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL'
+                        })}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: '#fff',
+                        borderRadius: 8,
+                        paddingVertical: 8,
+                        paddingHorizontal: 16,
+                        borderWidth: 1,
+                        borderColor: '#E5E7EB',
+                      }}
+                      onPress={() => {
+                        // Desfazer aplicação do saldo
+                        setValorTotalPagamento(comandaEmEdicao?.valor_total || 0);
+                        setUsarSaldoCrediario(false);
+                        setValorAplicadoSaldo(0);
+                        setPagamento(prev => ({
+                          ...prev,
+                          valor_pago: comandaEmEdicao?.valor_total || 0
+                        }));
+                      }}
+                    >
+                      <Text style={{ color: '#374151', fontWeight: '500', fontSize: 13 }}>
+                        Desfazer
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
               <View style={styles.pagamentoInfo}>
                 <Text style={styles.pagamentoLabel}>Total a Pagar:</Text>
                 <Text style={styles.pagamentoValor}>
@@ -2331,10 +2649,44 @@ export default function ComandasScreen() {
                       pagamento.forma_pagamento === 'pix' && styles.pagamentoOpcaoTextoSelecionado
                     ]}>PIX</Text>
                   </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.pagamentoOpcao,
+                      pagamento.forma_pagamento === 'crediario' && styles.pagamentoOpcaoSelecionada,
+                      // Desabilita se houver débito aplicado (saldo negativo usado)
+                      usarSaldoCrediario && saldoCrediario !== null && saldoCrediario < 0 && { opacity: 0.5 }
+                    ]}
+                    onPress={() => {
+                      // Bloqueia se débito foi aplicado
+                      if (usarSaldoCrediario && saldoCrediario && saldoCrediario < 0) {
+                        Alert.alert(
+                          'Não disponível',
+                          'Não é possível usar Crediário como forma de pagamento quando há débito aplicado do cliente.'
+                        );
+                        return;
+                      }
+                      setPagamento(prev => ({ ...prev, forma_pagamento: 'crediario' }));
+                    }}
+                    disabled={usarSaldoCrediario && saldoCrediario !== null && saldoCrediario < 0}
+                  >
+                    <Ionicons 
+                      name="wallet-outline" 
+                      size={24} 
+                      color={pagamento.forma_pagamento === 'crediario' ? '#FFFFFF' : '#6B7280'} 
+                    />
+                    <Text style={[
+                      styles.pagamentoOpcaoTexto,
+                      pagamento.forma_pagamento === 'crediario' && styles.pagamentoOpcaoTextoSelecionado
+                    ]}>Crediário</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
 
-              {pagamento.forma_pagamento === 'dinheiro' && (
+              {(pagamento.forma_pagamento === 'dinheiro' || 
+                pagamento.forma_pagamento === 'cartao_debito' || 
+                pagamento.forma_pagamento === 'pix' ||
+                (pagamento.forma_pagamento === 'cartao_credito' && pagamento.parcelas)) && (
                 <View style={styles.pagamentoValorContainer}>
                   <Text style={styles.pagamentoLabel}>Valor Recebido:</Text>
                   <TextInput
@@ -2383,7 +2735,7 @@ export default function ComandasScreen() {
                   )}
                 </View>
               )}
-              {pagamento.forma_pagamento === 'cartao_credito' && (
+              {pagamento.forma_pagamento === 'cartao_credito' && !pagamento.parcelas && (
                 <View style={styles.pagamentoParcelasContainer}>
                   <Text style={styles.pagamentoLabel}>Parcelamento:</Text>
                   <View style={styles.pagamentoParcelas}>
@@ -2434,12 +2786,21 @@ export default function ComandasScreen() {
               <TouchableOpacity 
                 style={[
                   styles.modalConfirmButton,
-                  pagamento.forma_pagamento === 'dinheiro' && (!valorRecebido || valorRecebido.trim() === '') && styles.modalConfirmButtonDisabled,
-                  pagamento.forma_pagamento === 'cartao_credito' && !pagamento.parcelas && styles.modalConfirmButtonDisabled
+                  (
+                    (pagamento.forma_pagamento === 'dinheiro' && (!valorRecebido || valorRecebido.trim() === '')) ||
+                    (pagamento.forma_pagamento === 'cartao_debito' && (!valorRecebido || valorRecebido.trim() === '')) ||
+                    (pagamento.forma_pagamento === 'pix' && (!valorRecebido || valorRecebido.trim() === '')) ||
+                    (pagamento.forma_pagamento === 'cartao_credito' && !pagamento.parcelas)
+                  ) && styles.modalConfirmButtonDisabled
                 ]}
                 onPress={() => {
-                  if (pagamento.forma_pagamento === 'dinheiro' && (!valorRecebido || valorRecebido.trim() === '')) {
-                    Alert.alert('Erro', 'É necessário informar o valor recebido em dinheiro!');
+                  const formasComValorRecebido = ['dinheiro', 'cartao_debito', 'pix'];
+                  if (formasComValorRecebido.includes(pagamento.forma_pagamento) && (!valorRecebido || valorRecebido.trim() === '')) {
+                    Alert.alert('Erro', 'É necessário informar o valor recebido!');
+                    return;
+                  }
+                  if (pagamento.forma_pagamento === 'cartao_credito' && pagamento.parcelas && (!valorRecebido || valorRecebido.trim() === '')) {
+                    Alert.alert('Erro', 'É necessário informar o valor recebido!');
                     return;
                   }
                   if (pagamento.forma_pagamento === 'cartao_credito' && !pagamento.parcelas) {
@@ -2452,6 +2813,8 @@ export default function ComandasScreen() {
                 }}
                 disabled={
                   (pagamento.forma_pagamento === 'dinheiro' && (!valorRecebido || valorRecebido.trim() === '')) ||
+                  (pagamento.forma_pagamento === 'cartao_debito' && (!valorRecebido || valorRecebido.trim() === '')) ||
+                  (pagamento.forma_pagamento === 'pix' && (!valorRecebido || valorRecebido.trim() === '')) ||
                   (pagamento.forma_pagamento === 'cartao_credito' && !pagamento.parcelas)
                 }
               >
@@ -2495,6 +2858,55 @@ export default function ComandasScreen() {
             >
               <Text style={styles.optionButtonTextCancel}>Cancelar</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal para adicionar Troco/Falta ao Crediário */}
+      <Modal
+        visible={modalTrocoFaltaVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={ignorarTrocoFalta}
+      >
+        <View style={styles.optionsModalContainer}>
+          <View style={[styles.optionsModalContent, { maxWidth: 420 }]}> 
+            <Text style={[styles.modalTitle, { textAlign: 'center', marginBottom: 12 }]}>
+              {tipoTrocoFalta === 'troco' ? '💰 Troco Disponível' : '⚠️ Valor em Falta'}
+            </Text>
+            <Text style={{ textAlign: 'center', marginBottom: 12, color: '#374151' }}>
+              {tipoTrocoFalta === 'troco' 
+                ? 'O cliente possui troco desta compra.' 
+                : 'O cliente ficou devendo desta compra.'}
+            </Text>
+            <Text style={{
+              fontSize: 24,
+              fontWeight: 'bold',
+              color: tipoTrocoFalta === 'troco' ? '#10B981' : '#EF4444',
+              textAlign: 'center',
+              marginBottom: 16
+            }}>
+              {valorTrocoFalta.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            </Text>
+            <Text style={{ textAlign: 'center', marginBottom: 20, color: '#6B7280', fontSize: 14 }}>
+              {tipoTrocoFalta === 'troco'
+                ? 'Deseja adicionar este valor como crédito no crediário do cliente?'
+                : 'Deseja adicionar este valor como débito no crediário do cliente?'}
+            </Text>
+            <View style={{ flexDirection: 'row' }}>
+              <TouchableOpacity
+                style={[styles.cancelButton, { flex: 1, marginRight: 8 }]}
+                onPress={ignorarTrocoFalta}
+              >
+                <Text style={styles.cancelButtonText}>Não adicionar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalConfirmButton, { flex: 1, marginLeft: 8 }]}
+                onPress={adicionarTrocoFaltaCrediario}
+              >
+                <Text style={styles.modalConfirmButtonText}>Adicionar</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -3793,5 +4205,44 @@ const styles = StyleSheet.create({
   },
   modalItemEstoqueZero: {
     color: '#ff0000',
+  },
+  novoPagamentoContainer: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+  },
+  novoPagamentoLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  novoPagamentoInput: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#374151',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    marginBottom: 12,
+  },
+  adicionarPagamentoButton: {
+    backgroundColor: '#7C3AED',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+  },
+  adicionarPagamentoButtonDisabled: {
+    backgroundColor: '#9CA3AF',
+  },
+  adicionarPagamentoButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  adicionarPagamentoButtonTextDisabled: {
+    color: '#D1D5DB',
   },
 }); 

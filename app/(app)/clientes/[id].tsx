@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, Image, Modal, KeyboardAvoidingView, Platform } from 'react-native';
+import { useRef } from 'react';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
@@ -36,6 +37,15 @@ export default function EditarClienteScreen() {
 
   // Estados para as outras abas
   const [saldoAtual, setSaldoAtual] = useState('0,00');
+  const [modalCreditoVisible, setModalCreditoVisible] = useState(false);
+  const [modalExtratoVisible, setModalExtratoVisible] = useState(false);
+  const [extrato, setExtrato] = useState<Array<{ data: string; valor: number; descricao: string; tipo: string }>>([]);
+  const [valorCredito, setValorCredito] = useState('');
+  const [descricaoCredito, setDescricaoCredito] = useState('');
+  const [dataCredito, setDataCredito] = useState<string>('');
+  const [salvandoCredito, setSalvandoCredito] = useState(false);
+  const [tipoCredito, setTipoCredito] = useState<'credito' | 'debito'>('credito');
+  const valorInputRef = useRef<TextInput>(null);
   const [agendamentos, setAgendamentos] = useState<Array<{ data: string; hora: string; servico: string }>>([]);
   const [historico, setHistorico] = useState<Array<{ data: string; descricao: string }>>([]);
   const [pacotes, setPacotes] = useState<Array<{ nome: string; valor: string }>>([]);
@@ -45,6 +55,22 @@ export default function EditarClienteScreen() {
   useEffect(() => {
     carregarCliente();
   }, [id]);
+
+  // Calcula saldo sempre que cliente muda ou quando activeTab for 'saldo'
+  useEffect(() => {
+    const calcularSaldo = async () => {
+      if (!cliente?.id) return;
+      const { data, error } = await supabase
+        .from('crediario_movimentacoes')
+        .select('valor')
+        .eq('cliente_id', cliente.id);
+      if (!error && data) {
+        const soma = data.reduce((acc, mov) => acc + (typeof mov.valor === 'number' ? mov.valor : parseFloat(mov.valor)), 0);
+        setSaldoAtual(soma.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+      }
+    };
+    calcularSaldo();
+  }, [cliente, activeTab]);
 
   const carregarCliente = async () => {
     try {
@@ -429,18 +455,267 @@ export default function EditarClienteScreen() {
       case 'saldo':
         return (
           <View style={styles.tabContent}>
-            <View style={styles.saldoCard}>
+            <TouchableOpacity
+              style={styles.saldoCard}
+              activeOpacity={0.7}
+              onPress={async () => {
+                // Busca movimentações do cliente
+                if (!cliente?.id) return;
+                const { data, error } = await supabase
+                  .from('crediario_movimentacoes')
+                  .select('data, valor, descricao, tipo')
+                  .eq('cliente_id', cliente.id)
+                  .order('data', { ascending: false });
+                if (!error && data) setExtrato(data);
+                setModalExtratoVisible(true);
+              }}
+            >
               <Text style={styles.saldoLabel}>Saldo Atual</Text>
-              <Text style={styles.saldoValor}>R$ {saldoAtual}</Text>
-            </View>
-            
+              <Text
+                style={[
+                  styles.saldoValor,
+                  parseFloat(saldoAtual.replace('.', '').replace(',', '.')) < 0
+                    ? { color: '#EF4444' }
+                    : { color: '#10B981' }
+                ]}
+              >
+                R$ {saldoAtual}
+              </Text>
+            </TouchableOpacity>
+            <Modal
+              visible={modalExtratoVisible}
+              animationType="slide"
+              transparent
+              onRequestClose={() => setModalExtratoVisible(false)}
+            >
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+                <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 20, width: '92%', maxHeight: '80%' }}>
+                  <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16, textAlign: 'center' }}>Extrato do Saldo</Text>
+                  <ScrollView style={{ maxHeight: 350 }}>
+                    {extrato.length === 0 && (
+                      <Text style={{ color: '#9CA3AF', textAlign: 'center', marginTop: 24 }}>Nenhuma movimentação encontrada.</Text>
+                    )}
+                    {extrato.map((mov, idx) => (
+                      <View key={idx} style={{ borderBottomWidth: 1, borderBottomColor: '#F3F4F6', paddingVertical: 10 }}>
+                        <Text style={{ color: '#6B7280', fontSize: 13 }}>
+                          {(() => {
+                            if (!mov.data) return '';
+                            // Tenta extrair só a parte da data (YYYY-MM-DD)
+                            const match = mov.data.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                            if (match) {
+                              return `${match[3]}/${match[2]}/${match[1]}`;
+                            }
+                            // fallback: mostra como está
+                            return mov.data;
+                          })()}
+                        </Text>
+                        <Text style={{ fontWeight: 'bold', color: mov.valor >= 0 ? '#10B981' : '#EF4444', fontSize: 16 }}>
+                          {mov.valor >= 0 ? '+' : '-'} R$ {Math.abs(mov.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </Text>
+                        {mov.descricao ? (
+                          <Text style={{ color: '#374151', fontSize: 14 }}>{mov.descricao}</Text>
+                        ) : null}
+                      </View>
+                    ))}
+                  </ScrollView>
+                  <TouchableOpacity
+                    style={{ marginTop: 18, alignSelf: 'center', backgroundColor: '#E5E7EB', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 32 }}
+                    onPress={() => setModalExtratoVisible(false)}
+                  >
+                    <Text style={{ color: '#374151', fontWeight: '500', fontSize: 16 }}>Fechar</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Modal>
             <TouchableOpacity 
               style={styles.addButton}
-              onPress={() => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento')}
+              onPress={() => setModalCreditoVisible(true)}
             >
               <FontAwesome5 name="plus" size={16} color="#7C3AED" />
               <Text style={styles.addButtonText}>Adicionar Crédito</Text>
             </TouchableOpacity>
+
+            <Modal
+              visible={modalCreditoVisible}
+              animationType="slide"
+              transparent
+              onRequestClose={() => setModalCreditoVisible(false)}
+            >
+              <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}
+              >
+                <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, width: '90%' }}>
+                  <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 18, textAlign: 'center' }}>Adicionar Crédito/Débito</Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 16 }}>
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        backgroundColor: tipoCredito === 'credito' ? '#E8FFF3' : '#F3F4F6',
+                        borderRadius: 8,
+                        padding: 10,
+                        marginRight: 4,
+                        borderWidth: tipoCredito === 'credito' ? 2 : 1,
+                        borderColor: tipoCredito === 'credito' ? '#10B981' : '#E5E7EB',
+                        alignItems: 'center',
+                      }}
+                      onPress={() => {
+                        setTipoCredito('credito');
+                        if (valorCredito.startsWith('-')) setValorCredito(valorCredito.replace('-', ''));
+                        setTimeout(() => valorInputRef.current?.focus(), 100);
+                      }}
+                    >
+                      <Text style={{ color: '#10B981', fontWeight: 'bold' }}>Crédito</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        backgroundColor: tipoCredito === 'debito' ? '#FFF1F2' : '#F3F4F6',
+                        borderRadius: 8,
+                        padding: 10,
+                        marginLeft: 4,
+                        borderWidth: tipoCredito === 'debito' ? 2 : 1,
+                        borderColor: tipoCredito === 'debito' ? '#EF4444' : '#E5E7EB',
+                        alignItems: 'center',
+                      }}
+                      onPress={() => {
+                        setTipoCredito('debito');
+                        if (!valorCredito.startsWith('-')) setValorCredito('-' + valorCredito.replace('-', ''));
+                        setTimeout(() => valorInputRef.current?.focus(), 100);
+                      }}
+                    >
+                      <Text style={{ color: '#EF4444', fontWeight: 'bold' }}>Débito</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={{ color: '#6B7280', marginBottom: 4 }}>Valor</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F4F6', borderRadius: 8, marginBottom: 12, borderWidth: 1, borderColor: '#E5E7EB' }}>
+                    <Text style={{ fontSize: 18, color: '#7C3AED', marginLeft: 12 }}>R$</Text>
+                    <TextInput
+                      ref={valorInputRef}
+                      style={[styles.input, { flex: 1, backgroundColor: 'transparent', borderWidth: 0, fontSize: 18 }]}
+                      placeholder="0,00"
+                      value={valorCredito}
+                      onChangeText={txt => {
+                        // Máscara automática para moeda (R$ 0,00)
+                        let v = txt.replace(/\D/g, '');
+                        if (!v) {
+                          setValorCredito('');
+                          return;
+                        }
+                        // Limita a 8 dígitos (até 99.999,99)
+                        v = v.slice(0, 8);
+                        let num = parseInt(v, 10);
+                        let cents = (num % 100).toString().padStart(2, '0');
+                        let reais = Math.floor(num / 100).toString();
+                        // Adiciona separador de milhar
+                        reais = reais.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                        let formatted = reais + ',' + cents;
+                        if (tipoCredito === 'debito' && !formatted.startsWith('-')) formatted = '-' + formatted;
+                        if (tipoCredito === 'credito' && formatted.startsWith('-')) formatted = formatted.replace('-', '');
+                        setValorCredito(formatted);
+                      }}
+                      keyboardType="numeric"
+                      maxLength={12}
+                    />
+                  </View>
+                  <Text style={{ color: '#6B7280', marginBottom: 4 }}>Descrição</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F4F6', borderRadius: 8, marginBottom: 12, borderWidth: 1, borderColor: '#E5E7EB' }}>
+                    <TextInput
+                      style={[styles.input, { flex: 1, backgroundColor: 'transparent', borderWidth: 0, fontSize: 16 }]}
+                      placeholder="Ex: Pagamento, ajuste, desconto..."
+                      value={descricaoCredito}
+                      onChangeText={setDescricaoCredito}
+                      maxLength={60}
+                    />
+                  </View>
+                  <Text style={{ color: '#6B7280', marginBottom: 4 }}>Data</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F4F6', borderRadius: 8, marginBottom: 18, borderWidth: 1, borderColor: '#E5E7EB' }}>
+                    <TextInput
+                      style={[styles.input, { flex: 1, backgroundColor: 'transparent', borderWidth: 0, fontSize: 16 }]}
+                      placeholder="DD/MM/AAAA (opcional)"
+                      value={dataCredito}
+                      onChangeText={txt => setDataCredito(formatarData(txt))}
+                      keyboardType="numeric"
+                      maxLength={10}
+                    />
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+                    <TouchableOpacity
+                      style={[styles.footerButton, { marginRight: 8 }]}
+                      onPress={() => {
+                        setModalCreditoVisible(false);
+                        setValorCredito('');
+                        setDescricaoCredito('');
+                        setTipoCredito('credito');
+                      }}
+                    >
+                      <Text style={styles.footerButtonText}>Cancelar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.footerButton, styles.footerButtonSalvar, { opacity: !valorCredito.trim() || salvandoCredito ? 0.6 : 1 }]}
+                      onPress={async () => {
+                        if (!valorCredito.trim()) {
+                          Alert.alert('Atenção', 'Informe o valor do crédito/débito.');
+                          return;
+                        }
+                        let valor = parseFloat(valorCredito.replace(',', '.'));
+                        if (isNaN(valor) || valor === 0) {
+                          Alert.alert('Atenção', 'Informe um valor válido diferente de zero.');
+                          return;
+                        }
+                        if (tipoCredito === 'debito' && valor > 0) valor = -valor;
+                        if (tipoCredito === 'credito' && valor < 0) valor = Math.abs(valor);
+                        setSalvandoCredito(true);
+                        try {
+                          // Determina data: se não preenchida, usa hoje
+                          let dataMov = dataCredito && dataCredito.length === 10
+                            ? dataCredito.split('/').reverse().join('-')
+                            : new Date().toISOString().slice(0, 10);
+                          // Insere movimentação
+                          const { error: movError } = await supabase
+                            .from('crediario_movimentacoes')
+                            .insert({
+                              cliente_id: cliente?.id,
+                              valor,
+                              tipo: tipoCredito,
+                              descricao: descricaoCredito,
+                              data: dataMov,
+                            });
+                          if (movError) throw movError;
+                          
+                          // Recalcula saldo do banco de dados
+                          const { data: movimentacoes, error: saldoError } = await supabase
+                            .from('crediario_movimentacoes')
+                            .select('valor')
+                            .eq('cliente_id', cliente?.id);
+                          
+                          if (!saldoError && movimentacoes) {
+                            const soma = movimentacoes.reduce((acc, mov) => acc + (typeof mov.valor === 'number' ? mov.valor : parseFloat(mov.valor)), 0);
+                            setSaldoAtual(soma.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+                          }
+                          
+                          setModalCreditoVisible(false);
+                          setValorCredito('');
+                          setDescricaoCredito('');
+                          setTipoCredito('credito');
+                          setDataCredito('');
+                          Alert.alert('Sucesso', 'Movimentação registrada!');
+                        } catch (err) {
+                          Alert.alert('Erro', 'Não foi possível registrar a movimentação.');
+                        } finally {
+                          setSalvandoCredito(false);
+                        }
+                      }}
+                      disabled={!valorCredito.trim() || salvandoCredito}
+                    >
+                      <Text style={[styles.footerButtonText, styles.footerButtonTextSalvar]}>
+                        {salvandoCredito ? 'Salvando...' : 'Salvar'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </KeyboardAvoidingView>
+            </Modal>
           </View>
         );
 

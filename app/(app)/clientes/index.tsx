@@ -17,6 +17,7 @@ type Cliente = {
   created_at: string;
   debito?: boolean;
   credito?: boolean;
+  saldo?: number;
   agendamentos?: {
     id: string;
     data: string;
@@ -71,6 +72,36 @@ export default function ClientesScreen() {
         return;
       }
 
+      // Buscar todas as movimentações de crediário
+      // A tabela crediario_movimentacoes não tem estabelecimento_id, 
+      // então vamos buscar só dos clientes deste estabelecimento
+      const clienteIds = clientesData?.map(c => c.id) || [];
+      
+      let movimentacoesData: any[] = [];
+      if (clienteIds.length > 0) {
+        const { data, error: movimentacoesError } = await supabase
+          .from('crediario_movimentacoes')
+          .select('cliente_id, tipo, valor')
+          .in('cliente_id', clienteIds);
+
+        if (movimentacoesError) {
+          console.error('Erro ao carregar movimentações:', movimentacoesError);
+        } else {
+          movimentacoesData = data || [];
+        }
+      }
+
+      // Calcular saldo de cada cliente
+      const saldosPorCliente: { [key: string]: number } = {};
+      movimentacoesData.forEach(mov => {
+        if (!saldosPorCliente[mov.cliente_id]) {
+          saldosPorCliente[mov.cliente_id] = 0;
+        }
+        // Converte o valor para número (pode vir como string do banco)
+        const valorNumerico = typeof mov.valor === 'number' ? mov.valor : parseFloat(mov.valor);
+        saldosPorCliente[mov.cliente_id] += valorNumerico;
+      });
+
       const clientesComAgendamentos = clientesData?.map(cliente => {
         const agendamentosDoCliente = agendamentosData?.filter(agendamento => 
           agendamento.cliente === cliente.nome
@@ -80,9 +111,14 @@ export default function ClientesScreen() {
           status: agendamento.status
         })) || [];
 
+        const saldo = saldosPorCliente[cliente.id] || 0;
+
         return {
           ...cliente,
-          agendamentos: agendamentosDoCliente
+          agendamentos: agendamentosDoCliente,
+          credito: saldo > 0,
+          debito: saldo < 0,
+          saldo: saldo
         };
       }) || [];
 
@@ -346,6 +382,15 @@ export default function ClientesScreen() {
                       })
                     : 'Sem agendamento'}
                 </Text>
+              ) : filtro === 'com_credito' || filtro === 'com_debito' ? (
+                <Text 
+                  style={[
+                    styles.clienteSaldo,
+                    cliente.saldo && cliente.saldo > 0 ? styles.saldoPositivo : styles.saldoNegativo
+                  ]}
+                >
+                  R$ {cliente.saldo?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0,00'}
+                </Text>
               ) : (
                 <Text style={styles.clienteTelefone}>{cliente.telefone}</Text>
               )}
@@ -536,6 +581,16 @@ const styles = StyleSheet.create({
   clienteTelefone: {
     fontSize: 14,
     color: '#6B7280',
+  },
+  clienteSaldo: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  saldoPositivo: {
+    color: '#10B981',
+  },
+  saldoNegativo: {
+    color: '#EF4444',
   },
   whatsappButton: {
     width: 40,
