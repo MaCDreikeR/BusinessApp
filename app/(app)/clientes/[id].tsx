@@ -658,7 +658,12 @@ export default function EditarClienteScreen() {
                           Alert.alert('Atenção', 'Informe o valor do crédito/débito.');
                           return;
                         }
-                        let valor = parseFloat(valorCredito.replace(',', '.'));
+                        // Remove formatação: pontos de milhar e substitui vírgula por ponto
+                        let valorLimpo = valorCredito.replace(/\./g, '').replace(',', '.');
+                        // Remove o sinal de menos se houver (já será tratado pelo tipo)
+                        valorLimpo = valorLimpo.replace('-', '');
+                        
+                        let valor = parseFloat(valorLimpo);
                         if (isNaN(valor) || valor === 0) {
                           Alert.alert('Atenção', 'Informe um valor válido diferente de zero.');
                           return;

@@ -96,6 +96,9 @@ interface Comanda {
   finalized_by_user_id?: string;
   finalized_by_user_nome?: string;
   finalized_at?: string;
+  saldo_aplicado?: number;
+  troco_para_credito?: number;
+  falta_para_debito?: number;
 }
 
 interface Pagamento {
@@ -1038,7 +1041,8 @@ export default function ComandasScreen() {
           valor_pago: pagamento.valor_pago,
           troco: pagamento.troco,
           parcelas: pagamento.parcelas,
-          comprovante_pix: null
+          comprovante_pix: null,
+          saldo_aplicado: usarSaldoCrediario ? valorAplicadoSaldo : null
         })
         .eq('id', comandaId);
 
@@ -1462,6 +1466,19 @@ export default function ComandasScreen() {
         descricao,
         data: new Date().toISOString().slice(0, 10)
       });
+
+      // Atualizar a comanda com informação do troco/falta convertido
+      const campoUpdate = tipoTrocoFalta === 'troco' 
+        ? { troco_para_credito: valorTrocoFalta }
+        : { falta_para_debito: valorTrocoFalta };
+      
+      await supabase
+        .from('comandas')
+        .update(campoUpdate)
+        .eq('id', comandaEmEdicao.id);
+      
+      // Recarregar comandas para atualizar a visualização
+      await carregarComandas();
       
       setModalTrocoFaltaVisible(false);
       Alert.alert('Sucesso', `${tipoTrocoFalta === 'troco' ? 'Troco' : 'Falta'} adicionado ao crediário do cliente!`);
@@ -2137,9 +2154,21 @@ export default function ComandasScreen() {
                   <View style={styles.comandaDetailInfo}>
                     <Text style={styles.comandaDetailCliente}>{comandaEmEdicao.cliente_nome}</Text>
                     <Text style={styles.comandaDetailData}>
-                      Data: {format(new Date(comandaEmEdicao.data_abertura), "dd/MM/yyyy 'às' HH:mm")}{'\n'}
-                      {comandaEmEdicao.created_by_user_nome && `Criado por: ${comandaEmEdicao.created_by_user_nome}`}
+                      Data: {format(new Date(comandaEmEdicao.data_abertura), "dd/MM/yyyy 'às' HH:mm")}
                     </Text>
+                    <Text style={styles.comandaDetailData}>
+                      Criado por: {comandaEmEdicao.created_by_user_nome}
+                    </Text>
+                    {(comandaEmEdicao.status === 'fechada' || comandaEmEdicao.status === 'cancelada') && comandaEmEdicao.finalized_by_user_nome && comandaEmEdicao.finalized_at && (
+                      <>
+                        <Text style={styles.comandaDetailFinalizadoPor}>
+                          Finalizado por: {comandaEmEdicao.finalized_by_user_nome}
+                        </Text>
+                        <Text style={styles.comandaDetailFinalizadoPor}>
+                          Em: {format(new Date(comandaEmEdicao.finalized_at), "dd/MM/yyyy 'às' HH:mm")}
+                        </Text>
+                      </>
+                    )}
                   </View>
                   <View style={styles.comandaDetailStatus}>
                     <View style={[
@@ -2227,17 +2256,120 @@ export default function ComandasScreen() {
                       {comandaEmEdicao.forma_pagamento === 'dinheiro' ? 'Dinheiro' :
                        comandaEmEdicao.forma_pagamento === 'cartao_credito' ? 'Cartão de Crédito' :
                        comandaEmEdicao.forma_pagamento === 'cartao_debito' ? 'Cartão de Débito' :
-                       comandaEmEdicao.forma_pagamento === 'pix' ? 'PIX' : ''}
+                       comandaEmEdicao.forma_pagamento === 'pix' ? 'PIX' :
+                       comandaEmEdicao.forma_pagamento === 'crediario' ? 'Crediário' : ''}
                     </Text>
-                    {comandaEmEdicao.forma_pagamento === 'cartao_credito' && comandaEmEdicao.parcelas && (
-                      <Text style={styles.comandaParcelas}>
-                        {comandaEmEdicao.parcelas}x de {(comandaEmEdicao.valor_total / comandaEmEdicao.parcelas).toLocaleString('pt-BR', {
+
+                    {/* Valor Pago - para Dinheiro, Débito e PIX */}
+                    {(comandaEmEdicao.forma_pagamento === 'dinheiro' || 
+                      comandaEmEdicao.forma_pagamento === 'cartao_debito' || 
+                      comandaEmEdicao.forma_pagamento === 'pix') && 
+                      comandaEmEdicao.valor_pago && (
+                      <Text style={styles.comandaValorPago}>
+                        Valor pago: {comandaEmEdicao.valor_pago.toLocaleString('pt-BR', {
                           style: 'currency',
                           currency: 'BRL',
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2
                         })}
                       </Text>
+                    )}
+
+                    {/* Parcelas - para Cartão de Crédito */}
+                    {comandaEmEdicao.forma_pagamento === 'cartao_credito' && comandaEmEdicao.parcelas && (
+                      <>
+                        {comandaEmEdicao.valor_pago && (
+                          <Text style={styles.comandaValorPago}>
+                            Valor pago: {comandaEmEdicao.valor_pago.toLocaleString('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL',
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2
+                            })}
+                          </Text>
+                        )}
+                        <Text style={styles.comandaParcelas}>
+                          {comandaEmEdicao.parcelas}x de {((comandaEmEdicao.valor_pago || comandaEmEdicao.valor_total) / comandaEmEdicao.parcelas).toLocaleString('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL',
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                          })}
+                        </Text>
+                      </>
+                    )}
+
+                    {/* Informações de Crediário */}
+                    {comandaEmEdicao.saldo_aplicado && comandaEmEdicao.saldo_aplicado !== 0 && (
+                      <View style={styles.crediarioInfoBox}>
+                        <View style={styles.crediarioInfoRow}>
+                          <FontAwesome5 
+                            name={comandaEmEdicao.saldo_aplicado > 0 ? "minus-circle" : "plus-circle"} 
+                            size={16} 
+                            color={comandaEmEdicao.saldo_aplicado > 0 ? "#10B981" : "#EF4444"} 
+                          />
+                          <Text style={styles.crediarioInfoLabel}>
+                            {comandaEmEdicao.saldo_aplicado > 0 ? 'Crédito usado:' : 'Débito quitado:'}
+                          </Text>
+                          <Text style={[
+                            styles.crediarioInfoValue,
+                            { color: comandaEmEdicao.saldo_aplicado > 0 ? '#10B981' : '#EF4444' }
+                          ]}>
+                            {Math.abs(comandaEmEdicao.saldo_aplicado).toLocaleString('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL'
+                            })}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {comandaEmEdicao.troco_para_credito && comandaEmEdicao.troco_para_credito > 0 && (
+                      <View style={styles.crediarioInfoBox}>
+                        <View style={styles.crediarioInfoRow}>
+                          <FontAwesome5 name="plus-circle" size={16} color="#10B981" />
+                          <Text style={styles.crediarioInfoLabel}>Troco → Crédito:</Text>
+                          <Text style={[styles.crediarioInfoValue, { color: '#10B981' }]}>
+                            +{comandaEmEdicao.troco_para_credito.toLocaleString('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL'
+                            })}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {comandaEmEdicao.falta_para_debito && comandaEmEdicao.falta_para_debito > 0 && (
+                      <View style={styles.crediarioInfoBox}>
+                        <View style={styles.crediarioInfoRow}>
+                          <FontAwesome5 name="minus-circle" size={16} color="#EF4444" />
+                          <Text style={styles.crediarioInfoLabel}>Falta → Débito:</Text>
+                          <Text style={[styles.crediarioInfoValue, { color: '#EF4444' }]}>
+                            -{comandaEmEdicao.falta_para_debito.toLocaleString('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL'
+                            })}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {comandaEmEdicao.forma_pagamento === 'crediario' && (
+                      <View style={styles.crediarioInfoBox}>
+                        <View style={styles.crediarioInfoRow}>
+                          <FontAwesome5 name="file-invoice-dollar" size={16} color="#F59E0B" />
+                          <Text style={styles.crediarioInfoLabel}>Compra a crediário</Text>
+                          <Text style={[styles.crediarioInfoValue, { color: '#F59E0B' }]}>
+                            {comandaEmEdicao.valor_total.toLocaleString('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL'
+                            })}
+                          </Text>
+                        </View>
+                        <Text style={styles.crediarioInfoDesc}>
+                          Valor adicionado como débito no crediário do cliente
+                        </Text>
+                      </View>
                     )}
                   </View>
                 )}
@@ -3051,6 +3183,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     marginBottom: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   comandaDetailTitle: {
     fontSize: 18,
@@ -3059,10 +3194,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   comandaDetailInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
+    flex: 1,
   },
   comandaDetailLabel: {
     fontSize: 14,
@@ -3074,10 +3206,10 @@ const styles = StyleSheet.create({
     color: '#1F2937',
   },
   comandaDetailCliente: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#1F2937',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   comandaItemCard: {
     backgroundColor: '#F9FAFB',
@@ -3168,6 +3300,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     marginTop: 4,
+    lineHeight: 20,
+  },
+  comandaDetailFinalizadoPor: {
+    fontSize: 14,
+    color: '#7C3AED',
+    marginTop: 6,
+    fontWeight: '500',
+    lineHeight: 20,
   },
   comandaDetailStatus: {
     marginTop: 8,
@@ -4172,8 +4312,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   comandaPagamentoContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
     marginTop: 10,
   },
   comandaPagamentoLabel: {
@@ -4185,11 +4324,47 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
+    marginTop: 4,
+  },
+  comandaValorPago: {
+    fontSize: 14,
+    color: '#10B981',
+    marginTop: 6,
+    fontWeight: '600',
   },
   comandaParcelas: {
     fontSize: 14,
     color: '#666',
     marginTop: 5,
+  },
+  crediarioInfoBox: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#7C3AED',
+  },
+  crediarioInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  crediarioInfoLabel: {
+    fontSize: 14,
+    color: '#4B5563',
+    flex: 1,
+    marginLeft: 4,
+  },
+  crediarioInfoValue: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  crediarioInfoDesc: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 6,
+    marginLeft: 24,
   },
   comandaDetailCriadoPor: {
     fontSize: 14,

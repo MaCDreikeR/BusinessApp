@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, RefreshControl, ActivityIndicator, Animated, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, RefreshControl, ActivityIndicator, Animated, Modal, ScrollView } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { format } from 'date-fns';
@@ -80,6 +80,9 @@ const VendasScreen = () => {
   const [isScrolling, setIsScrolling] = useState(false);
   const [showCalendarInicio, setShowCalendarInicio] = useState(false);
   const [showCalendarFim, setShowCalendarFim] = useState(false);
+  const [modalDetalhesVisible, setModalDetalhesVisible] = useState(false);
+  const [detalhesMovimentacao, setDetalhesMovimentacao] = useState<any>(null);
+  const [loadingDetalhes, setLoadingDetalhes] = useState(false);
 
   const headerOpacity = scrollY.interpolate({
     inputRange: [0, 50],
@@ -227,6 +230,87 @@ const VendasScreen = () => {
     }
   };
 
+  const carregarDetalhesMovimentacao = async () => {
+    setLoadingDetalhes(true);
+    try {
+      const estabelecimentoId = await AsyncStorage.getItem('@estabelecimento_id');
+      if (!estabelecimentoId) return;
+
+      // Definir intervalo de datas
+      const dataInicio = debouncedFiltros.dataInicio || new Date();
+      const dataFim = debouncedFiltros.dataFim || new Date();
+      dataInicio.setHours(0, 0, 0, 0);
+      dataFim.setHours(23, 59, 59, 999);
+
+      // Buscar comandas fechadas no período
+      const { data: comandas, error } = await supabase
+        .from('comandas')
+        .select('*')
+        .eq('estabelecimento_id', estabelecimentoId)
+        .eq('status', 'fechada')
+        .gte('finalized_at', dataInicio.toISOString())
+        .lte('finalized_at', dataFim.toISOString());
+
+      if (error) throw error;
+
+      // Agrupar por forma de pagamento
+      const detalhes: any = {
+        dinheiro: { quantidade: 0, valor: 0, comandas: [] },
+        cartao_credito: { quantidade: 0, valor: 0, valor_pago: 0, comandas: [] },
+        cartao_debito: { quantidade: 0, valor: 0, valor_pago: 0, comandas: [] },
+        pix: { quantidade: 0, valor: 0, valor_pago: 0, comandas: [] },
+        crediario: { quantidade: 0, valor: 0, debitos: [] }
+      };
+
+      comandas?.forEach((comanda: any) => {
+        const formaPagamento = comanda.forma_pagamento;
+        if (!formaPagamento || !detalhes[formaPagamento]) return;
+
+        detalhes[formaPagamento].quantidade++;
+        detalhes[formaPagamento].valor += comanda.valor_total;
+
+        if (formaPagamento !== 'crediario') {
+          detalhes[formaPagamento].valor_pago += comanda.valor_pago || 0;
+          detalhes[formaPagamento].comandas.push({
+            id: comanda.id,
+            cliente_nome: comanda.cliente_nome,
+            valor_total: comanda.valor_total,
+            valor_pago: comanda.valor_pago,
+            parcelas: comanda.parcelas,
+            saldo_aplicado: comanda.saldo_aplicado,
+            troco_para_credito: comanda.troco_para_credito,
+            falta_para_debito: comanda.falta_para_debito
+          });
+        } else {
+          // Para crediário, incluir débitos adicionados
+          detalhes[formaPagamento].comandas.push({
+            id: comanda.id,
+            cliente_nome: comanda.cliente_nome,
+            valor_total: comanda.valor_total,
+            falta_para_debito: comanda.falta_para_debito
+          });
+          
+          if (comanda.falta_para_debito) {
+            detalhes[formaPagamento].debitos.push({
+              comanda_id: comanda.id,
+              cliente_nome: comanda.cliente_nome,
+              valor: comanda.falta_para_debito,
+              tipo: 'falta_convertida'
+            });
+          }
+        }
+      });
+
+      setDetalhesMovimentacao(detalhes);
+      setModalDetalhesVisible(true);
+    } catch (error) {
+      console.error('Erro ao carregar detalhes:', error);
+      Alert.alert('Erro', 'Não foi possível carregar os detalhes');
+    } finally {
+      setLoadingDetalhes(false);
+    }
+  };
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     setPage(1);
@@ -327,10 +411,19 @@ const VendasScreen = () => {
           <Text style={styles.resumoLabel}>Qtd. Itens</Text>
           <Text style={styles.resumoValue}>{vendas.quantidadeItens}</Text>
         </View>
-        <View style={styles.resumoCard}>
+        <TouchableOpacity 
+          style={[styles.resumoCard, styles.resumoCardButton]}
+          onPress={carregarDetalhesMovimentacao}
+          disabled={loadingDetalhes}
+        >
           <Text style={styles.resumoLabel}>Valor Total</Text>
-          <Text style={styles.resumoValue}>R$ {vendas.valorTotal.toFixed(2)}</Text>
-        </View>
+          <Text style={styles.resumoValue}>
+            {loadingDetalhes ? '...' : `R$ ${vendas.valorTotal.toFixed(2)}`}
+          </Text>
+          {!loadingDetalhes && (
+            <Ionicons name="information-circle-outline" size={20} color="#7C3AED" style={{ position: 'absolute', top: 8, right: 8 }} />
+          )}
+        </TouchableOpacity>
       </View>
 
       <View style={styles.filtersContainer}>
@@ -470,6 +563,144 @@ const VendasScreen = () => {
             </TouchableOpacity>
           </TouchableOpacity>
         </Modal>
+
+        {/* Modal de Detalhes de Movimentação */}
+        <Modal
+          visible={modalDetalhesVisible}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setModalDetalhesVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.detalhesContainer}>
+              <View style={styles.detalhesHeader}>
+                <Text style={styles.detalhesTitle}>Detalhamento por Forma de Pagamento</Text>
+                <TouchableOpacity onPress={() => setModalDetalhesVisible(false)}>
+                  <Ionicons name="close" size={24} color="#1F2937" />
+                </TouchableOpacity>
+              </View>
+
+              {detalhesMovimentacao && (
+                <ScrollView style={styles.detalhesContent}>
+                  {/* Dinheiro */}
+                  {detalhesMovimentacao.dinheiro.quantidade > 0 && (
+                    <View style={styles.detalhesSecao}>
+                      <View style={styles.detalhesSecaoHeader}>
+                        <Ionicons name="cash-outline" size={20} color="#10B981" />
+                        <Text style={styles.detalhesSecaoTitulo}>Dinheiro</Text>
+                      </View>
+                      <Text style={styles.detalhesInfo}>
+                        {detalhesMovimentacao.dinheiro.quantidade} comanda(s) - R$ {detalhesMovimentacao.dinheiro.valor_pago.toFixed(2)} recebido
+                      </Text>
+                      {detalhesMovimentacao.dinheiro.comandas.map((cmd: any, idx: number) => (
+                        <View key={idx} style={styles.comandaDetalhe}>
+                          <Text style={styles.comandaTexto}>#{cmd.id} - {cmd.cliente_nome}</Text>
+                          <Text style={styles.comandaValor}>R$ {cmd.valor_pago.toFixed(2)}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Cartão de Crédito */}
+                  {detalhesMovimentacao.cartao_credito.quantidade > 0 && (
+                    <View style={styles.detalhesSecao}>
+                      <View style={styles.detalhesSecaoHeader}>
+                        <Ionicons name="card-outline" size={20} color="#3B82F6" />
+                        <Text style={styles.detalhesSecaoTitulo}>Cartão de Crédito</Text>
+                      </View>
+                      <Text style={styles.detalhesInfo}>
+                        {detalhesMovimentacao.cartao_credito.quantidade} comanda(s) - R$ {detalhesMovimentacao.cartao_credito.valor_pago.toFixed(2)}
+                      </Text>
+                      {detalhesMovimentacao.cartao_credito.comandas.map((cmd: any, idx: number) => (
+                        <View key={idx} style={styles.comandaDetalhe}>
+                          <Text style={styles.comandaTexto}>#{cmd.id} - {cmd.cliente_nome}</Text>
+                          <Text style={styles.comandaValor}>
+                            R$ {cmd.valor_pago.toFixed(2)} {cmd.parcelas && `(${cmd.parcelas}x)`}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Cartão de Débito */}
+                  {detalhesMovimentacao.cartao_debito.quantidade > 0 && (
+                    <View style={styles.detalhesSecao}>
+                      <View style={styles.detalhesSecaoHeader}>
+                        <Ionicons name="card" size={20} color="#8B5CF6" />
+                        <Text style={styles.detalhesSecaoTitulo}>Cartão de Débito</Text>
+                      </View>
+                      <Text style={styles.detalhesInfo}>
+                        {detalhesMovimentacao.cartao_debito.quantidade} comanda(s) - R$ {detalhesMovimentacao.cartao_debito.valor_pago.toFixed(2)}
+                      </Text>
+                      {detalhesMovimentacao.cartao_debito.comandas.map((cmd: any, idx: number) => (
+                        <View key={idx} style={styles.comandaDetalhe}>
+                          <Text style={styles.comandaTexto}>#{cmd.id} - {cmd.cliente_nome}</Text>
+                          <Text style={styles.comandaValor}>R$ {cmd.valor_pago.toFixed(2)}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* PIX */}
+                  {detalhesMovimentacao.pix.quantidade > 0 && (
+                    <View style={styles.detalhesSecao}>
+                      <View style={styles.detalhesSecaoHeader}>
+                        <Ionicons name="qr-code-outline" size={20} color="#059669" />
+                        <Text style={styles.detalhesSecaoTitulo}>PIX</Text>
+                      </View>
+                      <Text style={styles.detalhesInfo}>
+                        {detalhesMovimentacao.pix.quantidade} comanda(s) - R$ {detalhesMovimentacao.pix.valor_pago.toFixed(2)}
+                      </Text>
+                      {detalhesMovimentacao.pix.comandas.map((cmd: any, idx: number) => (
+                        <View key={idx} style={styles.comandaDetalhe}>
+                          <Text style={styles.comandaTexto}>#{cmd.id} - {cmd.cliente_nome}</Text>
+                          <Text style={styles.comandaValor}>R$ {cmd.valor_pago.toFixed(2)}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Crediário */}
+                  {detalhesMovimentacao.crediario.quantidade > 0 && (
+                    <View style={styles.detalhesSecao}>
+                      <View style={styles.detalhesSecaoHeader}>
+                        <Ionicons name="document-text-outline" size={20} color="#F59E0B" />
+                        <Text style={styles.detalhesSecaoTitulo}>Crediário</Text>
+                      </View>
+                      <Text style={styles.detalhesInfo}>
+                        {detalhesMovimentacao.crediario.quantidade} comanda(s) - R$ {detalhesMovimentacao.crediario.valor.toFixed(2)} total
+                      </Text>
+                      {detalhesMovimentacao.crediario.comandas.map((cmd: any, idx: number) => (
+                        <View key={idx} style={styles.comandaDetalhe}>
+                          <Text style={styles.comandaTexto}>#{cmd.id} - {cmd.cliente_nome}</Text>
+                          <Text style={[styles.comandaValor, { color: '#F59E0B' }]}>R$ {cmd.valor_total.toFixed(2)}</Text>
+                        </View>
+                      ))}
+                      {detalhesMovimentacao.crediario.debitos.length > 0 && (
+                        <View style={{ marginTop: 8 }}>
+                          <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>+ Débitos de faltas:</Text>
+                          {detalhesMovimentacao.crediario.debitos.map((deb: any, idx: number) => (
+                            <View key={idx} style={styles.comandaDetalhe}>
+                              <Text style={styles.comandaTexto}>#{deb.comanda_id} - {deb.cliente_nome}</Text>
+                              <Text style={[styles.comandaValor, { color: '#EF4444' }]}>-R$ {deb.valor.toFixed(2)}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  )}
+                </ScrollView>
+              )}
+
+              <TouchableOpacity
+                style={styles.detalhesFecharButton}
+                onPress={() => setModalDetalhesVisible(false)}
+              >
+                <Text style={styles.detalhesFecharText}>Fechar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </View>
 
       <Animated.ScrollView
@@ -532,6 +763,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginHorizontal: 5,
     alignItems: 'center',
+  },
+  resumoCardButton: {
+    position: 'relative',
   },
   resumoLabel: {
     color: '#fff',
@@ -689,6 +923,86 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  detalhesContainer: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    width: '90%',
+    maxWidth: 500,
+    maxHeight: '80%',
+  },
+  detalhesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  detalhesTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  detalhesContent: {
+    padding: 16,
+    maxHeight: 500,
+  },
+  detalhesSecao: {
+    marginBottom: 16,
+    padding: 12,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#7C3AED',
+  },
+  detalhesSecaoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  detalhesSecaoTitulo: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginLeft: 8,
+  },
+  detalhesInfo: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  comandaDetalhe: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 4,
+    marginVertical: 2,
+  },
+  comandaTexto: {
+    fontSize: 13,
+    color: '#4B5563',
+    flex: 1,
+  },
+  comandaValor: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#10B981',
+  },
+  detalhesFecharButton: {
+    margin: 16,
+    padding: 12,
+    backgroundColor: '#7C3AED',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  detalhesFecharText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
