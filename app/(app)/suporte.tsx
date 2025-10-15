@@ -6,7 +6,7 @@ import { ThemedView } from '../../components/ThemedView';
 export default function SuporteScreen() {
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title">Suporte</ThemedText>
+      <ThemedText type="title">Em Breve!</ThemedText>
     </ThemedView>
   );
 }

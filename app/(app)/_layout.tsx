@@ -124,7 +124,14 @@ export default function AppLayout() {
 
     return (
       <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
-        <View style={styles.drawerHeader}>
+        <TouchableOpacity 
+          style={styles.drawerHeader}
+          onPress={() => {
+            props.navigation.closeDrawer();
+            router.push('/usuarios');
+          }}
+          activeOpacity={0.7}
+        >
           <View style={styles.logoContainer}>
             {avatarUrl ? (
               <View>
@@ -168,7 +175,8 @@ export default function AppLayout() {
               {usuario?.nome_completo || 'Carregando...'}
             </Text>
           </View>
-        </View>
+          <Ionicons name="chevron-forward" size={20} color="#9CA3AF" style={{ marginLeft: 'auto' }} />
+        </TouchableOpacity>
         <DrawerContentScrollView 
           {...props}
           contentContainerStyle={{ paddingTop: 0 }}
@@ -555,7 +563,7 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="chart-bar" size={20} color={color} />
           ),
-          drawerItemStyle: { display: permissions.pode_ver_relatorios ? 'flex' : 'none' },
+          drawerItemStyle: { display: 'none' }, // Oculto - tela não implementada
         }}
       />  
       <Drawer.Screen
@@ -577,7 +585,7 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="birthday-cake" size={20} color={color} />
           ),
-          drawerItemStyle: { display: permissions.pode_ver_aniversariantes ? 'flex' : 'none' },
+          drawerItemStyle: { display: 'none' }, // Oculto - tela não implementada
         }}
       />
 
@@ -589,7 +597,7 @@ export default function AppLayout() {
             <FontAwesome5 name="users" size={20} color={color} />
           ),
           headerShown: false,
-          drawerItemStyle: { display: 'flex' }, // Sempre visível para admins
+          drawerItemStyle: { display: 'none' }, // Oculto - acesso via header do drawer
         }}
       />
 
@@ -612,7 +620,7 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="bullseye" size={20} color={color} />
           ),
-          drawerItemStyle: { display: permissions.pode_ver_metas ? 'flex' : 'none' },
+          drawerItemStyle: { display: 'none' }, // Oculto - tela não implementada
         }}
       />
 
@@ -623,7 +631,7 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="money-bill-alt" size={20} color={color} />
           ),
-          drawerItemStyle: { display: permissions.pode_ver_despesas ? 'flex' : 'none' },
+          drawerItemStyle: { display: 'none' }, // Oculto - tela não implementada
         }}
       />
 
@@ -634,7 +642,7 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="globe" size={20} color={color} />
           ),
-          drawerItemStyle: { display: permissions.pode_ver_agendamentos_online ? 'flex' : 'none' },
+          drawerItemStyle: { display: 'none' }, // Oculto - tela não implementada
         }}
       />
 
@@ -645,7 +653,7 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="robot" size={20} color={color} />
           ),
-          drawerItemStyle: { display: permissions.pode_ver_automacao ? 'flex' : 'none' },
+          drawerItemStyle: { display: 'none' }, // Oculto - tela não implementada
         }}
       />
 
@@ -656,7 +664,7 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="cog" size={20} color={color} />
           ),
-          drawerItemStyle: { display: 'none' },
+          drawerItemStyle: { display: 'none' }, // Oculto - tela não implementada
         }}
       />
 
@@ -667,7 +675,7 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="bell" size={20} color={color} />
           ),
-          drawerItemStyle: { display: permissions.pode_ver_notificacoes ? 'flex' : 'none' },
+          drawerItemStyle: { display: 'none' }, // Oculto - tela não implementada
         }}
       />
 
@@ -678,7 +686,7 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="headset" size={20} color={color} />
           ),
-          drawerItemStyle: { display: 'none' },
+          drawerItemStyle: { display: 'none' }, // Oculto - tela não implementada
         }}
       />
 
@@ -707,16 +715,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   logoContainer: {
-    alignItems: 'center',
-    marginBottom: 16,
+    marginRight: 12,
   },
   logo: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: 8,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   },
   placeholderAvatar: {
     backgroundColor: '#7C3AED',
@@ -729,16 +737,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   headerTextContainer: {
-    alignItems: 'center',
+    flex: 1,
   },
   appName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#1F2937',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#6B7280',
   },
   drawerSection: {

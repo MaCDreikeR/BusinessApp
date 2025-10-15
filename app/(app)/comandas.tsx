@@ -1038,6 +1038,7 @@ export default function ComandasScreen() {
           finalized_by_user_nome: userData?.nome_completo,
           finalized_at: new Date().toISOString(),
           forma_pagamento: pagamento.forma_pagamento,
+          valor_total: valorTotalPagamento,  // ATUALIZAR O VALOR TOTAL
           valor_pago: pagamento.valor_pago,
           troco: pagamento.troco,
           parcelas: pagamento.parcelas,

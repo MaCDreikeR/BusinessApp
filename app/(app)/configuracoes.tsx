@@ -6,7 +6,7 @@ import { ThemedView } from '../../components/ThemedView';
 export default function ConfiguracoesScreen() {
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title">Configurações</ThemedText>
+      <ThemedText type="title">Em breve!</ThemedText>
     </ThemedView>
   );
 }

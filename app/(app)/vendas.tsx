@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from 'react-native-calendars';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface VendaItem {
   id: number;
@@ -56,6 +57,7 @@ interface Resumo {
 }
 
 const VendasScreen = () => {
+  const { estabelecimentoId } = useAuth();
   const [vendas, setVendas] = useState<Resumo>({
     totalVendas: 0,
     quantidadeItens: 0,
@@ -104,8 +106,18 @@ const VendasScreen = () => {
     carregarVendas(1, true);
   }, [debouncedFiltros]);
 
+  useEffect(() => {
+    console.log('🎭 modalDetalhesVisible mudou:', modalDetalhesVisible);
+    console.log('📋 detalhesMovimentacao:', detalhesMovimentacao);
+  }, [modalDetalhesVisible, detalhesMovimentacao]);
+
   const carregarVendas = async (pagina: number, refresh = false) => {
     try {
+      if (!estabelecimentoId) {
+        console.log('❌ Sem estabelecimentoId para carregar vendas');
+        return;
+      }
+      
       setLoading(true);
       const cacheKey = `vendas_${JSON.stringify(debouncedFiltros)}_${pagina}`;
       const cachedData = await AsyncStorage.getItem(cacheKey);
@@ -145,6 +157,7 @@ const VendasScreen = () => {
           )
         `)
         .eq('comandas.status', 'fechada')
+        .eq('comandas.estabelecimento_id', estabelecimentoId)
         .order('created_at', { ascending: false });
 
       if (debouncedFiltros.tipo === 'produtos') {
@@ -231,16 +244,22 @@ const VendasScreen = () => {
   };
 
   const carregarDetalhesMovimentacao = async () => {
+    console.log('🔍 carregarDetalhesMovimentacao chamada');
     setLoadingDetalhes(true);
     try {
-      const estabelecimentoId = await AsyncStorage.getItem('@estabelecimento_id');
-      if (!estabelecimentoId) return;
+      console.log('🏢 estabelecimentoId do contexto:', estabelecimentoId);
+      if (!estabelecimentoId) {
+        console.log('❌ Sem estabelecimentoId');
+        Alert.alert('Erro', 'Estabelecimento não identificado');
+        return;
+      }
 
       // Definir intervalo de datas
       const dataInicio = debouncedFiltros.dataInicio || new Date();
       const dataFim = debouncedFiltros.dataFim || new Date();
       dataInicio.setHours(0, 0, 0, 0);
       dataFim.setHours(23, 59, 59, 999);
+      console.log('📅 Período:', { dataInicio, dataFim });
 
       // Buscar comandas fechadas no período
       const { data: comandas, error } = await supabase
@@ -251,15 +270,19 @@ const VendasScreen = () => {
         .gte('finalized_at', dataInicio.toISOString())
         .lte('finalized_at', dataFim.toISOString());
 
-      if (error) throw error;
+      console.log('📊 Comandas encontradas:', comandas?.length || 0);
+      if (error) {
+        console.error('❌ Erro na query:', error);
+        throw error;
+      }
 
       // Agrupar por forma de pagamento
       const detalhes: any = {
-        dinheiro: { quantidade: 0, valor: 0, comandas: [] },
-        cartao_credito: { quantidade: 0, valor: 0, valor_pago: 0, comandas: [] },
-        cartao_debito: { quantidade: 0, valor: 0, valor_pago: 0, comandas: [] },
-        pix: { quantidade: 0, valor: 0, valor_pago: 0, comandas: [] },
-        crediario: { quantidade: 0, valor: 0, debitos: [] }
+        dinheiro: { quantidade: 0, valor: 0, comandas: [], trocos_adicionados: [], faltas_adicionadas: [] },
+        cartao_credito: { quantidade: 0, valor: 0, comandas: [], trocos_adicionados: [], faltas_adicionadas: [] },
+        cartao_debito: { quantidade: 0, valor: 0, comandas: [], trocos_adicionados: [], faltas_adicionadas: [] },
+        pix: { quantidade: 0, valor: 0, comandas: [], trocos_adicionados: [], faltas_adicionadas: [] },
+        crediario: { quantidade: 0, valor: 0, comandas: [] }
       };
 
       comandas?.forEach((comanda: any) => {
@@ -267,47 +290,55 @@ const VendasScreen = () => {
         if (!formaPagamento || !detalhes[formaPagamento]) return;
 
         detalhes[formaPagamento].quantidade++;
+        // O valor da movimentação inclui o valor_total da comanda
         detalhes[formaPagamento].valor += comanda.valor_total;
 
-        if (formaPagamento !== 'crediario') {
-          detalhes[formaPagamento].valor_pago += comanda.valor_pago || 0;
-          detalhes[formaPagamento].comandas.push({
-            id: comanda.id,
+        detalhes[formaPagamento].comandas.push({
+          id: comanda.id,
+          cliente_nome: comanda.cliente_nome,
+          valor_total: comanda.valor_total,
+          valor_pago: comanda.valor_pago,
+          parcelas: comanda.parcelas,
+          saldo_aplicado: comanda.saldo_aplicado,
+          troco_para_credito: comanda.troco_para_credito,
+          falta_para_debito: comanda.falta_para_debito
+        });
+
+        // Registrar trocos adicionados ao crediário (crédito positivo para o cliente)
+        // IMPORTANTE: Troco adicionado = dinheiro que ENTROU no caixa, então soma no total
+        if (comanda.troco_para_credito && comanda.troco_para_credito > 0) {
+          detalhes[formaPagamento].valor += comanda.troco_para_credito;
+          detalhes[formaPagamento].trocos_adicionados.push({
+            comanda_id: comanda.id,
             cliente_nome: comanda.cliente_nome,
-            valor_total: comanda.valor_total,
-            valor_pago: comanda.valor_pago,
-            parcelas: comanda.parcelas,
-            saldo_aplicado: comanda.saldo_aplicado,
-            troco_para_credito: comanda.troco_para_credito,
-            falta_para_debito: comanda.falta_para_debito
+            valor: comanda.troco_para_credito,
+            tipo: 'credito'
           });
-        } else {
-          // Para crediário, incluir débitos adicionados
-          detalhes[formaPagamento].comandas.push({
-            id: comanda.id,
+        }
+
+        // Registrar faltas adicionadas ao crediário (débito negativo para o cliente)
+        // IMPORTANTE: Falta = dinheiro que NÃO entrou no caixa, SUBTRAI do total
+        if (comanda.falta_para_debito && comanda.falta_para_debito > 0) {
+          detalhes[formaPagamento].valor -= comanda.falta_para_debito;  // SUBTRAI a falta
+          detalhes[formaPagamento].faltas_adicionadas.push({
+            comanda_id: comanda.id,
             cliente_nome: comanda.cliente_nome,
-            valor_total: comanda.valor_total,
-            falta_para_debito: comanda.falta_para_debito
+            valor: comanda.falta_para_debito,
+            tipo: 'debito'
           });
-          
-          if (comanda.falta_para_debito) {
-            detalhes[formaPagamento].debitos.push({
-              comanda_id: comanda.id,
-              cliente_nome: comanda.cliente_nome,
-              valor: comanda.falta_para_debito,
-              tipo: 'falta_convertida'
-            });
-          }
         }
       });
 
+      console.log('✅ Detalhes processados:', detalhes);
       setDetalhesMovimentacao(detalhes);
       setModalDetalhesVisible(true);
+      console.log('🎯 Modal deve abrir agora');
     } catch (error) {
-      console.error('Erro ao carregar detalhes:', error);
+      console.error('❌ Erro ao carregar detalhes:', error);
       Alert.alert('Erro', 'Não foi possível carregar os detalhes');
     } finally {
       setLoadingDetalhes(false);
+      console.log('✅ Loading finalizado');
     }
   };
 
@@ -316,6 +347,31 @@ const VendasScreen = () => {
     setPage(1);
     carregarVendas(1, true);
   }, []);
+
+  // Helper para obter contadores por tipo
+  const getContadorTipo = (tipo: string): number => {
+    if (tipo === 'todos') {
+      return vendas.produtos.length + vendas.servicos.length + vendas.pacotes.length;
+    } else if (tipo === 'produtos') {
+      return vendas.produtos.length;
+    } else if (tipo === 'servicos') {
+      return vendas.servicos.length;
+    } else if (tipo === 'pacotes') {
+      return vendas.pacotes.length;
+    }
+    return 0;
+  };
+
+  // Helper para obter label do tipo
+  const getLabelTipo = (tipo: string): string => {
+    const labels: { [key: string]: string } = {
+      todos: 'Todos',
+      produtos: 'Produtos',
+      servicos: 'Serviços',
+      pacotes: 'Pacotes'
+    };
+    return labels[tipo] || tipo;
+  };
 
   const renderSecao = useCallback((titulo: string, itens: VendaItem[]) => {
     if (itens.length === 0) return null;
@@ -457,23 +513,39 @@ const VendasScreen = () => {
           keyboardType="numeric"
         />
         <View style={styles.tiposFiltroContainer}>
-          {['todos', 'produtos', 'servicos', 'pacotes'].map(tipo => (
-            <TouchableOpacity
-              key={tipo}
-              style={[
-                styles.tipoFiltroButton,
-                filtros.tipo === tipo && styles.tipoFiltroButtonAtivo
-              ]}
-              onPress={() => setFiltros(prev => ({ ...prev, tipo: tipo as any }))}
-            >
-              <Text style={[
-                styles.tipoFiltroText,
-                filtros.tipo === tipo && styles.tipoFiltroTextAtivo
-              ]}>
-                {tipo.charAt(0).toUpperCase() + tipo.slice(1)}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {['todos', 'produtos', 'servicos', 'pacotes'].map(tipo => {
+            const contador = getContadorTipo(tipo);
+            return (
+              <TouchableOpacity
+                key={tipo}
+                style={[
+                  styles.tipoFiltroButton,
+                  filtros.tipo === tipo && styles.tipoFiltroButtonAtivo
+                ]}
+                onPress={() => setFiltros(prev => ({ ...prev, tipo: tipo as any }))}
+              >
+                <Text style={[
+                  styles.tipoFiltroText,
+                  filtros.tipo === tipo && styles.tipoFiltroTextAtivo
+                ]}>
+                  {getLabelTipo(tipo)}
+                </Text>
+                {contador > 0 && (
+                  <View style={[
+                    styles.contadorBadge,
+                    filtros.tipo === tipo && styles.contadorBadgeAtivo
+                  ]}>
+                    <Text style={[
+                      styles.contadorText,
+                      filtros.tipo === tipo && styles.contadorTextAtivo
+                    ]}>
+                      {contador}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Calendário para Data Início */}
@@ -580,7 +652,9 @@ const VendasScreen = () => {
                 </TouchableOpacity>
               </View>
 
-              {detalhesMovimentacao && (
+              {loadingDetalhes ? (
+                <ActivityIndicator size="large" color="#7C3AED" style={{ marginVertical: 20 }} />
+              ) : detalhesMovimentacao ? (
                 <ScrollView style={styles.detalhesContent}>
                   {/* Dinheiro */}
                   {detalhesMovimentacao.dinheiro.quantidade > 0 && (
@@ -590,14 +664,44 @@ const VendasScreen = () => {
                         <Text style={styles.detalhesSecaoTitulo}>Dinheiro</Text>
                       </View>
                       <Text style={styles.detalhesInfo}>
-                        {detalhesMovimentacao.dinheiro.quantidade} comanda(s) - R$ {detalhesMovimentacao.dinheiro.valor_pago.toFixed(2)} recebido
+                        {detalhesMovimentacao.dinheiro.quantidade} comanda(s) - R$ {detalhesMovimentacao.dinheiro.valor.toFixed(2)}
                       </Text>
                       {detalhesMovimentacao.dinheiro.comandas.map((cmd: any, idx: number) => (
                         <View key={idx} style={styles.comandaDetalhe}>
                           <Text style={styles.comandaTexto}>#{cmd.id} - {cmd.cliente_nome}</Text>
-                          <Text style={styles.comandaValor}>R$ {cmd.valor_pago.toFixed(2)}</Text>
+                          <Text style={styles.comandaValor}>R$ {cmd.valor_total.toFixed(2)}</Text>
                         </View>
                       ))}
+                      
+                      {/* Trocos adicionados ao crediário */}
+                      {detalhesMovimentacao.dinheiro.trocos_adicionados.length > 0 && (
+                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                          <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 4 }}>
+                            💰 Trocos adicionados ao crediário (incluído no total acima):
+                          </Text>
+                          {detalhesMovimentacao.dinheiro.trocos_adicionados.map((troco: any, idx: number) => (
+                            <View key={idx} style={styles.comandaDetalhe}>
+                              <Text style={styles.comandaTexto}>#{troco.comanda_id} - {troco.cliente_nome}</Text>
+                              <Text style={[styles.comandaValor, { color: '#10B981' }]}>+R$ {troco.valor.toFixed(2)}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                      
+                      {/* Faltas adicionadas ao crediário */}
+                      {detalhesMovimentacao.dinheiro.faltas_adicionadas.length > 0 && (
+                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                          <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '600', marginBottom: 4 }}>
+                            ⚠️ Faltas adicionadas ao crediário (subtraído do total acima):
+                          </Text>
+                          {detalhesMovimentacao.dinheiro.faltas_adicionadas.map((falta: any, idx: number) => (
+                            <View key={idx} style={styles.comandaDetalhe}>
+                              <Text style={styles.comandaTexto}>#{falta.comanda_id} - {falta.cliente_nome}</Text>
+                              <Text style={[styles.comandaValor, { color: '#EF4444' }]}>-R$ {falta.valor.toFixed(2)}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
                     </View>
                   )}
 
@@ -609,16 +713,44 @@ const VendasScreen = () => {
                         <Text style={styles.detalhesSecaoTitulo}>Cartão de Crédito</Text>
                       </View>
                       <Text style={styles.detalhesInfo}>
-                        {detalhesMovimentacao.cartao_credito.quantidade} comanda(s) - R$ {detalhesMovimentacao.cartao_credito.valor_pago.toFixed(2)}
+                        {detalhesMovimentacao.cartao_credito.quantidade} comanda(s) - R$ {detalhesMovimentacao.cartao_credito.valor.toFixed(2)}
                       </Text>
                       {detalhesMovimentacao.cartao_credito.comandas.map((cmd: any, idx: number) => (
                         <View key={idx} style={styles.comandaDetalhe}>
                           <Text style={styles.comandaTexto}>#{cmd.id} - {cmd.cliente_nome}</Text>
                           <Text style={styles.comandaValor}>
-                            R$ {cmd.valor_pago.toFixed(2)} {cmd.parcelas && `(${cmd.parcelas}x)`}
+                            R$ {cmd.valor_total.toFixed(2)} {cmd.parcelas && `(${cmd.parcelas}x)`}
                           </Text>
                         </View>
                       ))}
+                      
+                      {/* Trocos/Faltas adicionados */}
+                      {detalhesMovimentacao.cartao_credito.trocos_adicionados.length > 0 && (
+                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                          <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 4 }}>
+                            💰 Trocos adicionados ao crediário (incluído no total acima):
+                          </Text>
+                          {detalhesMovimentacao.cartao_credito.trocos_adicionados.map((troco: any, idx: number) => (
+                            <View key={idx} style={styles.comandaDetalhe}>
+                              <Text style={styles.comandaTexto}>#{troco.comanda_id} - {troco.cliente_nome}</Text>
+                              <Text style={[styles.comandaValor, { color: '#10B981' }]}>+R$ {troco.valor.toFixed(2)}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                      {detalhesMovimentacao.cartao_credito.faltas_adicionadas.length > 0 && (
+                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                          <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '600', marginBottom: 4 }}>
+                            ⚠️ Faltas adicionadas ao crediário (subtraído do total acima):
+                          </Text>
+                          {detalhesMovimentacao.cartao_credito.faltas_adicionadas.map((falta: any, idx: number) => (
+                            <View key={idx} style={styles.comandaDetalhe}>
+                              <Text style={styles.comandaTexto}>#{falta.comanda_id} - {falta.cliente_nome}</Text>
+                              <Text style={[styles.comandaValor, { color: '#EF4444' }]}>-R$ {falta.valor.toFixed(2)}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
                     </View>
                   )}
 
@@ -630,14 +762,41 @@ const VendasScreen = () => {
                         <Text style={styles.detalhesSecaoTitulo}>Cartão de Débito</Text>
                       </View>
                       <Text style={styles.detalhesInfo}>
-                        {detalhesMovimentacao.cartao_debito.quantidade} comanda(s) - R$ {detalhesMovimentacao.cartao_debito.valor_pago.toFixed(2)}
+                        {detalhesMovimentacao.cartao_debito.quantidade} comanda(s) - R$ {detalhesMovimentacao.cartao_debito.valor.toFixed(2)}
                       </Text>
                       {detalhesMovimentacao.cartao_debito.comandas.map((cmd: any, idx: number) => (
                         <View key={idx} style={styles.comandaDetalhe}>
                           <Text style={styles.comandaTexto}>#{cmd.id} - {cmd.cliente_nome}</Text>
-                          <Text style={styles.comandaValor}>R$ {cmd.valor_pago.toFixed(2)}</Text>
+                          <Text style={styles.comandaValor}>R$ {cmd.valor_total.toFixed(2)}</Text>
                         </View>
                       ))}
+                      
+                      {detalhesMovimentacao.cartao_debito.trocos_adicionados.length > 0 && (
+                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                          <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 4 }}>
+                            💰 Trocos adicionados ao crediário (incluído no total acima):
+                          </Text>
+                          {detalhesMovimentacao.cartao_debito.trocos_adicionados.map((troco: any, idx: number) => (
+                            <View key={idx} style={styles.comandaDetalhe}>
+                              <Text style={styles.comandaTexto}>#{troco.comanda_id} - {troco.cliente_nome}</Text>
+                              <Text style={[styles.comandaValor, { color: '#10B981' }]}>+R$ {troco.valor.toFixed(2)}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                      {detalhesMovimentacao.cartao_debito.faltas_adicionadas.length > 0 && (
+                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                          <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '600', marginBottom: 4 }}>
+                            ⚠️ Faltas adicionadas ao crediário (subtraído do total acima):
+                          </Text>
+                          {detalhesMovimentacao.cartao_debito.faltas_adicionadas.map((falta: any, idx: number) => (
+                            <View key={idx} style={styles.comandaDetalhe}>
+                              <Text style={styles.comandaTexto}>#{falta.comanda_id} - {falta.cliente_nome}</Text>
+                              <Text style={[styles.comandaValor, { color: '#EF4444' }]}>-R$ {falta.valor.toFixed(2)}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
                     </View>
                   )}
 
@@ -649,14 +808,41 @@ const VendasScreen = () => {
                         <Text style={styles.detalhesSecaoTitulo}>PIX</Text>
                       </View>
                       <Text style={styles.detalhesInfo}>
-                        {detalhesMovimentacao.pix.quantidade} comanda(s) - R$ {detalhesMovimentacao.pix.valor_pago.toFixed(2)}
+                        {detalhesMovimentacao.pix.quantidade} comanda(s) - R$ {detalhesMovimentacao.pix.valor.toFixed(2)}
                       </Text>
                       {detalhesMovimentacao.pix.comandas.map((cmd: any, idx: number) => (
                         <View key={idx} style={styles.comandaDetalhe}>
                           <Text style={styles.comandaTexto}>#{cmd.id} - {cmd.cliente_nome}</Text>
-                          <Text style={styles.comandaValor}>R$ {cmd.valor_pago.toFixed(2)}</Text>
+                          <Text style={styles.comandaValor}>R$ {cmd.valor_total.toFixed(2)}</Text>
                         </View>
                       ))}
+                      
+                      {detalhesMovimentacao.pix.trocos_adicionados.length > 0 && (
+                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                          <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 4 }}>
+                            💰 Trocos adicionados ao crediário (incluído no total acima):
+                          </Text>
+                          {detalhesMovimentacao.pix.trocos_adicionados.map((troco: any, idx: number) => (
+                            <View key={idx} style={styles.comandaDetalhe}>
+                              <Text style={styles.comandaTexto}>#{troco.comanda_id} - {troco.cliente_nome}</Text>
+                              <Text style={[styles.comandaValor, { color: '#10B981' }]}>+R$ {troco.valor.toFixed(2)}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                      {detalhesMovimentacao.pix.faltas_adicionadas.length > 0 && (
+                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                          <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '600', marginBottom: 4 }}>
+                            ⚠️ Faltas adicionadas ao crediário (subtraído do total acima):
+                          </Text>
+                          {detalhesMovimentacao.pix.faltas_adicionadas.map((falta: any, idx: number) => (
+                            <View key={idx} style={styles.comandaDetalhe}>
+                              <Text style={styles.comandaTexto}>#{falta.comanda_id} - {falta.cliente_nome}</Text>
+                              <Text style={[styles.comandaValor, { color: '#EF4444' }]}>-R$ {falta.valor.toFixed(2)}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
                     </View>
                   )}
 
@@ -668,7 +854,7 @@ const VendasScreen = () => {
                         <Text style={styles.detalhesSecaoTitulo}>Crediário</Text>
                       </View>
                       <Text style={styles.detalhesInfo}>
-                        {detalhesMovimentacao.crediario.quantidade} comanda(s) - R$ {detalhesMovimentacao.crediario.valor.toFixed(2)} total
+                        {detalhesMovimentacao.crediario.quantidade} comanda(s) - R$ {detalhesMovimentacao.crediario.valor.toFixed(2)}
                       </Text>
                       {detalhesMovimentacao.crediario.comandas.map((cmd: any, idx: number) => (
                         <View key={idx} style={styles.comandaDetalhe}>
@@ -676,20 +862,13 @@ const VendasScreen = () => {
                           <Text style={[styles.comandaValor, { color: '#F59E0B' }]}>R$ {cmd.valor_total.toFixed(2)}</Text>
                         </View>
                       ))}
-                      {detalhesMovimentacao.crediario.debitos.length > 0 && (
-                        <View style={{ marginTop: 8 }}>
-                          <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>+ Débitos de faltas:</Text>
-                          {detalhesMovimentacao.crediario.debitos.map((deb: any, idx: number) => (
-                            <View key={idx} style={styles.comandaDetalhe}>
-                              <Text style={styles.comandaTexto}>#{deb.comanda_id} - {deb.cliente_nome}</Text>
-                              <Text style={[styles.comandaValor, { color: '#EF4444' }]}>-R$ {deb.valor.toFixed(2)}</Text>
-                            </View>
-                          ))}
-                        </View>
-                      )}
                     </View>
                   )}
                 </ScrollView>
+              ) : (
+                <Text style={{ textAlign: 'center', padding: 20, color: '#6B7280' }}>
+                  Nenhuma movimentação encontrada no período
+                </Text>
               )}
 
               <TouchableOpacity
@@ -818,6 +997,9 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginHorizontal: 5,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
   },
   tipoFiltroButtonAtivo: {
     backgroundColor: '#4CAF50',
@@ -828,6 +1010,26 @@ const styles = StyleSheet.create({
   },
   tipoFiltroTextAtivo: {
     color: '#fff',
+  },
+  contadorBadge: {
+    backgroundColor: '#7C3AED',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    minWidth: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  contadorBadgeAtivo: {
+    backgroundColor: '#fff',
+  },
+  contadorText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  contadorTextAtivo: {
+    color: '#4CAF50',
   },
   secaoContainer: {
     marginBottom: 20,

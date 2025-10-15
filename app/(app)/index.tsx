@@ -100,8 +100,8 @@ export default function HomeScreen() {
         supabase.from('clientes').select('*', { count: 'exact', head: true }).eq('estabelecimento_id', estabelecimentoId),
         // Carregar próximos agendamentos - usando RPC para contornar problemas de policy
         supabase.rpc('get_agendamentos_com_usuarios', { p_estabelecimento_id: estabelecimentoId }),
-        // Carregar vendas recentes - SOMENTE COMANDAS FECHADAS
-        supabase.from('comandas_itens').select(`id, preco_total, created_at, comandas!inner(cliente_nome, estabelecimento_id, status, finalized_at)`).eq('comandas.estabelecimento_id', estabelecimentoId).eq('comandas.status', 'fechada').order('created_at', { ascending: false }).limit(5),
+        // Carregar vendas recentes - COMANDAS FECHADAS COM VALOR_TOTAL
+        supabase.from('comandas').select('id, cliente_nome, valor_total, finalized_at').eq('estabelecimento_id', estabelecimentoId).eq('status', 'fechada').order('finalized_at', { ascending: false }).limit(5),
       ]);
 
       if (agendamentosError) console.error('Erro agendamentos:', agendamentosError); else setAgendamentosHoje(agendamentos?.length || 0);
@@ -136,9 +136,9 @@ export default function HomeScreen() {
         console.log('Vendas recentes dados:', vendasRecentesData);
         setVendasRecentes(vendasRecentesData.map((v: any) => ({ 
           id: v.id, 
-          cliente_nome: v.comandas?.cliente_nome || '?', 
-          valor: v.preco_total || 0, 
-          data: v.comandas?.finalized_at || v.created_at 
+          cliente_nome: v.cliente_nome || 'Cliente não informado', 
+          valor: v.valor_total || 0, 
+          data: v.finalized_at 
         })));
       }
 
