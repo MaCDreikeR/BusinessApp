@@ -23,7 +23,7 @@ export default {
     android: {
       adaptiveIcon: {
         foregroundImage: './assets/images/adaptive-icon.png',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#4A90E2', // Azul da loja (ajuste conforme sua imagem)
       },
       package: 'com.seuapp.business',
       permissions: ['NOTIFICATIONS'],
