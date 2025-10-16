@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, PanResponder, Animated, Platform, ActivityIndicator, Image, DeviceEventEmitter, FlatList, BackHandler, KeyboardAvoidingView, GestureResponderEvent, NativeSyntheticEvent } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, PanResponder, Animated, Platform, ActivityIndicator, Image, DeviceEventEmitter, FlatList, BackHandler, KeyboardAvoidingView, GestureResponderEvent, NativeSyntheticEvent, Switch } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import { format } from 'date-fns';
 import { useRouter, useNavigation, useFocusEffect } from 'expo-router';
@@ -14,6 +14,7 @@ interface Cliente {
   nome: string;
   telefone: string;
   email?: string;
+  foto_url?: string | null;
 }
 
 interface Servico {
@@ -49,6 +50,8 @@ export default function NovoAgendamentoScreen() {
   const [telefone, setTelefone] = useState('');
   const [data, setData] = useState('');
   const [hora, setHora] = useState('');
+  const [horaTermino, setHoraTermino] = useState(''); // Novo campo para horário de término
+  const [criarComandaAutomatica, setCriarComandaAutomatica] = useState(true); // Padrão: Sim
   const [servico, setServico] = useState('');
   const [servicosAgendamento, setServicosAgendamento] = useState<string>('');
   const [valorTotal, setValorTotal] = useState(0);
@@ -128,6 +131,7 @@ export default function NovoAgendamentoScreen() {
   // Adicionar novos estados
   const [horariosDisponiveis, setHorariosDisponiveis] = useState<{horario: string, ocupado: boolean, quantidade: number}[]>([]);
   const [mostrarSeletorHorario, setMostrarSeletorHorario] = useState(false);
+  const [mostrarSeletorHorarioTermino, setMostrarSeletorHorarioTermino] = useState(false);
   const [intervaloAgendamentos, setIntervaloAgendamentos] = useState('30');
   const [horarioInicio, setHorarioInicio] = useState('08:00');
   const [horarioFim, setHorarioFim] = useState('18:00');
@@ -468,11 +472,13 @@ export default function NovoAgendamentoScreen() {
           cliente,
           telefone: telefone.replace(/\D/g, ''),
           data_hora: dataHoraAgendamento.toISOString(),
+          horario_termino: horaTermino || null, // Novo campo: horário de término
           servicos: detalhesServicos,
           valor_total: valorTotalAgendamento,
           observacoes: observacoes.trim() || null,
           estabelecimento_id: estabelecimentoId,
-          status: 'agendado',
+          status: 'agendado', // Novo campo: status padrão 'agendado'
+          criar_comanda_automatica: criarComandaAutomatica, // Novo campo: flag para criar comanda
           usuario_id: usuarioSelecionado?.id || null // Salvar o ID do usuário selecionado
         });
 
@@ -513,9 +519,11 @@ export default function NovoAgendamentoScreen() {
     setTelefone('');
     setData('');
     setHora('');
+    setHoraTermino(''); // Novo campo
     setServico('');
     setObservacoes('');
     setValorTotal(0);
+    setCriarComandaAutomatica(true); // Resetar para valor padrão
     
     // Limpar seleções
     setClienteSelecionado(null);
@@ -530,6 +538,7 @@ export default function NovoAgendamentoScreen() {
     setMostrarListaServicos(false);
     setMostrarListaUsuarios(false);
     setMostrarSeletorHorario(false);
+    setMostrarSeletorHorarioTermino(false); // Novo modal
     setModalVisible(false);
     
     // Resetar listas de resultados
@@ -1105,13 +1114,24 @@ export default function NovoAgendamentoScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Nome do Cliente *</Text>
               <View style={styles.inputContainer}>
-                <FontAwesome5 name="user" size={16} color="#9CA3AF" style={styles.inputIcon} />
+                {clienteSelecionado && clienteSelecionado.foto_url ? (
+                  <Image 
+                    source={{ uri: clienteSelecionado.foto_url }} 
+                    style={styles.clienteFoto}
+                  />
+                ) : clienteSelecionado ? (
+                  <View style={styles.clienteFotoPlaceholder}>
+                    <FontAwesome5 name="user" size={12} color="#7C3AED" />
+                  </View>
+                ) : (
+                  <FontAwesome5 name="user" size={16} color="#9CA3AF" style={styles.inputIcon} />
+                )}
                 <TextInput
                   label=""
                   value={cliente}
                   onChangeText={buscarClientes}
                   mode="flat"
-                  style={styles.input}
+                  style={[styles.input, clienteSelecionado ? styles.inputWithFoto : null]}
                   error={!!errors.cliente}
                   right={
                     clienteSelecionado ? (
@@ -1201,9 +1221,22 @@ export default function NovoAgendamentoScreen() {
               ]}
               onPress={handleOpenUsuarioModal}
             >
-              <Text style={[styles.selectText, !usuarioSelecionado && styles.placeholder]}>
-                {usuarioSelecionado ? usuarioSelecionado.nome_completo : 'Selecione um usuário'}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                {usuarioSelecionado && usuarioSelecionado.avatar_url ? (
+                  <Image 
+                    source={{ uri: usuarioSelecionado.avatar_url }} 
+                    style={styles.clienteFoto}
+                  />
+                ) : usuarioSelecionado ? (
+                  <View style={styles.clienteFotoPlaceholder}>
+                    <FontAwesome5 name="user" size={12} color="#7C3AED" />
+                  </View>
+                ) : null}
+                <Text style={[styles.selectText, !usuarioSelecionado && styles.placeholder]}>
+                  {usuarioSelecionado ? usuarioSelecionado.nome_completo : 'Selecione um usuário'}
+                </Text>
+              </View>
+              <FontAwesome5 name="chevron-down" size={16} color="#9CA3AF" />
             </TouchableOpacity>
             {errors.usuario && (
               <Text style={styles.errorText}>{errors.usuario}</Text>
@@ -1224,10 +1257,10 @@ export default function NovoAgendamentoScreen() {
                       {usuario.avatar_url ? (
                         <Image 
                           source={{ uri: usuario.avatar_url }} 
-                          style={styles.sugestaoAvatar} 
+                          style={styles.sugestaoFoto} 
                         />
                       ) : (
-                        <View style={styles.sugestaoAvatarPlaceholder}>
+                        <View style={styles.sugestaoFotoPlaceholder}>
                           <FontAwesome5 name="user" size={16} color="#7C3AED" />
                         </View>
                       )}
@@ -1284,7 +1317,7 @@ export default function NovoAgendamentoScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Hora *</Text>
+            <Text style={styles.label}>Horário de Início *</Text>
             <TouchableOpacity
               style={[
                 styles.inputContainer,
@@ -1304,7 +1337,7 @@ export default function NovoAgendamentoScreen() {
                 styles.inputText,
                 hora ? styles.inputTextPreenchido : null
               ]}>
-                {hora || 'Selecionar Horário'}
+                {hora || 'Selecionar Horário de Início'}
               </Text>
             </TouchableOpacity>
             {renderError('hora')}
@@ -1314,6 +1347,33 @@ export default function NovoAgendamentoScreen() {
             {horariosDisponiveis.every(h => h.ocupado) && data && validarData(data) && !isDataBloqueada(data) && (
               <Text style={styles.infoText}>Todos os horários estão ocupados para esta data</Text>
             )}
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Horário de Término *</Text>
+            <TouchableOpacity
+              style={[
+                styles.inputContainer,
+                errors.horaTermino && styles.inputError,
+                horaTermino ? styles.inputPreenchido : null
+              ]}
+              onPress={() => {
+                if (!hora) {
+                  Alert.alert('Atenção', 'Por favor, selecione o horário de início primeiro.');
+                  return;
+                }
+                setMostrarSeletorHorarioTermino(true);
+              }}
+            >
+              <FontAwesome5 name="clock" size={16} color={horaTermino ? '#7C3AED' : '#9CA3AF'} style={styles.inputIcon} />
+              <Text style={[
+                styles.inputText,
+                horaTermino ? styles.inputTextPreenchido : null
+              ]}>
+                {horaTermino || 'Selecionar Horário de Término'}
+              </Text>
+            </TouchableOpacity>
+            {renderError('horaTermino')}
           </View>
 
           <View style={styles.inputGroup}>
@@ -1503,6 +1563,25 @@ export default function NovoAgendamentoScreen() {
           )}
 
           <View style={styles.inputGroup}>
+            <View style={styles.switchContainer}>
+              <View style={styles.switchLabelContainer}>
+                <FontAwesome5 name="clipboard-list" size={20} color="#7C3AED" />
+                <View style={styles.switchTextContainer}>
+                  <Text style={styles.switchLabel}>Criar comanda para o dia do agendamento?</Text>
+                  <Text style={styles.switchSubtext}>Uma comanda será criada automaticamente no dia marcado</Text>
+                </View>
+              </View>
+              <Switch
+                value={criarComandaAutomatica}
+                onValueChange={setCriarComandaAutomatica}
+                trackColor={{ false: '#D1D5DB', true: '#C4B5FD' }}
+                thumbColor={criarComandaAutomatica ? '#7C3AED' : '#F3F4F6'}
+                ios_backgroundColor="#D1D5DB"
+              />
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
             <Text style={styles.label}>Observações</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
@@ -1643,6 +1722,87 @@ export default function NovoAgendamentoScreen() {
                   <FontAwesome5 name="calendar-times" size={36} color="#9CA3AF" />
                   <Text style={styles.semHorariosText}>
                     Não há horários disponíveis para esta data
+                  </Text>
+                </View>
+              }
+            />
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Modal de Seleção de Horário de Término */}
+      <Modal
+        visible={mostrarSeletorHorarioTermino}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setMostrarSeletorHorarioTermino(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalContainer} 
+          activeOpacity={1} 
+          onPress={() => setMostrarSeletorHorarioTermino(false)}
+        >
+          <View style={styles.modalHorarioContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Selecionar Horário de Término</Text>
+              <TouchableOpacity 
+                onPress={() => setMostrarSeletorHorarioTermino(false)}
+                style={styles.fecharModal}
+              >
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+            
+            <FlatList
+              data={(() => {
+                if (!hora) return [];
+                const [horaInicio, minutoInicio] = hora.split(':').map(Number);
+                const horarios = [];
+                
+                // Gera horários a partir de 15 minutos após o início
+                for (let i = horaInicio; i <= 23; i++) {
+                  for (let j = 0; j < 60; j += 15) {
+                    const horarioAtual = `${String(i).padStart(2, '0')}:${String(j).padStart(2, '0')}`;
+                    
+                    // Só adiciona se for após o horário de início (pelo menos 15 min)
+                    if (i > horaInicio || (i === horaInicio && j > minutoInicio)) {
+                      horarios.push(horarioAtual);
+                    }
+                  }
+                }
+                
+                return horarios;
+              })()}
+              keyExtractor={(item) => item}
+              style={styles.horariosList}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.horarioItem,
+                    horaTermino === item && styles.horarioItemSelecionado
+                  ]}
+                  onPress={() => {
+                    setHoraTermino(item);
+                    setMostrarSeletorHorarioTermino(false);
+                    setErrors({...errors, horaTermino: ''});
+                  }}
+                >
+                  <Text style={[
+                    styles.horarioItemText,
+                    horaTermino === item && styles.horarioItemTextSelecionado
+                  ]}>
+                    {item}
+                  </Text>
+                  {horaTermino === item && (
+                    <FontAwesome5 name="check" size={16} color="#7C3AED" />
+                  )}
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={
+                <View style={styles.semHorariosContainer}>
+                  <FontAwesome5 name="calendar-times" size={36} color="#9CA3AF" />
+                  <Text style={styles.semHorariosText}>
+                    Selecione um horário de início primeiro
                   </Text>
                 </View>
               }
@@ -1921,21 +2081,6 @@ const styles = StyleSheet.create({
     color: '#7C3AED',
     fontWeight: '500',
   },
-  sugestaoAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: 12,
-  },
-  sugestaoAvatarPlaceholder: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F3E8FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
   inputBloqueado: {
     borderColor: '#FF6B6B',
     backgroundColor: '#FFEEEE',
@@ -2103,6 +2248,55 @@ const styles = StyleSheet.create({
   inputIcon: {
     marginRight: 8,
   },
+  clienteFoto: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 8,
+  },
+  clienteFotoPlaceholder: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3E8FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  inputWithFoto: {
+    paddingLeft: 48,
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  switchLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 12,
+  },
+  switchTextContainer: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  switchLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  switchSubtext: {
+    fontSize: 13,
+    color: '#6B7280',
+    lineHeight: 18,
+  },
   textArea: {
     minHeight: 100,
     textAlignVertical: 'top',
@@ -2215,6 +2409,21 @@ const styles = StyleSheet.create({
   sugestaoItemContent: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  sugestaoFoto: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+  },
+  sugestaoFotoPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F3E8FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   sugestaoIcon: {
     marginRight: 12,

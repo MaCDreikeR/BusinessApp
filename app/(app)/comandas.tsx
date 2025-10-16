@@ -780,9 +780,8 @@ export default function ComandasScreen() {
   };
   
   // Função para selecionar um cliente
-  const selecionarCliente = (cliente: Cliente) => {
+  const selecionarCliente = async (cliente: Cliente) => {
     // Definir o cliente selecionado e atualizar o campo de busca
-    setSelectedCliente(cliente);
     setClienteQuery(cliente.nome);
     
     // Ocultar a lista de sugestões
@@ -790,6 +789,35 @@ export default function ComandasScreen() {
     
     // Limpar os resultados da busca
     setClientesEncontrados([]);
+    
+    // Buscar o saldo do crediário do cliente
+    try {
+      const { data: movimentacoes, error } = await supabase
+        .from('crediario_movimentacoes')
+        .select('valor, tipo')
+        .eq('cliente_id', cliente.id);
+      
+      if (error) {
+        console.error('Erro ao buscar saldo do crediário:', error);
+      }
+      
+      // Calcular saldo (créditos são positivos, débitos são negativos)
+      let saldo = 0;
+      movimentacoes?.forEach(mov => {
+        saldo += mov.valor;
+      });
+      
+      // Atualizar o cliente com o saldo
+      setSelectedCliente({
+        ...cliente,
+        saldo_crediario: saldo
+      });
+      
+    } catch (error) {
+      console.error('Erro ao calcular saldo:', error);
+      // Mesmo com erro, define o cliente (sem saldo)
+      setSelectedCliente(cliente);
+    }
     
     // Fechar o teclado
     Keyboard.dismiss();
