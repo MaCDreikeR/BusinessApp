@@ -3,7 +3,7 @@ import { Drawer } from 'expo-router/drawer';
 import { useFocusEffect } from '@react-navigation/native';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { usePathname } from 'expo-router';
-import { TouchableOpacity, View, Text, StyleSheet, Image, Alert, ActivityIndicator } from 'react-native';
+import { TouchableOpacity, View, Text, StyleSheet, Image, Alert, ActivityIndicator, Dimensions } from 'react-native';
 import { router } from 'expo-router';
 import { DeviceEventEmitter } from 'react-native';
 import { Stack } from 'expo-router';
@@ -14,6 +14,32 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useAuth } from '../../contexts/AuthContext';
+import { useMemo } from 'react';
+
+// Função para calcular largura responsiva do drawer
+const getDrawerWidth = (): number | `${number}%` => {
+  const screenWidth = Dimensions.get('window').width;
+  
+  console.log('📐 Largura da tela:', screenWidth);
+  
+  let width: number | `${number}%`;
+  
+  // Em telas pequenas (mobile): 80% da largura
+  if (screenWidth < 768) {
+    width = '80%';
+  }
+  // Em tablets: 350px fixo
+  else if (screenWidth < 1024) {
+    width = 350;
+  }
+  // Em telas grandes (desktop): máximo 280px
+  else {
+    width = 280;
+  }
+  
+  console.log('📱 Largura do drawer calculada:', width);
+  return width;
+};
 
 export default function AppLayout() {
   const pathname = usePathname();
@@ -30,6 +56,50 @@ export default function AppLayout() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const { permissions } = usePermissions();
   const { role } = useAuth();
+
+  // Estado para controlar se o drawer deve ser permanente
+  const [isPermanentDrawer, setIsPermanentDrawer] = useState(false);
+
+  // Calcular largura do drawer e tipo de exibição
+  const drawerWidth = useMemo(() => {
+    const { width, height } = Dimensions.get('window');
+    const isLandscape = width > height;
+    const isLargeScreen = width >= 1024;
+    
+    console.log('📐 Dimensões da tela:', { width, height, isLandscape, isLargeScreen });
+    
+    // Drawer permanente em landscape em telas grandes
+    const shouldBePermanent = isLandscape && isLargeScreen;
+    setIsPermanentDrawer(shouldBePermanent);
+    
+    if (shouldBePermanent) {
+      console.log('🖥️ Modo Desktop: Drawer permanente com 280px');
+      return 280;
+    }
+    
+    console.log('📱 Modo Mobile/Tablet: Drawer temporário com 300px');
+    return 300;
+  }, []);
+
+  // Atualizar quando a orientação mudar
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      const isLandscape = window.width > window.height;
+      const isLargeScreen = window.width >= 1024;
+      const shouldBePermanent = isLandscape && isLargeScreen;
+      
+      console.log('🔄 Orientação mudou:', { 
+        width: window.width, 
+        height: window.height, 
+        isLandscape, 
+        shouldBePermanent 
+      });
+      
+      setIsPermanentDrawer(shouldBePermanent);
+    });
+
+    return () => subscription?.remove();
+  }, []);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -214,6 +284,9 @@ export default function AppLayout() {
     );
   };
 
+  console.log('🎨 Renderizando Drawer com largura:', drawerWidth);
+  console.log('🎨 Drawer permanente?', isPermanentDrawer);
+
   return (
     <Drawer
       screenOptions={{
@@ -224,12 +297,16 @@ export default function AppLayout() {
         drawerActiveTintColor: '#7C3AED',
         drawerInactiveTintColor: '#666',
         headerShown: !isEstoque && !isNovoOrcamento && !isPerfil && !isNovoUsuario,
+        drawerType: isPermanentDrawer ? 'permanent' : 'slide',
+        swipeEnabled: !isPermanentDrawer,
         drawerItemStyle: {
           display: 'none'
         },
         drawerStyle: {
           backgroundColor: '#F9FAFB',
-          width: '80%',
+          width: drawerWidth,
+          borderRightWidth: isPermanentDrawer ? 1 : 0,
+          borderRightColor: isPermanentDrawer ? '#E5E7EB' : 'transparent',
         },
         drawerContentStyle: {
           backgroundColor: '#F9FAFB',

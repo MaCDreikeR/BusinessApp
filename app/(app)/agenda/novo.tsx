@@ -43,7 +43,7 @@ interface Usuario {
 export default function NovoAgendamentoScreen() {
   const router = useRouter();
   const navigation = useNavigation();
-  const { estabelecimentoId } = useAuth();
+  const { estabelecimentoId, role } = useAuth();
   const [loading, setLoading] = useState(false);
   const [cliente, setCliente] = useState('');
   const [telefone, setTelefone] = useState('');
@@ -209,32 +209,37 @@ export default function NovoAgendamentoScreen() {
         .rpc('get_usuarios_estabelecimento', { estabelecimento_uuid: estabelecimentoId });
 
       if (!rpcError && usuariosRpc) {
-        console.log('Usuários carregados via RPC:', usuariosRpc.length);
-        const usuariosFiltrados = usuariosRpc.filter((usuario: any) => usuario.faz_atendimento === true);
-        console.log('Usuários que fazem atendimento:', usuariosFiltrados.length);
-        setUsuarios(usuariosFiltrados || []);
+        console.log('✅ Usuários carregados via RPC:', usuariosRpc.length);
+        console.log('📋 Lista completa de usuários RPC:', JSON.stringify(usuariosRpc, null, 2));
+        // TODOS os usuários do estabelecimento, não apenas quem faz atendimento
+        setUsuarios(usuariosRpc || []);
         
         // Inicializa o estado de presença para todos os usuários
-        const presencaInicial = (usuariosFiltrados || []).reduce((acc: Record<string, boolean>, usuario: any) => {
+        const presencaInicial = (usuariosRpc || []).reduce((acc: Record<string, boolean>, usuario: any) => {
           acc[usuario.id] = true; // Por padrão, todos estão presentes
           return acc;
         }, {} as Record<string, boolean>);
         setPresencaUsuarios(presencaInicial);
+        console.log('✅ Total de usuários carregados:', usuariosRpc.length);
         return;
       }
 
+      console.log('⚠️ Erro RPC ou dados vazios, tentando fallback...');
+
+      console.log('⚠️ Erro RPC ou dados vazios, tentando fallback...');
+
       // Fallback para consulta direta
-      console.log('RPC não disponível, usando consulta direta...');
+      console.log('🔍 RPC não disponível, usando consulta direta...');
       const { data, error } = await supabase
         .from('usuarios')
         .select('id, nome_completo, email, avatar_url, faz_atendimento')
         .eq('estabelecimento_id', estabelecimentoId)
-        .eq('faz_atendimento', true)
         .order('nome_completo');
 
       if (error) throw error;
 
-      console.log('Usuários encontrados via consulta direta:', data?.length);
+      console.log('✅ Usuários encontrados via consulta direta:', data?.length);
+      console.log('📋 Lista completa de usuários (fallback):', JSON.stringify(data, null, 2));
       setUsuarios(data || []);
       
       // Inicializa o estado de presença para todos os usuários

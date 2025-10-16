@@ -1,7 +1,6 @@
--- SOLUÇÃO DEFINITIVA: CRIAR FUNÇÃO RPC PARA CONTORNAR RLS
+-- Atualizar função RPC para permitir que funcionários vejam todos os usuários do estabelecimento
 -- Execute no SQL Editor do Supabase Studio
 
--- 1. Criar função para buscar usuários do mesmo estabelecimento
 CREATE OR REPLACE FUNCTION get_usuarios_estabelecimento(estabelecimento_uuid uuid)
 RETURNS TABLE (
   id uuid,
@@ -33,7 +32,7 @@ BEGIN
     RAISE EXCEPTION 'Acesso negado';
   END IF;
 
-  -- Retornar usuários do estabelecimento
+  -- Retornar TODOS os usuários do estabelecimento (não filtrar por faz_atendimento)
   RETURN QUERY
   SELECT 
     u.id,
@@ -48,9 +47,13 @@ BEGIN
     u.estabelecimento_id
   FROM usuarios u
   WHERE u.estabelecimento_id = estabelecimento_uuid
-  ORDER BY u.created_at DESC;
+  ORDER BY u.nome_completo ASC;
 END;
 $$;
 
--- 2. Dar permissão para usuários autenticados
+-- Garantir que usuários autenticados possam executar
 GRANT EXECUTE ON FUNCTION get_usuarios_estabelecimento(uuid) TO authenticated;
+
+-- Comentário explicativo
+COMMENT ON FUNCTION get_usuarios_estabelecimento IS 
+'Retorna todos os usuários de um estabelecimento. Apenas super_admin, admin, is_principal e funcionario podem executar.';

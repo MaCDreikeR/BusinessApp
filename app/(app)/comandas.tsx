@@ -182,7 +182,7 @@ export default function ComandasScreen() {
   const translateYItens = useRef(new Animated.Value(500)).current;
 
   const router = useRouter();
-  const { session, estabelecimentoId } = useAuth(); // Usando o hook useAuth para pegar a sessão e estabelecimento
+  const { session, estabelecimentoId, role } = useAuth(); // Usando o hook useAuth para pegar a sessão, estabelecimento e role
 
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -1135,6 +1135,12 @@ export default function ComandasScreen() {
   // Função para excluir uma comanda
   const excluirComanda = async (comandaId: string) => {
     try {
+      // Verificar se o usuário tem permissão (somente admin)
+      if (role !== 'admin') {
+        Alert.alert('Sem Permissão', 'Você não tem permissão para excluir comandas!');
+        return;
+      }
+
       console.log('Iniciando exclusão da comanda:', comandaId);
       
       // Confirmar exclusão

@@ -309,7 +309,7 @@ export default function HomeScreen() {
                 <View style={styles.vendaContent}>
                   <Text style={styles.vendaCliente}>{venda.cliente_nome}</Text>
                   <Text style={styles.vendaData}>
-                    {venda.data ? format(new Date(venda.data), "dd/MM/yyyy 'às' HH:mm") : 'Data indisponível'}
+                    {venda.data ? new Date(venda.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Data indisponível'}
                   </Text>
                 </View>
                 <Text style={styles.vendaValor}>

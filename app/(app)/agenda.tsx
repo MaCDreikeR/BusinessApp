@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, DeviceEventEmitter, Modal, TextInput, ActivityIndicator, FlatList, Alert } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { format, isValid } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
@@ -260,10 +261,8 @@ export default function AgendaScreen() {
       if (!rpcError && usuariosRpc) {
         console.log('Usuários carregados via RPC:', usuariosRpc.length);
         console.log('Todos os usuários RPC:', usuariosRpc);
-        const usuariosFiltrados = usuariosRpc.filter((usuario: any) => usuario.faz_atendimento === true);
-        console.log('Usuários que fazem atendimento:', usuariosFiltrados.length);
-        console.log('Detalhes dos usuários que fazem atendimento:', usuariosFiltrados);
-        setUsuarios(usuariosFiltrados || []);
+        // TODOS os usuários do estabelecimento podem ser selecionados
+        setUsuarios(usuariosRpc || []);
         return;
       }
       
@@ -275,7 +274,6 @@ export default function AgendaScreen() {
         .from('usuarios')
         .select('id, nome_completo, email, avatar_url, faz_atendimento')
         .eq('estabelecimento_id', estabelecimentoId)
-        .eq('faz_atendimento', true)
         .order('nome_completo');
 
       if (error) {
@@ -1083,15 +1081,12 @@ export default function AgendaScreen() {
         >
           <Ionicons name="calendar-outline" size={20} color="#000" />
           <Text style={styles.dateText}>
-            {format(selectedDate, "EEE, dd/MM/yyyy")}
+            {selectedDate.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}
           </Text>
           <Ionicons name={showCalendar ? "chevron-up" : "chevron-down"} size={20} color="#000" />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => navegarData('proximo')}>
           <Ionicons name="chevron-forward" size={24} color="#000" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.filterButton}>
-          <Ionicons name="filter" size={20} color="#000" />
         </TouchableOpacity>
       </View>
 
