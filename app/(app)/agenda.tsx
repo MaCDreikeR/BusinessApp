@@ -44,10 +44,9 @@ type Agendamento = {
   servicos: any[];
   estabelecimento_id: string;
   observacoes?: string;
-  status?: 'agendado' | 'confirmado' | 'cancelado' | 'finalizado';
+  status?: string;
   criar_comanda_automatica?: boolean;
-  telefone?: string;
-  valor_total?: number;
+  usuario_id?: string;
 };
 
 export default function AgendaScreen() {
@@ -1068,89 +1067,38 @@ export default function AgendaScreen() {
     }
   };
 
-  // Função para cancelar a exclusão
-  const cancelarExclusao = () => {
-    setAgendamentoParaExcluir(null);
-  };
-
-  // Função para alterar status do agendamento
-  const alterarStatus = async (agendamentoId: string, novoStatus: 'agendado' | 'confirmado' | 'cancelado' | 'finalizado') => {
+  // Função para atualizar o status do agendamento
+  const atualizarStatus = async (agendamentoId: string, novoStatus: string) => {
     try {
       const { error } = await supabase
         .from('agendamentos')
         .update({ status: novoStatus })
         .eq('id', agendamentoId);
-        
+      
       if (error) throw error;
       
       // Atualizar localmente
-      const novosAgendamentos = agendamentosDoHorarioSelecionado.map(ag => 
+      const agendamentosAtualizados = agendamentosDoHorarioSelecionado.map(ag =>
         ag.id === agendamentoId ? { ...ag, status: novoStatus } : ag
       );
-      setAgendamentosDoHorarioSelecionado(novosAgendamentos);
+      setAgendamentosDoHorarioSelecionado(agendamentosAtualizados);
       
-      // Recarregar agendamentos
+      // Recarregar os agendamentos da tela
       carregarAgendamentos();
-      carregarAgendamentosMes();
       
-      // Mensagem de sucesso
-      setSuccessMessage(`Status alterado para ${novoStatus.toUpperCase()}!`);
+      // Mostrar mensagem de sucesso
+      setSuccessMessage(`Status atualizado para ${novoStatus}!`);
       setTimeout(() => setSuccessMessage(''), 3000);
       
     } catch (error: any) {
-      console.error('Erro ao alterar status:', error);
-      Alert.alert('Erro', `Não foi possível alterar o status: ${error.message}`);
+      console.error('Erro ao atualizar status:', error);
+      Alert.alert('Erro', `Não foi possível atualizar o status: ${error.message}`);
     }
   };
 
-  // Função para navegar para a comanda do agendamento
-  const verComanda = async (agendamento: Agendamento) => {
-    try {
-      // Buscar comanda associada ao agendamento
-      const { data: comandas, error } = await supabase
-        .from('comandas')
-        .select('id')
-        .eq('cliente', agendamento.cliente)
-        .eq('estabelecimento_id', estabelecimentoId)
-        .order('created_at', { ascending: false })
-        .limit(1);
-        
-      if (error) throw error;
-      
-      if (comandas && comandas.length > 0) {
-        // Fechar modal e navegar para comandas
-        setShowAgendamentosModal(false);
-        router.push('/(app)/comandas');
-        
-        // Mostrar mensagem
-        setSuccessMessage(`Comanda de ${agendamento.cliente} encontrada!`);
-        setTimeout(() => setSuccessMessage(''), 3000);
-      } else {
-        Alert.alert(
-          'Comanda não encontrada', 
-          `Nenhuma comanda foi encontrada para ${agendamento.cliente}. Deseja criar uma agora?`,
-          [
-            { text: 'Cancelar', style: 'cancel' },
-            { 
-              text: 'Criar Comanda', 
-              onPress: () => {
-                setShowAgendamentosModal(false);
-                router.push('/(app)/comandas');
-              }
-            }
-          ]
-        );
-      }
-    } catch (error: any) {
-      console.error('Erro ao buscar comanda:', error);
-      Alert.alert('Erro', 'Não foi possível buscar a comanda.');
-    }
-  };
-
-  // Função para criar encaixe (novo agendamento rápido)
-  const criarEncaixe = () => {
-    setShowAgendamentosModal(false);
-    router.push('/(app)/agenda/novo');
+  // Função para cancelar a exclusão
+  const cancelarExclusao = () => {
+    setAgendamentoParaExcluir(null);
   };
 
   return (
@@ -1254,138 +1202,121 @@ export default function AgendaScreen() {
               <Text style={styles.loadingText}>Carregando horários...</Text>
             </View>
           ) : (
-            horarios.map((horario, index) => {
+            horarios.map((horario) => {
               // Converte horário formato 'HH:MM' para horas e minutos como números
               const [horasSlot, minutosSlot] = horario.split(':').map(Number);
+              const minutosSlotTotal = horasSlot * 60 + minutosSlot;
               
-              // Busca agendamentos que INICIAM neste horário
-              const agendamentosQueIniciam = agendamentos.filter(ag => {
-                const dataAg = new Date(ag.data_hora);
-                const horasAg = dataAg.getHours();
-                const minutosAg = dataAg.getMinutes();
-                
-                // Verifica se é o horário de início exato
-                return horasAg === horasSlot && Math.abs(minutosAg - minutosSlot) < 15;
-              });
-              
-              // Verifica se este slot está DENTRO de um agendamento em andamento
-              const agendamentoEmAndamento = agendamentos.find(ag => {
-                if (!ag.horario_termino) return false;
+              // Função para converter TIME (HH:MM:SS) para minutos totais
+              const timeParaMinutos = (timeStr: string) => {
+                const [h, m] = timeStr.split(':').map(Number);
+                return h * 60 + m;
+              };
+
+              // Calcular altura do card com base na duração (30min por slot = 40px)
+              const calcularAlturaCard = (ag: Agendamento) => {
+                if (!ag.horario_termino) return 60; // Altura padrão para agendamentos sem término
                 
                 const dataInicio = new Date(ag.data_hora);
-                const [horasInicio, minutosInicio] = [dataInicio.getHours(), dataInicio.getMinutes()];
-                const [horasTermino, minutosTermino] = ag.horario_termino.split(':').map(Number);
+                const minutosInicio = dataInicio.getHours() * 60 + dataInicio.getMinutes();
+                const minutosTermino = timeParaMinutos(ag.horario_termino);
+                const duracaoMinutos = minutosTermino - minutosInicio;
                 
-                const slotEmMinutos = horasSlot * 60 + minutosSlot;
-                const inicioEmMinutos = horasInicio * 60 + minutosInicio;
-                const terminoEmMinutos = horasTermino * 60 + minutosTermino;
-                
-                // Verifica se o slot está entre o início e o término (mas não é o início)
-                return slotEmMinutos > inicioEmMinutos && slotEmMinutos < terminoEmMinutos;
+                // 40px por cada 30 minutos de slot
+                return Math.max(60, (duracaoMinutos / 30) * 40);
+              };
+
+              // Buscar agendamentos que INICIAM neste horário
+              const agendamentosQueIniciam = agendamentos.filter(ag => {
+                const dataInicio = new Date(ag.data_hora);
+                const horaInicio = dataInicio.getHours();
+                const minutoInicio = dataInicio.getMinutes();
+                return horasSlot === horaInicio && Math.abs(minutosSlot - minutoInicio) < 15;
               });
-              
-              // Se está no meio de um agendamento, não renderiza este slot separadamente
-              if (agendamentoEmAndamento && agendamentosQueIniciam.length === 0) {
-                return null;
-              }
-              
-              const agendamentoNoHorario = agendamentosQueIniciam[0];
-              const temMultiplosAgendamentos = agendamentosQueIniciam.length > 1;
-              
-              // Calcular altura do card se houver horário de término
-              let alturaCard = 1;
-              if (agendamentoNoHorario?.horario_termino) {
-                const dataInicio = new Date(agendamentoNoHorario.data_hora);
-                const [horasInicio, minutosInicio] = [dataInicio.getHours(), dataInicio.getMinutes()];
-                const [horasTermino, minutosTermino] = agendamentoNoHorario.horario_termino.split(':').map(Number);
+
+              // Formatar horário com início e término
+              const formatarHorarioAgendamento = (ag: Agendamento) => {
+                const dataInicio = new Date(ag.data_hora);
+                const horaInicio = dataInicio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                 
-                const inicioEmMinutos = horasInicio * 60 + minutosInicio;
-                const terminoEmMinutos = horasTermino * 60 + minutosTermino;
-                const duracaoEmMinutos = terminoEmMinutos - inicioEmMinutos;
-                
-                // Cada slot tem 30 minutos (ajuste conforme seu intervalo)
-                const intervaloMinutos = parseInt(intervaloAgendamentos || '30');
-                alturaCard = Math.ceil(duracaoEmMinutos / intervaloMinutos);
-              }
+                if (ag.horario_termino) {
+                  const [h, m] = ag.horario_termino.split(':');
+                  const horaTermino = `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+                  return `${horaInicio} às ${horaTermino}`;
+                }
+                return horaInicio;
+              };
+
+              // Obter cor baseada no status
+              const getStatusColor = (status?: string) => {
+                switch(status) {
+                  case 'confirmado': return '#10B981';
+                  case 'em_atendimento': return '#F59E0B';
+                  case 'concluido': return '#6B7280';
+                  case 'cancelado': return '#EF4444';
+                  case 'falta': return '#DC2626';
+                  default: return '#7C3AED'; // agendado
+                }
+              };
 
               return (
-                <TouchableOpacity 
-                  key={horario} 
-                  style={[
-                    styles.timeSlot,
-                    agendamentoNoHorario && { height: 80 * alturaCard } // Ajuste a altura base conforme necessário
-                  ]}
-                  onPress={() => agendamentoNoHorario ? abrirModalAgendamentos(horario, agendamentosQueIniciam) : null}
-                  disabled={!agendamentoNoHorario}
-                >
-                  <Text style={styles.timeText}>{horario}</Text>
-                  <View style={[
-                    styles.timeLine,
-                    agendamentoNoHorario && styles.timeLineAgendado,
-                    temMultiplosAgendamentos && styles.timeLineMultiplo,
-                    agendamentoNoHorario && !temMultiplosAgendamentos && styles.timeLineUnico,
-                    agendamentoNoHorario && { flex: 1 } // Ocupa toda a altura
-                  ]}>
-                    {agendamentoNoHorario && (
-                      <View style={styles.agendamentoInfo}>
-                        {temMultiplosAgendamentos ? (
-                          <>
-                            <View style={styles.agendamentoHeader}>
-                              <Text style={styles.agendamentoCliente}>
-                                {agendamentoNoHorario.cliente}
-                              </Text>
-                              <View style={styles.agendamentoCounter}>
-                                <Text style={styles.agendamentoCounterText}>
-                                  {agendamentosQueIniciam.length}
+                <View key={horario} style={styles.timeSlotContainer}>
+                  <View style={styles.timeSlot}>
+                    <Text style={styles.timeText}>{horario}</Text>
+                    <View style={styles.timeLine} />
+                  </View>
+                  
+                  {/* Cards de agendamento que INICIAM neste horário */}
+                  {agendamentosQueIniciam.length > 0 && (
+                    <View style={styles.cardsContainer}>
+                      {agendamentosQueIniciam.map((ag, index) => {
+                        const alturaCard = calcularAlturaCard(ag);
+                        const leftPosition = 58 + (index * 188); // 58px (horário) + index * (180px card + 8px margin)
+                        
+                        return (
+                          <TouchableOpacity 
+                            key={ag.id}
+                            style={[
+                              styles.agendamentoCardAbsolute,
+                              {
+                                height: alturaCard,
+                                left: leftPosition,
+                                borderLeftColor: getStatusColor(ag.status),
+                              }
+                            ]}
+                            onPress={() => abrirModalAgendamentos(horario, agendamentosQueIniciam)}
+                          >
+                            <View style={styles.agendamentoCardContent}>
+                              <View style={styles.agendamentoCardHeader}>
+                                <Text style={styles.agendamentoHorarioCard} numberOfLines={1}>
+                                  {formatarHorarioAgendamento(ag)}
                                 </Text>
-                              </View>
-                            </View>
-                            <Text style={styles.agendamentoServicos}>
-                              {JSON.stringify(agendamentoNoHorario.servicos)?.includes('nome') 
-                                ? agendamentoNoHorario.servicos.map((s:any) => s.nome).join(', ')
-                                : 'Serviço não especificado'}
-                            </Text>
-                            <View style={styles.agendamentoMultiploContainer}>
-                              <Text style={styles.agendamentoMultiplo}>
-                                +{agendamentosQueIniciam.length - 1} outros agendamentos
-                              </Text>
-                              <Ionicons name="chevron-forward" size={14} color="#7C3AED" />
-                            </View>
-                          </>
-                        ) : (
-                          <>
-                            <View style={styles.agendamentoHeader}>
-                              <Text style={styles.agendamentoCliente}>{agendamentoNoHorario.cliente}</Text>
-                              {agendamentoNoHorario.status && (
-                                <View style={[
-                                  styles.statusBadge,
-                                  agendamentoNoHorario.status === 'agendado' && styles.statusAgendado,
-                                  agendamentoNoHorario.status === 'confirmado' && styles.statusConfirmado,
-                                  agendamentoNoHorario.status === 'cancelado' && styles.statusCancelado,
-                                  agendamentoNoHorario.status === 'finalizado' && styles.statusFinalizado,
-                                ]}>
+                                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(ag.status) }]}>
                                   <Text style={styles.statusBadgeText}>
-                                    {agendamentoNoHorario.status.toUpperCase()}
+                                    {ag.status === 'confirmado' && '✓'}
+                                    {ag.status === 'em_atendimento' && '●'}
+                                    {ag.status === 'concluido' && '✓'}
+                                    {ag.status === 'cancelado' && '✕'}
+                                    {ag.status === 'falta' && '!'}
+                                    {!ag.status && '○'}
                                   </Text>
                                 </View>
-                              )}
-                            </View>
-                            {agendamentoNoHorario.horario_termino && (
-                              <Text style={styles.agendamentoHorarioRange}>
-                                {format(new Date(agendamentoNoHorario.data_hora), 'HH:mm')} às {agendamentoNoHorario.horario_termino}
+                              </View>
+                              <Text style={styles.agendamentoClienteCard} numberOfLines={2}>
+                                {ag.cliente}
                               </Text>
-                            )}
-                            <Text style={styles.agendamentoServicos}>
-                              {JSON.stringify(agendamentoNoHorario.servicos)?.includes('nome') 
-                                ? agendamentoNoHorario.servicos.map((s:any) => s.nome).join(', ')
-                                : 'Serviço não especificado'}
-                            </Text>
-                          </>
-                        )}
-                      </View>
-                    )}
-                  </View>
-                </TouchableOpacity>
+                              <Text style={styles.agendamentoServicosCard} numberOfLines={2}>
+                                {JSON.stringify(ag.servicos)?.includes('nome') 
+                                  ? ag.servicos.map((s:any) => s.nome).join(', ')
+                                  : 'Serviço não especificado'}
+                              </Text>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
+                </View>
               );
             })
           )
@@ -1764,134 +1695,138 @@ export default function AgendaScreen() {
             <FlatList
               data={agendamentosDoHorarioSelecionado}
               keyExtractor={(item) => item.id}
-              renderItem={({item, index}) => (
-                <View style={styles.agendamentoModalItem}>
-                  {/* Cabeçalho com cliente e contador */}
-                  <View style={styles.agendamentoModalHeader}>
-                    <View style={styles.agendamentoModalClienteContainer}>
-                      <Ionicons name="person" size={20} color="#7C3AED" />
-                      <Text style={styles.agendamentoModalCliente}>{item.cliente}</Text>
-                    </View>
-                    <Text style={styles.agendamentoModalNumero}>{index + 1}/{agendamentosDoHorarioSelecionado.length}</Text>
-                  </View>
-                  
-                  {/* Telefone do cliente */}
-                  {item.telefone && (
-                    <View style={styles.agendamentoModalInfoRow}>
-                      <Ionicons name="call-outline" size={16} color="#666" />
-                      <Text style={styles.agendamentoModalInfoText}>{item.telefone}</Text>
-                    </View>
-                  )}
-                  
-                  {/* Horário do agendamento */}
-                  <View style={styles.agendamentoModalInfoRow}>
-                    <Ionicons name="time-outline" size={16} color="#666" />
-                    <Text style={styles.agendamentoModalInfoText}>
-                      {item.horario_termino 
-                        ? `${format(new Date(item.data_hora), 'HH:mm')} às ${item.horario_termino}`
-                        : format(new Date(item.data_hora), 'HH:mm')
-                      }
-                    </Text>
-                  </View>
-                  
-                  {/* Serviços */}
-                  <View style={styles.agendamentoModalServicos}>
-                    <View style={styles.agendamentoModalServicosHeader}>
-                      <Ionicons name="cut-outline" size={16} color="#666" />
-                      <Text style={styles.agendamentoModalServicosLabel}>Serviços:</Text>
-                    </View>
-                    {JSON.stringify(item.servicos)?.includes('nome') ? (
-                      item.servicos.map((servico: any, i: number) => (
-                        <View key={i} style={styles.agendamentoModalServicoItemContainer}>
-                          <Text style={styles.agendamentoModalServicoItem}>• {servico.nome}</Text>
-                          {servico.preco && (
-                            <Text style={styles.agendamentoModalServicoPreco}>
-                              R$ {servico.preco.toFixed(2)}
-                            </Text>
-                          )}
-                        </View>
-                      ))
-                    ) : (
-                      <Text style={styles.agendamentoModalServicoItem}>• Serviço não especificado</Text>
-                    )}
-                  </View>
-                  
-                  {/* Valor total */}
-                  {item.valor_total && (
-                    <View style={styles.agendamentoModalValorTotal}>
-                      <Text style={styles.agendamentoModalValorTotalLabel}>Valor Total:</Text>
-                      <Text style={styles.agendamentoModalValorTotalValor}>
-                        R$ {item.valor_total.toFixed(2)}
-                      </Text>
-                    </View>
-                  )}
-                  
-                  {/* Observações */}
-                  {item.observacoes && (
-                    <View style={styles.agendamentoModalObservacoes}>
-                      <View style={styles.agendamentoModalObservacoesHeader}>
-                        <Ionicons name="document-text-outline" size={16} color="#666" />
-                        <Text style={styles.agendamentoModalObservacoesLabel}>Observações:</Text>
-                      </View>
-                      <Text style={styles.agendamentoModalObservacoesText}>{item.observacoes}</Text>
-                    </View>
-                  )}
-                  
-                  {/* Status atual */}
-                  <View style={styles.agendamentoModalStatusSection}>
-                    <Text style={styles.agendamentoModalStatusLabel}>Status:</Text>
-                    <View style={styles.agendamentoModalStatusButtons}>
-                      {['agendado', 'confirmado', 'cancelado', 'finalizado'].map((status) => (
-                        <TouchableOpacity
-                          key={status}
-                          style={[
-                            styles.statusButton,
-                            item.status === 'agendado' && status === 'agendado' && styles.statusButtonAgendado,
-                            item.status === 'confirmado' && status === 'confirmado' && styles.statusButtonConfirmado,
-                            item.status === 'cancelado' && status === 'cancelado' && styles.statusButtonCancelado,
-                            item.status === 'finalizado' && status === 'finalizado' && styles.statusButtonFinalizado,
-                          ]}
-                          onPress={() => alterarStatus(item.id, status as any)}
-                        >
-                          <Text style={[
-                            styles.statusButtonText,
-                            item.status === status && styles.statusButtonTextActive
-                          ]}>
-                            {status.toUpperCase()}
+              renderItem={({item, index}) => {
+                const getStatusInfo = (status?: string) => {
+                  switch(status) {
+                    case 'confirmado':
+                      return { label: 'Confirmado', icon: 'checkmark-circle', color: '#10B981' };
+                    case 'em_atendimento':
+                      return { label: 'Em Atendimento', icon: 'person', color: '#F59E0B' };
+                    case 'concluido':
+                      return { label: 'Concluído', icon: 'checkmark-done', color: '#6B7280' };
+                    case 'cancelado':
+                      return { label: 'Cancelado', icon: 'close-circle', color: '#EF4444' };
+                    case 'falta':
+                      return { label: 'Falta', icon: 'alert-circle', color: '#DC2626' };
+                    default:
+                      return { label: 'Agendado', icon: 'calendar', color: '#7C3AED' };
+                  }
+                };
+
+                const statusInfo = getStatusInfo(item.status);
+                const dataInicio = new Date(item.data_hora);
+                const horaInicio = dataInicio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                let horarioCompleto = horaInicio;
+                
+                if (item.horario_termino) {
+                  const dataTermino = new Date(item.horario_termino);
+                  const horaTermino = dataTermino.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                  horarioCompleto = `${horaInicio} - ${horaTermino}`;
+                }
+
+                return (
+                  <View style={styles.agendamentoModalItem}>
+                    <View style={styles.agendamentoModalHeader}>
+                      <View style={styles.agendamentoModalHeaderLeft}>
+                        <Text style={styles.agendamentoModalCliente}>{item.cliente}</Text>
+                        {agendamentosDoHorarioSelecionado.length > 1 && (
+                          <Text style={styles.agendamentoModalNumero}>
+                            {index + 1}/{agendamentosDoHorarioSelecionado.length}
                           </Text>
-                        </TouchableOpacity>
-                      ))}
+                        )}
+                      </View>
+                      <View style={[styles.statusBadgeModal, { backgroundColor: statusInfo.color + '20' }]}>
+                        <Ionicons name={statusInfo.icon as any} size={14} color={statusInfo.color} />
+                        <Text style={[styles.statusBadgeModalText, { color: statusInfo.color }]}>
+                          {statusInfo.label}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.agendamentoModalInfoRow}>
+                      <Ionicons name="time-outline" size={16} color="#7C3AED" />
+                      <Text style={styles.agendamentoModalHorarioText}>{horarioCompleto}</Text>
+                    </View>
+                    
+                    <View style={styles.agendamentoModalServicos}>
+                      <View style={styles.agendamentoModalInfoRow}>
+                        <Ionicons name="cut-outline" size={16} color="#666" />
+                        <Text style={styles.agendamentoModalServicosLabel}>Serviços:</Text>
+                      </View>
+                      {JSON.stringify(item.servicos)?.includes('nome') ? (
+                        item.servicos.map((servico: any, i: number) => (
+                          <Text key={i} style={styles.agendamentoModalServicoItem}>
+                            • {servico.nome} {servico.preco ? `- R$ ${servico.preco.toFixed(2)}` : ''}
+                          </Text>
+                        ))
+                      ) : (
+                        <Text style={styles.agendamentoModalServicoItem}>
+                          • Serviço não especificado
+                        </Text>
+                      )}
+                    </View>
+                    
+                    {item.observacoes && (
+                      <View style={styles.agendamentoModalObservacoes}>
+                        <View style={styles.agendamentoModalInfoRow}>
+                          <Ionicons name="document-text-outline" size={16} color="#666" />
+                          <Text style={styles.agendamentoModalObservacoesLabel}>Observações:</Text>
+                        </View>
+                        <Text style={styles.agendamentoModalObservacoesText}>{item.observacoes}</Text>
+                      </View>
+                    )}
+
+                    {item.criar_comanda_automatica && (
+                      <View style={styles.agendamentoModalComandaInfo}>
+                        <Ionicons name="receipt-outline" size={14} color="#7C3AED" />
+                        <Text style={styles.agendamentoModalComandaText}>
+                          Comanda será criada automaticamente
+                        </Text>
+                      </View>
+                    )}
+                    
+                    <View style={styles.agendamentoModalFooter}>
+                      <View style={styles.statusActionsContainer}>
+                        {item.status === 'agendado' && (
+                          <TouchableOpacity 
+                            style={[styles.statusActionButton, { backgroundColor: '#10B98120' }]}
+                            onPress={() => atualizarStatus(item.id, 'confirmado')}
+                          >
+                            <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                            <Text style={[styles.statusActionText, { color: '#10B981' }]}>Confirmar</Text>
+                          </TouchableOpacity>
+                        )}
+                        {(item.status === 'agendado' || item.status === 'confirmado') && (
+                          <TouchableOpacity 
+                            style={[styles.statusActionButton, { backgroundColor: '#F59E0B20' }]}
+                            onPress={() => atualizarStatus(item.id, 'em_atendimento')}
+                          >
+                            <Ionicons name="person" size={16} color="#F59E0B" />
+                            <Text style={[styles.statusActionText, { color: '#F59E0B' }]}>Iniciar</Text>
+                          </TouchableOpacity>
+                        )}
+                        {item.status === 'em_atendimento' && (
+                          <TouchableOpacity 
+                            style={[styles.statusActionButton, { backgroundColor: '#6B728020' }]}
+                            onPress={() => atualizarStatus(item.id, 'concluido')}
+                          >
+                            <Ionicons name="checkmark-done" size={16} color="#6B7280" />
+                            <Text style={[styles.statusActionText, { color: '#6B7280' }]}>Concluir</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                      
+                      <TouchableOpacity
+                        style={styles.agendamentoDeleteButton}
+                        onPress={() => iniciarExclusao(item.id)}
+                        activeOpacity={0.6}
+                      >
+                        <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                      </TouchableOpacity>
                     </View>
                   </View>
-                  
-                  {/* Ações */}
-                  <View style={styles.agendamentoModalActions}>
-                    <TouchableOpacity
-                      style={styles.agendamentoActionButton}
-                      onPress={criarEncaixe}
-                    >
-                      <Ionicons name="add-circle-outline" size={20} color="#fff" />
-                      <Text style={styles.agendamentoActionButtonText}>Encaixe</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity
-                      style={[styles.agendamentoActionButton, styles.agendamentoActionButtonSuccess]}
-                      onPress={() => verComanda(item)}
-                    >
-                      <Ionicons name="receipt-outline" size={20} color="#fff" />
-                      <Text style={styles.agendamentoActionButtonText}>Ver comanda</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity
-                      style={[styles.agendamentoActionButton, styles.agendamentoActionButtonDanger]}
-                      onPress={() => iniciarExclusao(item.id)}
-                    >
-                      <Ionicons name="trash-outline" size={20} color="#fff" />
-                      <Text style={styles.agendamentoActionButtonText}>Excluir</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
+                );
+              }}
               contentContainerStyle={styles.flatlistContent}
               ItemSeparatorComponent={() => <View style={styles.agendamentoModalDivider} />}
               showsVerticalScrollIndicator={true}
@@ -2021,10 +1956,18 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
   },
+  timeSlotContainer: {
+    position: 'relative',
+    minHeight: 40,
+  },
   timeSlot: {
     flexDirection: 'row',
     alignItems: 'center',
     height: 40,
+    zIndex: 1,
+  },
+  timeSlotWrapper: {
+    marginBottom: 0,
   },
   timeText: {
     width: 50,
@@ -2037,9 +1980,53 @@ const styles = StyleSheet.create({
     backgroundColor: '#E0E0E0',
     marginLeft: 8,
   },
+  cardsContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 2,
+  },
+  agendamentoCardAbsolute: {
+    position: 'absolute',
+    top: 0,
+    width: 180,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 10,
+    borderLeftWidth: 4,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  agendamentoCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  statusBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statusBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
   timeLineAgendado: {
     backgroundColor: '#F3E8FF',
-    height: '100%',
+    height: 'auto',
+    minHeight: 80,
     padding: 4,
   },
   timeLineLimite: {
@@ -2054,6 +2041,63 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3E8FF',
     borderLeftWidth: 3,
     borderLeftColor: '#7C3AED',
+  },
+  agendamentosScroll: {
+    flex: 1,
+    height: 'auto',
+  },
+  agendamentosScrollContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+  },
+  agendamentoCard: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 10,
+    width: 180,
+    borderLeftWidth: 4,
+    borderLeftColor: '#7C3AED',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.18,
+    shadowRadius: 1.0,
+  },
+  agendamentoCardMargin: {
+    marginLeft: 8,
+  },
+  statusIndicatorCard: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: 3,
+    height: '100%',
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
+  },
+  agendamentoCardContent: {
+    paddingLeft: 6,
+  },
+  agendamentoHorarioCard: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#7C3AED',
+    marginBottom: 2,
+  },
+  agendamentoClienteCard: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 2,
+  },
+  agendamentoServicosCard: {
+    fontSize: 9,
+    color: '#666',
   },
   agendamentoInfo: {
     flex: 1,
@@ -2077,6 +2121,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  agendamentoHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statusIndicator: {
+    width: 4,
+    height: 40,
+    borderRadius: 2,
+  },
+  agendamentoHorario: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#7C3AED',
+    marginBottom: 2,
   },
   agendamentoCounter: {
     backgroundColor: '#7C3AED',
@@ -2504,12 +2564,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
+  },
+  agendamentoModalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   agendamentoModalCliente: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#111827',
   },
   agendamentoModalNumero: {
     fontSize: 12,
@@ -2519,6 +2584,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 12,
+  },
+  statusBadgeModal: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusBadgeModalText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  agendamentoModalInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  agendamentoModalHorarioText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#7C3AED',
   },
   agendamentoModalServicos: {
     marginLeft: 4,
@@ -2556,11 +2644,45 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
   },
+  agendamentoModalComandaInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#F3E8FF',
+    padding: 8,
+    borderRadius: 6,
+    marginBottom: 8,
+  },
+  agendamentoModalComandaText: {
+    fontSize: 12,
+    color: '#7C3AED',
+    fontWeight: '500',
+  },
   agendamentoModalFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  statusActionsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    flex: 1,
+  },
+  statusActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  statusActionText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   agendamentoModalHorario: {
     fontSize: 12,
@@ -2620,171 +2742,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 12,
-  },
-  // Novos estilos para modal melhorado
-  agendamentoModalClienteContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  agendamentoModalInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-    paddingLeft: 4,
-  },
-  agendamentoModalInfoText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  agendamentoModalServicosHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 6,
-  },
-  agendamentoModalServicoItemContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginLeft: 8,
-    marginBottom: 4,
-  },
-  agendamentoModalServicoPreco: {
-    fontSize: 14,
-    color: '#7C3AED',
-    fontWeight: '600',
-  },
-  agendamentoModalValorTotal: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#F3E8FF',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  agendamentoModalValorTotalLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#333',
-  },
-  agendamentoModalValorTotalValor: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#7C3AED',
-  },
-  agendamentoModalObservacoesHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 6,
-  },
-  agendamentoModalStatusSection: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
-  agendamentoModalStatusLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  agendamentoModalStatusButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  statusButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  statusButtonAgendado: {
-    backgroundColor: '#E0F2FE',
-    borderColor: '#0EA5E9',
-  },
-  statusButtonConfirmado: {
-    backgroundColor: '#D1FAE5',
-    borderColor: '#10B981',
-  },
-  statusButtonCancelado: {
-    backgroundColor: '#FEE2E2',
-    borderColor: '#EF4444',
-  },
-  statusButtonFinalizado: {
-    backgroundColor: '#E0E7FF',
-    borderColor: '#6366F1',
-  },
-  statusButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  statusButtonTextActive: {
-    color: '#fff',
-  },
-  agendamentoModalActions: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
-  },
-  agendamentoActionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: '#7C3AED',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-  },
-  agendamentoActionButtonSuccess: {
-    backgroundColor: '#10B981',
-  },
-  agendamentoActionButtonDanger: {
-    backgroundColor: '#EF4444',
-  },
-  agendamentoActionButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  // Estilos para badges de status na grade
-  statusBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    alignSelf: 'flex-start',
-  },
-  statusAgendado: {
-    backgroundColor: '#E0F2FE',
-  },
-  statusConfirmado: {
-    backgroundColor: '#D1FAE5',
-  },
-  statusCancelado: {
-    backgroundColor: '#FEE2E2',
-  },
-  statusFinalizado: {
-    backgroundColor: '#E0E7FF',
-  },
-  statusBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#333',
-  },
-  agendamentoHorarioRange: {
-    fontSize: 12,
-    color: '#7C3AED',
-    fontWeight: '600',
-    marginBottom: 4,
   },
 }); 

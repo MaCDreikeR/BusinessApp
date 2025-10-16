@@ -378,6 +378,22 @@ export default function NovoAgendamentoScreen() {
       novosErros.hora = 'Hora inválida';
     }
 
+    if (!horaTermino.trim()) {
+      novosErros.horaTermino = 'Horário de término é obrigatório';
+    } else if (!validarHora(horaTermino)) {
+      novosErros.horaTermino = 'Horário de término inválido';
+    } else if (hora && horaTermino) {
+      // Validar que término seja após início
+      const [horaIni, minIni] = hora.split(':').map(Number);
+      const [horaTerm, minTerm] = horaTermino.split(':').map(Number);
+      const minutosInicio = horaIni * 60 + minIni;
+      const minutosTermino = horaTerm * 60 + minTerm;
+      
+      if (minutosTermino <= minutosInicio) {
+        novosErros.horaTermino = 'Horário de término deve ser após o início';
+      }
+    }
+
     if (!usuarioSelecionado) {
       novosErros.usuario = 'Selecione um profissional';
     }
@@ -466,20 +482,26 @@ export default function NovoAgendamentoScreen() {
         ? servicosSelecionados.reduce((total, s) => total + (s.preco * s.quantidade), 0)
         : 0;
 
+      // Preparar horário de término no formato TIME (HH:MM:SS)
+      let horarioTerminoFormatado = null;
+      if (horaTermino) {
+        horarioTerminoFormatado = `${horaTermino}:00`; // Adiciona segundos ao formato HH:MM
+      }
+
       const { error } = await supabase
         .from('agendamentos')
         .insert({
           cliente,
           telefone: telefone.replace(/\D/g, ''),
           data_hora: dataHoraAgendamento.toISOString(),
-          horario_termino: horaTermino || null, // Novo campo: horário de término
+          horario_termino: horarioTerminoFormatado,
           servicos: detalhesServicos,
           valor_total: valorTotalAgendamento,
           observacoes: observacoes.trim() || null,
           estabelecimento_id: estabelecimentoId,
-          status: 'agendado', // Novo campo: status padrão 'agendado'
-          criar_comanda_automatica: criarComandaAutomatica, // Novo campo: flag para criar comanda
-          usuario_id: usuarioSelecionado?.id || null // Salvar o ID do usuário selecionado
+          status: 'agendado',
+          usuario_id: usuarioSelecionado?.id || null,
+          criar_comanda_automatica: criarComandaAutomatica
         });
 
       if (error) throw error;
@@ -519,16 +541,18 @@ export default function NovoAgendamentoScreen() {
     setTelefone('');
     setData('');
     setHora('');
-    setHoraTermino(''); // Novo campo
+    setHoraTermino('');
     setServico('');
     setObservacoes('');
     setValorTotal(0);
-    setCriarComandaAutomatica(true); // Resetar para valor padrão
     
     // Limpar seleções
     setClienteSelecionado(null);
     setServicosSelecionados([]);
     setUsuarioSelecionado(null);
+    
+    // Resetar flags
+    setCriarComandaAutomatica(true); // Voltar ao padrão
     
     // Limpar erros
     setErrors({});
@@ -538,7 +562,7 @@ export default function NovoAgendamentoScreen() {
     setMostrarListaServicos(false);
     setMostrarListaUsuarios(false);
     setMostrarSeletorHorario(false);
-    setMostrarSeletorHorarioTermino(false); // Novo modal
+    setMostrarSeletorHorarioTermino(false);
     setModalVisible(false);
     
     // Resetar listas de resultados
@@ -1163,7 +1187,16 @@ export default function NovoAgendamentoScreen() {
                       onPress={() => handleSelecionarCliente(cliente)}
                     >
                       <View style={styles.sugestaoItemContent}>
-                        <FontAwesome5 name="user" size={16} color="#7C3AED" style={styles.sugestaoIcon} />
+                        {cliente.foto_url ? (
+                          <Image 
+                            source={{ uri: cliente.foto_url }} 
+                            style={styles.sugestaoFoto} 
+                          />
+                        ) : (
+                          <View style={styles.sugestaoFotoPlaceholder}>
+                            <FontAwesome5 name="user" size={16} color="#7C3AED" />
+                          </View>
+                        )}
                         <View style={styles.sugestaoInfo}>
                           <Text style={styles.sugestaoNome}>{cliente.nome}</Text>
                           <Text style={styles.sugestaoTelefone}>{cliente.telefone}</Text>
