@@ -41,12 +41,16 @@ type Agendamento = {
   data_hora: string;
   horario_termino?: string;
   cliente: string;
+  cliente_foto?: string | null;
+  cliente_telefone?: string | null;
   servicos: any[];
   estabelecimento_id: string;
   observacoes?: string;
   status?: string;
   criar_comanda_automatica?: boolean;
   usuario_id?: string;
+  coluna?: number;
+  comanda_id?: string | null;
 };
 
 export default function AgendaScreen() {
@@ -324,10 +328,80 @@ export default function AgendaScreen() {
       if (error) throw error;
 
       console.log('Agendamentos carregados:', data?.length || 0);
-      console.log('Agendamentos brutos:', JSON.stringify(data));
-      console.log('Estrutura do primeiro agendamento:', data?.[0] ? Object.keys(data[0]) : 'Nenhum agendamento');
       
-      setAgendamentos(data || []);
+      // Buscar dados dos clientes separadamente
+      const agendamentosComClientes = await Promise.all(
+        (data || []).map(async (ag: any) => {
+          let clienteFoto = null;
+          let clienteTelefone = null;
+          
+          console.log('🔍 Processando agendamento:', { 
+            id: ag.id, 
+            cliente: ag.cliente, 
+            cliente_id: ag.cliente_id 
+          });
+          
+          if (ag.cliente_id) {
+            // Buscar por ID (relacionamento direto)
+            const { data: clienteData, error: clienteError } = await supabase
+              .from('clientes')
+              .select('foto_url, telefone')
+              .eq('id', ag.cliente_id)
+              .single();
+            
+            if (clienteError) {
+              console.log('❌ Erro ao buscar dados do cliente por ID:', clienteError);
+            }
+            
+            if (clienteData) {
+              clienteFoto = clienteData.foto_url;
+              clienteTelefone = clienteData.telefone;
+              console.log('✅ Dados do cliente carregados por ID:', { 
+                clienteId: ag.cliente_id, 
+                foto: clienteFoto, 
+                telefone: clienteTelefone 
+              });
+            }
+          } else if (ag.cliente) {
+            // Buscar por nome (fallback quando não há cliente_id)
+            console.log('🔎 Tentando buscar cliente por nome:', ag.cliente);
+            const { data: clienteData, error: clienteError } = await supabase
+              .from('clientes')
+              .select('foto_url, telefone')
+              .eq('estabelecimento_id', estabelecimentoId)
+              .ilike('nome', ag.cliente)
+              .limit(1)
+              .maybeSingle();
+            
+            if (clienteError) {
+              console.log('❌ Erro ao buscar dados do cliente por nome:', clienteError);
+            }
+            
+            if (clienteData) {
+              clienteFoto = clienteData.foto_url;
+              clienteTelefone = clienteData.telefone;
+              console.log('✅ Dados do cliente carregados por nome:', { 
+                clienteNome: ag.cliente, 
+                foto: clienteFoto, 
+                telefone: clienteTelefone 
+              });
+            } else {
+              console.log('⚠️ Cliente não encontrado no banco com nome:', ag.cliente);
+            }
+          } else {
+            console.log('⚠️ Agendamento sem cliente_id e sem nome:', ag.id);
+          }
+          
+          return {
+            ...ag,
+            cliente_foto: clienteFoto,
+            cliente_telefone: clienteTelefone,
+          };
+        })
+      );
+      
+      console.log('Agendamentos processados com dados de clientes:', agendamentosComClientes);
+      setAgendamentos(agendamentosComClientes);
     } catch (error) {
       console.error('Erro ao carregar agendamentos:', error);
       setAgendamentos([]); // Limpar os agendamentos em caso de erro
@@ -1201,63 +1275,86 @@ export default function AgendaScreen() {
               <ActivityIndicator size="large" color="#7C3AED" />
               <Text style={styles.loadingText}>Carregando horários...</Text>
             </View>
-          ) : (
-            horarios.map((horario) => {
-              // Converte horário formato 'HH:MM' para horas e minutos como números
-              const [horasSlot, minutosSlot] = horario.split(':').map(Number);
-              const minutosSlotTotal = horasSlot * 60 + minutosSlot;
-              
-              // Função para converter TIME (HH:MM:SS) para minutos totais
-              const timeParaMinutos = (timeStr: string) => {
-                const [h, m] = timeStr.split(':').map(Number);
-                return h * 60 + m;
-              };
+          ) : (() => {
+            // Função para converter TIME (HH:MM:SS) para minutos totais
+            const timeParaMinutos = (timeStr: string) => {
+              const [h, m] = timeStr.split(':').map(Number);
+              return h * 60 + m;
+            };
 
-              // Calcular altura do card com base na duração (30min por slot = 40px)
-              const calcularAlturaCard = (ag: Agendamento) => {
-                if (!ag.horario_termino) return 60; // Altura padrão para agendamentos sem término
-                
-                const dataInicio = new Date(ag.data_hora);
-                const minutosInicio = dataInicio.getHours() * 60 + dataInicio.getMinutes();
-                const minutosTermino = timeParaMinutos(ag.horario_termino);
-                const duracaoMinutos = minutosTermino - minutosInicio;
-                
-                // 40px por cada 30 minutos de slot
-                return Math.max(60, (duracaoMinutos / 30) * 40);
-              };
+            // Calcular altura do card com base na duração (30min por slot = 40px)
+            const calcularAlturaCard = (ag: Agendamento) => {
+              if (!ag.horario_termino) return 60;
+              
+              const dataInicio = new Date(ag.data_hora);
+              const minutosInicio = dataInicio.getHours() * 60 + dataInicio.getMinutes();
+              const minutosTermino = timeParaMinutos(ag.horario_termino);
+              const duracaoMinutos = minutosTermino - minutosInicio;
+              
+              return Math.max(60, (duracaoMinutos / 30) * 40);
+            };
+
+            // SISTEMA DE ALOCAÇÃO DE COLUNAS
+            const NUM_COLUNAS = 5;
+            const colunasOcupadas: { [coluna: number]: number } = {}; // { coluna: minutosTermino }
+
+            // Alocar coluna para cada agendamento
+            const agendamentosComColuna = agendamentos.map(ag => {
+              const dataInicio = new Date(ag.data_hora);
+              const minutosInicio = dataInicio.getHours() * 60 + dataInicio.getMinutes();
+              const minutosTermino = ag.horario_termino 
+                ? timeParaMinutos(ag.horario_termino) 
+                : minutosInicio + 30;
+
+              // Encontrar primeira coluna disponível
+              let colunaAlocada = 0;
+              for (let col = 0; col < NUM_COLUNAS; col++) {
+                // Coluna está livre se não existe ou se o último agendamento já terminou
+                if (!colunasOcupadas[col] || colunasOcupadas[col] <= minutosInicio) {
+                  colunaAlocada = col;
+                  colunasOcupadas[col] = minutosTermino; // Ocupar até o término
+                  break;
+                }
+              }
+
+              return { ...ag, coluna: colunaAlocada };
+            });
+
+            // Formatar horário com início e término
+            const formatarHorarioAgendamento = (ag: Agendamento) => {
+              const dataInicio = new Date(ag.data_hora);
+              const horaInicio = dataInicio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+              
+              if (ag.horario_termino) {
+                const [h, m] = ag.horario_termino.split(':');
+                const horaTermino = `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+                return `${horaInicio} às ${horaTermino}`;
+              }
+              return horaInicio;
+            };
+
+            // Obter cor baseada no status
+            const getStatusColor = (status?: string) => {
+              switch(status) {
+                case 'confirmado': return '#10B981';
+                case 'em_atendimento': return '#F59E0B';
+                case 'concluido': return '#6B7280';
+                case 'cancelado': return '#EF4444';
+                case 'falta': return '#DC2626';
+                default: return '#7C3AED';
+              }
+            };
+
+            return horarios.map((horario) => {
+              const [horasSlot, minutosSlot] = horario.split(':').map(Number);
 
               // Buscar agendamentos que INICIAM neste horário
-              const agendamentosQueIniciam = agendamentos.filter(ag => {
+              const agendamentosQueIniciam = agendamentosComColuna.filter(ag => {
                 const dataInicio = new Date(ag.data_hora);
                 const horaInicio = dataInicio.getHours();
                 const minutoInicio = dataInicio.getMinutes();
                 return horasSlot === horaInicio && Math.abs(minutosSlot - minutoInicio) < 15;
               });
-
-              // Formatar horário com início e término
-              const formatarHorarioAgendamento = (ag: Agendamento) => {
-                const dataInicio = new Date(ag.data_hora);
-                const horaInicio = dataInicio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                
-                if (ag.horario_termino) {
-                  const [h, m] = ag.horario_termino.split(':');
-                  const horaTermino = `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
-                  return `${horaInicio} às ${horaTermino}`;
-                }
-                return horaInicio;
-              };
-
-              // Obter cor baseada no status
-              const getStatusColor = (status?: string) => {
-                switch(status) {
-                  case 'confirmado': return '#10B981';
-                  case 'em_atendimento': return '#F59E0B';
-                  case 'concluido': return '#6B7280';
-                  case 'cancelado': return '#EF4444';
-                  case 'falta': return '#DC2626';
-                  default: return '#7C3AED'; // agendado
-                }
-              };
 
               return (
                 <View key={horario} style={styles.timeSlotContainer}>
@@ -1269,9 +1366,9 @@ export default function AgendaScreen() {
                   {/* Cards de agendamento que INICIAM neste horário */}
                   {agendamentosQueIniciam.length > 0 && (
                     <View style={styles.cardsContainer}>
-                      {agendamentosQueIniciam.map((ag, index) => {
+                      {agendamentosQueIniciam.map((ag) => {
                         const alturaCard = calcularAlturaCard(ag);
-                        const leftPosition = 58 + (index * 188); // 58px (horário) + index * (180px card + 8px margin)
+                        const leftPosition = 58 + (ag.coluna * 188); // Usa a coluna alocada
                         
                         return (
                           <TouchableOpacity 
@@ -1318,8 +1415,8 @@ export default function AgendaScreen() {
                   )}
                 </View>
               );
-            })
-          )
+            });
+          })()
         )}
       </ScrollView>
 
@@ -1676,40 +1773,31 @@ export default function AgendaScreen() {
         onRequestClose={() => setShowAgendamentosModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {agendamentosDoHorarioSelecionado.length > 1 
-                  ? `${agendamentosDoHorarioSelecionado.length} Agendamentos às ${horarioSelecionado}`
-                  : `Agendamento às ${horarioSelecionado}`
-                }
-              </Text>
-              <TouchableOpacity 
-                onPress={() => setShowAgendamentosModal(false)}
-                style={styles.closeButton}
-              >
-                <Ionicons name="close" size={24} color="#666" />
-              </TouchableOpacity>
-            </View>
-            
-            <FlatList
-              data={agendamentosDoHorarioSelecionado}
-              keyExtractor={(item) => item.id}
-              renderItem={({item, index}) => {
+          <View style={styles.modalContentDetalhes}>
+            {/* Botão fechar no topo direito */}
+            <TouchableOpacity 
+              onPress={() => setShowAgendamentosModal(false)}
+              style={styles.closeButtonTopRight}
+            >
+              <Ionicons name="close" size={28} color="#333" />
+            </TouchableOpacity>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {agendamentosDoHorarioSelecionado.map((item, index) => {
                 const getStatusInfo = (status?: string) => {
                   switch(status) {
                     case 'confirmado':
-                      return { label: 'Confirmado', icon: 'checkmark-circle', color: '#10B981' };
+                      return { label: 'CONFIRMADO', icon: 'checkmark-circle', color: '#10B981' };
                     case 'em_atendimento':
-                      return { label: 'Em Atendimento', icon: 'person', color: '#F59E0B' };
+                      return { label: 'EM ATENDIMENTO', icon: 'person', color: '#F59E0B' };
                     case 'concluido':
-                      return { label: 'Concluído', icon: 'checkmark-done', color: '#6B7280' };
+                      return { label: 'FINALIZADO', icon: 'checkmark-done', color: '#6B7280' };
                     case 'cancelado':
-                      return { label: 'Cancelado', icon: 'close-circle', color: '#EF4444' };
+                      return { label: 'CANCELADO', icon: 'close-circle', color: '#EF4444' };
                     case 'falta':
-                      return { label: 'Falta', icon: 'alert-circle', color: '#DC2626' };
+                      return { label: 'FALTA', icon: 'alert-circle', color: '#DC2626' };
                     default:
-                      return { label: 'Agendado', icon: 'calendar', color: '#7C3AED' };
+                      return { label: 'AGENDADO', icon: 'calendar', color: '#7C3AED' };
                   }
                 };
 
@@ -1719,118 +1807,197 @@ export default function AgendaScreen() {
                 let horarioCompleto = horaInicio;
                 
                 if (item.horario_termino) {
-                  const dataTermino = new Date(item.horario_termino);
-                  const horaTermino = dataTermino.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                  horarioCompleto = `${horaInicio} - ${horaTermino}`;
+                  const [h, m] = item.horario_termino.split(':');
+                  const horaTermino = `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+                  horarioCompleto = `${horaInicio} às ${horaTermino}`;
                 }
 
+                const dataFormatada = dataInicio.toLocaleDateString('pt-BR', { 
+                  weekday: 'short', 
+                  day: '2-digit', 
+                  month: '2-digit', 
+                  year: 'numeric' 
+                });
+
                 return (
-                  <View style={styles.agendamentoModalItem}>
-                    <View style={styles.agendamentoModalHeader}>
-                      <View style={styles.agendamentoModalHeaderLeft}>
-                        <Text style={styles.agendamentoModalCliente}>{item.cliente}</Text>
-                        {agendamentosDoHorarioSelecionado.length > 1 && (
-                          <Text style={styles.agendamentoModalNumero}>
-                            {index + 1}/{agendamentosDoHorarioSelecionado.length}
+                  <View key={item.id} style={styles.detalhesCard}>
+                    {/* Header com foto do cliente */}
+                    <View style={styles.detalhesHeader}>
+                      <View style={styles.detalhesAvatarContainer}>
+                        {item.cliente_foto ? (
+                          <Image 
+                            source={{ uri: item.cliente_foto }} 
+                            style={styles.detalhesAvatar}
+                            onError={() => console.log('Erro ao carregar imagem:', item.cliente_foto)}
+                            onLoad={() => console.log('Imagem carregada:', item.cliente_foto)}
+                          />
+                        ) : (
+                          <View style={styles.detalhesAvatarPlaceholder}>
+                            <Ionicons name="person" size={40} color="#7C3AED" />
+                          </View>
+                        )}
+                      </View>
+                      <View style={styles.detalhesClienteInfo}>
+                        <Text style={styles.detalhesClienteNome}>{item.cliente}</Text>
+                        <Text style={styles.detalhesSaldo}>
+                          Saldo na casa: <Text style={styles.detalhesSaldoValor}>R$75,00</Text>
+                        </Text>
+                        {item.cliente_telefone && (
+                          <Text style={styles.detalhesTelefone}>
+                            {item.cliente_telefone}
                           </Text>
                         )}
                       </View>
-                      <View style={[styles.statusBadgeModal, { backgroundColor: statusInfo.color + '20' }]}>
-                        <Ionicons name={statusInfo.icon as any} size={14} color={statusInfo.color} />
-                        <Text style={[styles.statusBadgeModalText, { color: statusInfo.color }]}>
-                          {statusInfo.label}
-                        </Text>
-                      </View>
                     </View>
 
-                    <View style={styles.agendamentoModalInfoRow}>
-                      <Ionicons name="time-outline" size={16} color="#7C3AED" />
-                      <Text style={styles.agendamentoModalHorarioText}>{horarioCompleto}</Text>
+                    {/* Data, horário e serviços */}
+                    <View style={styles.detalhesInfo}>
+                      <Text style={styles.detalhesInfoLabel}>
+                        <Text style={styles.detalhesInfoBold}>Data:</Text> {dataFormatada} das{' '}
+                        <Text style={styles.detalhesInfoDestaque}>{horarioCompleto}</Text>
+                      </Text>
+                      <Text style={styles.detalhesInfoLabel}>
+                        <Text style={styles.detalhesInfoBold}>Serviços:</Text>{' '}
+                        {JSON.stringify(item.servicos)?.includes('nome')
+                          ? item.servicos.map((s: any) => s.nome).join(', ')
+                          : 'Não especificado'}
+                      </Text>
                     </View>
-                    
-                    <View style={styles.agendamentoModalServicos}>
-                      <View style={styles.agendamentoModalInfoRow}>
-                        <Ionicons name="cut-outline" size={16} color="#666" />
-                        <Text style={styles.agendamentoModalServicosLabel}>Serviços:</Text>
-                      </View>
-                      {JSON.stringify(item.servicos)?.includes('nome') ? (
-                        item.servicos.map((servico: any, i: number) => (
-                          <Text key={i} style={styles.agendamentoModalServicoItem}>
-                            • {servico.nome} {servico.preco ? `- R$ ${servico.preco.toFixed(2)}` : ''}
-                          </Text>
-                        ))
-                      ) : (
-                        <Text style={styles.agendamentoModalServicoItem}>
-                          • Serviço não especificado
-                        </Text>
-                      )}
-                    </View>
-                    
-                    {item.observacoes && (
-                      <View style={styles.agendamentoModalObservacoes}>
-                        <View style={styles.agendamentoModalInfoRow}>
-                          <Ionicons name="document-text-outline" size={16} color="#666" />
-                          <Text style={styles.agendamentoModalObservacoesLabel}>Observações:</Text>
-                        </View>
-                        <Text style={styles.agendamentoModalObservacoesText}>{item.observacoes}</Text>
-                      </View>
-                    )}
 
-                    {item.criar_comanda_automatica && (
-                      <View style={styles.agendamentoModalComandaInfo}>
-                        <Ionicons name="receipt-outline" size={14} color="#7C3AED" />
-                        <Text style={styles.agendamentoModalComandaText}>
-                          Comanda será criada automaticamente
-                        </Text>
-                      </View>
-                    )}
-                    
-                    <View style={styles.agendamentoModalFooter}>
-                      <View style={styles.statusActionsContainer}>
-                        {item.status === 'agendado' && (
-                          <TouchableOpacity 
-                            style={[styles.statusActionButton, { backgroundColor: '#10B98120' }]}
-                            onPress={() => atualizarStatus(item.id, 'confirmado')}
-                          >
-                            <Ionicons name="checkmark-circle" size={16} color="#10B981" />
-                            <Text style={[styles.statusActionText, { color: '#10B981' }]}>Confirmar</Text>
-                          </TouchableOpacity>
-                        )}
-                        {(item.status === 'agendado' || item.status === 'confirmado') && (
-                          <TouchableOpacity 
-                            style={[styles.statusActionButton, { backgroundColor: '#F59E0B20' }]}
-                            onPress={() => atualizarStatus(item.id, 'em_atendimento')}
-                          >
-                            <Ionicons name="person" size={16} color="#F59E0B" />
-                            <Text style={[styles.statusActionText, { color: '#F59E0B' }]}>Iniciar</Text>
-                          </TouchableOpacity>
-                        )}
-                        {item.status === 'em_atendimento' && (
-                          <TouchableOpacity 
-                            style={[styles.statusActionButton, { backgroundColor: '#6B728020' }]}
-                            onPress={() => atualizarStatus(item.id, 'concluido')}
-                          >
-                            <Ionicons name="checkmark-done" size={16} color="#6B7280" />
-                            <Text style={[styles.statusActionText, { color: '#6B7280' }]}>Concluir</Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                      
+                    {/* Alterar Status */}
+                    <Text style={styles.alterarStatusLabel}>Status do Agendamento</Text>
+                    <View style={styles.statusButtonsGrid}>
                       <TouchableOpacity
-                        style={styles.agendamentoDeleteButton}
-                        onPress={() => iniciarExclusao(item.id)}
-                        activeOpacity={0.6}
+                        style={[
+                          styles.statusButtonLarge,
+                          item.status === 'agendado' && styles.statusButtonActive
+                        ]}
+                        onPress={() => atualizarStatus(item.id, 'agendado')}
                       >
-                        <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                        <Ionicons 
+                          name="calendar-outline" 
+                          size={20} 
+                          color={item.status === 'agendado' ? '#7C3AED' : '#9CA3AF'} 
+                        />
+                        <Text style={[
+                          styles.statusButtonTextLarge,
+                          item.status === 'agendado' && styles.statusButtonTextActive
+                        ]}>
+                          Agendado
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.statusButtonLarge,
+                          item.status === 'confirmado' && styles.statusButtonActive
+                        ]}
+                        onPress={() => atualizarStatus(item.id, 'confirmado')}
+                      >
+                        <Ionicons 
+                          name="checkmark-circle-outline" 
+                          size={20} 
+                          color={item.status === 'confirmado' ? '#10B981' : '#9CA3AF'} 
+                        />
+                        <Text style={[
+                          styles.statusButtonTextLarge,
+                          item.status === 'confirmado' && styles.statusButtonTextActive
+                        ]}>
+                          Confirmado
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.statusButtonLarge,
+                          item.status === 'cancelado' && styles.statusButtonActive
+                        ]}
+                        onPress={() => atualizarStatus(item.id, 'cancelado')}
+                      >
+                        <Ionicons 
+                          name="close-circle-outline" 
+                          size={20} 
+                          color={item.status === 'cancelado' ? '#EF4444' : '#9CA3AF'} 
+                        />
+                        <Text style={[
+                          styles.statusButtonTextLarge,
+                          item.status === 'cancelado' && styles.statusButtonTextActive
+                        ]}>
+                          Cancelado
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.statusButtonLarge,
+                          item.status === 'concluido' && styles.statusButtonActive
+                        ]}
+                        onPress={() => atualizarStatus(item.id, 'concluido')}
+                      >
+                        <Ionicons 
+                          name="checkmark-done-outline" 
+                          size={20} 
+                          color={item.status === 'concluido' ? '#6B7280' : '#9CA3AF'} 
+                        />
+                        <Text style={[
+                          styles.statusButtonTextLarge,
+                          item.status === 'concluido' && styles.statusButtonTextActive
+                        ]}>
+                          Finalizado
+                        </Text>
                       </TouchableOpacity>
                     </View>
+
+                    {/* Botões de ação na parte inferior */}
+                    <View style={styles.detalhesActionsGrid}>
+                      <TouchableOpacity 
+                        style={[styles.detalhesActionButton, { backgroundColor: '#FEE2E2' }]}
+                        onPress={() => iniciarExclusao(item.id)}
+                      >
+                        <Ionicons name="trash-outline" size={20} color="#DC2626" />
+                        <Text style={[styles.detalhesActionButtonText, { color: '#DC2626' }]}>
+                          Excluir
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity 
+                        style={[
+                          styles.detalhesActionButton, 
+                          { 
+                            backgroundColor: item.comanda_id ? '#DBEAFE' : '#F3F4F6',
+                            opacity: item.comanda_id ? 1 : 0.5
+                          }
+                        ]}
+                        onPress={() => {
+                          if (item.comanda_id) {
+                            // Navegar para ver comanda
+                            console.log('Ver comanda:', item.comanda_id);
+                          }
+                        }}
+                        disabled={!item.comanda_id}
+                      >
+                        <Ionicons 
+                          name="receipt-outline" 
+                          size={20} 
+                          color={item.comanda_id ? '#2563EB' : '#9CA3AF'} 
+                        />
+                        <Text style={[
+                          styles.detalhesActionButtonText, 
+                          { color: item.comanda_id ? '#2563EB' : '#9CA3AF' }
+                        ]}>
+                          Ver comanda
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Divider entre agendamentos se houver múltiplos */}
+                    {index < agendamentosDoHorarioSelecionado.length - 1 && (
+                      <View style={styles.detalhesCardDivider} />
+                    )}
                   </View>
                 );
-              }}
-              contentContainerStyle={styles.flatlistContent}
-              ItemSeparatorComponent={() => <View style={styles.agendamentoModalDivider} />}
-              showsVerticalScrollIndicator={true}
-            />
+              })}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -1843,35 +2010,38 @@ export default function AgendaScreen() {
         onRequestClose={() => setAgendamentoParaExcluir(null)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Confirmar Exclusão</Text>
-              <TouchableOpacity 
-                onPress={() => setAgendamentoParaExcluir(null)}
-                style={styles.closeButton}
-              >
-                <Ionicons name="close" size={24} color="#666" />
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.modalList}>
-              <Text style={styles.modalSubtitle}>Tem certeza que deseja excluir este agendamento?</Text>
-              
-              <View style={styles.confirmationButtonsContainer}>
-                <TouchableOpacity 
-                  style={styles.deleteButton}
-                  onPress={() => confirmarExclusao()}
-                >
-                  <Text style={styles.deleteButtonText}>Sim, excluir</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles.cancelarButton}
-                  onPress={() => cancelarExclusao()}
-                >
-                  <Text style={styles.cancelarButtonText}>Cancelar</Text>
-                </TouchableOpacity>
+          <View style={styles.modalContentExclusao}>
+            {/* Ícone de alerta */}
+            <View style={styles.iconAlertContainer}>
+              <View style={styles.iconAlertCircle}>
+                <Ionicons name="alert-circle" size={48} color="#DC2626" />
               </View>
+            </View>
+
+            {/* Título */}
+            <Text style={styles.modalTitleExclusao}>Confirmar Exclusão</Text>
+            
+            {/* Mensagem */}
+            <Text style={styles.modalMessageExclusao}>
+              Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.
+            </Text>
+            
+            {/* Botões */}
+            <View style={styles.confirmationButtonsContainer}>
+              <TouchableOpacity 
+                style={styles.cancelButtonExclusao}
+                onPress={() => cancelarExclusao()}
+              >
+                <Text style={styles.cancelButtonTextExclusao}>Cancelar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.deleteButtonExclusao}
+                onPress={() => confirmarExclusao()}
+              >
+                <Ionicons name="trash-outline" size={20} color="#fff" style={{ marginRight: 6 }} />
+                <Text style={styles.deleteButtonTextExclusao}>Excluir</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -2186,6 +2356,181 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     flexDirection: 'column',
     overflow: 'hidden',
+  },
+  modalContentDetalhes: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    width: '95%',
+    maxHeight: '95%',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    padding: 20,
+    paddingTop: 50,
+  },
+  closeButtonTopRight: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    zIndex: 10,
+    padding: 5,
+  },
+  detalhesCard: {
+    marginBottom: 20,
+  },
+  detalhesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  detalhesAvatarContainer: {
+    marginRight: 12,
+  },
+  detalhesAvatar: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+  },
+  detalhesAvatarPlaceholder: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#F3E8FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  detalhesClienteInfo: {
+    flex: 1,
+  },
+  detalhesClienteNome: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 4,
+  },
+  detalhesSaldo: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 2,
+  },
+  detalhesSaldoValor: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#10B981',
+  },
+  detalhesTelefone: {
+    fontSize: 13,
+    color: '#666',
+  },
+  detalhesIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  detalhesInfo: {
+    backgroundColor: '#F9FAFB',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  detalhesInfoLabel: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 4,
+    lineHeight: 20,
+  },
+  detalhesInfoBold: {
+    fontWeight: 'bold',
+  },
+  detalhesInfoDestaque: {
+    color: '#2563EB',
+    fontWeight: '600',
+  },
+  whatsappButton: {
+    flexDirection: 'row',
+    backgroundColor: '#25D366',
+    padding: 14,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  whatsappButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  alterarStatusLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 16,
+    letterSpacing: 0.3,
+  },
+  statusButtonsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 20,
+  },
+  statusButtonLarge: {
+    width: '48%',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FAFAFA',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statusButtonActive: {
+    borderColor: '#7C3AED',
+    backgroundColor: '#F5F3FF',
+  },
+  statusButtonTextLarge: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  statusButtonTextActive: {
+    color: '#374151',
+    fontWeight: '600',
+  },
+  detalhesActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  detalhesActionButton: {
+    width: '48%',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  detalhesActionButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  detalhesCardDivider: {
+    height: 2,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 30,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -2717,8 +3062,80 @@ const styles = StyleSheet.create({
   },
   confirmationButtonsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 16,
+    gap: 12,
+    marginTop: 24,
+  },
+  modalContentExclusao: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 32,
+    width: '90%',
+    maxWidth: 400,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  iconAlertContainer: {
+    marginBottom: 20,
+  },
+  iconAlertCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalTitleExclusao: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  modalMessageExclusao: {
+    fontSize: 15,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 8,
+  },
+  cancelButtonExclusao: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  cancelButtonTextExclusao: {
+    color: '#6B7280',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  deleteButtonExclusao: {
+    flex: 1,
+    backgroundColor: '#DC2626',
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  deleteButtonTextExclusao: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   deleteButton: {
     backgroundColor: '#C62828',

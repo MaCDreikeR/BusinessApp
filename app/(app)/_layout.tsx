@@ -15,6 +15,8 @@ import { supabase } from '../../lib/supabase';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMemo } from 'react';
+import AgendamentoNotificacao from '../components/AgendamentoNotificacao';
+import { useAgendamentoNotificacao } from '../../hooks/useAgendamentoNotificacao';
 
 // Função para calcular largura responsiva do drawer
 const getDrawerWidth = (): number | `${number}%` => {
@@ -56,6 +58,14 @@ export default function AppLayout() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const { permissions } = usePermissions();
   const { role } = useAuth();
+  
+  // Hook de notificação de agendamento
+  const { 
+    agendamentoAtivo, 
+    mostrarNotificacao, 
+    ocultarNotificacao, 
+    resetarNotificacao 
+  } = useAgendamentoNotificacao();
 
   // Estado para controlar se o drawer deve ser permanente
   const [isPermanentDrawer, setIsPermanentDrawer] = useState(false);
@@ -288,6 +298,7 @@ export default function AppLayout() {
   console.log('🎨 Drawer permanente?', isPermanentDrawer);
 
   return (
+    <>
     <Drawer
       screenOptions={{
         headerStyle: {
@@ -783,6 +794,22 @@ export default function AppLayout() {
         }}
       />
     </Drawer>
+    
+    {/* Notificação de agendamento sobreposta */}
+    {agendamentoAtivo && (
+      <AgendamentoNotificacao
+        visible={mostrarNotificacao}
+        cliente={agendamentoAtivo.cliente}
+        servico={agendamentoAtivo.servico}
+        horario={agendamentoAtivo.horario}
+        onOcultar={ocultarNotificacao}
+        onVerAgendamento={() => {
+          resetarNotificacao();
+          router.push('/agenda');
+        }}
+      />
+    )}
+  </>
   );
 }
 

@@ -98,8 +98,13 @@ export default function HomeScreen() {
         supabase.from('comandas_itens').select(`preco_total, comandas!inner(status, estabelecimento_id, finalized_at)`).eq('comandas.estabelecimento_id', estabelecimentoId).eq('comandas.status', 'fechada').gte('comandas.finalized_at', inicioHoje.toISOString()).lte('comandas.finalized_at', fimHoje.toISOString()),
         // Carregar clientes ativos
         supabase.from('clientes').select('*', { count: 'exact', head: true }).eq('estabelecimento_id', estabelecimentoId),
-        // Carregar próximos agendamentos - usando RPC para contornar problemas de policy
-        supabase.rpc('get_agendamentos_com_usuarios', { p_estabelecimento_id: estabelecimentoId }),
+        // Carregar próximos agendamentos diretamente
+        supabase.from('agendamentos')
+          .select('id, cliente, data_hora, servicos, usuario_id, status')
+          .eq('estabelecimento_id', estabelecimentoId)
+          .gte('data_hora', new Date().toISOString())
+          .order('data_hora', { ascending: true })
+          .limit(5),
         // Carregar vendas recentes - COMANDAS FECHADAS COM VALOR_TOTAL
         supabase.from('comandas').select('id, cliente_nome, valor_total, finalized_at').eq('estabelecimento_id', estabelecimentoId).eq('status', 'fechada').order('finalized_at', { ascending: false }).limit(5),
       ]);
@@ -115,20 +120,37 @@ export default function HomeScreen() {
       if (proxError) {
         console.error('Erro próximos agendamentos:', proxError);
       } else if (proxAgendamentos) {
-        console.log('Agendamentos retornados via RPC:', proxAgendamentos);
-        console.log('Dados completos dos agendamentos:', JSON.stringify(proxAgendamentos, null, 2));
-        setProximosAgendamentos(proxAgendamentos.map((ag: any) => {
-          console.log('Processando agendamento:', ag.id, 'Usuario_id:', ag.usuario_id, 'Usuario_nome:', ag.usuario_nome);
-          
-          // Com RPC, usuario_nome já vem preenchido diretamente
-          return {
-            ...ag, 
-            cliente_nome: ag.cliente || 'Cliente não informado', 
-            servico: ag.servicos?.[0]?.nome || 'Serviço não especificado', 
-            horario: ag.data_hora,
-            usuario_nome: ag.usuario_nome // Já vem da RPC
-          };
-        }));
+        console.log('Próximos agendamentos carregados:', proxAgendamentos);
+        
+        // Buscar nomes dos usuários
+        const agendamentosComUsuarios = await Promise.all(
+          proxAgendamentos.map(async (ag: any) => {
+            let usuarioNome = 'Não atribuído';
+            
+            if (ag.usuario_id) {
+              const { data: userData } = await supabase
+                .from('usuarios')
+                .select('nome_completo')
+                .eq('id', ag.usuario_id)
+                .single();
+              
+              if (userData) {
+                usuarioNome = userData.nome_completo;
+              }
+            }
+            
+            return {
+              id: ag.id,
+              cliente_nome: ag.cliente || 'Cliente não informado',
+              servico: ag.servicos?.[0]?.nome || 'Serviço não especificado',
+              horario: ag.data_hora,
+              usuario_nome: usuarioNome,
+              status: ag.status
+            };
+          })
+        );
+        
+        setProximosAgendamentos(agendamentosComUsuarios);
       }
       if (vendasRecentesError) {
         console.error('Erro vendas recentes:', vendasRecentesError);
