@@ -89,7 +89,8 @@ interface Comanda {
   observacoes?: string;
   usuario_id?: string;
   usuario_nome?: string;
-  forma_pagamento?: 'dinheiro' | 'cartao_credito' | 'cartao_debito' | 'pix' | 'crediario';
+  forma_pagamento?: 'dinheiro' | 'cartao_credito' | 'cartao_debito' | 'pix' | 'crediario' | 'multiplo';
+  formas_pagamento_detalhes?: string; // JSON com array de { forma_pagamento, valor }
   valor_pago?: number;
   troco?: number;
   comprovante_pix?: string | null;
@@ -975,6 +976,7 @@ export default function ComandasScreen() {
     setObservacoes('');
     setMostrarListaClientes(false);
     setItensSelecionados([]);
+    setTipoItem(null); // Limpar seleção de tipo de item
     // O valorTotal será automaticamente calculado para 0 pelo useEffect
   };
   
@@ -1078,10 +1080,26 @@ export default function ComandasScreen() {
           finalized_by_user_id: user.id,
           finalized_by_user_nome: userData?.nome_completo,
           finalized_at: new Date().toISOString(),
-          forma_pagamento: pagamento.forma_pagamento,
-          valor_total: valorTotalPagamento,  // ATUALIZAR O VALOR TOTAL
-          valor_pago: pagamento.valor_pago,
-          troco: pagamento.troco,
+          forma_pagamento: formasPagamentoSelecionadas.length === 1 
+            ? formasPagamentoSelecionadas[0] 
+            : 'multiplo',
+          formas_pagamento_detalhes: formasPagamentoSelecionadas.length > 1 || formasPagamentoSelecionadas.includes('crediario')
+            ? JSON.stringify(
+                formasPagamentoSelecionadas.includes('crediario')
+                  ? [{ forma_pagamento: 'crediario', valor: valorTotalPagamento }]
+                  : pagamentosMultiplos.filter(p => p.valor > 0)
+              )
+            : null,
+          valor_total: valorTotalPagamento,
+          valor_pago: formasPagamentoSelecionadas.includes('crediario') 
+            ? 0 
+            : pagamentosMultiplos.reduce((sum, p) => sum + (p.valor || 0), 0),
+          troco: (() => {
+            if (formasPagamentoSelecionadas.includes('crediario')) return 0;
+            const totalPagamentos = pagamentosMultiplos.reduce((sum, p) => sum + (p.valor || 0), 0);
+            const diferenca = totalPagamentos - valorTotalPagamento;
+            return diferenca > 0 ? diferenca : 0;
+          })(),
           parcelas: pagamento.parcelas,
           comprovante_pix: null,
           saldo_aplicado: usarSaldoCrediario ? valorAplicadoSaldo : null
@@ -1107,7 +1125,7 @@ export default function ComandasScreen() {
       }
 
       // Se pagamento foi em Crediário, adicionar valor total como débito
-      if (pagamento.forma_pagamento === 'crediario' && comandaEmEdicao?.cliente_id) {
+      if (formasPagamentoSelecionadas.includes('crediario') && comandaEmEdicao?.cliente_id) {
         try {
           await supabase.from('crediario_movimentacoes').insert({
             cliente_id: comandaEmEdicao.cliente_id,
@@ -2703,33 +2721,63 @@ export default function ComandasScreen() {
                 {comandaEmEdicao.status === 'fechada' && (
                   <View style={styles.comandaPagamentoContainer}>
                     <Text style={styles.comandaPagamentoLabel}>Forma de Pagamento:</Text>
-                    <Text style={styles.comandaPagamentoValue}>
-                      {comandaEmEdicao.forma_pagamento === 'dinheiro' ? 'Dinheiro' :
-                       comandaEmEdicao.forma_pagamento === 'cartao_credito' ? 'Cartão de Crédito' :
-                       comandaEmEdicao.forma_pagamento === 'cartao_debito' ? 'Cartão de Débito' :
-                       comandaEmEdicao.forma_pagamento === 'pix' ? 'PIX' :
-                       comandaEmEdicao.forma_pagamento === 'crediario' ? 'Crediário' : ''}
-                    </Text>
-
-                    {/* Valor Pago - para Dinheiro, Débito e PIX */}
-                    {(comandaEmEdicao.forma_pagamento === 'dinheiro' || 
-                      comandaEmEdicao.forma_pagamento === 'cartao_debito' || 
-                      comandaEmEdicao.forma_pagamento === 'pix') && 
-                      comandaEmEdicao.valor_pago && (
-                      <Text style={styles.comandaValorPago}>
-                        Valor pago: {comandaEmEdicao.valor_pago.toLocaleString('pt-BR', {
-                          style: 'currency',
-                          currency: 'BRL',
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2
-                        })}
-                      </Text>
-                    )}
-
-                    {/* Parcelas - para Cartão de Crédito */}
-                    {comandaEmEdicao.forma_pagamento === 'cartao_credito' && comandaEmEdicao.parcelas && (
+                    
+                    {/* Verificar se há múltiplas formas de pagamento */}
+                    {comandaEmEdicao.forma_pagamento === 'multiplo' && comandaEmEdicao.formas_pagamento_detalhes ? (
+                      <View style={{ marginTop: 8 }}>
+                        {(() => {
+                          try {
+                            const formasPagamento = JSON.parse(comandaEmEdicao.formas_pagamento_detalhes);
+                            return formasPagamento.map((forma: any, index: number) => {
+                              const nomeForma = 
+                                forma.forma_pagamento === 'dinheiro' ? 'Dinheiro' :
+                                forma.forma_pagamento === 'cartao_credito' ? 'Cartão de Crédito' :
+                                forma.forma_pagamento === 'cartao_debito' ? 'Cartão de Débito' :
+                                forma.forma_pagamento === 'pix' ? 'PIX' :
+                                'Crediário';
+                              
+                              return (
+                                <View key={index} style={{ 
+                                  flexDirection: 'row', 
+                                  justifyContent: 'space-between',
+                                  paddingVertical: 6,
+                                  borderBottomWidth: index < formasPagamento.length - 1 ? 1 : 0,
+                                  borderBottomColor: '#E5E7EB'
+                                }}>
+                                  <Text style={[styles.comandaPagamentoValue, { fontWeight: '600' }]}>
+                                    {nomeForma}
+                                  </Text>
+                                  <Text style={[styles.comandaValorPago, { color: '#10B981', fontWeight: '700' }]}>
+                                    {forma.valor.toLocaleString('pt-BR', {
+                                      style: 'currency',
+                                      currency: 'BRL',
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2
+                                    })}
+                                  </Text>
+                                </View>
+                              );
+                            });
+                          } catch (e) {
+                            return <Text style={styles.comandaPagamentoValue}>Múltiplas formas</Text>;
+                          }
+                        })()}
+                      </View>
+                    ) : (
                       <>
-                        {comandaEmEdicao.valor_pago && (
+                        <Text style={styles.comandaPagamentoValue}>
+                          {comandaEmEdicao.forma_pagamento === 'dinheiro' ? 'Dinheiro' :
+                           comandaEmEdicao.forma_pagamento === 'cartao_credito' ? 'Cartão de Crédito' :
+                           comandaEmEdicao.forma_pagamento === 'cartao_debito' ? 'Cartão de Débito' :
+                           comandaEmEdicao.forma_pagamento === 'pix' ? 'PIX' :
+                           comandaEmEdicao.forma_pagamento === 'crediario' ? 'Crediário' : ''}
+                        </Text>
+
+                        {/* Valor Pago - para Dinheiro, Débito e PIX */}
+                        {(comandaEmEdicao.forma_pagamento === 'dinheiro' || 
+                          comandaEmEdicao.forma_pagamento === 'cartao_debito' || 
+                          comandaEmEdicao.forma_pagamento === 'pix') && 
+                          comandaEmEdicao.valor_pago && (
                           <Text style={styles.comandaValorPago}>
                             Valor pago: {comandaEmEdicao.valor_pago.toLocaleString('pt-BR', {
                               style: 'currency',
@@ -2739,14 +2787,30 @@ export default function ComandasScreen() {
                             })}
                           </Text>
                         )}
-                        <Text style={styles.comandaParcelas}>
-                          {comandaEmEdicao.parcelas}x de {((comandaEmEdicao.valor_pago || comandaEmEdicao.valor_total) / comandaEmEdicao.parcelas).toLocaleString('pt-BR', {
-                            style: 'currency',
-                            currency: 'BRL',
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2
-                          })}
-                        </Text>
+
+                        {/* Parcelas - para Cartão de Crédito */}
+                        {comandaEmEdicao.forma_pagamento === 'cartao_credito' && comandaEmEdicao.parcelas && (
+                          <>
+                            {comandaEmEdicao.valor_pago && (
+                              <Text style={styles.comandaValorPago}>
+                                Valor pago: {comandaEmEdicao.valor_pago.toLocaleString('pt-BR', {
+                                  style: 'currency',
+                                  currency: 'BRL',
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2
+                                })}
+                              </Text>
+                            )}
+                            <Text style={styles.comandaParcelas}>
+                              {comandaEmEdicao.parcelas}x de {((comandaEmEdicao.valor_pago || comandaEmEdicao.valor_total) / comandaEmEdicao.parcelas).toLocaleString('pt-BR', {
+                                style: 'currency',
+                                currency: 'BRL',
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                              })}
+                            </Text>
+                          </>
+                        )}
                       </>
                     )}
 

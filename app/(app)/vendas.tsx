@@ -287,6 +287,37 @@ const VendasScreen = () => {
 
       comandas?.forEach((comanda: any) => {
         const formaPagamento = comanda.forma_pagamento;
+        
+        // Se for pagamento múltiplo, processar cada forma separadamente
+        if (formaPagamento === 'multiplo' && comanda.formas_pagamento_detalhes) {
+          try {
+            const formasPagamento = JSON.parse(comanda.formas_pagamento_detalhes);
+            formasPagamento.forEach((formaPag: any) => {
+              const forma = formaPag.forma_pagamento;
+              if (!detalhes[forma]) return;
+              
+              detalhes[forma].quantidade++;
+              detalhes[forma].valor += formaPag.valor;
+              
+              detalhes[forma].comandas.push({
+                id: comanda.id,
+                cliente_nome: comanda.cliente_nome,
+                valor_total: formaPag.valor,
+                valor_pago: formaPag.valor,
+                parcelas: formaPag.parcelas,
+                saldo_aplicado: comanda.saldo_aplicado,
+                troco_para_credito: comanda.troco_para_credito,
+                falta_para_debito: comanda.falta_para_debito,
+                multiplo: true
+              });
+            });
+          } catch (e) {
+            console.error('Erro ao processar pagamento múltiplo:', e);
+          }
+          return; // Pula o processamento normal
+        }
+        
+        // Processamento normal para pagamento único
         if (!formaPagamento || !detalhes[formaPagamento]) return;
 
         detalhes[formaPagamento].quantidade++;
