@@ -31,6 +31,8 @@ interface Cliente {
   nome: string;
   telefone?: string;
   email?: string;
+  foto_url?: string;
+  saldo_crediario?: number;
   estabelecimento_id: string;
   created_at?: string;
 }
@@ -79,6 +81,7 @@ interface Comanda {
   id: string;
   cliente_id: string;
   cliente_nome: string;
+  cliente_foto_url?: string;
   data_abertura: string;
   status: 'aberta' | 'fechada' | 'cancelada';
   valor_total: number;
@@ -107,6 +110,13 @@ interface Pagamento {
   troco: number;
   parcelas?: number; // Adicionando campo de parcelas
   comprovante_pix?: string; // Adicionando campo para URL do comprovante
+}
+
+interface PagamentoMultiplo {
+  forma_pagamento: 'dinheiro' | 'cartao_credito' | 'cartao_debito' | 'pix' | 'crediario';
+  valor: number;
+  parcelas?: number;
+  comprovante_pix?: string;
 }
 
 // Interface para parâmetros de rota
@@ -138,7 +148,7 @@ export default function ComandasScreen() {
   const [itensSelecionados, setItensSelecionados] = useState<ItemSelecionado[]>([]);
   const [valorTotal, setValorTotal] = useState(0);
   const [modalItensVisible, setModalItensVisible] = useState(false);
-  const [tipoItem, setTipoItem] = useState<'produto' | 'servico' | 'pacote' | 'pagamento'>('produto');
+  const [tipoItem, setTipoItem] = useState<'produto' | 'servico' | 'pacote' | 'pagamento' | null>(null);
   const [valorPagamento, setValorPagamento] = useState('');
   const [termoBusca, setTermoBusca] = useState('');
   const [itensEncontrados, setItensEncontrados] = useState<(Produto | Servico | Pacote)[]>([]);
@@ -149,6 +159,11 @@ export default function ComandasScreen() {
   const [modalNovaComandaVisible, setModalNovaComandaVisible] = useState(false);
   const [comandaEmEdicao, setComandaEmEdicao] = useState<Comanda | null>(null);
   const [modalPagamentoVisible, setModalPagamentoVisible] = useState(false);
+  
+  // Estados para múltiplas formas de pagamento
+  const [formasPagamentoSelecionadas, setFormasPagamentoSelecionadas] = useState<('dinheiro' | 'cartao_credito' | 'cartao_debito' | 'pix' | 'crediario')[]>([]);
+  const [pagamentosMultiplos, setPagamentosMultiplos] = useState<PagamentoMultiplo[]>([]);
+  
   const [pagamento, setPagamento] = useState<Pagamento>({
     forma_pagamento: 'dinheiro',
     valor_pago: 0,
@@ -160,6 +175,11 @@ export default function ComandasScreen() {
   const [saldoCrediario, setSaldoCrediario] = useState<number | null>(null);
   const [mostrarModalSaldo, setMostrarModalSaldo] = useState(false);
   const [usarSaldoCrediario, setUsarSaldoCrediario] = useState(false);
+  // Estados para edição de comanda aberta
+  const [editandoComanda, setEditandoComanda] = useState(false);
+  const [itensEditados, setItensEditados] = useState<ItemComanda[]>([]);
+  const [observacoesEditadas, setObservacoesEditadas] = useState('');
+  const [adicionandoItens, setAdicionandoItens] = useState(false);
   const [valorAplicadoSaldo, setValorAplicadoSaldo] = useState(0);
 
   // Dentro do componente, adicione:
@@ -281,7 +301,7 @@ export default function ComandasScreen() {
             duration: 300,
             useNativeDriver: true,
           }).start(() => {
-            setModalVisible(false);
+            fecharModal();
             translateY.setValue(500);
           });
         } else {
@@ -296,6 +316,14 @@ export default function ComandasScreen() {
       },
     })
   ).current;
+
+  // Função para fechar o modal e resetar estados de edição
+  const fecharModal = () => {
+    setModalVisible(false);
+    setEditandoComanda(false);
+    setItensEditados([]);
+    setObservacoesEditadas('');
+  };
 
   const panResponderNovaComanda = useRef(
     PanResponder.create({
@@ -498,6 +526,12 @@ export default function ComandasScreen() {
 
   // Função para selecionar um item
   const selecionarItem = (item: Produto | Servico | Pacote) => {
+    // Se está editando uma comanda, usa a função de adicionar item em edição
+    if (editandoComanda) {
+      adicionarItemEdicao(item);
+      return;
+    }
+
     // Verifica se o item já foi selecionado
     const itemJaSelecionado = itensSelecionados.find(i => i.id === item.id);
     
@@ -517,7 +551,7 @@ export default function ComandasScreen() {
         nome: item.nome,
         preco: preco,
         quantidade: 1,
-        tipo: tipoItem
+        tipo: tipoItem || 'produto'
       };
       
       if ('quantidade' in item) {
@@ -640,7 +674,7 @@ export default function ComandasScreen() {
         // Buscar nome do cliente
         const { data: cliente, error: clienteError } = await supabase
           .from('clientes')
-          .select('nome')
+          .select('nome, foto_url')
           .eq('id', comanda.cliente_id)
           .single();
 
@@ -655,6 +689,7 @@ export default function ComandasScreen() {
         return {
           ...comanda,
           cliente_nome: cliente?.nome || 'Cliente não encontrado',
+          cliente_foto_url: cliente?.foto_url,
           itens: itensFormatados
         };
       }));
@@ -763,6 +798,12 @@ export default function ComandasScreen() {
   const criarNovaComanda = async () => {
     if (!selectedCliente) {
       Alert.alert('Atenção', 'Selecione um cliente para criar a comanda.');
+      return;
+    }
+
+    // Validar se há pelo menos um item na comanda
+    if (!itensSelecionados || itensSelecionados.length === 0) {
+      Alert.alert('Atenção', 'Adicione pelo menos um item (produto, serviço ou pacote) antes de criar a comanda.');
       return;
     }
 
@@ -1086,10 +1127,32 @@ export default function ComandasScreen() {
       
       // Verificar se há troco ou falta e perguntar se deseja adicionar ao crediário
       // Não perguntar se pagamento foi em crediário
-      if (comandaEmEdicao?.cliente_id && (troco > 0 || falta > 0) && pagamento.forma_pagamento !== 'crediario') {
-        setValorTrocoFalta(troco > 0 ? troco : falta);
-        setTipoTrocoFalta(troco > 0 ? 'troco' : 'falta');
-        setModalTrocoFaltaVisible(true);
+      if (comandaEmEdicao?.cliente_id && pagamento.forma_pagamento !== 'crediario') {
+        // Calcular troco/falta com base no novo sistema
+        let trocoCalculado = 0;
+        let faltaCalculada = 0;
+        
+        if (formasPagamentoSelecionadas.includes('crediario')) {
+          // Se crediário está selecionado, não mostra modal de troco/falta
+          // pois o valor total já vai para o crediário
+        } else {
+          const totalPagamentos = pagamentosMultiplos.reduce((sum, p) => sum + (p.valor || 0), 0);
+          const totalComanda = comandaEmEdicao?.valor_total || 0;
+          const diferenca = totalPagamentos - totalComanda;
+          
+          if (diferenca > 0) {
+            trocoCalculado = diferenca;
+          } else if (diferenca < 0) {
+            faltaCalculada = Math.abs(diferenca);
+          }
+          
+          // Só mostra o modal se tiver troco ou falta
+          if (trocoCalculado > 0 || faltaCalculada > 0) {
+            setValorTrocoFalta(trocoCalculado > 0 ? trocoCalculado : faltaCalculada);
+            setTipoTrocoFalta(trocoCalculado > 0 ? 'troco' : 'falta');
+            setModalTrocoFaltaVisible(true);
+          }
+        }
       }
     } catch (error: any) {
       console.error('Erro ao fechar comanda:', error);
@@ -1125,11 +1188,136 @@ export default function ComandasScreen() {
       if (error) throw error;
 
       await carregarComandas();
-      setModalVisible(false);
+      fecharModal();
     } catch (error) {
       console.error('Erro ao cancelar comanda:', error);
       Alert.alert('Erro', 'Não foi possível cancelar a comanda');
     }
+  };
+
+  // Função para atualizar itens de uma comanda aberta
+  const atualizarComandaAberta = async () => {
+    try {
+      if (!comandaEmEdicao) return;
+
+      // Deletar itens removidos
+      const itensAtuaisIds = itensEditados.map(item => item.id);
+      const itensOriginaisIds = comandaEmEdicao.itens.map(item => item.id);
+      const itensParaRemover = itensOriginaisIds.filter(id => !itensAtuaisIds.includes(id));
+
+      if (itensParaRemover.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('comandas_itens')
+          .delete()
+          .in('id', itensParaRemover);
+
+        if (deleteError) throw deleteError;
+      }
+
+      // Atualizar quantidades dos itens existentes e inserir novos
+      for (const item of itensEditados) {
+        // Verifica se é um item existente (não começa com "temp_")
+        if (itensOriginaisIds.includes(item.id)) {
+          // Atualizar item existente
+          const { error: updateError } = await supabase
+            .from('comandas_itens')
+            .update({ 
+              quantidade: item.quantidade,
+              preco_total: (item.preco || item.preco_unitario || 0) * item.quantidade
+            })
+            .eq('id', item.id);
+
+          if (updateError) throw updateError;
+        } else {
+          // Inserir novo item (ID começa com "temp_")
+          const { error: insertError } = await supabase
+            .from('comandas_itens')
+            .insert({
+              comanda_id: comandaEmEdicao.id,
+              nome: item.nome,
+              tipo: item.tipo,
+              preco: item.preco || item.preco_unitario,
+              preco_unitario: item.preco || item.preco_unitario,
+              preco_total: (item.preco || item.preco_unitario || 0) * item.quantidade,
+              quantidade: item.quantidade,
+              item_id: item.item_id,
+              estabelecimento_id: estabelecimentoId
+            });
+
+          if (insertError) throw insertError;
+        }
+      }
+
+      // Recalcular valor total
+      const novoValorTotal = itensEditados.reduce((total, item) => {
+        return total + ((item.preco || item.preco_unitario || 0) * item.quantidade);
+      }, 0);
+
+      const { error: updateComandaError } = await supabase
+        .from('comandas')
+        .update({ 
+          valor_total: novoValorTotal,
+          observacoes: observacoesEditadas || null
+        })
+        .eq('id', comandaEmEdicao.id);
+
+      if (updateComandaError) throw updateComandaError;
+
+      // Recarregar comandas para atualizar a lista
+      await carregarComandas();
+      
+      // Atualizar o objeto comandaEmEdicao com os novos valores
+      const comandaAtualizada = {
+        ...comandaEmEdicao,
+        itens: itensEditados,
+        valor_total: novoValorTotal,
+        observacoes: observacoesEditadas || undefined
+      };
+      
+      setComandaEmEdicao(comandaAtualizada as Comanda);
+      setEditandoComanda(false);
+      
+      Alert.alert('Sucesso', 'Comanda atualizada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao atualizar comanda:', error);
+      Alert.alert('Erro', 'Não foi possível atualizar a comanda');
+    }
+  };
+
+  // Função para adicionar item à comanda em edição
+  const adicionarItemEdicao = (item: Produto | Servico | Pacote) => {
+    // Verificar se já existe item com mesmo ID
+    const itemExistente = itensEditados.find(i => i.item_id === item.id);
+    
+    if (itemExistente) {
+      // Se já existe, aumenta a quantidade
+      const novosItens = itensEditados.map(i => 
+        i.item_id === item.id
+          ? { ...i, quantidade: i.quantidade + 1, preco_total: (i.preco || i.preco_unitario || 0) * (i.quantidade + 1) }
+          : i
+      );
+      setItensEditados(novosItens);
+    } else {
+      // Se não existe, adiciona como novo item
+      const preco = tipoItem === 'pacote' 
+        ? Number((item as Pacote).valor) - Number((item as Pacote).desconto || 0) 
+        : ('valor' in item ? Number(item.valor) : Number((item as Produto | Servico).preco));
+      
+      const novoItem: ItemComanda = {
+        id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        nome: item.nome,
+        tipo: (tipoItem === 'pagamento' ? 'produto' : tipoItem) as 'produto' | 'servico' | 'pacote',
+        preco: preco,
+        preco_unitario: preco,
+        quantidade: 1,
+        preco_total: preco,
+        item_id: item.id,
+      };
+      
+      setItensEditados([...itensEditados, novoItem]);
+    }
+    
+    fecharModalItens();
   };
 
   // Função para excluir uma comanda
@@ -1236,7 +1424,7 @@ export default function ComandasScreen() {
 
       const { data, error } = await supabase
         .from('clientes')
-        .select('*')
+        .select('id, nome, telefone, email, foto_url, saldo_crediario, estabelecimento_id, created_at')
         .eq('estabelecimento_id', estabelecimentoId)
         .order('nome')
         .limit(10);
@@ -1258,7 +1446,7 @@ export default function ComandasScreen() {
 
       const { data, error } = await supabase
         .from('clientes')
-        .select('*')
+        .select('id, nome, telefone, email, foto_url, saldo_crediario, estabelecimento_id, created_at')
         .eq('estabelecimento_id', estabelecimentoId)
         .order('nome');
 
@@ -1282,9 +1470,25 @@ export default function ComandasScreen() {
         onPress={() => abrirComanda(item)}
       >
         <View style={styles.comandaCardHeader}>
-          <Text style={styles.comandaCardCliente}>{item.cliente_nome}</Text>
-          <Text style={styles.comandaCardData}>
-            Data: {format(new Date(item.data_abertura), "dd/MM/yyyy 'às' HH:mm")}{'\n'}
+          <View style={styles.comandaCardClienteContainer}>
+            {item.cliente_foto_url ? (
+              <Image 
+                source={{ uri: item.cliente_foto_url }} 
+                style={styles.comandaCardFoto}
+              />
+            ) : (
+              <View style={styles.comandaCardFotoPlaceholder}>
+                <Ionicons name="person" size={18} color="#7C3AED" />
+              </View>
+            )}
+            <View style={styles.comandaCardClienteInfo}>
+              <Text style={styles.comandaCardCliente}>{item.cliente_nome}</Text>
+              <Text style={styles.comandaCardData}>
+                {format(new Date(item.data_abertura), "dd/MM/yyyy 'às' HH:mm")}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.comandaCardDetails}>
             Criado por: {item.created_by_user_nome}{'\n'}
             {(item.status === 'fechada' || item.status === 'cancelada') && item.finalized_by_user_nome && (
               `Finalizado por: ${item.finalized_by_user_nome}${'\n'}`
@@ -1376,6 +1580,11 @@ export default function ComandasScreen() {
   const abrirModalPagamento = (comanda: Comanda) => {
     setComandaEmEdicao(comanda);
     setValorTotalPagamento(comanda.valor_total);
+    
+    // Resetar estados de múltiplos pagamentos
+    setFormasPagamentoSelecionadas([]);
+    setPagamentosMultiplos([]);
+    
     setPagamento({
       forma_pagamento: 'dinheiro',
       valor_pago: comanda.valor_total,
@@ -1400,6 +1609,52 @@ export default function ComandasScreen() {
     } else {
       setModalPagamentoVisible(true);
     }
+  };
+
+  // Função para toggle de forma de pagamento (múltipla seleção)
+  const toggleFormaPagamento = (forma: 'dinheiro' | 'cartao_credito' | 'cartao_debito' | 'pix' | 'crediario') => {
+    setFormasPagamentoSelecionadas(prev => {
+      // Se selecionar crediário, limpa todas as outras
+      if (forma === 'crediario') {
+        if (prev.includes('crediario')) {
+          // Remove crediário e limpa pagamentos
+          setPagamentosMultiplos([]);
+          return [];
+        } else {
+          // Seleciona apenas crediário e limpa todos os pagamentos
+          setPagamentosMultiplos([]);
+          return ['crediario'];
+        }
+      }
+      
+      // Se já tem crediário selecionado e tenta selecionar outro, remove crediário e adiciona o novo
+      if (prev.includes('crediario')) {
+        setPagamentosMultiplos([{ forma_pagamento: forma, valor: 0 }]);
+        return [forma];
+      }
+      
+      // Toggle normal para outras formas
+      if (prev.includes(forma)) {
+        // Remove a forma
+        const novasFormas = prev.filter(f => f !== forma);
+        // Remove também o pagamento correspondente
+        setPagamentosMultiplos(pags => pags.filter(p => p.forma_pagamento !== forma));
+        return novasFormas;
+      } else {
+        // Adiciona a forma
+        const novasFormas = [...prev, forma];
+        // Adiciona um novo pagamento vazio para essa forma
+        setPagamentosMultiplos(pags => [...pags, { forma_pagamento: forma, valor: 0 }]);
+        return novasFormas;
+      }
+    });
+  };
+
+  // Função para atualizar valor de uma forma de pagamento específica
+  const atualizarValorPagamento = (forma: 'dinheiro' | 'cartao_credito' | 'cartao_debito' | 'pix' | 'crediario', valor: number) => {
+    setPagamentosMultiplos(prev => 
+      prev.map(p => p.forma_pagamento === forma ? { ...p, valor } : p)
+    );
   };
 
   // Função para calcular o troco
@@ -1775,7 +2030,18 @@ export default function ComandasScreen() {
               <View style={{marginBottom: 24}}>
                 <Text style={styles.sectionTitle}>Cliente</Text>
                 <View style={[styles.inputContainer, styles.clienteInput]}>
-                  <Ionicons name="person" size={20} color="#6B7280" style={{marginRight: 8}} />
+                  {selectedCliente && selectedCliente.foto_url ? (
+                    <Image 
+                      source={{ uri: selectedCliente.foto_url }} 
+                      style={styles.clienteFotoSelected}
+                    />
+                  ) : selectedCliente ? (
+                    <View style={styles.clienteFotoPlaceholderSelected}>
+                      <Ionicons name="person" size={16} color="#7C3AED" />
+                    </View>
+                  ) : (
+                    <Ionicons name="person" size={20} color="#6B7280" style={{marginRight: 8}} />
+                  )}
                   <TextInput
                     style={styles.input}
                     placeholder="Buscar cliente por nome..."
@@ -1838,10 +2104,22 @@ export default function ComandasScreen() {
                             style={styles.clienteItem}
                             onPress={() => selecionarCliente(item)}
                           >
-                            <Text style={styles.clienteItemNome}>{item.nome}</Text>
-                            {item.telefone && (
-                              <Text style={styles.clienteItemTelefone}>{item.telefone}</Text>
+                            {item.foto_url ? (
+                              <Image 
+                                source={{ uri: item.foto_url }} 
+                                style={styles.clienteFoto}
+                              />
+                            ) : (
+                              <View style={styles.clienteFotoPlaceholder}>
+                                <Ionicons name="person" size={20} color="#7C3AED" />
+                              </View>
                             )}
+                            <View style={styles.clienteInfo}>
+                              <Text style={styles.clienteItemNome}>{item.nome}</Text>
+                              {item.telefone && (
+                                <Text style={styles.clienteItemTelefone}>{item.telefone}</Text>
+                              )}
+                            </View>
                           </TouchableOpacity>
                         ))}
                       </ScrollView>
@@ -1951,6 +2229,25 @@ export default function ComandasScreen() {
                         tipoItem === 'pagamento' && styles.tipoItemButtonActive
                       ]}
                       onPress={() => {
+                        // Validação: cliente deve estar selecionado
+                        if (!selectedCliente) {
+                          Alert.alert('Atenção', 'Selecione um cliente primeiro antes de adicionar um pagamento.');
+                          return;
+                        }
+                        
+                        // Validação: cliente deve ter saldo negativo (débito)
+                        if (!selectedCliente.saldo_crediario || selectedCliente.saldo_crediario >= 0) {
+                          Alert.alert(
+                            'Atenção', 
+                            'Esse cliente não tem débito. O saldo atual é ' + 
+                            (selectedCliente.saldo_crediario 
+                              ? `R$ ${selectedCliente.saldo_crediario.toFixed(2)}` 
+                              : 'R$ 0,00') + 
+                            '. Por favor, verifique!'
+                          );
+                          return;
+                        }
+                        
                         setTipoItem('pagamento');
                         // Só adiciona se não houver pagamento já na lista
                         if (!itensSelecionados.some(item => item.tipo === 'pagamento')) {
@@ -2130,7 +2427,7 @@ export default function ComandasScreen() {
         visible={modalVisible}
         animationType="none"
         transparent={true}
-        onRequestClose={() => setModalVisible(false)}
+        onRequestClose={fecharModal}
       >
         <View style={styles.modalContainer}>
           <Animated.View 
@@ -2143,7 +2440,7 @@ export default function ComandasScreen() {
               <View style={styles.modalDragIndicator} />
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Detalhes da Comanda</Text>
-                <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <TouchableOpacity onPress={fecharModal}>
                   <Ionicons name="close" size={24} color="#111827" />
                 </TouchableOpacity>
               </View>
@@ -2158,24 +2455,36 @@ export default function ComandasScreen() {
                 keyboardShouldPersistTaps="handled"
               >
                 <View style={styles.comandaDetailHeader}>
-                  <View style={styles.comandaDetailInfo}>
-                    <Text style={styles.comandaDetailCliente}>{comandaEmEdicao.cliente_nome}</Text>
-                    <Text style={styles.comandaDetailData}>
-                      Data: {format(new Date(comandaEmEdicao.data_abertura), "dd/MM/yyyy 'às' HH:mm")}
-                    </Text>
-                    <Text style={styles.comandaDetailData}>
-                      Criado por: {comandaEmEdicao.created_by_user_nome}
-                    </Text>
-                    {(comandaEmEdicao.status === 'fechada' || comandaEmEdicao.status === 'cancelada') && comandaEmEdicao.finalized_by_user_nome && comandaEmEdicao.finalized_at && (
-                      <>
-                        <Text style={styles.comandaDetailFinalizadoPor}>
-                          Finalizado por: {comandaEmEdicao.finalized_by_user_nome}
-                        </Text>
-                        <Text style={styles.comandaDetailFinalizadoPor}>
-                          Em: {format(new Date(comandaEmEdicao.finalized_at), "dd/MM/yyyy 'às' HH:mm")}
-                        </Text>
-                      </>
+                  <View style={styles.comandaDetailClienteContainer}>
+                    {comandaEmEdicao.cliente_foto_url ? (
+                      <Image 
+                        source={{ uri: comandaEmEdicao.cliente_foto_url }} 
+                        style={styles.comandaDetailFoto}
+                      />
+                    ) : (
+                      <View style={styles.comandaDetailFotoPlaceholder}>
+                        <Ionicons name="person" size={24} color="#7C3AED" />
+                      </View>
                     )}
+                    <View style={styles.comandaDetailInfo}>
+                      <Text style={styles.comandaDetailCliente}>{comandaEmEdicao.cliente_nome}</Text>
+                      <Text style={styles.comandaDetailData}>
+                        Data: {format(new Date(comandaEmEdicao.data_abertura), "dd/MM/yyyy 'às' HH:mm")}
+                      </Text>
+                      <Text style={styles.comandaDetailData}>
+                        Criado por: {comandaEmEdicao.created_by_user_nome}
+                      </Text>
+                      {(comandaEmEdicao.status === 'fechada' || comandaEmEdicao.status === 'cancelada') && comandaEmEdicao.finalized_by_user_nome && comandaEmEdicao.finalized_at && (
+                        <>
+                          <Text style={styles.comandaDetailFinalizadoPor}>
+                            Finalizado por: {comandaEmEdicao.finalized_by_user_nome}
+                          </Text>
+                          <Text style={styles.comandaDetailFinalizadoPor}>
+                            Em: {format(new Date(comandaEmEdicao.finalized_at), "dd/MM/yyyy 'às' HH:mm")}
+                          </Text>
+                        </>
+                      )}
+                    </View>
                   </View>
                   <View style={styles.comandaDetailStatus}>
                     <View style={[
@@ -2193,10 +2502,36 @@ export default function ComandasScreen() {
                 </View>
                 
                 <View style={styles.comandaItensContainer}>
-                  <Text style={styles.comandaItensTitle}>Itens da Comanda</Text>
+                  <View style={styles.comandaItensTitleContainer}>
+                    <Text style={styles.comandaItensTitle}>Itens da Comanda</Text>
+                    {comandaEmEdicao.status === 'aberta' && !editandoComanda && (
+                      <TouchableOpacity 
+                        style={styles.editarItensButton}
+                        onPress={() => {
+                          setEditandoComanda(true);
+                          setItensEditados([...comandaEmEdicao.itens]);
+                          setObservacoesEditadas(comandaEmEdicao.observacoes || '');
+                        }}
+                      >
+                        <Ionicons name="create-outline" size={18} color="#7C3AED" />
+                        <Text style={styles.editarItensText}>Editar</Text>
+                      </TouchableOpacity>
+                    )}
+                    {comandaEmEdicao.status === 'aberta' && editandoComanda && (
+                      <TouchableOpacity 
+                        style={styles.salvarItensButton}
+                        onPress={async () => {
+                          await atualizarComandaAberta();
+                        }}
+                      >
+                        <Ionicons name="checkmark-circle-outline" size={18} color="#10B981" />
+                        <Text style={styles.salvarItensText}>Salvar</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                   
-                  {comandaEmEdicao.itens && comandaEmEdicao.itens.length > 0 ? (
-                    comandaEmEdicao.itens.map((item, index) => (
+                  {(editandoComanda ? itensEditados : comandaEmEdicao.itens) && (editandoComanda ? itensEditados : comandaEmEdicao.itens).length > 0 ? (
+                    (editandoComanda ? itensEditados : comandaEmEdicao.itens).map((item, index) => (
                       <View key={item.id || index} style={styles.comandaItemCard}>
                         <View style={styles.comandaItemInfo}>
                           <View style={styles.itemBadge}>
@@ -2208,24 +2543,75 @@ export default function ComandasScreen() {
                           </View>
                           <View style={styles.comandaItemDetails}>
                             <Text style={styles.comandaItemName}>{item.nome}</Text>
-                            <Text style={styles.comandaItemPrice}>
-                              {item.quantidade}x {((item.preco || item.preco_unitario || 0)).toLocaleString('pt-BR', {
-                                style: 'currency',
-                                currency: 'BRL',
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2
-                              })}
-                            </Text>
+                            {editandoComanda ? (
+                              <View style={styles.quantidadeControls}>
+                                <TouchableOpacity 
+                                  onPress={() => {
+                                    const novosItens = [...itensEditados];
+                                    if (novosItens[index].quantidade > 1) {
+                                      novosItens[index].quantidade -= 1;
+                                      novosItens[index].preco_total = (novosItens[index].preco || novosItens[index].preco_unitario || 0) * novosItens[index].quantidade;
+                                      setItensEditados(novosItens);
+                                    }
+                                  }}
+                                  style={styles.quantidadeButton}
+                                >
+                                  <Ionicons name="remove" size={16} color="#7C3AED" />
+                                </TouchableOpacity>
+                                <Text style={styles.quantidadeText}>{item.quantidade}</Text>
+                                <TouchableOpacity 
+                                  onPress={() => {
+                                    const novosItens = [...itensEditados];
+                                    novosItens[index].quantidade += 1;
+                                    novosItens[index].preco_total = (novosItens[index].preco || novosItens[index].preco_unitario || 0) * novosItens[index].quantidade;
+                                    setItensEditados(novosItens);
+                                  }}
+                                  style={styles.quantidadeButton}
+                                >
+                                  <Ionicons name="add" size={16} color="#7C3AED" />
+                                </TouchableOpacity>
+                                <Text style={styles.comandaItemPrice}>
+                                  x {((item.preco || item.preco_unitario || 0)).toLocaleString('pt-BR', {
+                                    style: 'currency',
+                                    currency: 'BRL',
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2
+                                  })}
+                                </Text>
+                              </View>
+                            ) : (
+                              <Text style={styles.comandaItemPrice}>
+                                {item.quantidade}x {((item.preco || item.preco_unitario || 0)).toLocaleString('pt-BR', {
+                                  style: 'currency',
+                                  currency: 'BRL',
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2
+                                })}
+                              </Text>
+                            )}
                           </View>
                         </View>
-                        <Text style={styles.comandaItemTotal}>
-                          {item.preco_total.toLocaleString('pt-BR', {
-                            style: 'currency',
-                            currency: 'BRL',
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2
-                          })}
-                        </Text>
+                        <View style={styles.comandaItemRight}>
+                          <Text style={styles.comandaItemTotal}>
+                            {((item.preco || item.preco_unitario || 0) * item.quantidade).toLocaleString('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL',
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2
+                            })}
+                          </Text>
+                          {editandoComanda && (
+                            <TouchableOpacity 
+                              onPress={() => {
+                                const novosItens = itensEditados.filter((_, i) => i !== index);
+                                setItensEditados(novosItens);
+                              }}
+                              style={styles.removerItemButton}
+                            >
+                              <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                            </TouchableOpacity>
+                          )}
+                        </View>
                       </View>
                     ))
                   ) : (
@@ -2233,20 +2619,78 @@ export default function ComandasScreen() {
                       <Text style={styles.itemsEmptyText}>Nenhum item encontrado</Text>
                     </View>
                   )}
+
+                  {editandoComanda && (
+                    <View style={styles.adicionarItensContainer}>
+                      <Text style={styles.adicionarItensTitle}>Adicionar Itens</Text>
+                      <View style={styles.tipoItemButtonsContainer}>
+                        <TouchableOpacity 
+                          style={styles.adicionarItemButton}
+                          onPress={() => {
+                            setTipoItem('produto');
+                            abrirModalItens('produto');
+                          }}
+                        >
+                          <Ionicons name="cube-outline" size={20} color="#7C3AED" />
+                          <Text style={styles.adicionarItemButtonText}>Produto</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                          style={styles.adicionarItemButton}
+                          onPress={() => {
+                            setTipoItem('servico');
+                            abrirModalItens('servico');
+                          }}
+                        >
+                          <Ionicons name="cut-outline" size={20} color="#7C3AED" />
+                          <Text style={styles.adicionarItemButtonText}>Serviço</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                          style={styles.adicionarItemButton}
+                          onPress={() => {
+                            setTipoItem('pacote');
+                            abrirModalItens('pacote');
+                          }}
+                        >
+                          <Ionicons name="gift-outline" size={20} color="#7C3AED" />
+                          <Text style={styles.adicionarItemButtonText}>Pacote</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
                 </View>
                 
-                {comandaEmEdicao.observacoes && (
-                  <View style={styles.comandaObservacoes}>
-                    <Text style={styles.comandaObservacoesTitle}>Observações:</Text>
-                    <Text style={styles.comandaObservacoesText}>{comandaEmEdicao.observacoes}</Text>
-                  </View>
-                )}
+                {/* Observações - Editável ou somente leitura */}
+                <View style={styles.comandaObservacoes}>
+                  <Text style={styles.comandaObservacoesTitle}>Observações:</Text>
+                  {editandoComanda ? (
+                    <TextInput
+                      style={styles.observacoesInput}
+                      placeholder="Adicione observações sobre a comanda..."
+                      value={observacoesEditadas}
+                      onChangeText={setObservacoesEditadas}
+                      multiline
+                      numberOfLines={3}
+                      textAlignVertical="top"
+                    />
+                  ) : (
+                    comandaEmEdicao.observacoes ? (
+                      <Text style={styles.comandaObservacoesText}>{comandaEmEdicao.observacoes}</Text>
+                    ) : (
+                      <Text style={styles.comandaObservacoesSemTexto}>Nenhuma observação</Text>
+                    )
+                  )}
+                </View>
                 
                 <View style={styles.comandaTotalContainer}>
                   <View style={styles.comandaTotalRow}>
                     <Text style={styles.comandaTotalLabel}>Total:</Text>
                     <Text style={styles.comandaTotalValue}>
-                      {(comandaEmEdicao.valor_total || 0).toLocaleString('pt-BR', {
+                      {(editandoComanda 
+                        ? itensEditados.reduce((total, item) => total + ((item.preco || item.preco_unitario || 0) * item.quantidade), 0)
+                        : comandaEmEdicao.valor_total || 0
+                      ).toLocaleString('pt-BR', {
                         style: 'currency',
                         currency: 'BRL',
                         minimumFractionDigits: 2,
@@ -2388,26 +2832,34 @@ export default function ComandasScreen() {
                 <TouchableOpacity 
                   style={styles.cancelarComandaButton}
                   onPress={() => {
-                    Alert.alert(
-                      'Cancelar Comanda',
-                      'Tem certeza que deseja cancelar esta comanda?',
-                      [
-                        { text: 'Não', style: 'cancel' },
-                        { 
-                          text: 'Sim, cancelar', 
-                          onPress: () => {
-                            if (comandaEmEdicao) {
-                              cancelarComanda(comandaEmEdicao.id);
-                            }
-                          },
-                          style: 'destructive'
-                        }
-                      ]
-                    );
+                    if (editandoComanda) {
+                      setEditandoComanda(false);
+                      setItensEditados([]);
+                      setObservacoesEditadas('');
+                    } else {
+                      Alert.alert(
+                        'Cancelar Comanda',
+                        'Tem certeza que deseja cancelar esta comanda?',
+                        [
+                          { text: 'Não', style: 'cancel' },
+                          { 
+                            text: 'Sim, cancelar', 
+                            onPress: () => {
+                              if (comandaEmEdicao) {
+                                cancelarComanda(comandaEmEdicao.id);
+                              }
+                            },
+                            style: 'destructive'
+                          }
+                        ]
+                      );
+                    }
                   }}
                 >
                   <Ionicons name="close-circle" size={20} color="#EF4444" />
-                  <Text style={styles.cancelarComandaText}>Cancelar</Text>
+                  <Text style={styles.cancelarComandaText}>
+                    {editandoComanda ? 'Cancelar Edição' : 'Cancelar'}
+                  </Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
@@ -2640,7 +3092,11 @@ export default function ComandasScreen() {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.modalBody}>
+            <ScrollView 
+              style={styles.modalBody}
+              contentContainerStyle={{ paddingBottom: 20 }}
+              showsVerticalScrollIndicator={true}
+            >
               {/* Indicador de Saldo Aplicado */}
               {usarSaldoCrediario && valorAplicadoSaldo !== 0 && (
                 <View style={{
@@ -2710,89 +3166,84 @@ export default function ComandasScreen() {
 
               <View style={styles.pagamentoForma}>
                 <Text style={styles.pagamentoLabel}>Forma de Pagamento:</Text>
+                <Text style={styles.pagamentoSubLabel}>Selecione uma ou mais opções (exceto Crediário com outras)</Text>
                 <View style={styles.pagamentoOpcoes}>
                   <TouchableOpacity
                     style={[
                       styles.pagamentoOpcao,
-                      pagamento.forma_pagamento === 'dinheiro' && styles.pagamentoOpcaoSelecionada
+                      formasPagamentoSelecionadas.includes('dinheiro') && styles.pagamentoOpcaoSelecionada
                     ]}
-                    onPress={() => setPagamento(prev => ({ ...prev, forma_pagamento: 'dinheiro' }))}
+                    onPress={() => toggleFormaPagamento('dinheiro')}
                   >
                     <Ionicons 
                       name="cash-outline" 
                       size={24} 
-                      color={pagamento.forma_pagamento === 'dinheiro' ? '#FFFFFF' : '#6B7280'} 
+                      color={formasPagamentoSelecionadas.includes('dinheiro') ? '#FFFFFF' : '#6B7280'} 
                     />
                     <Text style={[
                       styles.pagamentoOpcaoTexto,
-                      pagamento.forma_pagamento === 'dinheiro' && styles.pagamentoOpcaoTextoSelecionado
+                      formasPagamentoSelecionadas.includes('dinheiro') && styles.pagamentoOpcaoTextoSelecionado
                     ]}>Dinheiro</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     style={[
                       styles.pagamentoOpcao,
-                      pagamento.forma_pagamento === 'cartao_credito' && styles.pagamentoOpcaoSelecionada
+                      formasPagamentoSelecionadas.includes('cartao_credito') && styles.pagamentoOpcaoSelecionada
                     ]}
-                    onPress={() => {
-                      setPagamento(prev => ({
-                        ...prev,
-                        forma_pagamento: 'cartao_credito',
-                        parcelas: undefined
-                      }));
-                    }}
+                    onPress={() => toggleFormaPagamento('cartao_credito')}
                   >
                     <Ionicons 
                       name="card-outline" 
                       size={24} 
-                      color={pagamento.forma_pagamento === 'cartao_credito' ? '#FFFFFF' : '#6B7280'} 
+                      color={formasPagamentoSelecionadas.includes('cartao_credito') ? '#FFFFFF' : '#6B7280'} 
                     />
                     <Text style={[
                       styles.pagamentoOpcaoTexto,
-                      pagamento.forma_pagamento === 'cartao_credito' && styles.pagamentoOpcaoTextoSelecionado
+                      formasPagamentoSelecionadas.includes('cartao_credito') && styles.pagamentoOpcaoTextoSelecionado
                     ]}>Crédito</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     style={[
                       styles.pagamentoOpcao,
-                      pagamento.forma_pagamento === 'cartao_debito' && styles.pagamentoOpcaoSelecionada
+                      formasPagamentoSelecionadas.includes('cartao_debito') && styles.pagamentoOpcaoSelecionada
                     ]}
-                    onPress={() => setPagamento(prev => ({ ...prev, forma_pagamento: 'cartao_debito' }))}
+                    onPress={() => toggleFormaPagamento('cartao_debito')}
                   >
                     <Ionicons 
                       name="card-outline" 
                       size={24} 
-                      color={pagamento.forma_pagamento === 'cartao_debito' ? '#FFFFFF' : '#6B7280'} 
+                      color={formasPagamentoSelecionadas.includes('cartao_debito') ? '#FFFFFF' : '#6B7280'} 
                     />
                     <Text style={[
                       styles.pagamentoOpcaoTexto,
-                      pagamento.forma_pagamento === 'cartao_debito' && styles.pagamentoOpcaoTextoSelecionado
+                      formasPagamentoSelecionadas.includes('cartao_debito') && styles.pagamentoOpcaoTextoSelecionado
                     ]}>Débito</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     style={[
                       styles.pagamentoOpcao,
-                      pagamento.forma_pagamento === 'pix' && styles.pagamentoOpcaoSelecionada
+                      formasPagamentoSelecionadas.includes('pix') && styles.pagamentoOpcaoSelecionada
                     ]}
-                    onPress={() => setPagamento(prev => ({ ...prev, forma_pagamento: 'pix' }))}
+                    onPress={() => toggleFormaPagamento('pix')}
                   >
                     <Ionicons 
                       name="qr-code-outline" 
                       size={24} 
-                      color={pagamento.forma_pagamento === 'pix' ? '#FFFFFF' : '#6B7280'} 
+                      color={formasPagamentoSelecionadas.includes('pix') ? '#FFFFFF' : '#6B7280'} 
                     />
                     <Text style={[
                       styles.pagamentoOpcaoTexto,
-                      pagamento.forma_pagamento === 'pix' && styles.pagamentoOpcaoTextoSelecionado
+                      formasPagamentoSelecionadas.includes('pix') && styles.pagamentoOpcaoTextoSelecionado
                     ]}>PIX</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     style={[
                       styles.pagamentoOpcao,
-                      pagamento.forma_pagamento === 'crediario' && styles.pagamentoOpcaoSelecionada,
+                      formasPagamentoSelecionadas.includes('crediario') && styles.pagamentoOpcaoSelecionada,
                       // Desabilita se houver débito aplicado (saldo negativo usado)
                       usarSaldoCrediario && saldoCrediario !== null && saldoCrediario < 0 && { opacity: 0.5 }
                     ]}
@@ -2805,73 +3256,137 @@ export default function ComandasScreen() {
                         );
                         return;
                       }
-                      setPagamento(prev => ({ ...prev, forma_pagamento: 'crediario' }));
+                      toggleFormaPagamento('crediario');
                     }}
                     disabled={usarSaldoCrediario && saldoCrediario !== null && saldoCrediario < 0}
                   >
                     <Ionicons 
                       name="wallet-outline" 
                       size={24} 
-                      color={pagamento.forma_pagamento === 'crediario' ? '#FFFFFF' : '#6B7280'} 
+                      color={formasPagamentoSelecionadas.includes('crediario') ? '#FFFFFF' : '#6B7280'} 
                     />
                     <Text style={[
                       styles.pagamentoOpcaoTexto,
-                      pagamento.forma_pagamento === 'crediario' && styles.pagamentoOpcaoTextoSelecionado
+                      formasPagamentoSelecionadas.includes('crediario') && styles.pagamentoOpcaoTextoSelecionado
                     ]}>Crediário</Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
-              {(pagamento.forma_pagamento === 'dinheiro' || 
-                pagamento.forma_pagamento === 'cartao_debito' || 
-                pagamento.forma_pagamento === 'pix' ||
-                (pagamento.forma_pagamento === 'cartao_credito' && pagamento.parcelas)) && (
+              {formasPagamentoSelecionadas.length > 0 && !formasPagamentoSelecionadas.includes('crediario') && (
                 <View style={styles.pagamentoValorContainer}>
-                  <Text style={styles.pagamentoLabel}>Valor Recebido:</Text>
-                  <TextInput
-                    style={styles.pagamentoInput}
-                    keyboardType="numeric"
-                    value={valorRecebido}
-                    onChangeText={(text) => {
-                      // Remove caracteres não numéricos
-                      const valorLimpo = text.replace(/\D/g, '');
-                      
-                      // Formata o valor com R$ e centavos
-                      const valorFormatado = formatarValorBRL(valorLimpo);
-                      setValorRecebido(valorFormatado);
-                      
-                      // Calcula troco/falta
-                      calcularValores(valorFormatado);
-                    }}
-                    placeholder="R$ 0,00"
-                  />
+                  {formasPagamentoSelecionadas.filter(f => f !== 'crediario').map((forma) => {
+                    const nomeForma = 
+                      forma === 'dinheiro' ? 'Dinheiro' :
+                      forma === 'cartao_credito' ? 'Crédito' :
+                      forma === 'cartao_debito' ? 'Débito' :
+                      'PIX';
+                    
+                    const valorAtual = pagamentosMultiplos.find(p => p.forma_pagamento === forma)?.valor || 0;
+                    const valorFormatado = valorAtual > 0 ? 
+                      valorAtual.toLocaleString('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      }).replace('R$', '').trim() : '';
+                    
+                    return (
+                      <View key={forma} style={{ marginBottom: 16 }}>
+                        <Text style={styles.pagamentoLabel}>{nomeForma}:</Text>
+                        <TextInput
+                          style={styles.pagamentoInput}
+                          keyboardType="numeric"
+                          value={valorFormatado}
+                          onChangeText={(text) => {
+                            // Remove caracteres não numéricos
+                            const valorLimpo = text.replace(/\D/g, '');
+                            
+                            // Converte para número
+                            const valorNumerico = parseFloat(valorLimpo) / 100;
+                            
+                            // Atualiza o valor para esta forma de pagamento
+                            atualizarValorPagamento(forma, valorNumerico);
+                          }}
+                          placeholder="R$ 0,00"
+                        />
+                      </View>
+                    );
+                  })}
                   
-                  {troco > 0 && (
-                    <View style={styles.pagamentoInfoContainer}>
-                      <Text style={styles.pagamentoInfoLabel}>Troco:</Text>
-                      <Text style={styles.pagamentoInfoValor}>
-                        {troco.toLocaleString('pt-BR', {
-                          style: 'currency',
-                          currency: 'BRL',
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2
-                        })}
-                      </Text>
-                    </View>
-                  )}
-                  {falta > 0 && (
-                    <View style={[styles.pagamentoInfoContainer, styles.pagamentoFaltaContainer]}>
-                      <Text style={styles.pagamentoInfoLabel}>Falta:</Text>
-                      <Text style={styles.pagamentoInfoValor}>
-                        {falta.toLocaleString('pt-BR', {
-                          style: 'currency',
-                          currency: 'BRL',
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2
-                        })}
-                      </Text>
-                    </View>
-                  )}
+                  {(() => {
+                    const totalPagamentos = pagamentosMultiplos.reduce((sum, p) => sum + (p.valor || 0), 0);
+                    const totalComanda = comandaEmEdicao?.valor_total || 0;
+                    const diferenca = totalPagamentos - totalComanda;
+                    
+                    return (
+                      <>
+                        <View style={[styles.pagamentoInfoContainer, { backgroundColor: '#F3F4F6', padding: 12, borderRadius: 8 }]}>
+                          <Text style={[styles.pagamentoInfoLabel, { fontWeight: '600' }]}>Total Pagamentos:</Text>
+                          <Text style={[styles.pagamentoInfoValor, { fontWeight: '700' }]}>
+                            {totalPagamentos.toLocaleString('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL',
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2
+                            })}
+                          </Text>
+                        </View>
+                        
+                        {diferenca > 0 && (
+                          <View style={styles.pagamentoInfoContainer}>
+                            <Text style={styles.pagamentoInfoLabel}>Troco:</Text>
+                            <Text style={styles.pagamentoInfoValor}>
+                              {diferenca.toLocaleString('pt-BR', {
+                                style: 'currency',
+                                currency: 'BRL',
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                              })}
+                            </Text>
+                          </View>
+                        )}
+                        
+                        {diferenca < 0 && (
+                          <View style={[styles.pagamentoInfoContainer, styles.pagamentoFaltaContainer]}>
+                            <Text style={styles.pagamentoInfoLabel}>Falta:</Text>
+                            <Text style={styles.pagamentoInfoValor}>
+                              {Math.abs(diferenca).toLocaleString('pt-BR', {
+                                style: 'currency',
+                                currency: 'BRL',
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                              })}
+                            </Text>
+                          </View>
+                        )}
+                      </>
+                    );
+                  })()}
+                </View>
+              )}
+              
+              {formasPagamentoSelecionadas.includes('crediario') && (
+                <View style={{
+                  backgroundColor: '#FFF1F2',
+                  borderRadius: 12,
+                  padding: 16,
+                  marginTop: 16,
+                  borderWidth: 1,
+                  borderColor: '#EF4444',
+                }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                    <Ionicons name="card-outline" size={20} color="#EF4444" />
+                    <Text style={{ fontSize: 16, fontWeight: '600', color: '#EF4444', marginLeft: 8 }}>
+                      Pagamento no Crediário
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 14, color: '#6B7280', lineHeight: 20 }}>
+                    O valor total da comanda ({(comandaEmEdicao?.valor_total || 0).toLocaleString('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL'
+                    })}) será adicionado como débito no crediário do cliente.
+                  </Text>
                 </View>
               )}
               {pagamento.forma_pagamento === 'cartao_credito' && !pagamento.parcelas && (
@@ -2912,7 +3427,7 @@ export default function ComandasScreen() {
                   {/* Remover a renderização do comprovante PIX */}
                 </View>
               )}
-            </View>
+            </ScrollView>
 
             <View style={styles.modalFooter}>
               <TouchableOpacity 
@@ -2925,37 +3440,64 @@ export default function ComandasScreen() {
               <TouchableOpacity 
                 style={[
                   styles.modalConfirmButton,
-                  (
-                    (pagamento.forma_pagamento === 'dinheiro' && (!valorRecebido || valorRecebido.trim() === '')) ||
-                    (pagamento.forma_pagamento === 'cartao_debito' && (!valorRecebido || valorRecebido.trim() === '')) ||
-                    (pagamento.forma_pagamento === 'pix' && (!valorRecebido || valorRecebido.trim() === '')) ||
-                    (pagamento.forma_pagamento === 'cartao_credito' && !pagamento.parcelas)
-                  ) && styles.modalConfirmButtonDisabled
+                  (() => {
+                    // Se nenhuma forma de pagamento selecionada
+                    if (formasPagamentoSelecionadas.length === 0) {
+                      return styles.modalConfirmButtonDisabled;
+                    }
+                    
+                    // Se crediário está selecionado, sempre habilita (não precisa preencher valor)
+                    if (formasPagamentoSelecionadas.includes('crediario')) {
+                      return null;
+                    }
+                    
+                    // Para outras formas, verifica se há valores preenchidos
+                    const totalPagamentos = pagamentosMultiplos.reduce((sum, p) => sum + (p.valor || 0), 0);
+                    
+                    // Se não há valor total preenchido, desabilita
+                    if (totalPagamentos === 0) {
+                      return styles.modalConfirmButtonDisabled;
+                    }
+                    
+                    return null;
+                  })()
                 ]}
                 onPress={() => {
-                  const formasComValorRecebido = ['dinheiro', 'cartao_debito', 'pix'];
-                  if (formasComValorRecebido.includes(pagamento.forma_pagamento) && (!valorRecebido || valorRecebido.trim() === '')) {
-                    Alert.alert('Erro', 'É necessário informar o valor recebido!');
+                  // Validações
+                  if (formasPagamentoSelecionadas.length === 0) {
+                    Alert.alert('Erro', 'Selecione uma forma de pagamento!');
                     return;
                   }
-                  if (pagamento.forma_pagamento === 'cartao_credito' && pagamento.parcelas && (!valorRecebido || valorRecebido.trim() === '')) {
-                    Alert.alert('Erro', 'É necessário informar o valor recebido!');
-                    return;
+                  
+                  // Se não for crediário, valida valores
+                  if (!formasPagamentoSelecionadas.includes('crediario')) {
+                    const totalPagamentos = pagamentosMultiplos.reduce((sum, p) => sum + (p.valor || 0), 0);
+                    
+                    if (totalPagamentos === 0) {
+                      Alert.alert('Erro', 'É necessário informar os valores dos pagamentos!');
+                      return;
+                    }
                   }
-                  if (pagamento.forma_pagamento === 'cartao_credito' && !pagamento.parcelas) {
-                    Alert.alert('Erro', 'É necessário selecionar o número de parcelas!');
-                    return;
-                  }
+                  
                   if (comandaEmEdicao) {
                     fecharComanda(comandaEmEdicao.id);
                   }
                 }}
-                disabled={
-                  (pagamento.forma_pagamento === 'dinheiro' && (!valorRecebido || valorRecebido.trim() === '')) ||
-                  (pagamento.forma_pagamento === 'cartao_debito' && (!valorRecebido || valorRecebido.trim() === '')) ||
-                  (pagamento.forma_pagamento === 'pix' && (!valorRecebido || valorRecebido.trim() === '')) ||
-                  (pagamento.forma_pagamento === 'cartao_credito' && !pagamento.parcelas)
-                }
+                disabled={(() => {
+                  // Se nenhuma forma selecionada
+                  if (formasPagamentoSelecionadas.length === 0) {
+                    return true;
+                  }
+                  
+                  // Se crediário está selecionado, sempre habilita
+                  if (formasPagamentoSelecionadas.includes('crediario')) {
+                    return false;
+                  }
+                  
+                  // Para outras formas, verifica se há valores
+                  const totalPagamentos = pagamentosMultiplos.reduce((sum, p) => sum + (p.valor || 0), 0);
+                  return totalPagamentos === 0;
+                })()}
               >
                 <Text style={styles.modalConfirmButtonText}>Finalizar Pagamento</Text>
               </TouchableOpacity>
@@ -3155,14 +3697,43 @@ const styles = StyleSheet.create({
   comandaCardHeader: {
     marginBottom: 12,
   },
+  comandaCardClienteContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  comandaCardFoto: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 10,
+  },
+  comandaCardFotoPlaceholder: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#EDE9FE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  comandaCardClienteInfo: {
+    flex: 1,
+  },
   comandaCardCliente: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#111827',
   },
   comandaCardData: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#6B7280',
+    marginTop: 2,
+  },
+  comandaCardDetails: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    lineHeight: 16,
   },
   comandaFooter: {
     flexDirection: 'row',
@@ -3193,6 +3764,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+  },
+  comandaDetailClienteContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  comandaDetailFoto: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 12,
+  },
+  comandaDetailFotoPlaceholder: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#EDE9FE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   comandaDetailTitle: {
     fontSize: 18,
@@ -3333,11 +3924,109 @@ const styles = StyleSheet.create({
   comandaItensContainer: {
     marginBottom: 16,
   },
+  comandaItensTitleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   comandaItensTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#111827',
+  },
+  editarItensButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#F3E8FF',
+    borderRadius: 6,
+  },
+  editarItensText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#7C3AED',
+    marginLeft: 4,
+  },
+  salvarItensButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#D1FAE5',
+    borderRadius: 6,
+  },
+  salvarItensText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#10B981',
+    marginLeft: 4,
+  },
+  quantidadeControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  quantidadeButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#F3E8FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 4,
+  },
+  quantidadeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+    marginHorizontal: 8,
+  },
+  comandaItemRight: {
+    alignItems: 'flex-end',
+  },
+  removerItemButton: {
+    marginTop: 8,
+    padding: 4,
+  },
+  adicionarItensContainer: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+  },
+  adicionarItensTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
     marginBottom: 12,
+  },
+  tipoItemButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  adicionarItemButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#7C3AED',
+  },
+  adicionarItemButtonText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#7C3AED',
+    marginLeft: 6,
   },
   comandaActions: {
     flexDirection: 'row',
@@ -3368,6 +4057,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#EF4444',
+    marginLeft: 8,
+  },
+  manterAbertaButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F3E8FF',
+    height: 48,
+    borderRadius: 8,
+    marginHorizontal: 8,
+    borderWidth: 1,
+    borderColor: '#7C3AED',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  manterAbertaText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#7C3AED',
     marginLeft: 8,
   },
   fecharComandaButton: {
@@ -3480,7 +4195,7 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   modalBody: {
-    flex: 1,
+    maxHeight: '70%',
     paddingHorizontal: 16,
   },
   modalScrollContent: {
@@ -3584,10 +4299,45 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   clienteItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
+  },
+  clienteFoto: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+  },
+  clienteFotoPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EDE9FE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  clienteInfo: {
+    flex: 1,
+  },
+  clienteFotoSelected: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 8,
+  },
+  clienteFotoPlaceholderSelected: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#EDE9FE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
   },
   clienteItemNome: {
     fontSize: 15,
@@ -3704,6 +4454,12 @@ const styles = StyleSheet.create({
   comandaObservacoesText: {
     fontSize: 14,
     color: '#4B5563',
+    lineHeight: 20,
+  },
+  comandaObservacoesSemTexto: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    fontStyle: 'italic',
   },
   comandaTotalContainer: {
     flexDirection: 'row',
@@ -4061,6 +4817,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#374151',
+  },
+  pagamentoSubLabel: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   pagamentoValor: {
     fontSize: 18,
