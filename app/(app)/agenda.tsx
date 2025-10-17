@@ -43,6 +43,7 @@ type Agendamento = {
   cliente: string;
   cliente_foto?: string | null;
   cliente_telefone?: string | null;
+  cliente_saldo?: number | null;
   servicos: any[];
   estabelecimento_id: string;
   observacoes?: string;
@@ -334,6 +335,7 @@ export default function AgendaScreen() {
         (data || []).map(async (ag: any) => {
           let clienteFoto = null;
           let clienteTelefone = null;
+          let clienteSaldo = null;
           
           console.log('🔍 Processando agendamento:', { 
             id: ag.id, 
@@ -356,10 +358,29 @@ export default function AgendaScreen() {
             if (clienteData) {
               clienteFoto = clienteData.foto_url;
               clienteTelefone = clienteData.telefone;
+              
+              // Buscar saldo do crediário
+              const { data: movimentacoes } = await supabase
+                .from('crediario_movimentacoes')
+                .select('valor')
+                .eq('cliente_id', ag.cliente_id);
+              
+              if (movimentacoes && movimentacoes.length > 0) {
+                clienteSaldo = movimentacoes.reduce((total, mov) => {
+                  const valorNumerico = typeof mov.valor === 'string' 
+                    ? parseFloat(mov.valor.replace(',', '.')) 
+                    : mov.valor;
+                  return total + (valorNumerico || 0);
+                }, 0);
+              } else {
+                clienteSaldo = 0;
+              }
+              
               console.log('✅ Dados do cliente carregados por ID:', { 
                 clienteId: ag.cliente_id, 
                 foto: clienteFoto, 
-                telefone: clienteTelefone 
+                telefone: clienteTelefone,
+                saldo: clienteSaldo
               });
             }
           } else if (ag.cliente) {
@@ -367,7 +388,7 @@ export default function AgendaScreen() {
             console.log('🔎 Tentando buscar cliente por nome:', ag.cliente);
             const { data: clienteData, error: clienteError } = await supabase
               .from('clientes')
-              .select('foto_url, telefone')
+              .select('id, foto_url, telefone')
               .eq('estabelecimento_id', estabelecimentoId)
               .ilike('nome', ag.cliente)
               .limit(1)
@@ -380,10 +401,29 @@ export default function AgendaScreen() {
             if (clienteData) {
               clienteFoto = clienteData.foto_url;
               clienteTelefone = clienteData.telefone;
+              
+              // Buscar saldo do crediário
+              const { data: movimentacoes } = await supabase
+                .from('crediario_movimentacoes')
+                .select('valor')
+                .eq('cliente_id', clienteData.id);
+              
+              if (movimentacoes && movimentacoes.length > 0) {
+                clienteSaldo = movimentacoes.reduce((total, mov) => {
+                  const valorNumerico = typeof mov.valor === 'string' 
+                    ? parseFloat(mov.valor.replace(',', '.')) 
+                    : mov.valor;
+                  return total + (valorNumerico || 0);
+                }, 0);
+              } else {
+                clienteSaldo = 0;
+              }
+              
               console.log('✅ Dados do cliente carregados por nome:', { 
                 clienteNome: ag.cliente, 
                 foto: clienteFoto, 
-                telefone: clienteTelefone 
+                telefone: clienteTelefone,
+                saldo: clienteSaldo
               });
             } else {
               console.log('⚠️ Cliente não encontrado no banco com nome:', ag.cliente);
@@ -396,6 +436,7 @@ export default function AgendaScreen() {
             ...ag,
             cliente_foto: clienteFoto,
             cliente_telefone: clienteTelefone,
+            cliente_saldo: clienteSaldo,
           };
         })
       );
@@ -1840,7 +1881,11 @@ export default function AgendaScreen() {
                       <View style={styles.detalhesClienteInfo}>
                         <Text style={styles.detalhesClienteNome}>{item.cliente}</Text>
                         <Text style={styles.detalhesSaldo}>
-                          Saldo na casa: <Text style={styles.detalhesSaldoValor}>R$75,00</Text>
+                          Saldo na casa: <Text style={styles.detalhesSaldoValor}>
+                            {item.cliente_saldo !== null && item.cliente_saldo !== undefined 
+                              ? `R$ ${item.cliente_saldo.toFixed(2).replace('.', ',')}` 
+                              : 'R$ 0,00'}
+                          </Text>
                         </Text>
                         {item.cliente_telefone && (
                           <Text style={styles.detalhesTelefone}>

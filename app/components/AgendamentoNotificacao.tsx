@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform, Image } from 'react-native';
+import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 
 interface AgendamentoNotificacaoProps {
   visible: boolean;
   cliente: string;
+  cliente_foto?: string | null;
   servico: string;
   horario: string;
   onOcultar: () => void;
@@ -15,6 +16,7 @@ interface AgendamentoNotificacaoProps {
 export default function AgendamentoNotificacao({
   visible,
   cliente,
+  cliente_foto,
   servico,
   horario,
   onOcultar,
@@ -44,9 +46,20 @@ export default function AgendamentoNotificacao({
           <Text style={styles.titulo}>Agendamento Iniciando!</Text>
           
           <View style={styles.infoContainer}>
+            {/* Info do Cliente com Foto */}
             <View style={styles.infoRow}>
               <Ionicons name="person" size={20} color="#6B7280" />
               <Text style={styles.infoLabel}>Cliente:</Text>
+              {cliente_foto ? (
+                <Image 
+                  source={{ uri: cliente_foto }} 
+                  style={styles.clienteFoto}
+                />
+              ) : (
+                <View style={styles.clienteFotoPlaceholder}>
+                  <FontAwesome5 name="user" size={12} color="#7C3AED" />
+                </View>
+              )}
               <Text style={styles.infoValue}>{cliente}</Text>
             </View>
 
@@ -143,11 +156,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
+  clienteFoto: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  clienteFotoPlaceholder: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3E8FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   infoLabel: {
     fontSize: 14,
     fontWeight: '600',
     color: '#6B7280',
-    minWidth: 60,
   },
   infoValue: {
     fontSize: 14,

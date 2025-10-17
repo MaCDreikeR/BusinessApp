@@ -156,11 +156,36 @@ export default function NovoAgendamentoScreen() {
   }, [usuarioSelecionado]);
 
   // Garantir que o loading seja resetado quando a tela for focada
+  // E limpar o formulário quando sair da tela
   useFocusEffect(
     useCallback(() => {
       // Resetar loading ao entrar na tela
       setLoading(false);
       console.log('Tela de novo agendamento focada - loading resetado');
+      
+      // Função de cleanup quando sair da tela
+      return () => {
+        console.log('Saindo da tela de novo agendamento - limpando formulário');
+        // Limpar todos os campos
+        setCliente('');
+        setTelefone('');
+        setData('');
+        setHora('');
+        setHoraTermino('');
+        setServico('');
+        setObservacoes('');
+        setValorTotal(0);
+        setClienteSelecionado(null);
+        setServicosSelecionados([]);
+        setUsuarioSelecionado(null);
+        setCriarComandaAutomatica(true);
+        setErrors({});
+        setMostrarLista(false);
+        setMostrarListaServicos(false);
+        setClientesEncontrados([]);
+        setPesquisaServico('');
+        setModalVisible(false);
+      };
     }, [])
   );
 
@@ -1266,7 +1291,7 @@ export default function NovoAgendamentoScreen() {
                   </View>
                 ) : null}
                 <Text style={[styles.selectText, !usuarioSelecionado && styles.placeholder]}>
-                  {usuarioSelecionado ? usuarioSelecionado.nome_completo : 'Selecione um usuário'}
+                  {usuarioSelecionado ? usuarioSelecionado.nome_completo : 'Selecione um Profissional'}
                 </Text>
               </View>
               <FontAwesome5 name="chevron-down" size={16} color="#9CA3AF" />

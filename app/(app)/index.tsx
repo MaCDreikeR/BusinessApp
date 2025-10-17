@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert, Image } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
@@ -10,9 +10,12 @@ import { useAuth } from '../../contexts/AuthContext';
 interface Agendamento {
   id: string;
   cliente_nome: string;
+  cliente_foto?: string | null;
   servico: string;
   horario: string;
+  horario_termino?: string;
   usuario_nome?: string;
+  status?: string;
 }
 
 interface Venda {
@@ -100,7 +103,7 @@ export default function HomeScreen() {
         supabase.from('clientes').select('*', { count: 'exact', head: true }).eq('estabelecimento_id', estabelecimentoId),
         // Carregar próximos agendamentos diretamente
         supabase.from('agendamentos')
-          .select('id, cliente, data_hora, servicos, usuario_id, status')
+          .select('id, cliente, data_hora, horario_termino, servicos, usuario_id, status')
           .eq('estabelecimento_id', estabelecimentoId)
           .gte('data_hora', new Date().toISOString())
           .order('data_hora', { ascending: true })
@@ -122,11 +125,13 @@ export default function HomeScreen() {
       } else if (proxAgendamentos) {
         console.log('Próximos agendamentos carregados:', proxAgendamentos);
         
-        // Buscar nomes dos usuários
-        const agendamentosComUsuarios = await Promise.all(
+        // Buscar nomes dos usuários e fotos dos clientes
+        const agendamentosComDados = await Promise.all(
           proxAgendamentos.map(async (ag: any) => {
             let usuarioNome = 'Não atribuído';
+            let clienteFoto = null;
             
+            // Buscar nome do usuário
             if (ag.usuario_id) {
               const { data: userData } = await supabase
                 .from('usuarios')
@@ -139,18 +144,35 @@ export default function HomeScreen() {
               }
             }
             
+            // Buscar foto do cliente pelo nome
+            if (ag.cliente) {
+              const { data: clienteData } = await supabase
+                .from('clientes')
+                .select('foto_url')
+                .eq('estabelecimento_id', estabelecimentoId)
+                .ilike('nome', ag.cliente)
+                .limit(1)
+                .maybeSingle();
+              
+              if (clienteData) {
+                clienteFoto = clienteData.foto_url;
+              }
+            }
+            
             return {
               id: ag.id,
               cliente_nome: ag.cliente || 'Cliente não informado',
+              cliente_foto: clienteFoto,
               servico: ag.servicos?.[0]?.nome || 'Serviço não especificado',
               horario: ag.data_hora,
+              horario_termino: ag.horario_termino,
               usuario_nome: usuarioNome,
               status: ag.status
             };
           })
         );
         
-        setProximosAgendamentos(agendamentosComUsuarios);
+        setProximosAgendamentos(agendamentosComDados);
       }
       if (vendasRecentesError) {
         console.error('Erro vendas recentes:', vendasRecentesError);
@@ -273,36 +295,62 @@ export default function HomeScreen() {
                 index === proximosAgendamentos.length - 1 && styles.ultimoAgendamento
               ]}
             >
+              {/* Header com foto e horário */}
               <View style={styles.agendamentoHeader}>
-                <View style={styles.agendamentoIcon}>
-                  <FontAwesome5 name="calendar-alt" size={16} color="#7C3AED" />
+                {/* Foto do cliente */}
+                <View style={styles.agendamentoFotoContainer}>
+                  {agendamento.cliente_foto ? (
+                    <Image 
+                      source={{ uri: agendamento.cliente_foto }} 
+                      style={styles.agendamentoFoto}
+                    />
+                  ) : (
+                    <View style={styles.agendamentoFotoPlaceholder}>
+                      <FontAwesome5 name="user" size={20} color="#7C3AED" />
+                    </View>
+                  )}
                 </View>
-                <Text style={styles.agendamentoHorario}>
-                  {agendamento.horario ? format(new Date(agendamento.horario), "HH:mm") : '--:--'}
-                </Text>
+
+                {/* Informações principais */}
+                <View style={styles.agendamentoContent}>
+                  <Text style={styles.agendamentoCliente} numberOfLines={1}>
+                    {agendamento.cliente_nome}
+                  </Text>
+                  <Text style={styles.agendamentoServico} numberOfLines={1}>
+                    {agendamento.servico}
+                  </Text>
+                  {agendamento.usuario_nome && (
+                    <View style={styles.agendamentoProfissionalContainer}>
+                      <FontAwesome5 name="user" size={10} color="#7C3AED" style={{ marginRight: 4 }} />
+                      <Text style={styles.agendamentoProfissional} numberOfLines={1}>
+                        {agendamento.usuario_nome}
+                      </Text>
+                    </View>
+                  )}
+                </View>
               </View>
 
-              <View style={styles.agendamentoContent}>
-                <Text style={styles.agendamentoCliente} numberOfLines={1}>
-                  {agendamento.cliente_nome}
-                </Text>
-                <Text style={styles.agendamentoServico} numberOfLines={1}>
-                  {agendamento.servico}
-                </Text>
-                {agendamento.usuario_nome && (
-                  <View style={styles.agendamentoProfissionalContainer}>
-                    <FontAwesome5 name="user" size={10} color="#7C3AED" style={{ marginRight: 4 }} />
-                    <Text style={styles.agendamentoProfissional} numberOfLines={1}>
-                      {agendamento.usuario_nome}
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              <View style={styles.agendamentoData}>
-                <Text style={styles.agendamentoDia}>
-                  {agendamento.horario ? format(new Date(agendamento.horario), "dd/MM") : '--/--'}
-                </Text>
+              {/* Footer com horários */}
+              <View style={styles.agendamentoFooter}>
+                <View style={styles.agendamentoHorarioContainer}>
+                  <FontAwesome5 name="clock" size={12} color="#7C3AED" />
+                  <Text style={styles.agendamentoHorarioText}>
+                    {agendamento.horario ? format(new Date(agendamento.horario), "HH:mm") : '--:--'}
+                    {agendamento.horario_termino && (
+                      <Text style={styles.agendamentoHorarioSeparador}> às </Text>
+                    )}
+                    {agendamento.horario_termino && (
+                      <Text>{agendamento.horario_termino}</Text>
+                    )}
+                  </Text>
+                </View>
+                
+                <View style={styles.agendamentoData}>
+                  <FontAwesome5 name="calendar" size={12} color="#9CA3AF" />
+                  <Text style={styles.agendamentoDia}>
+                    {agendamento.horario ? format(new Date(agendamento.horario), "dd/MM") : '--/--'}
+                  </Text>
+                </View>
               </View>
             </View>
           ))
@@ -574,8 +622,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
+    minHeight: 110,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: {
@@ -595,10 +642,25 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   agendamentoHeader: {
-    flexDirection: 'column',
+    flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
-    minWidth: 60,
+    marginBottom: 12,
+  },
+  agendamentoFotoContainer: {
+    marginRight: 12,
+  },
+  agendamentoFoto: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  agendamentoFotoPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F3E8FF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   agendamentoIcon: {
     width: 32,
@@ -616,7 +678,6 @@ const styles = StyleSheet.create({
   },
   agendamentoContent: {
     flex: 1,
-    marginRight: 16,
   },
   agendamentoCliente: {
     fontSize: 16,
@@ -627,6 +688,7 @@ const styles = StyleSheet.create({
   agendamentoServico: {
     fontSize: 14,
     color: '#6B7280',
+    marginBottom: 4,
   },
   agendamentoProfissional: {
     fontSize: 12,
@@ -638,6 +700,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 2,
+  },
+  agendamentoFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  agendamentoHorarioContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  agendamentoHorarioText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#7C3AED',
+  },
+  agendamentoHorarioSeparador: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#6B7280',
   },
   agendamentoData: {
     backgroundColor: '#F3F4F6',

@@ -2,10 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
+import * as Notifications from 'expo-notifications';
 
 interface AgendamentoAtivo {
   id: string;
   cliente: string;
+  cliente_foto?: string | null;
   servico: string;
   horario: string;
   data_hora: string;
@@ -50,15 +52,50 @@ export function useAgendamentoNotificacao() {
           const servicoNome = agendamentoParaNotificar.servicos?.[0]?.nome || 'Serviço não especificado';
           const horario = format(new Date(agendamentoParaNotificar.data_hora), 'HH:mm');
 
+          // Buscar foto do cliente apenas por nome
+          let clienteFoto = null;
+          if (agendamentoParaNotificar.cliente) {
+            const { data: clienteData } = await supabase
+              .from('clientes')
+              .select('foto_url')
+              .eq('estabelecimento_id', estabelecimentoId)
+              .ilike('nome', agendamentoParaNotificar.cliente)
+              .limit(1)
+              .maybeSingle();
+            
+            if (clienteData) {
+              clienteFoto = clienteData.foto_url;
+            }
+          }
+
           setAgendamentoAtivo({
             id: agendamentoParaNotificar.id,
             cliente: agendamentoParaNotificar.cliente || 'Cliente não informado',
+            cliente_foto: clienteFoto,
             servico: servicoNome,
             horario: horario,
             data_hora: agendamentoParaNotificar.data_hora
           });
 
           setMostrarNotificacao(true);
+
+          // Enviar notificação local para a barra de status
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: '🔔 Agendamento Iniciando!',
+              body: `${agendamentoParaNotificar.cliente} - ${servicoNome} às ${horario}`,
+              data: { 
+                tipo: 'agendamento',
+                agendamentoId: agendamentoParaNotificar.id,
+                cliente: agendamentoParaNotificar.cliente,
+                servico: servicoNome,
+                horario: horario,
+              },
+              sound: 'default',
+              priority: Notifications.AndroidNotificationPriority.HIGH,
+            },
+            trigger: null, // Disparar imediatamente
+          });
 
           // Marcar como notificado
           setAgendamentosNotificados(prev => new Set(prev).add(agendamentoParaNotificar.id));

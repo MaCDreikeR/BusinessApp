@@ -800,6 +800,7 @@ export default function AppLayout() {
       <AgendamentoNotificacao
         visible={mostrarNotificacao}
         cliente={agendamentoAtivo.cliente}
+        cliente_foto={agendamentoAtivo.cliente_foto}
         servico={agendamentoAtivo.servico}
         horario={agendamentoAtivo.horario}
         onOcultar={ocultarNotificacao}
