@@ -17,7 +17,7 @@ interface VendaItem {
   comanda_id: number;
   vendedor: string;
   cliente_nome: string;
-  tipo: 'produto' | 'servico' | 'pacote';
+  tipo: 'produto' | 'servico' | 'pacote' | 'pagamento';
 }
 
 interface Cliente {
@@ -54,6 +54,7 @@ interface Resumo {
   produtos: VendaItem[];
   servicos: VendaItem[];
   pacotes: VendaItem[];
+  pagamentos: VendaItem[];
 }
 
 const VendasScreen = () => {
@@ -64,7 +65,8 @@ const VendasScreen = () => {
     valorTotal: 0,
     produtos: [],
     servicos: [],
-    pacotes: []
+    pacotes: [],
+    pagamentos: []
   });
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -74,7 +76,7 @@ const VendasScreen = () => {
     dataInicio: null as Date | null,
     dataFim: null as Date | null,
     comandaId: '',
-    tipo: 'todos' as 'todos' | 'produtos' | 'servicos' | 'pacotes'
+    tipo: 'todos' as 'todos' | 'produtos' | 'servicos' | 'pacotes' | 'pagamentos'
   });
   const [debouncedFiltros, setDebouncedFiltros] = useState(filtros);
   const debounceTimeout = useRef<NodeJS.Timeout>();
@@ -166,6 +168,8 @@ const VendasScreen = () => {
         query = query.eq('tipo', 'servico');
       } else if (debouncedFiltros.tipo === 'pacotes') {
         query = query.eq('tipo', 'pacote');
+      } else if (debouncedFiltros.tipo === 'pagamentos') {
+        query = query.eq('tipo', 'pagamento');
       }
 
       if (debouncedFiltros.dataInicio) {
@@ -193,20 +197,23 @@ const VendasScreen = () => {
         comanda_id: item.comanda_id,
         vendedor: item.comandas.created_by_user_nome,
         cliente_nome: item.comandas.clientes?.nome || 'Cliente não encontrado',
-        tipo: item.tipo as 'produto' | 'servico' | 'pacote'
+        tipo: item.tipo as 'produto' | 'servico' | 'pacote' | 'pagamento'
       }));
 
-      let produtos = [], servicos = [], pacotes = [];
+      let produtos = [], servicos = [], pacotes = [], pagamentos = [];
       if (debouncedFiltros.tipo === 'todos') {
         produtos = vendasFormatadas.filter(item => item.tipo === 'produto');
         servicos = vendasFormatadas.filter(item => item.tipo === 'servico');
         pacotes = vendasFormatadas.filter(item => item.tipo === 'pacote');
+        pagamentos = vendasFormatadas.filter(item => item.tipo === 'pagamento');
       } else if (debouncedFiltros.tipo === 'produtos') {
         produtos = vendasFormatadas;
       } else if (debouncedFiltros.tipo === 'servicos') {
         servicos = vendasFormatadas;
       } else if (debouncedFiltros.tipo === 'pacotes') {
         pacotes = vendasFormatadas;
+      } else if (debouncedFiltros.tipo === 'pagamentos') {
+        pagamentos = vendasFormatadas;
       }
 
       const comandasUnicas = new Set(vendasFormatadas.map(item => item.comanda_id));
@@ -220,7 +227,8 @@ const VendasScreen = () => {
         valorTotal,
         produtos,
         servicos,
-        pacotes
+        pacotes,
+        pagamentos
       };
 
       await AsyncStorage.setItem(cacheKey, JSON.stringify({ ...newData, hasMore: data.length === 20 }));
@@ -231,7 +239,8 @@ const VendasScreen = () => {
         valorTotal: prev.valorTotal + valorTotal,
         produtos: refresh ? produtos : [...prev.produtos, ...produtos],
         servicos: refresh ? servicos : [...prev.servicos, ...servicos],
-        pacotes: refresh ? pacotes : [...prev.pacotes, ...pacotes]
+        pacotes: refresh ? pacotes : [...prev.pacotes, ...pacotes],
+        pagamentos: refresh ? pagamentos : [...prev.pagamentos, ...pagamentos]
       });
       setHasMore(data.length === 20);
     } catch (error) {
@@ -382,13 +391,15 @@ const VendasScreen = () => {
   // Helper para obter contadores por tipo
   const getContadorTipo = (tipo: string): number => {
     if (tipo === 'todos') {
-      return vendas.produtos.length + vendas.servicos.length + vendas.pacotes.length;
+      return vendas.produtos.length + vendas.servicos.length + vendas.pacotes.length + vendas.pagamentos.length;
     } else if (tipo === 'produtos') {
       return vendas.produtos.length;
     } else if (tipo === 'servicos') {
       return vendas.servicos.length;
     } else if (tipo === 'pacotes') {
       return vendas.pacotes.length;
+    } else if (tipo === 'pagamentos') {
+      return vendas.pagamentos.length;
     }
     return 0;
   };
@@ -399,7 +410,8 @@ const VendasScreen = () => {
       todos: 'Todos',
       produtos: 'Produtos',
       servicos: 'Serviços',
-      pacotes: 'Pacotes'
+      pacotes: 'Pacotes',
+      pagamentos: 'Pagamentos'
     };
     return labels[tipo] || tipo;
   };
@@ -544,7 +556,7 @@ const VendasScreen = () => {
           keyboardType="numeric"
         />
         <View style={styles.tiposFiltroContainer}>
-          {['todos', 'produtos', 'servicos', 'pacotes'].map(tipo => {
+          {['todos', 'produtos', 'servicos', 'pacotes', 'pagamentos'].map(tipo => {
             const contador = getContadorTipo(tipo);
             return (
               <TouchableOpacity
@@ -938,6 +950,7 @@ const VendasScreen = () => {
         {renderSecao('Produtos', vendas.produtos)}
         {renderSecao('Serviços', vendas.servicos)}
         {renderSecao('Pacotes', vendas.pacotes)}
+        {renderSecao('Pagamentos', vendas.pagamentos)}
         {renderFooter()}
       </Animated.ScrollView>
     </View>
