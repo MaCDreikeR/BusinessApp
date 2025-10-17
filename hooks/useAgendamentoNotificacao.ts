@@ -30,7 +30,7 @@ export function useAgendamentoNotificacao() {
       // Buscar agendamentos que estão para começar ou acabaram de começar
       const { data: agendamentos, error } = await supabase
         .from('agendamentos')
-        .select('id, cliente, data_hora, servicos, status')
+        .select('id, cliente, data_hora, servicos, status, usuario_id')
         .eq('estabelecimento_id', estabelecimentoId)
         .gte('data_hora', cincoMinutosAntes.toISOString())
         .lte('data_hora', cincoMinutosDepois.toISOString())
@@ -96,6 +96,128 @@ export function useAgendamentoNotificacao() {
             },
             trigger: null, // Disparar imediatamente
           });
+
+          // Criar comanda automaticamente
+          // Verificar se já existe uma comanda aberta para este cliente hoje
+          const inicioDoDia = new Date();
+          inicioDoDia.setHours(0, 0, 0, 0);
+          
+          const { data: comandaExistente } = await supabase
+            .from('comandas')
+            .select('id')
+            .eq('cliente_nome', agendamentoParaNotificar.cliente)
+            .eq('estabelecimento_id', estabelecimentoId)
+            .eq('status', 'aberta')
+            .gte('created_at', inicioDoDia.toISOString())
+            .maybeSingle();
+          
+          if (!comandaExistente) {
+            console.log('🔄 Criando comanda automaticamente para agendamento:', agendamentoParaNotificar.id);
+            
+            try {
+              // Buscar ID do cliente por nome (OBRIGATÓRIO)
+              let clienteId = null;
+              
+              if (agendamentoParaNotificar.cliente) {
+                const { data: clienteData } = await supabase
+                  .from('clientes')
+                  .select('id')
+                  .eq('estabelecimento_id', estabelecimentoId)
+                  .ilike('nome', agendamentoParaNotificar.cliente)
+                  .limit(1)
+                  .maybeSingle();
+                
+                if (clienteData) {
+                  clienteId = clienteData.id;
+                }
+              }
+              
+              // Se não encontrou o cliente, não pode criar comanda (cliente_id é obrigatório)
+              if (!clienteId) {
+                console.log('⚠️ Cliente não encontrado no banco. Não é possível criar comanda automaticamente.');
+                return;
+              }
+              
+              // Criar comanda
+              const { data: novaComanda, error: comandaError } = await supabase
+                .from('comandas')
+                .insert({
+                  cliente_nome: agendamentoParaNotificar.cliente,
+                  cliente_id: clienteId,
+                  estabelecimento_id: estabelecimentoId,
+                  status: 'aberta',
+                  valor_total: 0,
+                  created_by_user_id: agendamentoParaNotificar.usuario_id || null,
+                  data_abertura: new Date().toISOString(),
+                })
+                .select()
+                .single();
+              
+              if (comandaError) {
+                console.error('❌ Erro ao criar comanda:', comandaError);
+              } else if (novaComanda) {
+                console.log('✅ Comanda criada automaticamente:', novaComanda.id);
+                
+                // Adicionar itens dos serviços à comanda
+                if (agendamentoParaNotificar.servicos && agendamentoParaNotificar.servicos.length > 0) {
+                  console.log('📦 Serviços do agendamento:', JSON.stringify(agendamentoParaNotificar.servicos, null, 2));
+                  
+                  const itens = agendamentoParaNotificar.servicos.map((servico: any) => {
+                    // Converter preço para número (pode vir como string do banco)
+                    const precoNumerico = typeof servico.preco === 'string' 
+                      ? parseFloat(servico.preco) 
+                      : (servico.preco || 0);
+                    
+                    return {
+                      comanda_id: novaComanda.id,
+                      tipo: 'servico' as const,
+                      nome: servico.nome,
+                      preco_unitario: precoNumerico,
+                      preco: precoNumerico,
+                      quantidade: 1,
+                      preco_total: precoNumerico,
+                      estabelecimento_id: estabelecimentoId,
+                    };
+                  });
+                  
+                  console.log('📝 Itens a serem inseridos:', JSON.stringify(itens, null, 2));
+                  
+                  const { data: itensInseridos, error: itensError } = await supabase
+                    .from('comandas_itens')
+                    .insert(itens)
+                    .select();
+                  
+                  if (itensError) {
+                    console.error('❌ Erro ao adicionar itens:', itensError);
+                  } else {
+                    console.log('✅ Itens adicionados à comanda:', itensInseridos?.length || 0);
+                    console.log('📋 Itens inseridos:', JSON.stringify(itensInseridos, null, 2));
+                  }
+                  
+                  // Atualizar valor total da comanda
+                  const valorTotal = itens.reduce((sum: number, item: any) => sum + item.preco_total, 0);
+                  console.log('💰 Valor total calculado:', valorTotal);
+                  
+                  const { error: updateError } = await supabase
+                    .from('comandas')
+                    .update({ valor_total: valorTotal })
+                    .eq('id', novaComanda.id);
+                  
+                  if (updateError) {
+                    console.error('❌ Erro ao atualizar valor total:', updateError);
+                  } else {
+                    console.log('✅ Valor total atualizado');
+                  }
+                }
+                
+                console.log('✅ Comanda criada e configurada com sucesso');
+              }
+            } catch (comandaErr) {
+              console.error('❌ Erro ao criar comanda automaticamente:', comandaErr);
+            }
+          } else {
+            console.log('ℹ️ Comanda aberta já existe para este cliente hoje:', comandaExistente.id);
+          }
 
           // Marcar como notificado
           setAgendamentosNotificados(prev => new Set(prev).add(agendamentoParaNotificar.id));
