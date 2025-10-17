@@ -18,20 +18,22 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Janela de tempo: -5min a +5min do horário atual
+    // Janela de tempo: -10min a +10min do horário atual (aumentado para evitar perder agendamentos)
     const agora = new Date()
-    const cincoMinutosAntes = new Date(agora.getTime() - 5 * 60000)
-    const cincoMinutosDepois = new Date(agora.getTime() + 5 * 60000)
+    const dezMinutosAntes = new Date(agora.getTime() - 10 * 60000)
+    const dezMinutosDepois = new Date(agora.getTime() + 10 * 60000)
 
-    console.log(`⏰ Verificando agendamentos entre ${cincoMinutosAntes.toISOString()} e ${cincoMinutosDepois.toISOString()}`)
+    console.log(`⏰ Horário atual: ${agora.toISOString()}`)
+    console.log(`⏰ Verificando agendamentos entre ${dezMinutosAntes.toISOString()} e ${dezMinutosDepois.toISOString()}`)
 
     // Buscar agendamentos que estão iniciando
     const { data: agendamentos, error: agendamentosError } = await supabase
       .from('agendamentos')
-      .select('id, cliente, data_hora, servicos, status, usuario_id, estabelecimento_id')
-      .gte('data_hora', cincoMinutosAntes.toISOString())
-      .lte('data_hora', cincoMinutosDepois.toISOString())
+      .select('id, cliente, data_hora, servicos, status, usuario_id, estabelecimento_id, criar_comanda_automatica')
+      .gte('data_hora', dezMinutosAntes.toISOString())
+      .lte('data_hora', dezMinutosDepois.toISOString())
       .in('status', ['agendado', 'confirmado'])
+      .eq('criar_comanda_automatica', true)
 
     if (agendamentosError) {
       console.error('❌ Erro ao buscar agendamentos:', agendamentosError)
@@ -39,6 +41,10 @@ serve(async (req) => {
     }
 
     console.log(`📋 Encontrados ${agendamentos?.length || 0} agendamentos`)
+    
+    if (agendamentos && agendamentos.length > 0) {
+      console.log('📝 Agendamentos encontrados:', JSON.stringify(agendamentos, null, 2))
+    }
 
     let comandasCriadas = 0
     let comandasExistentes = 0
@@ -48,6 +54,9 @@ serve(async (req) => {
     for (const agendamento of agendamentos || []) {
       try {
         console.log(`\n👤 Processando agendamento de ${agendamento.cliente}...`)
+        console.log(`📅 Data/hora do agendamento: ${agendamento.data_hora}`)
+        console.log(`📊 Status: ${agendamento.status}`)
+        console.log(`🏢 Estabelecimento: ${agendamento.estabelecimento_id}`)
 
         // Verificar se já existe comanda aberta para este cliente hoje
         const inicioDoDia = new Date()
@@ -84,6 +93,17 @@ serve(async (req) => {
 
         console.log(`📝 Cliente encontrado: ${clienteData.id}`)
 
+        // Parse dos serviços (pode ser string JSON)
+        let servicosArray
+        if (typeof agendamento.servicos === 'string') {
+          servicosArray = JSON.parse(agendamento.servicos)
+          console.log(`🔄 Serviços parseados de string: ${agendamento.servicos}`)
+        } else {
+          servicosArray = agendamento.servicos
+        }
+        
+        console.log(`📦 Serviços a processar:`, JSON.stringify(servicosArray, null, 2))
+
         // Criar comanda
         const { data: novaComanda, error: comandaError } = await supabase
           .from('comandas')
@@ -108,7 +128,7 @@ serve(async (req) => {
         console.log(`✅ Comanda criada: ${novaComanda.id}`)
 
         // Adicionar itens (serviços) à comanda
-        const itens = agendamento.servicos.map((servico: any) => ({
+        const itens = servicosArray.map((servico: any) => ({
           comanda_id: novaComanda.id,
           tipo: 'servico',
           nome: servico.nome,
