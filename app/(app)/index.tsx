@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePermissions } from '../../hooks/usePermissions';
 
 interface Agendamento {
   id: string;
@@ -35,6 +36,7 @@ interface Produto {
 export default function HomeScreen() {
   const router = useRouter();
   const { user, estabelecimentoId, role } = useAuth();
+  const { permissions, loading: loadingPermissions } = usePermissions();
 
   const [agendamentosHoje, setAgendamentosHoje] = useState(0);
   const [vendasHoje, setVendasHoje] = useState(0);
@@ -203,6 +205,17 @@ export default function HomeScreen() {
     carregarProdutosBaixoEstoque();
   }, [carregarDados, carregarProdutosBaixoEstoque]);
 
+  // Calcular quantos cards serão exibidos para ajustar o layout
+  const cardsVisiveis = [
+    role !== 'profissional', // Agendamentos
+    role !== 'profissional' && permissions.pode_ver_vendas, // Vendas Hoje
+    role !== 'profissional', // Clientes Ativos
+    role !== 'profissional', // Produtos Baixo Estoque
+  ].filter(Boolean).length;
+
+  // Determinar se deve usar layout de 2 colunas ou flexível
+  const cardWidth = cardsVisiveis === 3 ? '32%' : '48%';
+
   return (
     <ScrollView
       style={styles.container}
@@ -220,7 +233,7 @@ export default function HomeScreen() {
       <View style={styles.grid}>
         {role !== 'profissional' && (
           <TouchableOpacity
-            style={[styles.card, styles.cardPrimary]}
+            style={[styles.card, styles.cardPrimary, { width: cardWidth }]}
             onPress={() => router.push('/agenda')}
           >
             <View style={styles.cardIconContainer}>
@@ -232,9 +245,9 @@ export default function HomeScreen() {
           </TouchableOpacity>
         )}
 
-        {role !== 'profissional' && (
+        {role !== 'profissional' && permissions.pode_ver_vendas && (
           <TouchableOpacity
-            style={[styles.card, styles.cardSuccess]}
+            style={[styles.card, styles.cardSuccess, { width: cardWidth }]}
             onPress={() => {
               console.log('Navegando para vendas...');
               router.push('/(app)/vendas');
@@ -251,7 +264,7 @@ export default function HomeScreen() {
 
         {role !== 'profissional' && (
           <TouchableOpacity
-            style={[styles.card, styles.cardInfo]}
+            style={[styles.card, styles.cardInfo, { width: cardWidth }]}
             onPress={() => router.push('/clientes')}
           >
             <View style={styles.cardIconContainer}>
@@ -265,7 +278,7 @@ export default function HomeScreen() {
 
         {role !== 'profissional' && (
           <TouchableOpacity
-            style={[styles.card, styles.cardDanger]}
+            style={[styles.card, styles.cardDanger, { width: cardWidth }]}
             onPress={() => router.push('/estoque')}
           >
             <View style={styles.cardIconContainer}>
@@ -362,7 +375,7 @@ export default function HomeScreen() {
         )}
       </View>
 
-      {role !== 'profissional' && (
+      {role !== 'profissional' && permissions.pode_ver_vendas && (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Vendas Recentes</Text>
@@ -452,12 +465,12 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     padding: 16,
     gap: 16,
+    justifyContent: 'flex-start',
   },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 20,
-    width: '47%',
     minHeight: 160,
     elevation: 2,
     shadowColor: '#000',
