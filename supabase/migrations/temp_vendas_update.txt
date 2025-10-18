@@ -1,0 +1,11 @@
+# Mudanças a aplicar em vendas.tsx
+
+1. Linha 19: tipo: 'produto' | 'servico' | 'pacote' | 'pagamento';
+2. Linha 54: adicionar pagamentos: VendaItem[];
+3. Linha 64: adicionar pagamentos: []
+4. Linha 77: tipo: 'todos' as 'todos' | 'produtos' | 'servicos' | 'pacotes' | 'pagamentos'
+5. Linha 161: adicionar } else if (debouncedFiltros.tipo === 'pagamentos') { query = query.eq('tipo', 'pagamento'); }
+6. Linha 202-213: adicionar pagamentos nas lógicas de processamento
+7. Linha 391-399: atualizar helpers
+8. Linha 550: adicionar 'pagamentos' no array
+9. Linha 947: adicionar renderSecao('Pagamentos', vendas.pagamentos)

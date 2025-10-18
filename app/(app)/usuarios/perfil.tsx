@@ -42,6 +42,8 @@ const PERMISSOES = [
   { key: 'pode_editar_metas', label: 'Editar Metas', icon: 'flag' },
   { key: 'pode_ver_despesas', label: 'Ver Despesas', icon: 'card-outline' },
   { key: 'pode_editar_despesas', label: 'Editar Despesas', icon: 'card' },
+  { key: 'pode_ver_comissoes', label: 'Ver Comissões', icon: 'cash-outline' },
+  { key: 'pode_editar_comissoes', label: 'Editar Comissões', icon: 'cash' },
   { key: 'pode_ver_agendamentos_online', label: 'Ver Agendamentos Online', icon: 'globe-outline' },
   { key: 'pode_editar_agendamentos_online', label: 'Editar Agendamentos Online', icon: 'globe' },
   { key: 'pode_ver_automacao', label: 'Ver Automação', icon: 'settings-outline' },

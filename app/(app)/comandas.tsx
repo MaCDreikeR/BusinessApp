@@ -1183,8 +1183,7 @@ export default function ComandasScreen() {
           // pois o valor total já vai para o crediário
         } else {
           const totalPagamentos = pagamentosMultiplos.reduce((sum, p) => sum + (p.valor || 0), 0);
-          const totalComanda = comandaEmEdicao?.valor_total || 0;
-          const diferenca = totalPagamentos - totalComanda;
+          const diferenca = totalPagamentos - valorTotalPagamento;
           
           if (diferenca > 0) {
             trocoCalculado = diferenca;
@@ -3408,8 +3407,7 @@ export default function ComandasScreen() {
                   
                   {(() => {
                     const totalPagamentos = pagamentosMultiplos.reduce((sum, p) => sum + (p.valor || 0), 0);
-                    const totalComanda = comandaEmEdicao?.valor_total || 0;
-                    const diferenca = totalPagamentos - totalComanda;
+                    const diferenca = totalPagamentos - valorTotalPagamento;
                     
                     return (
                       <>

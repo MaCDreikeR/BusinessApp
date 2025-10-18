@@ -724,6 +724,17 @@ export default function AppLayout() {
       />
 
       <Drawer.Screen
+        name="comissoes"
+        options={{
+          title: 'Comissões',
+          drawerIcon: ({ color }) => (
+            <FontAwesome5 name="percentage" size={20} color={color} />
+          ),
+          drawerItemStyle: permissions.pode_ver_comissoes ? undefined : { display: 'none' },
+        }}
+      />
+
+      <Drawer.Screen
         name="agendamentos-online"
         options={{
           title: 'Agendamentos Online',

@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import LottieView from 'lottie-react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -58,10 +59,11 @@ export default function BoasVindas() {
             entering={FadeInUp.duration(1000).springify()}
             style={styles.content}
           >
-            <Image 
-              source={require('../../assets/images/business-welcome.png')}
-              style={styles.mockupImage}
-              resizeMode="contain"
+            <LottieView
+              source={require('../../assets/animations/welcome.json')}
+              style={styles.lottieAnimation}
+              autoPlay
+              loop
             />
 
             <View style={styles.cardsContainer}>
@@ -130,30 +132,31 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginTop: height * 0.05,
-    marginBottom: height * 0.03,
-    paddingHorizontal: width * 0.05,
+    marginTop: height * 0.06,
+    marginBottom: height * 0.02,
+    paddingHorizontal: 20,
   },
   title: {
-    fontSize: width * 0.08,
+    fontSize: Math.min(width * 0.1, 42),
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: height * 0.02,
+    marginBottom: 12,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: width * 0.04,
+    fontSize: Math.min(width * 0.04, 16),
     color: '#E9D5FF',
     textAlign: 'center',
-    lineHeight: height * 0.03,
-    paddingHorizontal: width * 0.05,
+    lineHeight: 24,
+    paddingHorizontal: 10,
   },
   content: {
     flex: 1,
     backgroundColor: '#fff',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
-    padding: width * 0.06,
+    padding: 20,
+    paddingTop: 24,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -164,18 +167,43 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   mockupImage: {
+    width: width * 0.85,
+    height: height * 0.25,
+    marginBottom: 20,
+    alignSelf: 'center',
+  },
+  gifImage: {
+    width: width * 0.85,
+    height: height * 0.3,
+    marginBottom: 20,
+    alignSelf: 'center',
+  },
+  lottieAnimation: {
+    width: width * 0.85,
+    height: height * 0.3,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  videoContainer: {
     width: width * 0.9,
     height: width * 0.6,
     marginBottom: height * 0.03,
     alignSelf: 'center',
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#000',
+  },
+  video: {
+    width: '100%',
+    height: '100%',
   },
   cardsContainer: {
-    gap: height * 0.015,
-    marginBottom: height * 0.03,
+    gap: 12,
+    marginBottom: 24,
   },
   card: {
     backgroundColor: '#fff',
-    padding: width * 0.04,
+    padding: 16,
     borderRadius: 12,
     elevation: 2,
     shadowColor: '#000',
@@ -187,30 +215,30 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: width * 0.03,
+    gap: 12,
   },
   cardTextContainer: {
     flex: 1,
   },
   cardTitle: {
-    fontSize: width * 0.04,
+    fontSize: 16,
     fontWeight: '600',
     color: '#1A1A1A',
-    marginBottom: height * 0.005,
+    marginBottom: 4,
   },
   cardText: {
-    fontSize: width * 0.035,
+    fontSize: 14,
     color: '#666',
-    lineHeight: height * 0.025,
+    lineHeight: 20,
   },
   button: {
     backgroundColor: '#7C3AED',
-    paddingVertical: height * 0.02,
+    paddingVertical: 16,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: width * 0.02,
+    gap: 8,
     shadowColor: '#7C3AED',
     shadowOffset: {
       width: 0,
@@ -222,7 +250,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
-    fontSize: width * 0.04,
+    fontSize: 16,
     fontWeight: '600',
   },
   buttonDisabled: {

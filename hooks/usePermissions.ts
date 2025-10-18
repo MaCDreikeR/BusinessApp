@@ -33,6 +33,8 @@ interface Permissions {
   pode_editar_metas: boolean;
   pode_ver_despesas: boolean;
   pode_editar_despesas: boolean;
+  pode_ver_comissoes: boolean;
+  pode_editar_comissoes: boolean;
   pode_ver_agendamentos_online: boolean;
   pode_editar_agendamentos_online: boolean;
   pode_ver_automacao: boolean;
@@ -72,6 +74,8 @@ export const usePermissions = () => {
     pode_editar_metas: true,
     pode_ver_despesas: true,
     pode_editar_despesas: true,
+    pode_ver_comissoes: true,
+    pode_editar_comissoes: true,
     pode_ver_agendamentos_online: true,
     pode_editar_agendamentos_online: true,
     pode_ver_automacao: true,
@@ -147,6 +151,8 @@ export const usePermissions = () => {
           pode_editar_metas: data.pode_editar_metas || false,
           pode_ver_despesas: data.pode_ver_despesas || false,
           pode_editar_despesas: data.pode_editar_despesas || false,
+          pode_ver_comissoes: data.pode_ver_comissoes || false,
+          pode_editar_comissoes: data.pode_editar_comissoes || false,
           pode_ver_agendamentos_online: data.pode_ver_agendamentos_online || false,
           pode_editar_agendamentos_online: data.pode_editar_agendamentos_online || false,
           pode_ver_automacao: data.pode_ver_automacao || false,
@@ -187,6 +193,8 @@ export const usePermissions = () => {
           pode_editar_metas: false,
           pode_ver_despesas: false,
           pode_editar_despesas: false,
+          pode_ver_comissoes: false,
+          pode_editar_comissoes: false,
           pode_ver_agendamentos_online: false,
           pode_editar_agendamentos_online: false,
           pode_ver_automacao: false,

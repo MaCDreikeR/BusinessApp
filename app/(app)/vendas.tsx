@@ -31,6 +31,7 @@ interface Comanda {
   data_fechamento: string;
   status: string;
   valor_total: number;
+  saldo_aplicado: number | null;
   created_by_user_nome: string;
   cliente_id: number;
   clientes: Cliente;
@@ -150,6 +151,7 @@ const VendasScreen = () => {
             data_fechamento,
             status,
             valor_total,
+            saldo_aplicado,
             created_by_user_nome,
             cliente_id,
             clientes!inner (
@@ -192,7 +194,9 @@ const VendasScreen = () => {
         id: item.id,
         nome: item.nome,
         quantidade: item.quantidade,
-        preco: item.preco,
+        preco: item.tipo === 'pagamento' && item.comandas.saldo_aplicado 
+          ? Math.abs(item.comandas.saldo_aplicado) 
+          : item.preco,
         data: new Date(item.created_at),
         comanda_id: item.comanda_id,
         vendedor: item.comandas.created_by_user_nome,
