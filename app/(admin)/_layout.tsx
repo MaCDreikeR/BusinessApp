@@ -63,6 +63,13 @@ export default function AdminLayout() {
           tabBarIcon: ({ color }) => <FontAwesome5 name="cog" size={24} color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="conta-detalhes/[id]"
+        options={{
+          href: null, // Oculta do tab navigator
+          headerShown: false,
+        }}
+      />
     </Tabs>
   );
 }

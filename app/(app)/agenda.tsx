@@ -55,7 +55,7 @@ type Agendamento = {
 };
 
 export default function AgendaScreen() {
-  const { session, estabelecimentoId } = useAuth();
+  const { session, estabelecimentoId, role, user } = useAuth();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -270,7 +270,18 @@ export default function AgendaScreen() {
       if (!rpcError && usuariosRpc) {
         console.log('Usuários carregados via RPC:', usuariosRpc.length);
         console.log('Todos os usuários RPC:', usuariosRpc);
-        // TODOS os usuários do estabelecimento podem ser selecionados
+        
+        // REGRA: Profissionais veem apenas a si mesmos
+        if (role === 'profissional' && user?.id) {
+          const profissionalAtual = usuariosRpc.filter((u: any) => u.id === user.id);
+          console.log('👤 Profissional logado - mostrando apenas próprio usuário:', profissionalAtual);
+          setUsuarios(profissionalAtual);
+          // Selecionar automaticamente o próprio usuário
+          setSelectedUser(user.id);
+          return;
+        }
+        
+        // Admin e funcionário veem TODOS os usuários
         setUsuarios(usuariosRpc || []);
         return;
       }
@@ -292,6 +303,17 @@ export default function AgendaScreen() {
 
       console.log('Usuários encontrados via consulta direta:', usuarios?.length);
       console.log('Detalhes dos usuários via consulta direta:', usuarios);
+      
+      // REGRA: Profissionais veem apenas a si mesmos
+      if (role === 'profissional' && user?.id) {
+        const profissionalAtual = usuarios?.filter((u: any) => u.id === user.id) || [];
+        console.log('👤 Profissional logado - mostrando apenas próprio usuário:', profissionalAtual);
+        setUsuarios(profissionalAtual);
+        // Selecionar automaticamente o próprio usuário
+        setSelectedUser(user.id);
+        return;
+      }
+      
       setUsuarios(usuarios || []);
     } catch (error) {
       console.error('Erro ao carregar usuários:', error);
@@ -316,12 +338,14 @@ export default function AgendaScreen() {
         .gte('data_hora', new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 0, 0, 0).toISOString())
         .lt('data_hora', new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 23, 59, 59).toISOString());
 
-      // Filtrar por usuário se selecionado
-      if (selectedUser) {
-        console.log('Filtrando agendamentos para o usuário:', selectedUser);
-        query = query.eq('usuario_id', selectedUser);
+      // Filtrar por usuário se selecionado OU se for profissional (sempre filtrado)
+      const usuarioFiltro = selectedUser || (role === 'profissional' ? user?.id : null);
+      
+      if (usuarioFiltro) {
+        console.log(`🔒 Filtrando agendamentos para o usuário: ${usuarioFiltro} (role: ${role})`);
+        query = query.eq('usuario_id', usuarioFiltro);
       } else {
-        console.log('Carregando agendamentos de todos os usuários');
+        console.log('📋 Carregando agendamentos de todos os usuários');
       }
 
       const { data, error } = await query;
@@ -1267,56 +1291,65 @@ export default function AgendaScreen() {
         </TouchableOpacity>
       )}
 
-      {/* Lista de avatares */}
-      <View style={styles.avatarListContainer}>
-        <ScrollView 
-          horizontal 
-          style={styles.avatarList} 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.avatarListContent}
-        >
-          {usuarios
-            .filter(usuario => presencaUsuarios[usuario.id]) // Filtra apenas usuários presentes
-            .map((usuario) => (
-              <TouchableOpacity
-                key={usuario.id}
-                onPress={() => toggleUsuario(usuario.id)}
-                style={[
-                  styles.avatarContainer,
-                  selectedUser === usuario.id && styles.avatarSelected
-                ]}
-              >
-                <View style={styles.avatarWrapper}>
-                  {usuario.avatar_url ? (
-                    <Image 
-                      source={{ uri: usuario.avatar_url }} 
-                      style={styles.avatarImage} 
-                    />
-                  ) : (
-                    <Ionicons name="person" size={24} color="#666" />
-                  )}
-                </View>
-                <Text style={styles.avatarName}>{usuario.nome_completo}</Text>
-              </TouchableOpacity>
-            ))}
-        </ScrollView>
-      </View>
+      {/* Lista de avatares - OCULTA para profissionais */}
+      {role !== 'profissional' && (
+        <View style={styles.avatarListContainer}>
+          <ScrollView 
+            horizontal 
+            style={styles.avatarList} 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.avatarListContent}
+          >
+            {usuarios
+              .filter(usuario => presencaUsuarios[usuario.id]) // Filtra apenas usuários presentes
+              .map((usuario) => (
+                <TouchableOpacity
+                  key={usuario.id}
+                  onPress={() => toggleUsuario(usuario.id)}
+                  style={[
+                    styles.avatarContainer,
+                    selectedUser === usuario.id && styles.avatarSelected
+                  ]}
+                >
+                  <View style={styles.avatarWrapper}>
+                    {usuario.avatar_url ? (
+                      <Image 
+                        source={{ uri: usuario.avatar_url }} 
+                        style={styles.avatarImage} 
+                      />
+                    ) : (
+                      <Ionicons name="person" size={24} color="#666" />
+                    )}
+                  </View>
+                  <Text style={styles.avatarName}>{usuario.nome_completo}</Text>
+                </TouchableOpacity>
+              ))}
+          </ScrollView>
+        </View>
+      )}
 
-      {/* Grade de horários */}
-      <ScrollView style={styles.timeGrid}>
-        {isDataBloqueada(selectedDate) ? (
-          <View style={styles.diaBloqueadoContainer}>
-            <Ionicons name="sunny-outline" size={48} color="#FF6B6B" />
-            <Text style={styles.diaBloqueadoText}>Dia Bloqueado</Text>
-            <Text style={styles.diaBloqueadoSubtext}>Não são permitidos agendamentos para este dia</Text>
-          </View>
-        ) : (
-          horarios.length === 0 ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#7C3AED" />
-              <Text style={styles.loadingText}>Carregando horários...</Text>
+      {/* Grade de horários com scroll horizontal para cards */}
+      <ScrollView 
+        horizontal 
+        style={{ flex: 1 }}
+        contentContainerStyle={{ minWidth: 1000 }} // Largura para até 5 colunas de cards
+        showsHorizontalScrollIndicator={true}
+      >
+        <View style={{ width: 1000 }}>
+          <ScrollView style={styles.timeGrid}>
+          {isDataBloqueada(selectedDate) ? (
+            <View style={styles.diaBloqueadoContainer}>
+              <Ionicons name="sunny-outline" size={48} color="#FF6B6B" />
+              <Text style={styles.diaBloqueadoText}>Dia Bloqueado</Text>
+              <Text style={styles.diaBloqueadoSubtext}>Não são permitidos agendamentos para este dia</Text>
             </View>
-          ) : (() => {
+          ) : (
+            horarios.length === 0 ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#7C3AED" />
+                <Text style={styles.loadingText}>Carregando horários...</Text>
+              </View>
+            ) : (() => {
             // Função para converter TIME (HH:MM:SS) para minutos totais
             const timeParaMinutos = (timeStr: string) => {
               const [h, m] = timeStr.split(':').map(Number);
@@ -1325,14 +1358,20 @@ export default function AgendaScreen() {
 
             // Calcular altura do card com base na duração (30min por slot = 40px)
             const calcularAlturaCard = (ag: Agendamento) => {
-              if (!ag.horario_termino) return 60;
+              if (!ag.horario_termino) {
+                console.log('⚠️ Agendamento sem horário de término:', ag.cliente);
+                return 60;
+              }
               
               const dataInicio = new Date(ag.data_hora);
               const minutosInicio = dataInicio.getHours() * 60 + dataInicio.getMinutes();
               const minutosTermino = timeParaMinutos(ag.horario_termino);
               const duracaoMinutos = minutosTermino - minutosInicio;
+              const alturaCalculada = Math.max(60, (duracaoMinutos / 30) * 40);
               
-              return Math.max(60, (duracaoMinutos / 30) * 40);
+              console.log(`📏 Card "${ag.cliente}": ${minutosInicio}min → ${minutosTermino}min = ${duracaoMinutos}min = ${alturaCalculada}px`);
+              
+              return alturaCalculada;
             };
 
             // SISTEMA DE ALOCAÇÃO DE COLUNAS
@@ -1459,6 +1498,8 @@ export default function AgendaScreen() {
             });
           })()
         )}
+          </ScrollView>
+        </View>
       </ScrollView>
 
       <Modal
@@ -1881,7 +1922,10 @@ export default function AgendaScreen() {
                       <View style={styles.detalhesClienteInfo}>
                         <Text style={styles.detalhesClienteNome}>{item.cliente}</Text>
                         <Text style={styles.detalhesSaldo}>
-                          Saldo na casa: <Text style={styles.detalhesSaldoValor}>
+                          Saldo na casa: <Text style={[
+                            styles.detalhesSaldoValor,
+                            { color: (item.cliente_saldo || 0) >= 0 ? '#10B981' : '#EF4444' }
+                          ]}>
                             {item.cliente_saldo !== null && item.cliente_saldo !== undefined 
                               ? `R$ ${item.cliente_saldo.toFixed(2).replace('.', ',')}` 
                               : 'R$ 0,00'}
@@ -2170,10 +2214,13 @@ const styles = StyleSheet.create({
   timeGrid: {
     flex: 1,
     paddingHorizontal: 16,
+    width: '100%', // Ocupar toda a largura do container pai (1000px)
   },
   timeSlotContainer: {
     position: 'relative',
     minHeight: 40,
+    // IMPORTANTE: No React Native Android, overflow: 'visible' não funciona com position absolute
+    // Os cards precisam se estender além deste container
   },
   timeSlot: {
     flexDirection: 'row',
@@ -2200,8 +2247,9 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    bottom: 0,
-    zIndex: 2,
+    height: 2000, // Altura grande o suficiente para cards longos
+    zIndex: 10, // Z-index alto para ficar sobre outros elementos
+    pointerEvents: 'box-none', // Permitir cliques através do container vazio
   },
   agendamentoCardAbsolute: {
     position: 'absolute',
@@ -2211,7 +2259,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
     borderLeftWidth: 4,
-    elevation: 3,
+    elevation: 5, // Elevação maior para ficar acima de tudo
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -2219,6 +2267,8 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+    zIndex: 100, // Z-index muito alto
+    pointerEvents: 'auto', // Card deve capturar cliques
   },
   agendamentoCardHeader: {
     flexDirection: 'row',
@@ -2466,7 +2516,7 @@ const styles = StyleSheet.create({
   detalhesSaldoValor: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#10B981',
+    // Cor aplicada dinamicamente: verde para positivo, vermelho para negativo
   },
   detalhesTelefone: {
     fontSize: 13,

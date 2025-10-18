@@ -482,6 +482,7 @@ export default function AppLayout() {
           drawerItemStyle: { display: permissions.pode_ver_agenda ? 'flex' : 'none' },
           headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16 }}>
+              {/* Gerenciar presença - disponível para todos */}
               <TouchableOpacity 
                 style={{ marginRight: 16 }}
                 onPress={() => {
@@ -490,22 +491,32 @@ export default function AppLayout() {
               >
                 <Ionicons name="people-outline" size={24} color="#7C3AED" />
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={{ marginRight: 16 }}
-                onPress={() => {
-                  DeviceEventEmitter.emit('toggleBloqueioModal');
-                }}
-              >
-                <Ionicons name="sunny-outline" size={24} color="#7C3AED" />
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={{ marginRight: 16 }}
-                onPress={() => {
-                  DeviceEventEmitter.emit('toggleHorariosModal');
-                }}
-              >
-                <Ionicons name="settings-outline" size={24} color="#7C3AED" />
-              </TouchableOpacity>
+              
+              {/* Gerenciar bloqueios - apenas para admins */}
+              {role === 'admin' && (
+                <TouchableOpacity 
+                  style={{ marginRight: 16 }}
+                  onPress={() => {
+                    DeviceEventEmitter.emit('toggleBloqueioModal');
+                  }}
+                >
+                  <Ionicons name="sunny-outline" size={24} color="#7C3AED" />
+                </TouchableOpacity>
+              )}
+              
+              {/* Configurar horários - apenas para admins */}
+              {role === 'admin' && (
+                <TouchableOpacity 
+                  style={{ marginRight: 16 }}
+                  onPress={() => {
+                    DeviceEventEmitter.emit('toggleHorariosModal');
+                  }}
+                >
+                  <Ionicons name="settings-outline" size={24} color="#7C3AED" />
+                </TouchableOpacity>
+              )}
+              
+              {/* Adicionar agendamento - disponível para todos */}
               <TouchableOpacity 
                 onPress={() => router.push('/agenda/novo')}
               >

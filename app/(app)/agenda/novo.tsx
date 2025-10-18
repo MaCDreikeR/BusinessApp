@@ -44,7 +44,7 @@ interface Usuario {
 export default function NovoAgendamentoScreen() {
   const router = useRouter();
   const navigation = useNavigation();
-  const { estabelecimentoId, role } = useAuth();
+  const { estabelecimentoId, role, user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [cliente, setCliente] = useState('');
   const [telefone, setTelefone] = useState('');
@@ -240,16 +240,28 @@ export default function NovoAgendamentoScreen() {
       if (!rpcError && usuariosRpc) {
         console.log('✅ Usuários carregados via RPC:', usuariosRpc.length);
         console.log('📋 Lista completa de usuários RPC:', JSON.stringify(usuariosRpc, null, 2));
-        // TODOS os usuários do estabelecimento, não apenas quem faz atendimento
-        setUsuarios(usuariosRpc || []);
+        
+        // REGRA: Profissionais veem apenas a si mesmos
+        let usuariosFiltrados = usuariosRpc || [];
+        if (role === 'profissional' && user?.id) {
+          usuariosFiltrados = usuariosRpc.filter((u: any) => u.id === user.id);
+          console.log('👤 Profissional - mostrando apenas próprio usuário:', usuariosFiltrados);
+          
+          // Auto-selecionar o profissional
+          if (usuariosFiltrados.length > 0) {
+            setUsuarioSelecionado(usuariosFiltrados[0]);
+          }
+        }
+        
+        setUsuarios(usuariosFiltrados);
         
         // Inicializa o estado de presença para todos os usuários
-        const presencaInicial = (usuariosRpc || []).reduce((acc: Record<string, boolean>, usuario: any) => {
+        const presencaInicial = usuariosFiltrados.reduce((acc: Record<string, boolean>, usuario: any) => {
           acc[usuario.id] = true; // Por padrão, todos estão presentes
           return acc;
         }, {} as Record<string, boolean>);
         setPresencaUsuarios(presencaInicial);
-        console.log('✅ Total de usuários carregados:', usuariosRpc.length);
+        console.log('✅ Total de usuários carregados:', usuariosFiltrados.length);
         return;
       }
 
@@ -269,10 +281,23 @@ export default function NovoAgendamentoScreen() {
 
       console.log('✅ Usuários encontrados via consulta direta:', data?.length);
       console.log('📋 Lista completa de usuários (fallback):', JSON.stringify(data, null, 2));
-      setUsuarios(data || []);
+      
+      // REGRA: Profissionais veem apenas a si mesmos
+      let usuariosFiltrados = data || [];
+      if (role === 'profissional' && user?.id) {
+        usuariosFiltrados = data?.filter((u: any) => u.id === user.id) || [];
+        console.log('👤 Profissional - mostrando apenas próprio usuário:', usuariosFiltrados);
+        
+        // Auto-selecionar o profissional
+        if (usuariosFiltrados.length > 0) {
+          setUsuarioSelecionado(usuariosFiltrados[0]);
+        }
+      }
+      
+      setUsuarios(usuariosFiltrados);
       
       // Inicializa o estado de presença para todos os usuários
-      const presencaInicial = (data || []).reduce((acc, usuario) => {
+      const presencaInicial = usuariosFiltrados.reduce((acc, usuario) => {
         acc[usuario.id] = true; // Por padrão, todos estão presentes
         return acc;
       }, {} as Record<string, boolean>);
@@ -1266,33 +1291,35 @@ export default function NovoAgendamentoScreen() {
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Profissional</Text>
-          
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Selecione o Profissional *</Text>
-            <TouchableOpacity
-              style={[
-                styles.input,
-                styles.select,
-                errors.usuario ? styles.inputError : null,
-              ]}
-              onPress={handleOpenUsuarioModal}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                {usuarioSelecionado && usuarioSelecionado.avatar_url ? (
-                  <Image 
-                    source={{ uri: usuarioSelecionado.avatar_url }} 
-                    style={styles.clienteFoto}
-                  />
-                ) : usuarioSelecionado ? (
-                  <View style={styles.clienteFotoPlaceholder}>
-                    <FontAwesome5 name="user" size={12} color="#7C3AED" />
-                  </View>
-                ) : null}
-                <Text style={[styles.selectText, !usuarioSelecionado && styles.placeholder]}>
-                  {usuarioSelecionado ? usuarioSelecionado.nome_completo : 'Selecione um Profissional'}
-                </Text>
+        {/* Seção Profissional - oculta para profissionais (já está auto-selecionado) */}
+        {role !== 'profissional' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Profissional</Text>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Selecione o Profissional *</Text>
+              <TouchableOpacity
+                style={[
+                  styles.input,
+                  styles.select,
+                  errors.usuario ? styles.inputError : null,
+                ]}
+                onPress={handleOpenUsuarioModal}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                  {usuarioSelecionado && usuarioSelecionado.avatar_url ? (
+                    <Image 
+                      source={{ uri: usuarioSelecionado.avatar_url }} 
+                      style={styles.clienteFoto}
+                    />
+                  ) : usuarioSelecionado ? (
+                    <View style={styles.clienteFotoPlaceholder}>
+                      <FontAwesome5 name="user" size={12} color="#7C3AED" />
+                    </View>
+                  ) : null}
+                  <Text style={[styles.selectText, !usuarioSelecionado && styles.placeholder]}>
+                    {usuarioSelecionado ? usuarioSelecionado.nome_completo : 'Selecione um Profissional'}
+                  </Text>
               </View>
               <FontAwesome5 name="chevron-down" size={16} color="#9CA3AF" />
             </TouchableOpacity>
@@ -1331,7 +1358,8 @@ export default function NovoAgendamentoScreen() {
                 ))}
             </View>
           )}
-        </View>
+          </View>
+        )}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Detalhes do Agendamento</Text>

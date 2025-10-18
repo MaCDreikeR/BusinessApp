@@ -115,6 +115,49 @@ export default function ContaDetalhes() {
     );
   };
 
+  const excluirConta = async () => {
+    if (!estab) return;
+    
+    Alert.alert(
+      '⚠️ ATENÇÃO: Excluir Conta',
+      `Esta ação é IRREVERSÍVEL!\n\nTodos os dados da conta "${nomeEstabelecimento}" serão permanentemente deletados:\n\n• ${usuarios.length} usuário(s)\n• Agendamentos\n• Clientes\n• Vendas\n• Produtos\n• E todos os outros dados\n\nDeseja realmente excluir esta conta?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'EXCLUIR PERMANENTEMENTE', 
+          style: 'destructive', 
+          onPress: async () => {
+            try {
+              setLoading(true);
+              
+              // Delete do estabelecimento (cascade deve deletar os usuários e dados relacionados)
+              const { error } = await supabase
+                .from('estabelecimentos')
+                .delete()
+                .eq('id', id);
+
+              if (error) throw error;
+
+              Alert.alert(
+                'Conta Excluída',
+                'A conta foi excluída permanentemente com sucesso.',
+                [
+                  {
+                    text: 'OK',
+                    onPress: () => router.replace('/(admin)/users')
+                  }
+                ]
+              );
+            } catch (e: any) {
+              setLoading(false);
+              Alert.alert('Erro ao excluir', e.message ?? 'Não foi possível excluir a conta. Tente novamente.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   // Helper para cor por status
   const statusColor = (s?: string) => {
     switch (s) {
@@ -249,7 +292,7 @@ export default function ContaDetalhes() {
             </View>
 
             <View style={styles.actionsRow}>
-              <TouchableOpacity style={[styles.adminBtn, { backgroundColor: '#ef4444' }]} onPress={() => Alert.alert('Excluir', 'Funcionalidade em desenvolvimento')}>
+              <TouchableOpacity style={[styles.adminBtn, { backgroundColor: '#ef4444' }]} onPress={excluirConta}>
                 <FontAwesome5 name="trash" size={14} color="#111827" />
                 <Text style={styles.adminBtnText}>Excluir</Text>
               </TouchableOpacity>

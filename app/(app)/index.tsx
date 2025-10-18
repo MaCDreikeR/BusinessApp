@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert, Image, Dimensions } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
@@ -103,13 +103,22 @@ export default function HomeScreen() {
         supabase.from('comandas_itens').select(`preco_total, comandas!inner(status, estabelecimento_id, finalized_at)`).eq('comandas.estabelecimento_id', estabelecimentoId).eq('comandas.status', 'fechada').gte('comandas.finalized_at', inicioHoje.toISOString()).lte('comandas.finalized_at', fimHoje.toISOString()),
         // Carregar clientes ativos
         supabase.from('clientes').select('*', { count: 'exact', head: true }).eq('estabelecimento_id', estabelecimentoId),
-        // Carregar próximos agendamentos diretamente
-        supabase.from('agendamentos')
-          .select('id, cliente, data_hora, horario_termino, servicos, usuario_id, status')
-          .eq('estabelecimento_id', estabelecimentoId)
-          .gte('data_hora', new Date().toISOString())
-          .order('data_hora', { ascending: true })
-          .limit(5),
+        // Carregar próximos agendamentos - profissionais veem apenas os seus
+        (() => {
+          let query = supabase.from('agendamentos')
+            .select('id, cliente, data_hora, horario_termino, servicos, usuario_id, status')
+            .eq('estabelecimento_id', estabelecimentoId)
+            .gte('data_hora', new Date().toISOString())
+            .order('data_hora', { ascending: true })
+            .limit(5);
+          
+          // Filtrar por usuário se for profissional
+          if (role === 'profissional' && user?.id) {
+            query = query.eq('usuario_id', user.id);
+          }
+          
+          return query;
+        })(),
         // Carregar vendas recentes - COMANDAS FECHADAS COM VALOR_TOTAL
         supabase.from('comandas').select('id, cliente_nome, valor_total, finalized_at').eq('estabelecimento_id', estabelecimentoId).eq('status', 'fechada').order('finalized_at', { ascending: false }).limit(5),
       ]);
@@ -213,8 +222,57 @@ export default function HomeScreen() {
     role !== 'profissional', // Produtos Baixo Estoque
   ].filter(Boolean).length;
 
-  // Determinar se deve usar layout de 2 colunas ou flexível
-  const cardWidth = cardsVisiveis === 3 ? '32%' : '48%';
+  // Layout responsivo baseado no tamanho da tela
+  const screenWidth = Dimensions.get('window').width;
+  
+  // Debug: verificar largura da tela
+  console.log('📱 Largura da tela (dp):', screenWidth);
+  console.log('🎯 Cards visíveis:', cardsVisiveis);
+  
+  // Determinar largura dos cards baseado no tamanho da tela e quantidade de cards
+  // Sistema inteligente: sempre usa 2 colunas em smartphones, ajusta largura para ocupar espaço
+  const getCardWidth = () => {
+    const padding = 16; // padding lateral do grid
+    const gap = 16; // gap entre cards
+    const availableWidth = screenWidth - (padding * 2);
+    
+    // Smartphones (< 600dp): sempre 2 colunas, independente da quantidade
+    if (screenWidth < 600) {
+      // Calcular largura exata: (largura disponível - gap) / 2
+      const cardWidthPx = (availableWidth - gap) / 2;
+      console.log(`💡 Layout: 2 colunas (${cardWidthPx.toFixed(0)}px) - Smartphone`);
+      return cardWidthPx;
+    }
+    
+    // Tablets pequenos (600-900dp): 2-3 colunas
+    if (screenWidth < 900) {
+      if (cardsVisiveis === 3) {
+        // 3 cards: 2 na primeira linha, 1 na segunda (mas mantém tamanho de 2 colunas)
+        const cardWidthPx = (availableWidth - gap) / 2;
+        console.log(`💡 Layout: 2 colunas para 3 cards (${cardWidthPx.toFixed(0)}px) - Tablet pequeno`);
+        return cardWidthPx;
+      }
+      const cardWidthPx = (availableWidth - gap) / 2;
+      console.log(`💡 Layout: 2 colunas (${cardWidthPx.toFixed(0)}px) - Tablet pequeno`);
+      return cardWidthPx;
+    }
+    
+    // Tablets grandes (900-1200dp): 3-4 colunas
+    if (screenWidth < 1200) {
+      const cols = cardsVisiveis >= 3 ? 3 : 2;
+      const cardWidthPx = (availableWidth - (gap * (cols - 1))) / cols;
+      console.log(`💡 Layout: ${cols} colunas (${cardWidthPx.toFixed(0)}px) - Tablet grande`);
+      return cardWidthPx;
+    }
+    
+    // Desktop/TV: 4 colunas
+    const cols = Math.min(cardsVisiveis, 4);
+    const cardWidthPx = (availableWidth - (gap * (cols - 1))) / cols;
+    console.log(`💡 Layout: ${cols} colunas (${cardWidthPx.toFixed(0)}px) - Desktop`);
+    return cardWidthPx;
+  };
+
+  const cardWidth = getCardWidth();
 
   return (
     <ScrollView
@@ -472,6 +530,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     minHeight: 160,
+    marginBottom: 0,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: {
@@ -494,15 +553,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#4B5563',
     marginBottom: 8,
+    lineHeight: 18,
   },
   cardValue: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#1F2937',
     marginBottom: 4,
   },
   cardSubtitle: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#6B7280',
   },
   cardPrimary: {
