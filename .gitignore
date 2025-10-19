@@ -17,6 +17,7 @@ debug.keystore
 *.bak
 desktop.ini
 android/build/
+android/app/build/
 app/build/
 
 # Native

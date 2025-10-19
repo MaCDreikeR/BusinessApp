@@ -7,9 +7,9 @@ export default {
     icon: './assets/images/icon.png',
     userInterfaceStyle: 'light',
     splash: {
-      image: './assets/images/splash.png',  // Use splash.png ou icon.png, escolha um só
-      resizeMode: 'cover',
-      backgroundColor: '#103967',
+      image: './assets/images/splash.png',
+      resizeMode: 'contain',
+      backgroundColor: '#ffffffff',
     },
     assetBundlePatterns: ['**/*'],
     ios: {
@@ -21,9 +21,12 @@ export default {
       newArchEnabled: true,
     },
     android: {
+      
+      "supportsTablet": true,
       adaptiveIcon: {
         foregroundImage: './assets/images/adaptive-icon.png',
-        backgroundColor: '#4A90E2', // Azul da loja (ajuste conforme sua imagem)
+        backgroundColor: '#ffffffff', // Azul da loja (ajuste conforme sua imagem)
+        
       },
       package: 'com.seuapp.business',
       permissions: ['NOTIFICATIONS'],
