@@ -1,16 +1,23 @@
 export default () => {
-  // Determina o ambiente baseado na variável EXPO_PUBLIC_ENVIRONMENT ou defaulta para 'development'
-  const environment = process.env.EXPO_PUBLIC_ENVIRONMENT || 'development';
-  const isDev = environment === 'development';
+  // Determina o ambiente baseado na variável EXPO_PUBLIC_ENVIRONMENT
+  const environment = process.env.EXPO_PUBLIC_ENVIRONMENT || 'local';
+  const isDev = environment === 'local' || environment === 'staging';
   
   // Configurações específicas por ambiente
   const envConfig = {
-    development: {
-      name: 'BusinessApp Dev',
-      slug: 'businessapp-dev',
-      bundleIdentifier: 'com.seuapp.business.dev',
-      package: 'com.seuapp.business.dev',
-      scheme: 'businessapp-dev',
+    local: {
+      name: 'BusinessApp Local',
+      slug: 'businessapp-local',
+      bundleIdentifier: 'com.seuapp.business.local',
+      package: 'com.seuapp.business.local',
+      scheme: 'businessapp-local',
+    },
+    staging: {
+      name: 'BusinessApp Staging',
+      slug: 'businessapp-staging', 
+      bundleIdentifier: 'com.seuapp.business.staging',
+      package: 'com.seuapp.business.staging',
+      scheme: 'businessapp-staging',
     },
     production: {
       name: 'BusinessApp',
@@ -65,8 +72,10 @@ export default () => {
         environment,
         supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
         supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+        useLocalDb: process.env.EXPO_PUBLIC_USE_LOCAL_DB === 'true',
         debugMode: process.env.EXPO_PUBLIC_DEBUG_MODE === 'true',
         apiTimeout: parseInt(process.env.EXPO_PUBLIC_API_TIMEOUT || '5000'),
+        offlineMode: process.env.EXPO_PUBLIC_OFFLINE_MODE === 'true',
       },
       plugins: [
         'expo-router',

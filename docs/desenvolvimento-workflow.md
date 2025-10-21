@@ -1,264 +1,326 @@
-# Guia de Desenvolvimento - Múltiplos Ambientes
+# Guia de Desenvolvimento - Banco Local + Múltiplos Ambientes
 
-## Configuração Inicial
+## 🎯 Estratégia de Desenvolvimento
 
-### 1. Instalação de Dependências
+### Fluxo de Trabalho:
+```
+LOCAL (SQLite) → STAGING (Supabase) → PRODUÇÃO (Supabase)
+    ↓               ↓                    ↓
+ Desenvolvimento    Testes             Release
+ Offline/Online     em Nuvem           Final
+```
+
+## 🏗️ Arquitetura dos Ambientes
+
+### 1. **LOCAL** - Desenvolvimento Offline
+- **Banco**: SQLite local
+- **Vantagens**: 
+  - ✅ Desenvolvimento completamente offline
+  - ✅ Testes rápidos e isolados
+  - ✅ Não consome quota do Supabase
+  - ✅ Resetar banco facilmente
+- **Uso**: Desenvolvimento diário, testes unitários
+
+### 2. **STAGING** - Testes em Nuvem
+- **Banco**: Supabase separado
+- **Vantagens**:
+  - ✅ Teste de integração com nuvem
+  - ✅ Teste de autenticação
+  - ✅ Simulação do ambiente real
+- **Uso**: Testes antes do deploy, demos
+
+### 3. **PRODUÇÃO** - Ambiente Real
+- **Banco**: Supabase produção
+- **Vantagens**:
+  - ✅ Dados reais dos usuários
+  - ✅ Performance otimizada
+- **Uso**: App em produção
+
+## 🚀 Configuração Inicial
+
+### 1. Instalação
 ```bash
 npm install
 ```
 
-### 2. Configuração dos Ambientes
-Execute o script de configuração para definir suas variáveis de ambiente:
+### 2. Configurar Banco Local
 ```bash
+# Gerar migração inicial
+npm run db:generate
+
+# Executar migração
+npm run db:migrate
+
+# Inserir dados de exemplo
+npm run db:seed
+```
+
+### 3. Configurar Ambientes
+```bash
+# Configurar arquivos de ambiente
+npm run env:setup
+
+# Ou use o script interativo
 node scripts/setup-env.js
 ```
 
-Ou configure manualmente:
+## 📝 Comandos de Desenvolvimento
+
+### Desenvolvimento Local (Offline)
 ```bash
-npm run env:setup
-```
-E depois edite os arquivos `.env.development` e `.env.production` com suas credenciais.
+# Iniciar em modo local (SQLite)
+npm run start:local
 
-## Estrutura de Branches
+# Android local
+npm run android:local
 
-- **`master`**: Código de produção (protegida)
-- **`develop`**: Código de desenvolvimento (principal para novos recursos)
-- **`feature/*`**: Branches para novos recursos
-- **`hotfix/*`**: Correções urgentes para produção
+# iOS local
+npm run ios:local
 
-## Comandos de Desenvolvimento
-
-### Desenvolvimento Local
-```bash
-# Iniciar em modo desenvolvimento
-npm run start:dev
-
-# Android em desenvolvimento
-npm run android:dev
-
-# iOS em desenvolvimento  
-npm run ios:dev
-
-# Web em desenvolvimento
-npm run web:dev
+# Web local
+npm run web:local
 ```
 
-### Produção/Teste
+### Staging (Teste em Nuvem)
+```bash
+# Primeiro, sincronize dados locais para staging
+npm run db:sync
+
+# Iniciar em modo staging
+npm run start:staging
+
+# Android staging
+npm run android:staging
+```
+
+### Produção
 ```bash
 # Iniciar em modo produção
 npm run start:prod
 
-# Android em produção
-npm run android:prod
-
-# iOS em produção
-npm run ios:prod
-
-# Web em produção
-npm run web:prod
-```
-
-### Builds
-```bash
-# Build de desenvolvimento
-npm run build:dev
-
-# Build de preview/staging
-npm run build:preview
-
 # Build de produção
 npm run build:prod
 ```
 
-## Workflow de Desenvolvimento
+## 🗄️ Comandos do Banco de Dados
 
-### 1. Criando uma Nova Feature
+### Desenvolvimento Local
 ```bash
-# Mude para develop
-git checkout develop
-git pull origin develop
+# Gerar nova migração
+npm run db:generate
 
-# Crie uma nova branch
-git checkout -b feature/nome-da-feature
+# Executar migrações
+npm run db:migrate
 
-# Desenvolva usando ambiente de desenvolvimento
-npm run start:dev
+# Resetar banco (limpar tudo)
+npm run db:reset
+
+# Inserir dados de exemplo
+npm run db:seed
+
+# Sincronizar para staging
+npm run db:sync
 ```
 
-### 2. Testando
+### Exemplo de Workflow
 ```bash
-# Teste localmente
-npm run test
+# 1. Desenvolver localmente
+npm run start:local
 
-# Teste em device de desenvolvimento
-npm run build:dev
+# 2. Fazer mudanças no schema
+npm run db:generate
+npm run db:migrate
+
+# 3. Testar em staging
+npm run db:sync
+npm run start:staging
+
+# 4. Deploy para produção
+npm run build:prod
 ```
 
-### 3. Enviando para Revisão
+## 🔄 Workflow Completo
+
+### 1. Desenvolvimento de Nova Feature
 ```bash
-# Commit suas mudanças
-git add .
-git commit -m "feat: descrição da feature"
+# Criar branch
+git checkout -b feature/nova-funcionalidade
 
-# Push da branch
-git push origin feature/nome-da-feature
+# Desenvolver localmente
+npm run start:local
 
-# Crie um Pull Request para develop
+# Testar mudanças no banco
+npm run db:reset
+npm run db:seed
 ```
 
-### 4. Deploy de Staging
+### 2. Teste da Feature
 ```bash
-# Merge em develop
-git checkout develop
-git merge feature/nome-da-feature
+# Sincronizar para staging
+npm run db:sync
 
-# Build de preview para testes
-npm run build:preview
+# Testar em staging
+npm run start:staging
+
+# Build de teste
+npm run build:staging
 ```
 
-### 5. Deploy de Produção
+### 3. Deploy para Produção
 ```bash
-# Merge develop em master
+# Merge para master
 git checkout master
-git merge develop
+git merge feature/nova-funcionalidade
 
-# Build de produção
+# Deploy produção
 npm run build:prod
-
-# Tag da versão
-git tag v1.0.1
-git push origin master --tags
 ```
 
-## Ambientes
+## 📁 Estrutura dos Ambientes
 
-### Desenvolvimento
-- **Supabase**: Projeto separado para desenvolvimento
-- **Bundle ID**: `com.seuapp.business.dev`
-- **App Name**: `BusinessApp Dev`
-- **Debug**: Habilitado
-- **Logs**: Detalhados
-
-### Produção
-- **Supabase**: Projeto de produção
-- **Bundle ID**: `com.seuapp.business`
-- **App Name**: `BusinessApp`
-- **Debug**: Desabilitado
-- **Logs**: Apenas erros
-
-## Configuração do Supabase
-
-### Criando Projeto de Desenvolvimento
-
-1. Acesse https://supabase.com/dashboard
-2. Clique em "New Project"
-3. Nome: `BusinessApp-Dev`
-4. Copie URL e Anon Key
-5. Configure no `.env.development`
-
-### Migração do Schema
-
-1. No projeto de produção, acesse SQL Editor
-2. Execute o script em `supabase/schema-export.sql`
-3. Copie o resultado para o projeto de desenvolvimento
-4. Execute no SQL Editor do projeto de desenvolvimento
-
-### RLS (Row Level Security)
-
-Certifique-se de configurar as mesmas políticas de RLS no projeto de desenvolvimento:
-
-```sql
--- Exemplo: política para tabela usuarios
-ALTER TABLE usuarios ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view own data" ON usuarios
-FOR SELECT USING (auth.uid() = id);
-
-CREATE POLICY "Users can update own data" ON usuarios  
-FOR UPDATE USING (auth.uid() = id);
-```
-
-## Variáveis de Ambiente
-
-### Desenvolvimento (`.env.development`)
+### Local (.env.development)
 ```env
-EXPO_PUBLIC_ENVIRONMENT=development
-EXPO_PUBLIC_APP_NAME=BusinessApp Dev
-EXPO_PUBLIC_SUPABASE_URL=https://dev-projeto.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=sua-chave-dev
-EXPO_PUBLIC_DEBUG_MODE=true
-EXPO_PUBLIC_API_TIMEOUT=10000
+EXPO_PUBLIC_ENVIRONMENT=local
+EXPO_PUBLIC_USE_LOCAL_DB=true
+EXPO_PUBLIC_OFFLINE_MODE=true
 ```
 
-### Produção (`.env.production`)
+### Staging (.env.staging)
+```env
+EXPO_PUBLIC_ENVIRONMENT=staging
+EXPO_PUBLIC_SUPABASE_URL=https://staging.supabase.co
+EXPO_PUBLIC_USE_LOCAL_DB=false
+```
+
+### Produção (.env.production)
 ```env
 EXPO_PUBLIC_ENVIRONMENT=production
-EXPO_PUBLIC_APP_NAME=BusinessApp
-EXPO_PUBLIC_SUPABASE_URL=https://prod-projeto.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=sua-chave-prod
-EXPO_PUBLIC_DEBUG_MODE=false
-EXPO_PUBLIC_API_TIMEOUT=5000
+EXPO_PUBLIC_SUPABASE_URL=https://prod.supabase.co
+EXPO_PUBLIC_USE_LOCAL_DB=false
 ```
 
-## Melhores Práticas
+## 🎯 Quando Usar Cada Ambiente
 
-### Desenvolvimento
-- ✅ Sempre trabalhe na branch `develop` ou em feature branches
-- ✅ Use o ambiente de desenvolvimento para testes
-- ✅ Teste em dispositivos reais quando possível
-- ✅ Mantenha o banco de desenvolvimento atualizado com o schema de produção
+### Use LOCAL quando:
+- ✅ Desenvolvendo novas funcionalidades
+- ✅ Testando mudanças no banco
+- ✅ Trabalhando offline
+- ✅ Fazendo testes unitários
+- ✅ Debugando problemas
 
-### Commits
-- ✅ Use conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`
-- ✅ Seja descritivo nas mensagens
-- ✅ Faça commits pequenos e frequentes
+### Use STAGING quando:
+- ✅ Testando integração com APIs
+- ✅ Validando autenticação
+- ✅ Demonstrando para stakeholders
+- ✅ Testes de performance
+- ✅ Validando antes do deploy
 
-### Testes
-- ✅ Teste em ambos os ambientes antes do merge para master
-- ✅ Verifique se as variáveis de ambiente estão corretas
-- ✅ Teste notificações push em Development Build
+### Use PRODUÇÃO quando:
+- ✅ Deploy final
+- ✅ Dados reais dos usuários
+- ✅ Monitoramento de performance
 
-### Segurança
-- ❌ NUNCA commite arquivos `.env.*`
-- ❌ NUNCA exponha chaves privadas
-- ✅ Use RLS no Supabase
-- ✅ Valide dados no frontend E backend
+## 🛠️ Ferramentas e Scripts
 
-## Troubleshooting
+### Database Management
+```bash
+# Ver dados do banco local
+npm run db:inspect
 
-### Problema: App não conecta com Supabase
-- Verifique se as variáveis de ambiente estão corretas
-- Confirme que o projeto Supabase está ativo
-- Verifique a conectividade de rede
+# Backup do banco local
+npm run db:backup
 
-### Problema: Build falha
-- Limpe o cache: `expo start -c`
-- Verifique se todas as dependências estão instaladas
-- Confirme que o ambiente está configurado corretamente
+# Restaurar backup
+npm run db:restore
 
-### Problema: Push notifications não funcionam
-- Use Development Build (`npm run build:dev`)
-- Verifique as permissões no dispositivo
-- Confirme a configuração no `app.config.js`
+# Comparar schemas
+npm run db:diff
+```
 
-## Scripts Úteis
+### Sincronização
+```bash
+# Sincronizar local → staging
+npm run db:sync
+
+# Sincronizar staging → produção (cuidado!)
+npm run db:sync-to-prod
+```
+
+## 🔒 Segurança e Boas Práticas
+
+### Desenvolvimento Local
+- ✅ Use dados fictícios/anonymizados
+- ✅ Não armazene dados sensíveis no SQLite
+- ✅ Reset frequente do banco local
+
+### Staging
+- ✅ Use dados de teste, não produção
+- ✅ Configure RLS adequadamente
+- ✅ Monitore uso da quota
+
+### Produção
+- ✅ Backup automático
+- ✅ Monitoramento 24/7
+- ✅ RLS rigoroso
+- ✅ Logs de auditoria
+
+## 🚨 Troubleshooting
+
+### Problema: SQLite não funciona
+```bash
+# Reinstalar dependências
+npm install better-sqlite3 --force
+
+# Regenerar banco
+npm run db:reset
+```
+
+### Problema: Sincronização falha
+```bash
+# Verificar conexão com staging
+npm run start:staging
+
+# Verificar credenciais
+cat .env.staging
+```
+
+### Problema: Migration erro
+```bash
+# Resetar migrações
+rm -rf drizzle/migrations
+npm run db:generate
+```
+
+## 📊 Vantagens da Abordagem Híbrida
+
+### Para o Desenvolvedor:
+- 🚀 Desenvolvimento mais rápido (offline)
+- 🧪 Testes isolados e repetíveis
+- 💰 Economia de custos de nuvem
+- 🔄 Facilidade para resetar dados
+
+### Para o Projeto:
+- 🛡️ Ambiente de produção protegido
+- 🎯 Testes mais completos
+- 📈 Melhor CI/CD
+- 🐛 Bugs detectados antes da produção
+
+### Para a Equipe:
+- 👥 Desenvolvimento paralelo
+- 🔄 Sincronização controlada
+- 📝 Histórico de mudanças
+- 🎨 Demonstrações flexíveis
+
+## 🎉 Resumo dos Comandos Principais
 
 ```bash
-# Limpar cache
-expo start -c
+# Desenvolvimento diário
+npm run start:local          # Desenvolver offline
+npm run db:reset            # Limpar banco local
+npm run db:seed             # Dados de exemplo
 
-# Verificar dependências
-npm ls
-
-# Atualizar dependências
-npx expo update
-
-# Verificar configuração
-npx expo config
-
-# Login no EAS
-npx eas login
-
-# Status dos builds
-npx eas build:list
+# Teste e deploy
+npm run db:sync             # Sincronizar para staging
+npm run start:staging       # Testar em nuvem
+npm run build:prod          # Deploy produção
 ```
