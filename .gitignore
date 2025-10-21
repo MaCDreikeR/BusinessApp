@@ -42,6 +42,9 @@ yarn-error.*
 
 # local env files
 .env
+.env.development
+.env.production
+.env.local
 my-release-key.keystore
 
 # typescript

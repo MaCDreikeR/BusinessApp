@@ -4,12 +4,24 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
+    "start:dev": "cross-env EXPO_PUBLIC_ENVIRONMENT=development expo start",
+    "start:prod": "cross-env EXPO_PUBLIC_ENVIRONMENT=production expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
+    "android:dev": "cross-env EXPO_PUBLIC_ENVIRONMENT=development expo run:android",
+    "android:prod": "cross-env EXPO_PUBLIC_ENVIRONMENT=production expo run:android",
     "ios": "expo run:ios",
+    "ios:dev": "cross-env EXPO_PUBLIC_ENVIRONMENT=development expo run:ios",
+    "ios:prod": "cross-env EXPO_PUBLIC_ENVIRONMENT=production expo run:ios",
     "web": "expo start --web",
+    "web:dev": "cross-env EXPO_PUBLIC_ENVIRONMENT=development expo start --web",
+    "web:prod": "cross-env EXPO_PUBLIC_ENVIRONMENT=production expo start --web",
     "test": "jest --watchAll",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "build:dev": "eas build --profile development",
+    "build:preview": "eas build --profile preview",
+    "build:prod": "eas build --profile production",
+    "env:setup": "cp .env.example .env.development && cp .env.example .env.production"
   },
   "jest": {
     "preset": "jest-expo"
@@ -82,6 +94,7 @@
     "@types/react": "~19.1.10",
     "@types/react-test-renderer": "^18.3.0",
     "babel-plugin-module-resolver": "^5.0.2",
+    "cross-env": "^7.0.3",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~10.0.0",
     "jest": "^29.2.1",
