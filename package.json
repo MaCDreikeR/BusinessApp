@@ -10,7 +10,7 @@
     "web": "expo start --web",
     "test": "jest --watchAll",
     "lint": "expo lint",
-    "build": "echo 'Expo Router: build web via Vercel runtime'",
+    "build": "expo start --web --no-interactive",
     "setup:supabase": "node ./scripts/setup-supabase-local.js",
     "migrate:database": "node ./scripts/migrate-database.js",
     "env:local": "copy .env.development .env",
