@@ -165,41 +165,49 @@ export default function AppLayout() {
   }
 
   const CustomDrawerContent = (props: DrawerContentComponentProps) => {
+    const { signOut } = useAuth();
     const handleLogout = async () => {
-      Alert.alert(
-        'Sair',
-        'Deseja realmente sair da sua conta?',
-        [
-          {
-            text: 'Cancelar',
-            style: 'cancel',
-          },
-          {
-            text: 'Sair',
-            style: 'destructive',
-            onPress: async () => {
-      try {
-        const { error } = await supabase.auth.signOut();
-        if (error) {
-          console.error('Erro ao fazer logout:', error.message);
-          Alert.alert('Erro', 'Não foi possível fazer logout. Tente novamente.');
-          return;
+      console.log('[Drawer] Botão Sair pressionado');
+      if (typeof window !== 'undefined') {
+        // Ambiente web: logout direto
+        try {
+          await signOut();
+          setUsuario(null);
+          setEstabelecimento(null);
+          window.localStorage.clear();
+          window.sessionStorage.clear();
+          window.location.replace('/');
+        } catch (error) {
+          console.error('Erro ao fazer logout:', error);
         }
-        
-        // Limpa qualquer estado do usuário em memória
-        setUsuario(null);
-        setEstabelecimento(null);
-
-        // Força a navegação para a tela inicial
-                router.replace('/(auth)/login');
-      } catch (error) {
-        console.error('Erro ao fazer logout:', error);
-        Alert.alert('Erro', 'Ocorreu um erro inesperado. Tente novamente.');
-      }
+      } else {
+        // Ambiente mobile: confirmação
+        Alert.alert(
+          'Sair',
+          'Deseja realmente sair da sua conta?',
+          [
+            {
+              text: 'Cancelar',
+              style: 'cancel',
+            },
+            {
+              text: 'Sair',
+              style: 'destructive',
+              onPress: async () => {
+                console.log('[Drawer] Confirmou logout');
+                try {
+                  await signOut();
+                  setUsuario(null);
+                  setEstabelecimento(null);
+                } catch (error) {
+                  console.error('Erro ao fazer logout:', error);
+                  Alert.alert('Erro', 'Ocorreu um erro inesperado. Tente novamente.');
+                }
+              }
             }
-          }
-        ]
-      );
+          ]
+        );
+      }
     };
 
     return (

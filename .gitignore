@@ -42,15 +42,7 @@ yarn-error.*
 
 # local env files
 .env
-.env.development
-.env.staging
-.env.production
-.env.local
 my-release-key.keystore
-
-# Local database
-*.db
-*.db-*
 
 # typescript
 *.tsbuildinfo

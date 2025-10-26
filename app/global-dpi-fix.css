@@ -1,0 +1,36 @@
+/* app/global-dpi-fix.css */
+@media screen and (resolution: 274dpi) {
+  body, #root, .expo-root {
+    width: 100vw !important;
+    height: 100vh !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: scale(1.17) !important;
+    transform-origin: top left !important;
+    overflow: hidden !important;
+  }
+}
+
+/* Força aplicação para todas as densidades não-padrão */
+@media screen and (resolution: 270dpi), 
+       screen and (resolution: 271dpi), 
+       screen and (resolution: 272dpi), 
+       screen and (resolution: 273dpi), 
+       screen and (resolution: 274dpi), 
+       screen and (resolution: 275dpi), 
+       screen and (resolution: 276dpi), 
+       screen and (resolution: 277dpi), 
+       screen and (resolution: 278dpi), 
+       screen and (resolution: 279dpi), 
+       screen and (resolution: 280dpi) {
+  body, #root {
+    zoom: 117% !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+}

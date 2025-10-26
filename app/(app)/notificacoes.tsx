@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getHistoricoNotificacoes } from '../services/notifications';
+import { getHistoricoNotificacoes } from '../../services/notifications';
 
 interface Notificacao {
   id: string;

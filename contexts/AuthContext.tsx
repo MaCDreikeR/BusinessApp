@@ -9,8 +9,9 @@ type AuthContextType = {
   user: User | null;
   session: Session | null;
   estabelecimentoId: string | null;
-  role: string | null; // ADICIONADO: para guardar a permissão do usuário
+  role: string | null;
   loading: boolean;
+  signOut: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -19,6 +20,7 @@ const AuthContext = createContext<AuthContextType>({
   estabelecimentoId: null,
   role: null,
   loading: true,
+  signOut: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -122,6 +124,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [router]);
 
+  // Função pública de logout manual
+  const signOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
+      setEstabelecimentoId(null);
+      setRole(null);
+      router.replace('/(auth)/login');
+    } catch (error) {
+      console.error('Erro ao fazer logout manual:', error);
+      Alert.alert('Erro', 'Não foi possível sair. Tente novamente.');
+    }
+  };
+
   const value = useMemo(
     () => ({
       user,
@@ -129,6 +146,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       estabelecimentoId,
       role, 
       loading,
+      signOut,
     }),
     [user, session, estabelecimentoId, role, loading]
   );

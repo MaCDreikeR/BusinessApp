@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Dimensions, PixelRatio, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { PWAInstallBanner } from '../components/PWAInstallBanner';
 
 // Componente "Porteiro" que contém a lógica de redirecionamento
 const MainLayout = () => {
@@ -104,19 +105,56 @@ const MainLayout = () => {
   
   // O Stack gerencia as telas. O Expo Router cuida do resto.
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(app)" />
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(admin)" />
-    </Stack>
+    <>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(app)" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(admin)" />
+      </Stack>
+      {Platform.OS === 'web' && <PWAInstallBanner />}
+    </>
   );
+};
+
+// Componente de correção DPI
+const DPIWrapper = ({ children }: { children: React.ReactNode }) => {
+  const { width, height } = Dimensions.get('window');
+  const density = PixelRatio.get();
+  
+  // Detecção e correção para 274 DPI
+  const is274DPI = density >= 1.6 && density <= 1.8;
+  
+  useEffect(() => {
+    if (is274DPI) {
+      console.log('🔧 CORREÇÃO DPI ATIVADA - Densidade:', density, 'DPI:', Math.round(density * 160));
+    }
+  }, [density, is274DPI]);
+  
+  if (is274DPI) {
+    // Para 274 DPI: aplica escala para ocupar tela completa
+    return (
+      <View style={{
+        flex: 1,
+        transform: [{ scale: 1.17 }], // 320/274 ≈ 1.168
+        width: width / 1.17,
+        height: height / 1.17,
+      }}>
+        {children}
+      </View>
+    );
+  }
+  
+  // Para outras densidades: comportamento normal
+  return <View style={{ flex: 1 }}>{children}</View>;
 };
 
 // Componente raiz que "envolve" todo o aplicativo com o provedor de autenticação
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <MainLayout />
+      <DPIWrapper>
+        <MainLayout />
+      </DPIWrapper>
     </AuthProvider>
   );
 }
