@@ -41,7 +41,7 @@ yarn-error.*
 *.pem
 
 # local env files
-.env
+*.env*
 my-release-key.keystore
 
 # typescript
