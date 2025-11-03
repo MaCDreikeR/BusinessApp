@@ -33,7 +33,7 @@ export default {
     web: {
       bundler: "metro",
       output: "static", 
-      favicon: 'assets/images/favicon.png',
+      favicon: 'assets/images/favicon.png', // Mantenha este
       manifest: {
         name: "BusinessApp - Gestão Completa",
         short_name: "BusinessApp",
@@ -46,20 +46,6 @@ export default {
         scope: "/",
         lang: "pt-BR",
         categories: ["business", "productivity", "finance"],
-        icons: [
-          {
-            src: "/icon.png",
-            sizes: "192x192",
-            type: "image/png",
-            purpose: "maskable any"
-          },
-          {
-            src: "/adaptive-icon.png",
-            sizes: "512x512", 
-            type: "image/png",
-            purpose: "maskable any"
-          }
-        ]
       },
       meta: {
         "apple-mobile-web-app-capable": "yes",
