@@ -99,8 +99,17 @@ const MainLayout = () => {
   // Enquanto carrega, mostra uma tela de loading para evitar "piscar" a tela
   if (authLoading || isFirstTime === null) {
     return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }} />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+        <ActivityIndicator size="large" color="#7C3AED" />
+      </View>
     );
+  }
+
+  // Fallback: se não está logado e não está em grupo de autenticação, força login
+  const inAuthGroup = segments[0] === '(auth)';
+  if (!user && !inAuthGroup) {
+    router.replace('/(auth)/login');
+    return null;
   }
   
   // O Stack gerencia as telas. O Expo Router cuida do resto.

@@ -539,6 +539,8 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 3,
+    maxWidth: '48%',
+    flexGrow: 1,
   },
   cardIconContainer: {
     width: 48,

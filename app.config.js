@@ -4,10 +4,10 @@ export default {
     slug: 'businessapp',
     version: '1.0.0',
     orientation: 'portrait',
-    icon: './assets/images/icon.png',
+    icon: 'assets/images/icon.png',
     userInterfaceStyle: 'light',
     splash: {
-      image: './assets/images/splash.png',
+      image: 'assets/images/splash.png',
       resizeMode: 'contain',
       backgroundColor: '#ffffffff',
     },
@@ -23,7 +23,7 @@ export default {
     android: {
       supportsTablet: true,
       adaptiveIcon: {
-        foregroundImage: './assets/images/adaptive-icon.png',
+        foregroundImage: 'assets/images/adaptive-icon.png',
         backgroundColor: '#ffffffff', // Azul da loja (ajuste conforme sua imagem)
       },
       package: 'com.macdreiker.business',
@@ -33,7 +33,7 @@ export default {
     web: {
       bundler: "metro",
       output: "static", 
-      favicon: './assets/images/favicon.png',
+      favicon: 'assets/images/favicon.png',
       manifest: {
         name: "BusinessApp - Gestão Completa",
         short_name: "BusinessApp",
@@ -48,13 +48,13 @@ export default {
         categories: ["business", "productivity", "finance"],
         icons: [
           {
-            src: "./assets/images/icon.png",
+            src: "/icon.png",
             sizes: "192x192",
             type: "image/png",
             purpose: "maskable any"
           },
           {
-            src: "./assets/images/adaptive-icon.png",
+            src: "/adaptive-icon.png",
             sizes: "512x512", 
             type: "image/png",
             purpose: "maskable any"
@@ -85,7 +85,7 @@ export default {
       [
         'expo-notifications',
         {
-          icon: './assets/images/icon.png',
+          icon: 'assets/images/icon.png',
           color: '#7C3AED',
           sounds: [],
         },
@@ -97,4 +97,10 @@ export default {
       typedRoutes: true,
     },
   },
+  updates: {
+  url: "https://u.expo.dev/a2c63467-c52f-447e-9973-63d2a6d62043"
+},
+runtimeVersion: {
+  policy: "appVersion"
+},
 };
