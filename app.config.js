@@ -33,20 +33,7 @@ export default {
     web: {
       bundler: "metro",
       output: "static", 
-      favicon: 'assets/images/favicon.png', // Mantenha este
-      manifest: {
-        name: "BusinessApp - Gestão Completa",
-        short_name: "BusinessApp",
-        description: "Sistema completo de gestão para seu negócio",
-        theme_color: "#8B5CF6",
-        background_color: "#ffffff",
-        display: "standalone",
-        orientation: "portrait-primary",
-        start_url: "/",
-        scope: "/",
-        lang: "pt-BR",
-        categories: ["business", "productivity", "finance"],
-      },
+      favicon: 'assets/images/favicon.png',
       meta: {
         "apple-mobile-web-app-capable": "yes",
         "apple-mobile-web-app-status-bar-style": "default",
