@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, PanResponder, Animated, Platform, ActivityIndicator, Image, DeviceEventEmitter, FlatList, BackHandler, KeyboardAvoidingView, GestureResponderEvent, NativeSyntheticEvent, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, PanResponder, Animated, Platform, ActivityIndicator, Image, DeviceEventEmitter, FlatList, BackHandler, KeyboardAvoidingView, GestureResponderEvent, NativeSyntheticEvent, Switch, TouchableWithoutFeedback } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import { format } from 'date-fns';
 import { useRouter, useNavigation, useFocusEffect } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import MaskInput from 'react-native-mask-input';
-import DateTimePicker from '@react-native-community/datetimepicker';
+// [CACHE-BUSTER-2025-11-05-14:30] Import condicional: DateTimePicker só é importado no mobile
+let DateTimePicker: any = null;
+if (Platform.OS !== 'web') {
+  DateTimePicker = require('@react-native-community/datetimepicker').default;
+}
 import { useAuth } from '../../../contexts/AuthContext';
 
 interface Cliente {
@@ -114,6 +118,11 @@ export default function NovoAgendamentoScreen() {
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dateValue, setDateValue] = useState(new Date());
+
+  // Log para debug quando showDatePicker muda
+  useEffect(() => {
+    console.log('🗓️ [STATE] showDatePicker mudou para:', showDatePicker, 'Platform:', Platform.OS);
+  }, [showDatePicker]);
 
   // Estados para usuários
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -1163,6 +1172,7 @@ export default function NovoAgendamentoScreen() {
   };
 
   const abrirSeletorData = () => {
+    console.log('🗓️ [NOVO AGENDAMENTO] Abrindo seletor de data, Platform.OS =', Platform.OS);
     setShowDatePicker(true);
   };
 
@@ -2562,5 +2572,54 @@ const styles = StyleSheet.create({
   },
   inputTextPreenchido: {
     color: '#7C3AED',
+  },
+  // Estilos para o date picker no Web
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  datePickerWebContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 24,
+    margin: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 5,
+    minWidth: 300,
+    zIndex: 9999,
+  },
+  datePickerWebTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 16,
+  },
+  datePickerWebCloseButton: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: '#7C3AED',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  datePickerWebCloseText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '500',
   },
 }); 

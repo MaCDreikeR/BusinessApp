@@ -2,27 +2,17 @@ import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
 
-// Implementação de armazenamento híbrido com suporte web
+// Implementação de armazenamento móvel (SecureStore + AsyncStorage)
 const storage = {
   getItem: async (key: string) => {
     try {
-      // Se for web, verifica se localStorage está disponível (lado cliente)
-      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
-        return localStorage.getItem(key);
-      }
+      // Tenta primeiro obter do SecureStore
+      const secureValue = await SecureStore.getItemAsync(key);
+      if (secureValue) return secureValue;
 
-      // Para mobile, tenta primeiro obter do SecureStore
-      if (Platform.OS !== 'web') {
-        const secureValue = await SecureStore.getItemAsync(key);
-        if (secureValue) return secureValue;
-
-        // Se não encontrar, tenta do AsyncStorage
-        return await AsyncStorage.getItem(key);
-      }
-
-      return null;
+      // Se não encontrar, tenta do AsyncStorage
+      return await AsyncStorage.getItem(key);
     } catch (error) {
       console.error('Erro ao obter item do storage:', error);
       return null;
@@ -31,20 +21,12 @@ const storage = {
 
   setItem: async (key: string, value: string) => {
     try {
-      // Se for web, verifica se localStorage está disponível (lado cliente)
-      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
-        localStorage.setItem(key, value);
-        return;
-      }
-
-      // Para mobile, se o valor for menor que 2048 bytes, armazena no SecureStore
-      if (Platform.OS !== 'web') {
-        if (value.length <= 2048) {
-          await SecureStore.setItemAsync(key, value);
-        } else {
-          // Se for maior, armazena no AsyncStorage
-          await AsyncStorage.setItem(key, value);
-        }
+      // Se o valor for menor que 2048 bytes, armazena no SecureStore
+      if (value.length <= 2048) {
+        await SecureStore.setItemAsync(key, value);
+      } else {
+        // Se for maior, armazena no AsyncStorage
+        await AsyncStorage.setItem(key, value);
       }
     } catch (error) {
       console.error('Erro ao armazenar item:', error);
@@ -53,17 +35,8 @@ const storage = {
 
   removeItem: async (key: string) => {
     try {
-      // Se for web, verifica se localStorage está disponível (lado cliente)
-      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
-        localStorage.removeItem(key);
-        return;
-      }
-
-      // Para mobile, remove de ambos
-      if (Platform.OS !== 'web') {
-        await SecureStore.deleteItemAsync(key);
-        await AsyncStorage.removeItem(key);
-      }
+      await SecureStore.deleteItemAsync(key);
+      await AsyncStorage.removeItem(key);
     } catch (error) {
       console.error('Erro ao remover item:', error);
     }

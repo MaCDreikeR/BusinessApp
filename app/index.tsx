@@ -1,24 +1,6 @@
-import { useEffect } from 'react';
-import { Redirect, useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Redirect } from 'expo-router';
 
 export default function Index() {
-  const router = useRouter();
-
-  useEffect(() => {
-    const checkFirstTime = async () => {
-      try {
-        const hasSeenWelcome = await AsyncStorage.getItem('@hasSeenWelcome');
-        if (!hasSeenWelcome) {
-          router.replace('/(auth)/boas-vindas');
-        }
-      } catch (error) {
-        console.error('Erro ao verificar primeira visita:', error);
-      }
-    };
-
-    checkFirstTime();
-  }, []);
-
+  // Redireciona para tela de boas-vindas (fluxo de primeira execução)
   return <Redirect href="/(auth)/boas-vindas" />;
-} 
+}

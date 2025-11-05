@@ -20,7 +20,7 @@ module.exports = (() => {
       '@contexts': path.resolve(__dirname, 'app/contexts'),
       '@utils': path.resolve(__dirname, 'app/utils')
     },
-    unstable_enablePackageExports: false
+    unstable_enablePackageExports: true,
   };
 
   return config;

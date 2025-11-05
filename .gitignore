@@ -53,3 +53,9 @@ app-example
 /android
 /ios
 .vercel
+
+# Build outputs
+dist/
+public/
+.expo/
+*.tgz

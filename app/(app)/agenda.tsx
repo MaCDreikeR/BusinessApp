@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { useRouter } from 'expo-router';
+import { enviarMensagemWhatsapp, AgendamentoMensagem } from '../services/whatsapp';
 
 // Configuração do idioma para o calendário
 LocaleConfig.locales['pt-br'] = {
@@ -1262,18 +1263,16 @@ export default function AgendaScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Calendário */}
-      {showCalendar && (
-        <TouchableOpacity
-          style={styles.calendarOverlay}
-          activeOpacity={1}
-          onPress={() => setShowCalendar(false)}
-        >
-          <TouchableOpacity
-            activeOpacity={1}
-            style={styles.calendarContainer}
-            onPress={(e) => e.stopPropagation()} // Prevenir que o clique se propague
-          >
+      {/* Calendário (Web: Modal transparente para evitar conflitos de clique) */}
+      <Modal
+        visible={showCalendar}
+        transparent
+        statusBarTranslucent
+        animationType="fade"
+        onRequestClose={() => setShowCalendar(false)}
+      >
+        <View style={styles.calendarOverlay}>
+          <View style={styles.calendarContainer}>
             <Calendar
               current={formatSelectedDateString()}
               onDayPress={handleDateSelect}
@@ -1287,9 +1286,9 @@ export default function AgendaScreen() {
                 textDayHeaderFontSize: 14,
               }}
             />
-          </TouchableOpacity>
-        </TouchableOpacity>
-      )}
+          </View>
+        </View>
+      </Modal>
 
       {/* Lista de avatares - OCULTA para profissionais */}
       {role !== 'profissional' && (
@@ -1952,6 +1951,37 @@ export default function AgendaScreen() {
                           : 'Não especificado'}
                       </Text>
                     </View>
+
+                    {/* Compartilhar via WhatsApp */}
+                    <TouchableOpacity
+                      style={styles.whatsappButton}
+                      onPress={async () => {
+                        try {
+                          const d = new Date(item.data_hora);
+                          const yyyy = d.getFullYear();
+                          const mm = String(d.getMonth() + 1).padStart(2, '0');
+                          const dd = String(d.getDate()).padStart(2, '0');
+                          const dataISO = `${yyyy}-${mm}-${dd}`;
+                          const servico = JSON.stringify(item.servicos)?.includes('nome')
+                            ? item.servicos.map((s: any) => s.nome).join(', ')
+                            : 'Serviço';
+                          const payload: AgendamentoMensagem = {
+                            cliente_nome: item.cliente,
+                            cliente_telefone: item.cliente_telefone || '',
+                            data: dataISO,
+                            hora: horaInicio,
+                            servico,
+                          };
+                          await enviarMensagemWhatsapp(payload);
+                        } catch (err) {
+                          console.error('Erro ao preparar WhatsApp:', err);
+                          Alert.alert('Erro', 'Não foi possível abrir o WhatsApp.');
+                        }
+                      }}
+                    >
+                      <Ionicons name="logo-whatsapp" size={20} color="#fff" />
+                      <Text style={styles.whatsappButtonText}>Compartilhar via WhatsApp</Text>
+                    </TouchableOpacity>
 
                     {/* Alterar Status */}
                     <Text style={styles.alterarStatusLabel}>Status do Agendamento</Text>
@@ -2704,19 +2734,14 @@ const styles = StyleSheet.create({
     color: '#C62828',
   },
   calendarOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'flex-start',
+    paddingTop: 80,
     zIndex: 900,
   },
   calendarContainer: {
-    position: 'absolute',
-    top: 60, // Posicionar abaixo da barra de navegação
-    left: 10,
-    right: 10, 
+    marginHorizontal: 10,
     zIndex: 1000,
     backgroundColor: '#fff',
     borderRadius: 10,

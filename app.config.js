@@ -4,12 +4,12 @@ export default {
     slug: 'businessapp',
     version: '1.0.0',
     orientation: 'portrait',
-    icon: 'assets/images/icon.png',
+    icon: './assets/images/icon.png',
     userInterfaceStyle: 'light',
     splash: {
-      image: 'assets/images/splash.png',
+      image: './assets/images/splash.png',
       resizeMode: 'contain',
-      backgroundColor: '#ffffffff',
+      backgroundColor: '#ffffff',
     },
     assetBundlePatterns: ['**/*'],
     ios: {
@@ -23,24 +23,12 @@ export default {
     android: {
       supportsTablet: true,
       adaptiveIcon: {
-        foregroundImage: 'assets/images/adaptive-icon.png',
-        backgroundColor: '#ffffffff', // Azul da loja (ajuste conforme sua imagem)
+        foregroundImage: './assets/images/adaptive-icon.png',
+        backgroundColor: '#ffffff',
       },
       package: 'com.macdreiker.business',
       permissions: ['NOTIFICATIONS'],
       newArchEnabled: true,
-    },
-    web: {
-      bundler: "metro",
-      output: "static", 
-      favicon: 'assets/images/favicon.png',
-      meta: {
-        "apple-mobile-web-app-capable": "yes",
-        "apple-mobile-web-app-status-bar-style": "default",
-        "apple-mobile-web-app-title": "BusinessApp",
-        "mobile-web-app-capable": "yes",
-        "theme-color": "#8B5CF6"
-      }
     },
     extra: {
       eas: {
@@ -58,7 +46,7 @@ export default {
       [
         'expo-notifications',
         {
-          icon: 'assets/images/icon.png',
+          icon: './assets/images/icon.png',
           color: '#7C3AED',
           sounds: [],
         },

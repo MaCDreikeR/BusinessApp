@@ -3,7 +3,7 @@ import { Drawer } from 'expo-router/drawer';
 import { useFocusEffect } from '@react-navigation/native';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { usePathname } from 'expo-router';
-import { TouchableOpacity, View, Text, StyleSheet, Image, Alert, ActivityIndicator, Dimensions } from 'react-native';
+import { TouchableOpacity, View, Text, StyleSheet, Image, Alert, ActivityIndicator, Dimensions, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { DeviceEventEmitter } from 'react-native';
 import { Stack } from 'expo-router';
@@ -56,6 +56,7 @@ export default function AppLayout() {
   const [estabelecimento, setEstabelecimento] = useState<any>(null);
   const [loadingAvatar, setLoadingAvatar] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [hasLoadedAvatar, setHasLoadedAvatar] = useState(false); // evita piscadas após primeira carga
   const { permissions } = usePermissions();
   const { role } = useAuth();
   
@@ -70,46 +71,41 @@ export default function AppLayout() {
   // Estado para controlar se o drawer deve ser permanente
   const [isPermanentDrawer, setIsPermanentDrawer] = useState(false);
 
-  // Calcular largura do drawer e tipo de exibição
-  const drawerWidth = useMemo(() => {
+  // Calcular largura do drawer e tipo de exibição - INICIALIZAÇÃO ÚNICA
+  useEffect(() => {
     const { width, height } = Dimensions.get('window');
     const isLandscape = width > height;
     const isLargeScreen = width >= 1024;
-    
-    console.log('📐 Dimensões da tela:', { width, height, isLandscape, isLargeScreen });
-    
-    // Drawer permanente em landscape em telas grandes
     const shouldBePermanent = isLandscape && isLargeScreen;
+    
+    console.log('📐 Dimensões iniciais da tela:', { width, height, isLandscape, isLargeScreen });
     setIsPermanentDrawer(shouldBePermanent);
     
-    if (shouldBePermanent) {
-      console.log('🖥️ Modo Desktop: Drawer permanente com 280px');
-      return 280;
-    }
-    
-    console.log('📱 Modo Mobile/Tablet: Drawer temporário com 300px');
-    return 300;
-  }, []);
-
-  // Atualizar quando a orientação mudar
-  useEffect(() => {
+    // Listener para mudanças de orientação
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
-      const isLandscape = window.width > window.height;
-      const isLargeScreen = window.width >= 1024;
-      const shouldBePermanent = isLandscape && isLargeScreen;
+      const newIsLandscape = window.width > window.height;
+      const newIsLargeScreen = window.width >= 1024;
+      const newShouldBePermanent = newIsLandscape && newIsLargeScreen;
       
       console.log('🔄 Orientação mudou:', { 
         width: window.width, 
         height: window.height, 
-        isLandscape, 
-        shouldBePermanent 
+        isLandscape: newIsLandscape, 
+        shouldBePermanent: newShouldBePermanent 
       });
       
-      setIsPermanentDrawer(shouldBePermanent);
+      setIsPermanentDrawer(newShouldBePermanent);
     });
 
     return () => subscription?.remove();
   }, []);
+
+  // Largura do drawer baseada no estado
+  const drawerWidth = useMemo(() => {
+    const width = isPermanentDrawer ? 280 : 300;
+    // Log removido para evitar spam no console
+    return width;
+  }, [isPermanentDrawer]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -120,6 +116,7 @@ export default function AppLayout() {
   useEffect(() => {
     if (usuario?.avatar_url) {
       setAvatarUrl(usuario.avatar_url);
+      setHasLoadedAvatar(false); // reseta somente quando a URL muda
     }
   }, [usuario?.avatar_url]);
 
@@ -226,14 +223,16 @@ export default function AppLayout() {
               <Image 
                 source={{ 
                     uri: avatarUrl,
-                  headers: {
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
-                  }
                 }}
                 style={styles.logo}
-                  onLoadStart={() => setLoadingAvatar(true)}
-                  onLoadEnd={() => setLoadingAvatar(false)}
+                  onLoadStart={() => {
+                    // Mostra indicador apenas na primeira carga da URL atual
+                    if (!hasLoadedAvatar) setLoadingAvatar(true);
+                  }}
+                  onLoadEnd={() => {
+                    setHasLoadedAvatar(true);
+                    setLoadingAvatar(false);
+                  }}
                   onError={() => {
                     setLoadingAvatar(false);
                     setAvatarUrl(null);
@@ -302,8 +301,7 @@ export default function AppLayout() {
     );
   };
 
-  console.log('🎨 Renderizando Drawer com largura:', drawerWidth);
-  console.log('🎨 Drawer permanente?', isPermanentDrawer);
+  // Logs removidos para evitar spam no console
 
   return (
     <>
@@ -771,7 +769,7 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="robot" size={20} color={color} />
           ),
-          drawerItemStyle: { display: 'none' }, // Oculto - tela não implementada
+          drawerItemStyle: { display: permissions.pode_ver_automacao ? 'flex' : 'none' },
         }}
       />
 

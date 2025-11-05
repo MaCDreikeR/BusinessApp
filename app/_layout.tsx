@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
-import { View, ActivityIndicator, Dimensions, PixelRatio, Platform } from 'react-native';
+import { View, ActivityIndicator, Dimensions, PixelRatio } from 'react-native';
+import { useFonts } from 'expo-font';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { PWAInstallBanner } from '../components/PWAInstallBanner';
 
 // Componente "Porteiro" que contém a lógica de redirecionamento
 const MainLayout = () => {
@@ -11,16 +11,26 @@ const MainLayout = () => {
   const segments = useSegments();
   const router = useRouter();
   const [isFirstTime, setIsFirstTime] = useState<boolean | null>(null);
+  const [hasBootRendered, setHasBootRendered] = useState(false);
+  const lastRedirectRef = React.useRef<string | null>(null);
+
+  const safeReplace = (path: string) => {
+    if (lastRedirectRef.current !== path) {
+      lastRedirectRef.current = path;
+      // Tipagem do expo-router é mais restrita; para rotas absolutas conhecidas, fazemos cast seguro
+      router.replace(path as any);
+    }
+  };
 
   useEffect(() => {
-    // 1. Verifica se é a primeira vez que o usuário abre o app
+    // Verifica se é a primeira vez que o usuário abre o app
     const checkFirstTime = async () => {
       try {
         const hasSeenWelcome = await AsyncStorage.getItem('@hasSeenWelcome');
         setIsFirstTime(hasSeenWelcome === null);
       } catch (error) {
         console.error('Erro ao verificar primeira visita:', error);
-        setIsFirstTime(false); // Assume que não é a primeira vez em caso de erro
+        setIsFirstTime(false);
       }
     };
     checkFirstTime();
@@ -43,7 +53,7 @@ const MainLayout = () => {
 
   useEffect(() => {
     // Espera o AuthContext e a verificação de primeira visita terminarem
-    if (authLoading || isFirstTime === null) {
+    if ((authLoading && !hasBootRendered) || isFirstTime === null) {
       return;
     }
 
@@ -51,19 +61,18 @@ const MainLayout = () => {
     const inAppGroup = segments[0] === '(app)';
     const inAdminGroup = segments[0] === '(admin)';
 
-    console.log('[MainLayout] Current segments:', segments);
-    console.log('[MainLayout] User role:', role);
-    console.log('[MainLayout] In admin group:', inAdminGroup);
+  console.log('[MainLayout] segments=', segments, 'role=', role, 'authLoading=', authLoading, 'isFirstTime=', isFirstTime, 'hasBootRendered=', hasBootRendered);
 
-    // 2. Lógica de redirecionamento
+    // Lógica de redirecionamento (primeira visita)
     if (isFirstTime) {
       // Permite acessar login/cadastro mesmo se o flag ainda não foi revalidado,
       // para evitar loop de navegação quando o usuário sai da tela de boas-vindas.
-      const isAuthAllowed = inAuthGroup && (segments[1] === 'login' || segments[1] === 'cadastro');
+      const currentPage = (segments as string[])[1];
+      const isAuthAllowed = inAuthGroup && (currentPage === 'login' || currentPage === 'cadastro');
       if (!isAuthAllowed) {
         // Se for a primeira vez, força a ida para a tela de boas-vindas
-        if (segments[1] !== 'boas-vindas') {
-          router.replace('/(auth)/boas-vindas');
+        if (currentPage !== 'boas-vindas') {
+          safeReplace('/(auth)/boas-vindas');
         }
         return;
       }
@@ -71,14 +80,14 @@ const MainLayout = () => {
 
     if (!user && !inAuthGroup) {
       // 3. Se não é a primeira vez E não está logado, manda para o login
-      router.replace('/(auth)/login');
+      safeReplace('/(auth)/login');
       return;
     }
 
     if (user && role === 'super_admin') {
       // Superusuário: só pode acessar rotas do grupo (admin)
       if (!inAdminGroup) {
-        router.replace('/(admin)/dashboard');
+        safeReplace('/(admin)/dashboard');
         return;
       }
       // Se já está em (admin), não faz nada
@@ -88,16 +97,18 @@ const MainLayout = () => {
     if (user && role && role !== 'super_admin') {
       // Usuário comum: só pode acessar rotas do grupo (app)
       if (!inAppGroup) {
-        router.replace('/(app)');
+        safeReplace('/(app)');
         return;
       }
       // Se já está em (app), não faz nada
       return;
     }
+    // marca que já renderizamos pelo menos uma vez após boot
+    if (!hasBootRendered) setHasBootRendered(true);
   }, [user, role, authLoading, isFirstTime, segments, router]);
 
-  // Enquanto carrega, mostra uma tela de loading para evitar "piscar" a tela
-  if (authLoading || isFirstTime === null) {
+  // Enquanto carrega, mostra uma tela de loading
+  if ((authLoading && !hasBootRendered) || isFirstTime === null) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
         <ActivityIndicator size="large" color="#7C3AED" />
@@ -105,14 +116,6 @@ const MainLayout = () => {
     );
   }
 
-  // Fallback: se não está logado e não está em grupo de autenticação, força login
-  const inAuthGroup = segments[0] === '(auth)';
-  if (!user && !inAuthGroup) {
-    router.replace('/(auth)/login');
-    return null;
-  }
-  
-  // O Stack gerencia as telas. O Expo Router cuida do resto.
   return (
     <>
       <Stack screenOptions={{ headerShown: false }}>
@@ -120,7 +123,7 @@ const MainLayout = () => {
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(admin)" />
       </Stack>
-      {Platform.OS === 'web' && <PWAInstallBanner />}
+      {/* Diagnóstico silencioso quando o watchdog atuou (apenas logs no console) */}
     </>
   );
 };
@@ -159,6 +162,23 @@ const DPIWrapper = ({ children }: { children: React.ReactNode }) => {
 
 // Componente raiz que "envolve" todo o aplicativo com o provedor de autenticação
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    Ionicons: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.ttf'),
+    FontAwesome: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/FontAwesome.ttf'),
+    FontAwesome5_Solid: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/FontAwesome5_Solid.ttf'),
+    FontAwesome5_Regular: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/FontAwesome5_Regular.ttf'),
+    MaterialIcons: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialIcons.ttf'),
+    MaterialCommunityIcons: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf'),
+  });
+
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+        <ActivityIndicator size="large" color="#7C3AED" />
+      </View>
+    );
+  }
+
   return (
     <AuthProvider>
       <DPIWrapper>
