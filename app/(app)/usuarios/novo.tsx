@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
+import { logger } from '../../../utils/logger';
 
 const formatarCelular = (valor: string) => {
   const celular = valor.replace(/\D/g, '');
@@ -60,7 +61,7 @@ export default function NovoUsuarioScreen() {
         return;
       }
     } catch (error: any) {
-      console.error('Erro ao verificar permissão:', error);
+      logger.error('Erro ao verificar permissão:', error);
       Alert.alert('Erro', 'Não foi possível verificar suas permissões.');
       router.replace('/usuarios');
     }
@@ -112,7 +113,7 @@ export default function NovoUsuarioScreen() {
 
       return publicUrl;
     } catch (error) {
-      console.error('Erro no upload:', error);
+      logger.error('Erro no upload:', error);
       return null;
     }
   };
@@ -211,7 +212,7 @@ export default function NovoUsuarioScreen() {
       ]);
 
     } catch (error: any) {
-      console.error('Erro ao criar usuário:', error);
+      logger.error('Erro ao criar usuário:', error);
       Alert.alert('Erro', error.message || 'Não foi possível criar o usuário.');
     } finally {
       setLoading(false);

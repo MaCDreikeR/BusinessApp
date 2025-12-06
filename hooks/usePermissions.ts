@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { DeviceEventEmitter } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { logger } from '../utils/logger';
 
 interface Permissions {
   pode_ver_agenda: boolean;
@@ -160,7 +161,7 @@ export const usePermissions = () => {
           pode_ver_notificacoes: data.pode_ver_notificacoes || false,
           pode_editar_notificacoes: data.pode_editar_notificacoes || false,
         };
-        console.log('🔍 [Permissions] Configurações aplicadas:', newPermissions);
+        logger.debug('🔍 [Permissions] Configurações aplicadas:', newPermissions);
         setPermissions(newPermissions);
       } else {
         // Se não há registro de permissões, criar padrões básicas
@@ -205,7 +206,7 @@ export const usePermissions = () => {
       }
 
     } catch (error) {
-      console.error('Erro ao carregar permissões:', error);
+      logger.error('Erro ao carregar permissões:', error);
     } finally {
       setLoading(false);
     }

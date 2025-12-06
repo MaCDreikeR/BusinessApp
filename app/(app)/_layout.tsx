@@ -15,14 +15,15 @@ import { supabase } from '../../lib/supabase';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMemo } from 'react';
-import AgendamentoNotificacao from '../components/AgendamentoNotificacao';
+import AgendamentoNotificacao from '../../components/AgendamentoNotificacao';
 import { useAgendamentoNotificacao } from '../../hooks/useAgendamentoNotificacao';
+import { logger } from '../../utils/logger';
 
 // Função para calcular largura responsiva do drawer
 const getDrawerWidth = (): number | `${number}%` => {
   const screenWidth = Dimensions.get('window').width;
   
-  console.log('📐 Largura da tela:', screenWidth);
+  logger.debug('📐 Largura da tela:', screenWidth);
   
   let width: number | `${number}%`;
   
@@ -39,7 +40,7 @@ const getDrawerWidth = (): number | `${number}%` => {
     width = 280;
   }
   
-  console.log('📱 Largura do drawer calculada:', width);
+  logger.debug('📱 Largura do drawer calculada:', width);
   return width;
 };
 
@@ -78,7 +79,7 @@ export default function AppLayout() {
     const isLargeScreen = width >= 1024;
     const shouldBePermanent = isLandscape && isLargeScreen;
     
-    console.log('📐 Dimensões iniciais da tela:', { width, height, isLandscape, isLargeScreen });
+    logger.debug('📐 Dimensões iniciais da tela:', { width, height, isLandscape, isLargeScreen });
     setIsPermanentDrawer(shouldBePermanent);
     
     // Listener para mudanças de orientação
@@ -87,7 +88,7 @@ export default function AppLayout() {
       const newIsLargeScreen = window.width >= 1024;
       const newShouldBePermanent = newIsLandscape && newIsLargeScreen;
       
-      console.log('🔄 Orientação mudou:', { 
+      logger.debug('🔄 Orientação mudou:', { 
         width: window.width, 
         height: window.height, 
         isLandscape: newIsLandscape, 
@@ -124,11 +125,11 @@ export default function AppLayout() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.log('Usuário não autenticado');
+        logger.debug('Usuário não autenticado');
         return;
       }
 
-      console.log('Buscando dados do usuário:', user.id);
+      logger.debug('Buscando dados do usuário:', user.id);
       
       // Busca os dados do usuário incluindo o relacionamento com estabelecimento
       const { data: userData, error: userError } = await supabase
@@ -138,7 +139,7 @@ export default function AppLayout() {
         .single();
 
       if (userError) {
-        console.error('Erro ao buscar usuário:', userError);
+        logger.error('Erro ao buscar usuário:', userError);
         throw userError;
       }
 
@@ -157,14 +158,14 @@ export default function AppLayout() {
         setEstabelecimento(null);
       }
     } catch (error) {
-      console.error('Erro ao carregar usuário:', error);
+      logger.error('Erro ao carregar usuário:', error);
     }
   }
 
   const CustomDrawerContent = (props: DrawerContentComponentProps) => {
     const { signOut } = useAuth();
     const handleLogout = async () => {
-      console.log('[Drawer] Botão Sair pressionado');
+      logger.debug('[Drawer] Botão Sair pressionado');
       if (typeof window !== 'undefined') {
         // Ambiente web: logout direto
         try {
@@ -175,7 +176,7 @@ export default function AppLayout() {
           window.sessionStorage.clear();
           window.location.replace('/');
         } catch (error) {
-          console.error('Erro ao fazer logout:', error);
+          logger.error('Erro ao fazer logout:', error);
         }
       } else {
         // Ambiente mobile: confirmação
@@ -191,13 +192,13 @@ export default function AppLayout() {
               text: 'Sair',
               style: 'destructive',
               onPress: async () => {
-                console.log('[Drawer] Confirmou logout');
+                logger.debug('[Drawer] Confirmou logout');
                 try {
                   await signOut();
                   setUsuario(null);
                   setEstabelecimento(null);
                 } catch (error) {
-                  console.error('Erro ao fazer logout:', error);
+                  logger.error('Erro ao fazer logout:', error);
                   Alert.alert('Erro', 'Ocorreu um erro inesperado. Tente novamente.');
                 }
               }

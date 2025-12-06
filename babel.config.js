@@ -9,8 +9,11 @@ module.exports = function (api) {
           root: ['.'],
           alias: {
             '@lib': './lib',
-            '@components': './app/components',
-            '@contexts': './app/contexts'
+            '@components': './components',
+            '@contexts': './contexts',
+            '@utils': './utils',
+            '@services': './services',
+            '@types': './types'
           }
         }
       ]

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 import { useRouter } from 'expo-router';
 import { Alert } from 'react-native';
+import { logger } from '../utils/logger';
 
 type AuthContextType = {
   user: User | null;
@@ -50,9 +51,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .eq('id', currentUser.id)
           .single();
 
-        // LOG para debug detalhado
-        console.log('[AuthContext] profileData:', profileData);
-        console.log('[AuthContext] profileError:', profileError);
+        logger.database('SELECT', 'usuarios', { profileData, error: profileError });
 
         if (profileError) {
           throw new Error(`Erro ao buscar perfil do usuário: ${profileError.message}`);
@@ -88,7 +87,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
         }
       } catch (error) {
-        console.error('Erro em fetchUserProfileAndRedirect:', error);
+        logger.error('Erro em fetchUserProfileAndRedirect:', error);
         setEstabelecimentoId(null);
         setRole(null);
         // Em caso de erro, deslogar para evitar estado inconsistente
@@ -134,7 +133,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setRole(null);
       router.replace('/(auth)/login');
     } catch (error) {
-      console.error('Erro ao fazer logout manual:', error);
+      logger.error('Erro ao fazer logout manual:', error);
       Alert.alert('Erro', 'Não foi possível sair. Tente novamente.');
     }
   };

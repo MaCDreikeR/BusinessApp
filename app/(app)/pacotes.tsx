@@ -5,8 +5,10 @@ import { supabase } from '../../lib/supabase';
 import { router } from 'expo-router';
 import { DeviceEventEmitter } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
+import { logger } from '../../utils/logger';
+import { Produto as ProdutoBase, Servico as ServicoBase, Pacote as PacoteBase } from '@types';
 
-interface ProdutoPacote {
+type ProdutoPacote = {
   id: string;
   pacote_id: string;
   produto_id: string;
@@ -15,9 +17,9 @@ interface ProdutoPacote {
     nome: string;
     preco: number;
   };
-}
+};
 
-interface ServicoPacote {
+type ServicoPacote = {
   id: string;
   pacote_id: string;
   servico_id: string;
@@ -26,57 +28,44 @@ interface ServicoPacote {
     nome: string;
     preco: number;
   };
-}
+};
 
-interface Pacote {
-  id: string;
-  nome: string;
-  descricao: string;
-  valor: number;
+type PacoteDetalhado = Pick<PacoteBase, 'id' | 'nome' | 'descricao' | 'valor' | 'estabelecimento_id'> & {
   desconto: number;
   data_cadastro: string;
-  estabelecimento_id: string;
   produtos?: ProdutoPacote[];
   servicos?: ServicoPacote[];
-}
+};
 
-interface Produto {
-  id: string;
-  nome: string;
-  preco: number;
-}
+type ProdutoPacotes = Pick<ProdutoBase, 'id' | 'nome' | 'preco'>;
 
-interface Servico {
-  id: string;
-  nome: string;
-  preco: number;
-}
+type ServicoPacotes = Pick<ServicoBase, 'id' | 'nome' | 'preco'>;
 
-interface ProdutoPacoteData {
+type ProdutoPacoteData = {
   produto: {
     id: string;
     nome: string;
     preco: number;
   };
   quantidade: number;
-}
+};
 
-interface ServicoPacoteData {
+type ServicoPacoteData = {
   servico: {
     id: string;
     nome: string;
     preco: number;
   };
   quantidade: number;
-}
+};
 
 export default function PacotesScreen() {
   const { estabelecimentoId } = useAuth();
-  const [pacotes, setPacotes] = useState<Pacote[]>([]);
+  const [pacotes, setPacotes] = useState<PacoteDetalhado[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [mostrarModal, setMostrarModal] = useState(false);
-  const [pacoteEmEdicao, setPacoteEmEdicao] = useState<Pacote | null>(null);
+  const [pacoteEmEdicao, setPacoteEmEdicao] = useState<PacoteDetalhado | null>(null);
   const [novoPacote, setNovoPacote] = useState({
     nome: '',
     descricao: '',
@@ -87,12 +76,12 @@ export default function PacotesScreen() {
   });
   const [slideAnimation] = useState(new Animated.Value(400));
   const [overlayOpacity] = useState(new Animated.Value(0));
-  const [produtos, setProdutos] = useState<Produto[]>([]);
-  const [servicos, setServicos] = useState<Servico[]>([]);
+  const [produtos, setProdutos] = useState<ProdutoPacotes[]>([]);
+  const [servicos, setServicos] = useState<ServicoPacotes[]>([]);
   const [mostrarModalProdutos, setMostrarModalProdutos] = useState(false);
   const [mostrarModalServicos, setMostrarModalServicos] = useState(false);
-  const [produtosSelecionados, setProdutosSelecionados] = useState<Produto[]>([]);
-  const [servicosSelecionados, setServicosSelecionados] = useState<Servico[]>([]);
+  const [produtosSelecionados, setProdutosSelecionados] = useState<ProdutoPacotes[]>([]);
+  const [servicosSelecionados, setServicosSelecionados] = useState<ServicoPacotes[]>([]);
   const [quantidadesProdutos, setQuantidadesProdutos] = useState<{ [key: string]: string }>({});
   const [quantidadesServicos, setQuantidadesServicos] = useState<{ [key: string]: string }>({});
   const [buscaProduto, setBuscaProduto] = useState('');
@@ -202,7 +191,7 @@ export default function PacotesScreen() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.user?.id) {
-        console.error('Usuário não autenticado');
+        logger.error('Usuário não autenticado');
         Alert.alert('Erro', 'Usuário não autenticado. Por favor, faça login novamente.');
         router.replace('/(auth)/login');
         return;
@@ -255,7 +244,7 @@ export default function PacotesScreen() {
 
       setPacotes(pacotesFormatados || []);
     } catch (error) {
-      console.error('Erro ao carregar pacotes:', error);
+      logger.error('Erro ao carregar pacotes:', error);
       Alert.alert('Erro', 'Não foi possível carregar os pacotes');
     } finally {
       setLoading(false);
@@ -265,7 +254,7 @@ export default function PacotesScreen() {
   const carregarProdutos = async () => {
     try {
       if (!estabelecimentoId) {
-        console.error('Estabelecimento não identificado');
+        logger.error('Estabelecimento não identificado');
         return;
       }
 
@@ -277,9 +266,9 @@ export default function PacotesScreen() {
 
       if (error) throw error;
       setProdutos(data || []);
-      console.log('Produtos carregados para pacotes:', data?.length || 0);
+      logger.debug('Produtos carregados para pacotes:', data?.length || 0);
     } catch (error) {
-      console.error('Erro ao carregar produtos:', error);
+      logger.error('Erro ao carregar produtos:', error);
       Alert.alert('Erro', 'Não foi possível carregar os produtos');
     }
   };
@@ -287,7 +276,7 @@ export default function PacotesScreen() {
   const carregarServicos = async () => {
     try {
       if (!estabelecimentoId) {
-        console.error('Estabelecimento não identificado');
+        logger.error('Estabelecimento não identificado');
         return;
       }
 
@@ -299,9 +288,9 @@ export default function PacotesScreen() {
 
       if (error) throw error;
       setServicos(data || []);
-      console.log('Serviços carregados para pacotes:', data?.length || 0);
+      logger.debug('Serviços carregados para pacotes:', data?.length || 0);
     } catch (error) {
-      console.error('Erro ao carregar serviços:', error);
+      logger.error('Erro ao carregar serviços:', error);
       Alert.alert('Erro', 'Não foi possível carregar os serviços');
     }
   };
@@ -319,7 +308,7 @@ export default function PacotesScreen() {
     setMostrarModal(true);
   };
 
-  const handleEditarPacote = (pacote: Pacote) => {
+  const handleEditarPacote = (pacote: PacoteDetalhado) => {
     setPacoteEmEdicao(pacote);
     setNovoPacote({
       nome: pacote.nome,
@@ -332,7 +321,7 @@ export default function PacotesScreen() {
     setMostrarModal(true);
   };
 
-  const handleExcluirPacote = async (pacote: Pacote) => {
+  const handleExcluirPacote = async (pacote: PacoteDetalhado) => {
     Alert.alert(
       'Confirmar Exclusão',
       'Tem certeza que deseja excluir este pacote?',
@@ -354,7 +343,7 @@ export default function PacotesScreen() {
               if (error) throw error;
               await carregarPacotes();
             } catch (error) {
-              console.error('Erro ao excluir pacote:', error);
+              logger.error('Erro ao excluir pacote:', error);
               Alert.alert('Erro', 'Não foi possível excluir o pacote');
             }
           },
@@ -464,12 +453,12 @@ export default function PacotesScreen() {
       
       Alert.alert('Sucesso', 'Pacote salvo com sucesso!');
     } catch (error) {
-      console.error('Erro ao salvar pacote:', error);
+      logger.error('Erro ao salvar pacote:', error);
       Alert.alert('Erro', 'Não foi possível salvar o pacote');
     }
   };
 
-  const handleSelecionarProduto = (produto: Produto) => {
+  const handleSelecionarProduto = (produto: ProdutoPacotes) => {
     setProdutosSelecionados(prev => {
       const jaSelecionado = prev.find(p => p.id === produto.id);
       if (jaSelecionado) {
@@ -479,7 +468,7 @@ export default function PacotesScreen() {
     });
   };
 
-  const handleSelecionarServico = (servico: Servico) => {
+  const handleSelecionarServico = (servico: ServicoPacotes) => {
     setServicosSelecionados(prev => {
       const jaSelecionado = prev.find(s => s.id === servico.id);
       if (jaSelecionado) {
@@ -539,7 +528,7 @@ export default function PacotesScreen() {
       
       Alert.alert('Sucesso', 'Produtos adicionados com sucesso!');
     } catch (error) {
-      console.error('Erro ao adicionar produtos:', error);
+      logger.error('Erro ao adicionar produtos:', error);
       Alert.alert('Erro', 'Erro ao adicionar produtos ao pacote');
     }
   };
@@ -619,7 +608,7 @@ export default function PacotesScreen() {
     setMostrarModalServicos(true);
   };
 
-  const renderItem = ({ item }: { item: Pacote }) => (
+  const renderItem = ({ item }: { item: PacoteDetalhado }) => (
     <TouchableOpacity 
       style={styles.pacoteCard}
       onPress={() => handleEditarPacote(item)}

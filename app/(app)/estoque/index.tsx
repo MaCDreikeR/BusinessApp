@@ -5,18 +5,13 @@ import { supabase } from '../../../lib/supabase';
 import { router } from 'expo-router';
 import { useAuth } from '../../../contexts/AuthContext';
 import { DeviceEventEmitter } from 'react-native';
+import { logger } from '../../../utils/logger';
+import { Produto as ProdutoBase, Fornecedor as FornecedorBase } from '@types';
 
-interface Produto {
-  id: string;
-  nome: string;
-  descricao: string;
-  quantidade: number;
-  preco: number;
+type ProdutoEstoque = Pick<ProdutoBase, 'id' | 'nome' | 'descricao' | 'quantidade' | 'preco' | 'categoria_id' | 'fornecedor_id' | 'quantidade_minima'> & {
   codigo: string;
-  data_cadastro: string;
-  categoria_id: string;
-  fornecedor_id: string;
   marca_id: string;
+  data_cadastro: string;
   categoria?: {
     nome: string;
   };
@@ -26,46 +21,42 @@ interface Produto {
   marca?: {
     nome: string;
   };
-  quantidade_minima?: number;
-}
+};
 
-interface Categoria {
+type CategoriaEstoque = {
   id: string;
   nome: string;
-}
+};
 
-interface Fornecedor {
+type FornecedorEstoque = Pick<FornecedorBase, 'id' | 'nome'>;
+
+type MarcaEstoque = {
   id: string;
   nome: string;
-}
-
-interface Marca {
-  id: string;
-  nome: string;
-}
+};
 
 type FiltroTab = 'estoque' | 'categorias' | 'fornecedores' | 'marcas';
 
 export default function EstoqueScreen() {
   const { estabelecimentoId } = useAuth();
-  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [produtos, setProdutos] = useState<ProdutoEstoque[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filtroAtivo, setFiltroAtivo] = useState<'todos' | 'baixo' | 'zerado'>('todos');
   const [categoriaSelecionada, setCategoriaSelecionada] = useState<string | null>(null);
   const [fornecedorSelecionado, setFornecedorSelecionado] = useState<string | null>(null);
   const [marcaSelecionada, setMarcaSelecionada] = useState<string | null>(null);
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
-  const [marcas, setMarcas] = useState<Marca[]>([]);
+  const [categorias, setCategorias] = useState<CategoriaEstoque[]>([]);
+  const [fornecedores, setFornecedores] = useState<FornecedorEstoque[]>([]);
+  const [marcas, setMarcas] = useState<MarcaEstoque[]>([]);
   const [mostrarCategorias, setMostrarCategorias] = useState(false);
-  const [categoriaEmEdicao, setCategoriaEmEdicao] = useState<Categoria | null>(null);
+  const [categoriaEmEdicao, setCategoriaEmEdicao] = useState<CategoriaEstoque | null>(null);
   const [novaCategoria, setNovaCategoria] = useState('');
   const [filtroTabAtiva, setFiltroTabAtiva] = useState<FiltroTab>('estoque');
   const [modalOffset, setModalOffset] = useState(0);
   const [modalTab, setModalTab] = useState<'categorias' | 'marcas'>('categorias');
   const [novaMarca, setNovaMarca] = useState('');
-  const [marcaEmEdicao, setMarcaEmEdicao] = useState<Marca | null>(null);
+  const [marcaEmEdicao, setMarcaEmEdicao] = useState<MarcaEstoque | null>(null);
   const [slideAnimation] = useState(new Animated.Value(400));
   const [overlayOpacity] = useState(new Animated.Value(0));
 
@@ -159,10 +150,10 @@ export default function EstoqueScreen() {
 
   const carregarCategorias = async () => {
     try {
-      console.log('Iniciando carregamento de categorias...');
+      logger.debug('Iniciando carregamento de categorias...');
       
       if (!estabelecimentoId) {
-        console.error('Estabelecimento não identificado');
+        logger.error('Estabelecimento não identificado');
         Alert.alert('Erro', 'Estabelecimento não identificado');
         return;
       }
@@ -174,16 +165,16 @@ export default function EstoqueScreen() {
         .order('nome');
 
       if (error) {
-        console.error('Erro ao carregar categorias:', error);
+        logger.error('Erro ao carregar categorias:', error);
         throw error;
       }
 
-      console.log('Categorias carregadas com sucesso:', data);
+      logger.debug('Categorias carregadas com sucesso:', data);
       if (data) {
         setCategorias(data);
       }
     } catch (error) {
-      console.error('Erro ao carregar categorias:', error);
+      logger.error('Erro ao carregar categorias:', error);
       Alert.alert('Erro', 'Não foi possível carregar as categorias');
     }
   };
@@ -191,7 +182,7 @@ export default function EstoqueScreen() {
   const carregarFornecedores = async () => {
     try {
       if (!estabelecimentoId) {
-        console.error('Estabelecimento não identificado');
+        logger.error('Estabelecimento não identificado');
         return;
       }
       const { data, error } = await supabase
@@ -203,14 +194,14 @@ export default function EstoqueScreen() {
       if (error) throw error;
       setFornecedores(data || []);
     } catch (error) {
-      console.error('Erro ao carregar fornecedores:', error);
+      logger.error('Erro ao carregar fornecedores:', error);
     }
   };
 
   const carregarMarcas = async () => {
     try {
       if (!estabelecimentoId) {
-        console.error('Estabelecimento não identificado');
+        logger.error('Estabelecimento não identificado');
         return;
       }
       const { data, error } = await supabase
@@ -222,7 +213,7 @@ export default function EstoqueScreen() {
       if (error) throw error;
       setMarcas(data || []);
     } catch (error) {
-      console.error('Erro ao carregar marcas:', error);
+      logger.error('Erro ao carregar marcas:', error);
     }
   };
 
@@ -231,7 +222,7 @@ export default function EstoqueScreen() {
       setLoading(true);
       
       if (!estabelecimentoId) {
-        console.error('Estabelecimento não identificado');
+        logger.error('Estabelecimento não identificado');
         Alert.alert('Erro', 'Estabelecimento não identificado');
         return;
       }
@@ -269,11 +260,11 @@ export default function EstoqueScreen() {
       const { data: produtos, error } = await query;
 
       if (error) {
-        console.error('Erro ao carregar produtos:', error);
+        logger.error('Erro ao carregar produtos:', error);
         throw error;
       }
 
-      console.log('Produtos carregados:', produtos); // Log para debug
+      logger.debug('Produtos carregados:', produtos); // Log para debug
 
       // Filtrar por busca
       const produtosFiltrados = produtos ? produtos.filter(produto =>
@@ -286,7 +277,7 @@ export default function EstoqueScreen() {
 
       setProdutos(produtosFiltrados);
     } catch (error) {
-      console.error('Erro ao carregar produtos:', error);
+      logger.error('Erro ao carregar produtos:', error);
       Alert.alert('Erro', 'Não foi possível carregar os produtos');
     } finally {
       setLoading(false);
@@ -318,7 +309,7 @@ export default function EstoqueScreen() {
       marcaSelecionada !== null ||
       searchQuery !== '';
 
-    console.log('Estado dos filtros:', {
+    logger.debug('Estado dos filtros:', {
       filtroAtivo,
       categoriaSelecionada,
       fornecedorSelecionado,
@@ -569,7 +560,7 @@ export default function EstoqueScreen() {
     router.push('/estoque/novo');
   };
 
-  const handleEditarProduto = (produto: Produto) => {
+  const handleEditarProduto = (produto: ProdutoEstoque) => {
     router.push(`/estoque/${produto.id}`);
   };
 
@@ -595,7 +586,7 @@ export default function EstoqueScreen() {
           .eq('estabelecimento_id', estabelecimentoId);
 
         if (error) {
-          console.error('Erro detalhado:', error);
+          logger.error('Erro detalhado:', error);
           throw error;
         }
       } else {
@@ -608,7 +599,7 @@ export default function EstoqueScreen() {
           .select();
 
         if (error) {
-          console.error('Erro detalhado:', error);
+          logger.error('Erro detalhado:', error);
           throw error;
         }
       }
@@ -618,17 +609,17 @@ export default function EstoqueScreen() {
       setCategoriaEmEdicao(null);
       setMostrarCategorias(false);
     } catch (error: any) {
-      console.error('Erro ao salvar categoria:', error);
+      logger.error('Erro ao salvar categoria:', error);
       Alert.alert('Erro', `Não foi possível salvar a categoria: ${error.message || error}`);
     }
   };
 
-  const handleEditarCategoria = (categoria: Categoria) => {
+  const handleEditarCategoria = (categoria: CategoriaEstoque) => {
     setCategoriaEmEdicao(categoria);
     setNovaCategoria(categoria.nome);
   };
 
-  const handleExcluirCategoria = async (categoria: Categoria) => {
+  const handleExcluirCategoria = async (categoria: CategoriaEstoque) => {
     Alert.alert(
       'Confirmar Exclusão',
       'Tem certeza que deseja excluir esta categoria?',
@@ -657,7 +648,7 @@ export default function EstoqueScreen() {
 
               await carregarCategorias();
             } catch (error) {
-              console.error('Erro ao excluir categoria:', error);
+              logger.error('Erro ao excluir categoria:', error);
               Alert.alert('Erro', 'Não foi possível excluir a categoria');
             }
           },
@@ -696,17 +687,17 @@ export default function EstoqueScreen() {
       await carregarMarcas();
       Alert.alert('Sucesso', marcaEmEdicao ? 'Marca atualizada com sucesso!' : 'Marca cadastrada com sucesso!');
     } catch (error) {
-      console.error('Erro ao salvar marca:', error);
+      logger.error('Erro ao salvar marca:', error);
       Alert.alert('Erro', 'Não foi possível salvar a marca');
     }
   };
 
-  const handleEditarMarca = (marca: Marca) => {
+  const handleEditarMarca = (marca: MarcaEstoque) => {
     setMarcaEmEdicao(marca);
     setNovaMarca(marca.nome);
   };
 
-  const handleExcluirMarca = async (marca: Marca) => {
+  const handleExcluirMarca = async (marca: MarcaEstoque) => {
     try {
       if (!estabelecimentoId) {
         Alert.alert('Erro', 'Estabelecimento não identificado');
@@ -724,12 +715,12 @@ export default function EstoqueScreen() {
       await carregarMarcas();
       Alert.alert('Sucesso', 'Marca excluída com sucesso!');
     } catch (error) {
-      console.error('Erro ao excluir marca:', error);
+      logger.error('Erro ao excluir marca:', error);
       Alert.alert('Erro', 'Não foi possível excluir a marca');
     }
   };
 
-  const renderItem = ({ item }: { item: Produto }) => {
+  const renderItem = ({ item }: { item: ProdutoEstoque }) => {
     const status = getStatusEstoque(item.quantidade, item.quantidade_minima || 0);
     
     return (

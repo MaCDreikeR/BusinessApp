@@ -9,28 +9,20 @@ import { useRouter } from 'expo-router';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import { useAuth } from '../../contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logger } from '../../utils/logger';
+import { Servico, CategoriaServico } from '@types';
 
-interface Servico {
-  id: string;
-  nome: string;
-  descricao: string;
-  preco: number;
-  categoria_id: string | null;
+interface ServicoComCategoria extends Servico {
   descricaoServico?: string;
   categoria?: {
     nome: string;
   };
 }
 
-interface Categoria {
-  id: string;
-  nome: string;
-}
-
 export default function ServicosScreen() {
   const { estabelecimentoId } = useAuth();
-  const [servicos, setServicos] = useState<Servico[]>([]);
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [servicos, setServicos] = useState<ServicoComCategoria[]>([]);
+  const [categorias, setCategorias] = useState<CategoriaServico[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingServico, setEditingServico] = useState<Servico | null>(null);
@@ -42,7 +34,7 @@ export default function ServicosScreen() {
   const [showCategorias, setShowCategorias] = useState(false);
   const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(null);
   const [novaCategoria, setNovaCategoria] = useState('');
-  const [categoriaEmEdicao, setCategoriaEmEdicao] = useState<Categoria | null>(null);
+  const [categoriaEmEdicao, setCategoriaEmEdicao] = useState<CategoriaServico | null>(null);
   const [mostrarModalCategorias, setMostrarModalCategorias] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
@@ -50,8 +42,8 @@ export default function ServicosScreen() {
   const textColor = useThemeColor({}, 'text');
   const [slideAnimation] = useState(new Animated.Value(400));
   const [overlayOpacity] = useState(new Animated.Value(0));
-  const [servicoEditando, setServicoEditando] = useState<Servico | null>(null);
-  const [categoriaEditando, setCategoriaEditando] = useState<Categoria | null>(null);
+  const [servicoEditando, setServicoEditando] = useState<ServicoComCategoria | null>(null);
+  const [categoriaEditando, setCategoriaEditando] = useState<CategoriaServico | null>(null);
   const [nomeServico, setNomeServico] = useState('');
   const [precoServico, setPrecoServico] = useState('');
   const [categoriaServico, setCategoriaServico] = useState('');
@@ -165,18 +157,18 @@ export default function ServicosScreen() {
           .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Erro ao carregar categorias:', error);
+        logger.error('Erro ao carregar categorias:', error);
         Alert.alert('Erro', 'Não foi possível carregar as categorias. Por favor, tente novamente.');
         return;
       }
 
-      console.log(`${data?.length || 0} categorias carregadas com sucesso`);
+      logger.debug(`${data?.length || 0} categorias carregadas com sucesso`);
       setCategorias(data || []);
       
       // Cache dos resultados para uso offline
       await AsyncStorage.setItem('@BusinessApp:categorias', JSON.stringify(data));
     } catch (error) {
-      console.error('Erro ao carregar categorias:', error);
+      logger.error('Erro ao carregar categorias:', error);
       
       // Tentar carregar do cache em caso de erro
       try {
@@ -198,7 +190,7 @@ export default function ServicosScreen() {
 
   const carregarServicos = async () => {
     try {
-      console.log('Iniciando carregamento de serviços...');
+      logger.debug('Iniciando carregamento de serviços...');
       
       if (!estabelecimentoId) {
         throw new Error('Estabelecimento não identificado');
@@ -214,14 +206,14 @@ export default function ServicosScreen() {
           .order('nome');
 
       if (error) {
-        console.error('Erro ao carregar serviços:', error);
+        logger.error('Erro ao carregar serviços:', error);
         throw error;
       }
       
-      console.log('Serviços carregados:', data);
+      logger.debug('Serviços carregados:', data);
       setServicos(data || []);
     } catch (error) {
-      console.error('Erro ao carregar serviços:', error);
+      logger.error('Erro ao carregar serviços:', error);
       Alert.alert('Erro', 'Não foi possível carregar os serviços');
     } finally {
       setLoading(false);
@@ -251,13 +243,13 @@ export default function ServicosScreen() {
       }
 
     try {
-      console.log('Iniciando salvamento de serviço...');
+      logger.debug('Iniciando salvamento de serviço...');
       
       if (!estabelecimentoId) {
         throw new Error('Estabelecimento não identificado');
       }
 
-      console.log('Dados do serviço:', {
+      logger.debug('Dados do serviço:', {
         nome: nomeServico,
         preco: precoServico,
         categoria_id: categoriaServico,
@@ -268,7 +260,7 @@ export default function ServicosScreen() {
       const precoNumerico = parseFloat(precoServico) / 100;
 
       if (servicoEditando) {
-        console.log('Atualizando serviço existente:', servicoEditando.id);
+        logger.debug('Atualizando serviço existente:', servicoEditando.id);
         const { data, error } = await supabase
           .from('servicos')
           .update({
@@ -282,12 +274,12 @@ export default function ServicosScreen() {
           .eq('id', servicoEditando.id);
 
         if (error) {
-          console.error('Erro detalhado ao atualizar serviço:', error);
+          logger.error('Erro detalhado ao atualizar serviço:', error);
           throw error;
         }
-        console.log('Serviço atualizado com sucesso:', data);
+        logger.debug('Serviço atualizado com sucesso:', data);
       } else {
-        console.log('Criando novo serviço');
+        logger.debug('Criando novo serviço');
         const { data, error } = await supabase
           .from('servicos')
           .insert({
@@ -302,17 +294,17 @@ export default function ServicosScreen() {
           .select();
 
         if (error) {
-          console.error('Erro detalhado ao criar serviço:', error);
+          logger.error('Erro detalhado ao criar serviço:', error);
           throw error;
         }
-        console.log('Serviço criado com sucesso:', data);
+        logger.debug('Serviço criado com sucesso:', data);
       }
 
-      console.log('Serviço salvo com sucesso');
+      logger.debug('Serviço salvo com sucesso');
       setModalVisible(false);
       await carregarServicos();
     } catch (error: any) {
-      console.error('Erro ao salvar serviço:', error);
+      logger.error('Erro ao salvar serviço:', error);
       let mensagemErro = 'Não foi possível salvar o serviço';
       
       if (error.message === 'Usuário não autenticado') {
@@ -338,7 +330,7 @@ export default function ServicosScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('Iniciando exclusão do serviço:', servico.id);
+              logger.debug('Iniciando exclusão do serviço:', servico.id);
               
               const { error } = await supabase
                 .from('servicos')
@@ -346,14 +338,14 @@ export default function ServicosScreen() {
                 .eq('id', servico.id);
 
               if (error) {
-                console.error('Erro ao excluir serviço:', error);
+                logger.error('Erro ao excluir serviço:', error);
                 throw error;
               }
 
-              console.log('Serviço excluído com sucesso');
+              logger.debug('Serviço excluído com sucesso');
               await carregarServicos();
             } catch (error) {
-              console.error('Erro ao excluir serviço:', error);
+              logger.error('Erro ao excluir serviço:', error);
               Alert.alert('Erro', 'Não foi possível excluir o serviço');
             }
           }
@@ -369,7 +361,7 @@ export default function ServicosScreen() {
     }
 
     try {
-      console.log('Iniciando salvamento de categoria...');
+      logger.debug('Iniciando salvamento de categoria...');
       
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -378,7 +370,7 @@ export default function ServicosScreen() {
       }
 
       if (categoriaEditando) {
-        console.log('Atualizando categoria existente:', categoriaEditando.id);
+        logger.debug('Atualizando categoria existente:', categoriaEditando.id);
         const { data, error } = await supabase
           .from('categorias_servicos')
           .update({
@@ -389,9 +381,9 @@ export default function ServicosScreen() {
           .eq('id', categoriaEditando.id);
 
         if (error) throw error;
-        console.log('Categoria atualizada com sucesso:', data);
+        logger.debug('Categoria atualizada com sucesso:', data);
       } else {
-        console.log('Criando nova categoria');
+        logger.debug('Criando nova categoria');
         const { data, error } = await supabase
           .from('categorias_servicos')
           .insert({
@@ -403,7 +395,7 @@ export default function ServicosScreen() {
           .select();
 
         if (error) throw error;
-        console.log('Categoria criada com sucesso:', data);
+        logger.debug('Categoria criada com sucesso:', data);
       }
 
       setNomeCategoria('');
@@ -411,12 +403,12 @@ export default function ServicosScreen() {
       setMostrarModalCategorias(false);
       carregarCategorias();
     } catch (error) {
-      console.error('Erro ao salvar categoria:', error);
+      logger.error('Erro ao salvar categoria:', error);
       Alert.alert('Erro', 'Não foi possível salvar a categoria');
     }
   };
 
-  const handleExcluirCategoria = async (categoria: Categoria) => {
+  const handleExcluirCategoria = async (categoria: CategoriaServico) => {
     try {
       const { data: servicosComCategoria, error: errorCheck } = await supabase
         .from('servicos')
@@ -450,10 +442,10 @@ export default function ServicosScreen() {
 
                 if (errorDelete) throw errorDelete;
 
-                console.log('Categoria excluída com sucesso');
+                logger.debug('Categoria excluída com sucesso');
                 carregarCategorias();
               } catch (error) {
-                console.error('Erro ao excluir categoria:', error);
+                logger.error('Erro ao excluir categoria:', error);
                 Alert.alert('Erro', 'Não foi possível excluir a categoria');
               }
             }
@@ -461,12 +453,12 @@ export default function ServicosScreen() {
         ]
       );
     } catch (error) {
-      console.error('Erro ao verificar uso da categoria:', error);
+      logger.error('Erro ao verificar uso da categoria:', error);
       Alert.alert('Erro', 'Não foi possível verificar se a categoria pode ser excluída');
     }
   };
 
-  const renderItem = ({ item }: { item: Servico }) => (
+  const renderItem = ({ item }: { item: ServicoComCategoria }) => (
     <View style={[styles.servicoItem, { backgroundColor }]}>
       <TouchableOpacity style={styles.servicoInfo} onPress={() => {
         setServicoEditando(item);

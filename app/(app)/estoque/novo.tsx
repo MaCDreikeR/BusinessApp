@@ -5,21 +5,20 @@ import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { router } from 'expo-router';
 import MaskInput from 'react-native-mask-input';
+import { logger } from '../../../utils/logger';
+import { Fornecedor as FornecedorBase } from '@types';
 
-interface Categoria {
+type CategoriaEstoque = {
   id: string;
   nome: string;
-}
+};
 
-interface Fornecedor {
+type FornecedorEstoque = Pick<FornecedorBase, 'id' | 'nome'>;
+
+type MarcaEstoque = {
   id: string;
   nome: string;
-}
-
-interface Marca {
-  id: string;
-  nome: string;
-}
+};
 
 const PRECO_MASK = [
   /\d/,
@@ -39,15 +38,15 @@ const PRECO_MASK = [
 export default function NovoProdutoScreen() {
   const { estabelecimentoId } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
-  const [marcas, setMarcas] = useState<Marca[]>([]);
+  const [categorias, setCategorias] = useState<CategoriaEstoque[]>([]);
+  const [fornecedores, setFornecedores] = useState<FornecedorEstoque[]>([]);
+  const [marcas, setMarcas] = useState<MarcaEstoque[]>([]);
   const [mostrarCategorias, setMostrarCategorias] = useState(false);
   const [mostrarFornecedores, setMostrarFornecedores] = useState(false);
   const [mostrarMarcas, setMostrarMarcas] = useState(false);
-  const [categoriaSelecionada, setCategoriaSelecionada] = useState<Categoria | null>(null);
-  const [fornecedorSelecionado, setFornecedorSelecionado] = useState<Fornecedor | null>(null);
-  const [marcaSelecionada, setMarcaSelecionada] = useState<Marca | null>(null);
+  const [categoriaSelecionada, setCategoriaSelecionada] = useState<CategoriaEstoque | null>(null);
+  const [fornecedorSelecionado, setFornecedorSelecionado] = useState<FornecedorEstoque | null>(null);
+  const [marcaSelecionada, setMarcaSelecionada] = useState<MarcaEstoque | null>(null);
   const [formData, setFormData] = useState({
     nome: '',
     quantidade: '',
@@ -76,7 +75,7 @@ export default function NovoProdutoScreen() {
       if (error) throw error;
       setCategorias(data || []);
     } catch (error) {
-      console.error('Erro ao carregar categorias:', error);
+      logger.error('Erro ao carregar categorias:', error);
       Alert.alert('Erro', 'Não foi possível carregar as categorias');
     }
   };
@@ -91,7 +90,7 @@ export default function NovoProdutoScreen() {
       if (error) throw error;
       setFornecedores(data || []);
     } catch (error) {
-      console.error('Erro ao carregar fornecedores:', error);
+      logger.error('Erro ao carregar fornecedores:', error);
       Alert.alert('Erro', 'Não foi possível carregar os fornecedores');
     }
   };
@@ -106,7 +105,7 @@ export default function NovoProdutoScreen() {
       if (error) throw error;
       setMarcas(data || []);
     } catch (error) {
-      console.error('Erro ao carregar marcas:', error);
+      logger.error('Erro ao carregar marcas:', error);
       Alert.alert('Erro', 'Não foi possível carregar as marcas');
     }
   };
@@ -175,24 +174,24 @@ export default function NovoProdutoScreen() {
         ]
       );
     } catch (error) {
-      console.error('Erro ao cadastrar produto:', error);
+      logger.error('Erro ao cadastrar produto:', error);
       Alert.alert('Erro', 'Não foi possível cadastrar o produto');
     }
   };
 
-  const handleSelecionarCategoria = (categoria: Categoria) => {
+  const handleSelecionarCategoria = (categoria: CategoriaEstoque) => {
     setCategoriaSelecionada(categoria);
     setFormData({ ...formData, categoria_id: categoria.id });
     setMostrarCategorias(false);
   };
 
-  const handleSelecionarFornecedor = (fornecedor: Fornecedor) => {
+  const handleSelecionarFornecedor = (fornecedor: FornecedorEstoque) => {
     setFornecedorSelecionado(fornecedor);
     setFormData({ ...formData, fornecedor_id: fornecedor.id });
     setMostrarFornecedores(false);
   };
 
-  const handleSelecionarMarca = (marca: Marca) => {
+  const handleSelecionarMarca = (marca: MarcaEstoque) => {
     setMarcaSelecionada(marca);
     setFormData({ ...formData, marca_id: marca.id });
     setMostrarMarcas(false);

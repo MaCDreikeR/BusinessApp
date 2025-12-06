@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { criarOrcamento, adicionarItemOrcamento, buscarClientes, buscarProdutos, buscarServicos, buscarPacotes, Cliente, Produto, Servico, Pacote } from './utils';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
+import { logger } from '../../../utils/logger';
 
 interface ItemOrcamento {
   id: string;
@@ -127,7 +128,7 @@ export default function NovoOrcamentoScreen() {
       }
       setItensEncontrados(resultados || []);
     } catch (error) {
-      console.error('Erro ao carregar itens iniciais:', error);
+      logger.error('Erro ao carregar itens iniciais:', error);
       setItensEncontrados([]);
     } finally {
       setBuscandoItens(false);
@@ -164,7 +165,7 @@ export default function NovoOrcamentoScreen() {
       setClientesEncontrados(clientes || []);
       setMostrarLista(true);
     } catch (error) {
-      console.error('Erro ao buscar clientes:', error);
+      logger.error('Erro ao buscar clientes:', error);
       setClientesEncontrados([]);
       setMostrarLista(false);
     } finally {
@@ -215,11 +216,11 @@ export default function NovoOrcamentoScreen() {
     setBuscandoProdutos(true);
     try {
       const produtos = await buscarProdutos(nome);
-      console.log('Produtos encontrados:', produtos);
+      logger.debug('Produtos encontrados:', produtos);
       setProdutosEncontrados(produtos);
       setMostrarListaProdutos(true);
     } catch (error) {
-      console.error('Erro ao buscar produtos:', error);
+      logger.error('Erro ao buscar produtos:', error);
       setProdutosEncontrados([]);
       setMostrarListaProdutos(false);
     } finally {
@@ -237,11 +238,11 @@ export default function NovoOrcamentoScreen() {
     setBuscandoServicos(true);
     try {
       const servicos = await buscarServicos(nome);
-      console.log('Serviços encontrados:', servicos);
+      logger.debug('Serviços encontrados:', servicos);
       setServicosEncontrados(servicos);
       setMostrarListaServicos(true);
     } catch (error) {
-      console.error('Erro ao buscar serviços:', error);
+      logger.error('Erro ao buscar serviços:', error);
       setServicosEncontrados([]);
       setMostrarListaServicos(false);
     } finally {
@@ -259,11 +260,11 @@ export default function NovoOrcamentoScreen() {
     setBuscandoPacotes(true);
     try {
       const pacotes = await buscarPacotes(nome);
-      console.log('Pacotes encontrados:', pacotes);
+      logger.debug('Pacotes encontrados:', pacotes);
       setPacotesEncontrados(pacotes);
       setMostrarListaPacotes(true);
     } catch (error) {
-      console.error('Erro ao buscar pacotes:', error);
+      logger.error('Erro ao buscar pacotes:', error);
       setPacotesEncontrados([]);
       setMostrarListaPacotes(false);
     } finally {
@@ -291,9 +292,9 @@ export default function NovoOrcamentoScreen() {
   }, [itemAtual, tipoItem, buscarProdutosPorNome, buscarServicosPorNome, buscarPacotesPorNome]);
 
   const handleSelecionarProduto = (produto: Produto) => {
-    console.log('Produto selecionado:', produto);
+    logger.debug('Produto selecionado:', produto);
     if (!produto.id) {
-      console.error('Produto sem ID:', produto);
+      logger.error('Produto sem ID:', produto);
       Alert.alert('Erro', 'Produto inválido');
       return;
     }
@@ -305,9 +306,9 @@ export default function NovoOrcamentoScreen() {
   };
 
   const handleSelecionarServico = (servico: Servico) => {
-    console.log('Serviço selecionado:', servico);
+    logger.debug('Serviço selecionado:', servico);
     if (!servico.id) {
-      console.error('Serviço sem ID:', servico);
+      logger.error('Serviço sem ID:', servico);
       Alert.alert('Erro', 'Serviço inválido');
       return;
     }
@@ -319,9 +320,9 @@ export default function NovoOrcamentoScreen() {
   };
 
   const handleSelecionarPacote = (pacote: Pacote) => {
-    console.log('Pacote selecionado:', pacote);
+    logger.debug('Pacote selecionado:', pacote);
     if (!pacote.id) {
-      console.error('Pacote sem ID:', pacote);
+      logger.error('Pacote sem ID:', pacote);
       Alert.alert('Erro', 'Pacote inválido');
       return;
     }
@@ -385,7 +386,7 @@ export default function NovoOrcamentoScreen() {
       pacote_id
     };
 
-    console.log('Novo item a ser adicionado:', novoItem);
+    logger.debug('Novo item a ser adicionado:', novoItem);
     setItens(prev => [...prev, novoItem]);
 
     setItemAtual('');
@@ -423,7 +424,7 @@ export default function NovoOrcamentoScreen() {
       }
       setItensEncontrados(resultados || []);
     } catch (error) {
-      console.error('Erro ao buscar itens:', error);
+      logger.error('Erro ao buscar itens:', error);
       setItensEncontrados([]);
     } finally {
       setBuscandoItens(false);
@@ -438,16 +439,16 @@ export default function NovoOrcamentoScreen() {
   }, [termoBusca, buscarItens]);
 
   const handleSelecionarItem = (item: Produto | Servico | Pacote) => {
-    console.log('Item selecionado:', item);
+    logger.debug('Item selecionado:', item);
     if (!item.id) {
-      console.error('Item sem ID:', item);
+      logger.error('Item sem ID:', item);
       Alert.alert('Erro', 'Item inválido');
       return;
     }
 
     // Usa o tipoItem do modal para determinar o tipo correto
     const tipo = tipoItem;
-    console.log('Tipo do item:', tipo);
+    logger.debug('Tipo do item:', tipo);
 
     // Verifica se o item já foi selecionado
     const itemJaSelecionado = itensSelecionados.find(i => i.id === item.id);
@@ -464,7 +465,7 @@ export default function NovoOrcamentoScreen() {
         tipo: tipo // Usa o tipo do modal
       };
 
-      console.log('ItemSelecionado criado:', itemSelecionado);
+      logger.debug('ItemSelecionado criado:', itemSelecionado);
       setItensSelecionados(prev => [...prev, itemSelecionado]);
     } else {
       // Se já foi selecionado, remove da lista
@@ -487,9 +488,9 @@ export default function NovoOrcamentoScreen() {
   };
 
   const handleAdicionarItensSelecionados = () => {
-    console.log('Itens selecionados antes de adicionar:', itensSelecionados);
+    logger.debug('Itens selecionados antes de adicionar:', itensSelecionados);
     const novosItens: ItemOrcamento[] = itensSelecionados.map(item => {
-      console.log('Processando item:', item);
+      logger.debug('Processando item:', item);
       
       const itemBase: ItemOrcamento = {
         id: Math.random().toString(),
@@ -502,14 +503,14 @@ export default function NovoOrcamentoScreen() {
         pacote_id: item.tipo === 'pacote' ? item.id : undefined
       };
 
-      console.log('Item final:', itemBase);
+      logger.debug('Item final:', itemBase);
       return itemBase;
     });
 
-    console.log('Novos itens a serem adicionados:', novosItens);
+    logger.debug('Novos itens a serem adicionados:', novosItens);
     setItens(prev => {
       const itensAtualizados = [...prev, ...novosItens];
-      console.log('Itens após atualização:', itensAtualizados);
+      logger.debug('Itens após atualização:', itensAtualizados);
       return itensAtualizados;
     });
     setItensSelecionados([]);
@@ -519,17 +520,17 @@ export default function NovoOrcamentoScreen() {
 
   // Adicionar useEffect para monitorar mudanças no estado itens
   useEffect(() => {
-    console.log('Estado itens atualizado:', itens);
+    logger.debug('Estado itens atualizado:', itens);
   }, [itens]);
 
   // Adicionar useEffect para monitorar mudanças no estado itensSelecionados
   useEffect(() => {
-    console.log('Estado itensSelecionados atualizado:', itensSelecionados);
+    logger.debug('Estado itensSelecionados atualizado:', itensSelecionados);
   }, [itensSelecionados]);
 
   // Adicionar useEffect para monitorar mudanças no estado modalVisible
   useEffect(() => {
-    console.log('Estado modalVisible atualizado:', modalVisible);
+    logger.debug('Estado modalVisible atualizado:', modalVisible);
   }, [modalVisible]);
 
   // Funções de validação
@@ -578,7 +579,7 @@ export default function NovoOrcamentoScreen() {
 
   const handleSalvar = async () => {
     try {
-      console.log('Itens antes de salvar:', itens);
+      logger.debug('Itens antes de salvar:', itens);
       
       // Validação dos IDs dos produtos
       for (const item of itens) {
@@ -623,11 +624,11 @@ export default function NovoOrcamentoScreen() {
         observacoes: observacoes || undefined
       });
 
-      console.log('Orçamento criado:', novoOrcamento);
+      logger.debug('Orçamento criado:', novoOrcamento);
 
       // Adiciona os itens do orçamento
       for (const item of itens) {
-        console.log('Processando item para salvar:', item);
+        logger.debug('Processando item para salvar:', item);
         const itemBase = {
           orcamento_id: novoOrcamento.id,
           descricao: item.descricao,
@@ -640,15 +641,15 @@ export default function NovoOrcamentoScreen() {
         switch (item.tipo) {
           case 'produto':
             itemParaSalvar = { ...itemBase, produto_id: item.produto_id };
-            console.log('Item produto para salvar:', itemParaSalvar);
+            logger.debug('Item produto para salvar:', itemParaSalvar);
             break;
           case 'servico':
             itemParaSalvar = { ...itemBase, servico_id: item.servico_id };
-            console.log('Item serviço para salvar:', itemParaSalvar);
+            logger.debug('Item serviço para salvar:', itemParaSalvar);
             break;
           case 'pacote':
             itemParaSalvar = { ...itemBase, pacote_id: item.pacote_id };
-            console.log('Item pacote para salvar:', itemParaSalvar);
+            logger.debug('Item pacote para salvar:', itemParaSalvar);
             break;
           default:
             itemParaSalvar = itemBase;
@@ -664,7 +665,7 @@ export default function NovoOrcamentoScreen() {
         }
       ]);
     } catch (error) {
-      console.error('Erro ao salvar orçamento:', error);
+      logger.error('Erro ao salvar orçamento:', error);
       Alert.alert('Erro', 'Não foi possível salvar o orçamento');
     } finally {
       setLoading(false);
@@ -770,7 +771,7 @@ export default function NovoOrcamentoScreen() {
                   tipoItem === 'produto' && styles.tipoItemButtonActive
                 ]}
                 onPress={() => {
-                  console.log('Abrindo modal de produtos');
+                  logger.debug('Abrindo modal de produtos');
                   setTipoItem('produto');
                   setModalVisible(true);
                   setTermoBusca('');
@@ -794,7 +795,7 @@ export default function NovoOrcamentoScreen() {
                   tipoItem === 'servico' && styles.tipoItemButtonActive
                 ]}
                 onPress={() => {
-                  console.log('Abrindo modal de serviços');
+                  logger.debug('Abrindo modal de serviços');
                   setTipoItem('servico');
                   setModalVisible(true);
                   setTermoBusca('');
@@ -818,7 +819,7 @@ export default function NovoOrcamentoScreen() {
                   tipoItem === 'pacote' && styles.tipoItemButtonActive
                 ]}
                 onPress={() => {
-                  console.log('Abrindo modal de pacotes');
+                  logger.debug('Abrindo modal de pacotes');
                   setTipoItem('pacote');
                   setModalVisible(true);
                   setTermoBusca('');

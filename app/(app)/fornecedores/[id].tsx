@@ -4,14 +4,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
 import { router, useLocalSearchParams } from 'expo-router';
 import MaskInput, { Masks } from 'react-native-mask-input';
+import { logger } from '../../../utils/logger';
+import { Fornecedor as FornecedorBase } from '@types';
 
-interface ValidationErrors {
+type ValidationErrors = {
   [key: string]: string;
-}
+};
 
-interface Fornecedor {
-  id: string;
-  nome: string;
+type FornecedorDetalhes = Pick<FornecedorBase, 'id' | 'nome'> & {
   cnpj: string;
   telefone: string;
   email: string;
@@ -20,7 +20,7 @@ interface Fornecedor {
   estado: string;
   cep: string;
   observacoes: string;
-}
+};
 
 export default function EditarFornecedorScreen() {
   const { id } = useLocalSearchParams();
@@ -136,7 +136,7 @@ export default function EditarFornecedorScreen() {
         });
       }
     } catch (error) {
-      console.error('Erro ao carregar fornecedor:', error);
+      logger.error('Erro ao carregar fornecedor:', error);
       Alert.alert('Erro', 'Não foi possível carregar os dados do fornecedor');
     } finally {
       setLoading(false);
@@ -167,7 +167,7 @@ export default function EditarFornecedorScreen() {
         estado: data.uf || '',
       }));
     } catch (error) {
-      console.error('Erro ao buscar CEP:', error);
+      logger.error('Erro ao buscar CEP:', error);
       Alert.alert('Erro', 'Não foi possível buscar o endereço');
     } finally {
       setLoadingCep(false);
@@ -211,7 +211,7 @@ export default function EditarFornecedorScreen() {
         },
       ]);
     } catch (error) {
-      console.error('Erro ao atualizar fornecedor:', error);
+      logger.error('Erro ao atualizar fornecedor:', error);
       Alert.alert('Erro', 'Não foi possível atualizar o fornecedor');
     } finally {
       setLoading(false);
@@ -458,7 +458,7 @@ export default function EditarFornecedorScreen() {
                           },
                         ]);
                       } catch (error) {
-                        console.error('Erro ao excluir fornecedor:', error);
+                        logger.error('Erro ao excluir fornecedor:', error);
                         Alert.alert('Erro', 'Não foi possível excluir o fornecedor');
                       } finally {
                         setLoading(false);

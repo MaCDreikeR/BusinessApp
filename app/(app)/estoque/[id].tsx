@@ -5,17 +5,13 @@ import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import MaskInput from 'react-native-mask-input';
+import { logger } from '../../../utils/logger';
+import { Produto as ProdutoBase, Fornecedor as FornecedorBase } from '@types';
 
-interface Produto {
-  id: string;
-  nome: string;
-  quantidade: number;
-  preco: number;
+type ProdutoDetalhes = Pick<ProdutoBase, 'id' | 'nome' | 'quantidade' | 'preco' | 'categoria_id' | 'fornecedor_id' | 'quantidade_minima'> & {
   codigo: string;
-  categoria_id: string;
-  fornecedor_id: string;
   marca_id: string;
-  quantidade_minima: number;
+  observacoes: string;
   categoria?: {
     nome: string;
   };
@@ -25,23 +21,19 @@ interface Produto {
   marca?: {
     nome: string;
   };
-  observacoes: string;
-}
+};
 
-interface Categoria {
+type CategoriaEstoque = {
   id: string;
   nome: string;
-}
+};
 
-interface Fornecedor {
+type FornecedorEstoque = Pick<FornecedorBase, 'id' | 'nome'>;
+
+type MarcaEstoque = {
   id: string;
   nome: string;
-}
-
-interface Marca {
-  id: string;
-  nome: string;
-}
+};
 
 const PRECO_MASK = [
   /\d/,
@@ -62,16 +54,16 @@ export default function EditarProdutoScreen() {
   const { estabelecimentoId } = useAuth();
   const { id } = useLocalSearchParams();
   const [loading, setLoading] = useState(false);
-  const [produto, setProduto] = useState<Produto | null>(null);
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
-  const [marcas, setMarcas] = useState<Marca[]>([]);
+  const [produto, setProduto] = useState<ProdutoDetalhes | null>(null);
+  const [categorias, setCategorias] = useState<CategoriaEstoque[]>([]);
+  const [fornecedores, setFornecedores] = useState<FornecedorEstoque[]>([]);
+  const [marcas, setMarcas] = useState<MarcaEstoque[]>([]);
   const [mostrarCategorias, setMostrarCategorias] = useState(false);
   const [mostrarFornecedores, setMostrarFornecedores] = useState(false);
   const [mostrarMarcas, setMostrarMarcas] = useState(false);
-  const [categoriaSelecionada, setCategoriaSelecionada] = useState<Categoria | null>(null);
-  const [fornecedorSelecionado, setFornecedorSelecionado] = useState<Fornecedor | null>(null);
-  const [marcaSelecionada, setMarcaSelecionada] = useState<Marca | null>(null);
+  const [categoriaSelecionada, setCategoriaSelecionada] = useState<CategoriaEstoque | null>(null);
+  const [fornecedorSelecionado, setFornecedorSelecionado] = useState<FornecedorEstoque | null>(null);
+  const [marcaSelecionada, setMarcaSelecionada] = useState<MarcaEstoque | null>(null);
   const [formData, setFormData] = useState({
     nome: '',
     quantidade: '',
@@ -101,7 +93,7 @@ export default function EditarProdutoScreen() {
       if (error) throw error;
       setCategorias(data || []);
     } catch (error) {
-      console.error('Erro ao carregar categorias:', error);
+      logger.error('Erro ao carregar categorias:', error);
       Alert.alert('Erro', 'Não foi possível carregar as categorias');
     }
   };
@@ -116,7 +108,7 @@ export default function EditarProdutoScreen() {
       if (error) throw error;
       setFornecedores(data || []);
     } catch (error) {
-      console.error('Erro ao carregar fornecedores:', error);
+      logger.error('Erro ao carregar fornecedores:', error);
       Alert.alert('Erro', 'Não foi possível carregar os fornecedores');
     }
   };
@@ -131,7 +123,7 @@ export default function EditarProdutoScreen() {
       if (error) throw error;
       setMarcas(data || []);
     } catch (error) {
-      console.error('Erro ao carregar marcas:', error);
+      logger.error('Erro ao carregar marcas:', error);
       Alert.alert('Erro', 'Não foi possível carregar as marcas');
     }
   };
@@ -181,26 +173,26 @@ export default function EditarProdutoScreen() {
       }
 
     } catch (error) {
-      console.error('Erro ao carregar produto:', error);
+      logger.error('Erro ao carregar produto:', error);
       Alert.alert('Erro', 'Não foi possível carregar os dados do produto');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSelecionarCategoria = (categoria: Categoria) => {
+  const handleSelecionarCategoria = (categoria: CategoriaEstoque) => {
     setCategoriaSelecionada(categoria);
     setFormData({ ...formData, categoria_id: categoria.id });
     setMostrarCategorias(false);
   };
 
-  const handleSelecionarFornecedor = (fornecedor: Fornecedor) => {
+  const handleSelecionarFornecedor = (fornecedor: FornecedorEstoque) => {
     setFornecedorSelecionado(fornecedor);
     setFormData({ ...formData, fornecedor_id: fornecedor.id });
     setMostrarFornecedores(false);
   };
 
-  const handleSelecionarMarca = (marca: Marca) => {
+  const handleSelecionarMarca = (marca: MarcaEstoque) => {
     setMarcaSelecionada(marca);
     setFormData({ ...formData, marca_id: marca.id });
     setMostrarMarcas(false);
@@ -250,7 +242,7 @@ export default function EditarProdutoScreen() {
       Alert.alert('Sucesso', 'Produto atualizado com sucesso!');
       router.back();
     } catch (error) {
-      console.error('Erro ao atualizar produto:', error);
+      logger.error('Erro ao atualizar produto:', error);
       Alert.alert('Erro', 'Não foi possível atualizar o produto');
     }
   };
@@ -284,7 +276,7 @@ export default function EditarProdutoScreen() {
                 },
               ]);
             } catch (error) {
-              console.error('Erro ao excluir produto:', error);
+              logger.error('Erro ao excluir produto:', error);
               Alert.alert('Erro', 'Não foi possível excluir o produto');
             } finally {
               setLoading(false);

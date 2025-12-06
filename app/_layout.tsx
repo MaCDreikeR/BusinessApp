@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { View, ActivityIndicator, Dimensions, PixelRatio } from 'react-native';
 import { useFonts } from 'expo-font';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logger } from '../utils/logger';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 // Componente "Porteiro" que contém a lógica de redirecionamento
 const MainLayout = () => {
@@ -29,7 +31,7 @@ const MainLayout = () => {
         const hasSeenWelcome = await AsyncStorage.getItem('@hasSeenWelcome');
         setIsFirstTime(hasSeenWelcome === null);
       } catch (error) {
-        console.error('Erro ao verificar primeira visita:', error);
+        logger.error('Erro ao verificar primeira visita:', error);
         setIsFirstTime(false);
       }
     };
@@ -61,7 +63,7 @@ const MainLayout = () => {
     const inAppGroup = segments[0] === '(app)';
     const inAdminGroup = segments[0] === '(admin)';
 
-  console.log('[MainLayout] segments=', segments, 'role=', role, 'authLoading=', authLoading, 'isFirstTime=', isFirstTime, 'hasBootRendered=', hasBootRendered);
+    logger.debug('[MainLayout]', { segments, role, authLoading, isFirstTime, hasBootRendered });
 
     // Lógica de redirecionamento (primeira visita)
     if (isFirstTime) {
@@ -138,7 +140,7 @@ const DPIWrapper = ({ children }: { children: React.ReactNode }) => {
   
   useEffect(() => {
     if (is274DPI) {
-      console.log('🔧 CORREÇÃO DPI ATIVADA - Densidade:', density, 'DPI:', Math.round(density * 160));
+      logger.info('🔧 CORREÇÃO DPI ATIVADA', { density, dpi: Math.round(density * 160) });
     }
   }, [density, is274DPI]);
   
@@ -180,10 +182,12 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <DPIWrapper>
-        <MainLayout />
-      </DPIWrapper>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <DPIWrapper>
+          <MainLayout />
+        </DPIWrapper>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

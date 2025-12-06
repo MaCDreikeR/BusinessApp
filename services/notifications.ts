@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { supabase } from '@lib/supabase';
+import { logger } from '../utils/logger';
 
 // Configurar o comportamento das notificações
 Notifications.setNotificationHandler({
@@ -9,6 +10,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -62,7 +65,7 @@ export async function registerForPushNotificationsAsync() {
     }
     
     if (finalStatus !== 'granted') {
-      console.log('Falha ao obter permissão para notificações push');
+      logger.debug('Falha ao obter permissão para notificações push');
       return;
     }
 
@@ -82,7 +85,7 @@ export async function registerForPushNotificationsAsync() {
         });
     }
   } else {
-    console.log('Dispositivo físico necessário para notificações push');
+    logger.debug('Dispositivo físico necessário para notificações push');
     return;
   }
 
@@ -121,7 +124,7 @@ export async function sendPushNotification(expoPushToken: string, title: string,
       await limparNotificacoesAntigas();
     }
   } catch (error) {
-    console.error('Erro ao enviar notificação:', error);
+    logger.error('Erro ao enviar notificação:', error);
   }
 }
 
@@ -151,7 +154,7 @@ export async function getHistoricoNotificacoes() {
     .order('data_envio', { ascending: false });
 
   if (error) {
-    console.error('Erro ao buscar histórico:', error);
+    logger.error('Erro ao buscar histórico:', error);
     return [];
   }
 

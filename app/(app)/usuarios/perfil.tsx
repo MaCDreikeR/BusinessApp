@@ -6,6 +6,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { Picker } from '@react-native-picker/picker';
+import { logger } from '../../../utils/logger';
+import { formatarCPF, formatarCNPJ, formatarTelefone as formatarCelular } from '../../../utils/validators';
 
 const SEGMENTOS = [
   { label: 'Selecione um segmento', value: '' },
@@ -55,28 +57,6 @@ const PERMISSOES = [
   { key: 'pode_editar_configuracoes', label: 'Editar Configurações', icon: 'cog' },
   { key: 'pode_gerenciar_usuarios', label: 'Gerenciar Usuários', icon: 'person-add-outline' }
 ];
-
-const formatarCNPJ = (valor: string) => {
-  const cnpj = valor.replace(/\D/g, '');
-  if (cnpj.length <= 2) return cnpj;
-  if (cnpj.length <= 5) return `${cnpj.slice(0, 2)}.${cnpj.slice(2)}`;
-  if (cnpj.length <= 8) return `${cnpj.slice(0, 2)}.${cnpj.slice(2, 5)}.${cnpj.slice(5)}`;
-  if (cnpj.length <= 12) return `${cnpj.slice(0, 2)}.${cnpj.slice(2, 5)}.${cnpj.slice(5, 8)}/${cnpj.slice(8)}`;
-  return `${cnpj.slice(0, 2)}.${cnpj.slice(2, 5)}.${cnpj.slice(5, 8)}/${cnpj.slice(8, 12)}-${cnpj.slice(12, 14)}`;
-};
-const formatarCPF = (valor: string) => {
-  const cpf = valor.replace(/\D/g, '');
-  if (cpf.length <= 3) return cpf;
-  if (cpf.length <= 6) return `${cpf.slice(0, 3)}.${cpf.slice(3)}`;
-  if (cpf.length <= 9) return `${cpf.slice(0, 3)}.${cpf.slice(3, 6)}.${cpf.slice(6)}`;
-  return `${cpf.slice(0, 3)}.${cpf.slice(3, 6)}.${cpf.slice(6, 9)}-${cpf.slice(9, 11)}`;
-};
-const formatarCelular = (valor: string) => {
-  const celular = valor.replace(/\D/g, '');
-  if (celular.length <= 2) return `(${celular}`;
-  if (celular.length <= 7) return `(${celular.slice(0, 2)}) ${celular.slice(2)}`;
-  return `(${celular.slice(0, 2)}) ${celular.slice(2, 7)}-${celular.slice(7, 11)}`;
-};
 
 export default function PerfilScreen() {
   const { session, estabelecimentoId } = useAuth();
@@ -413,7 +393,7 @@ export default function PerfilScreen() {
       await carregarPermissoes();
       setModalPermissionsVisible(true);
     } catch (error: any) {
-      console.error('Erro ao verificar permissões:', error);
+      logger.error('Erro ao verificar permissões:', error);
       Alert.alert('Erro', 'Não foi possível verificar as permissões do usuário.');
     }
   };
@@ -453,7 +433,7 @@ export default function PerfilScreen() {
         setPermissoes(permissoesUsuario);
       }
     } catch (error: any) {
-      console.error('Erro ao carregar permissões:', error);
+      logger.error('Erro ao carregar permissões:', error);
       Alert.alert('Erro', 'Não foi possível carregar as permissões.');
     } finally {
       setLoadingPermissions(false);
@@ -494,7 +474,7 @@ export default function PerfilScreen() {
       // Emitir evento para atualizar permissões em outros componentes
       DeviceEventEmitter.emit('permissoesAtualizadas');
     } catch (error: any) {
-      console.error('Erro ao salvar permissões:', error);
+      logger.error('Erro ao salvar permissões:', error);
       Alert.alert('Erro', 'Não foi possível salvar as permissões.');
     }
   };

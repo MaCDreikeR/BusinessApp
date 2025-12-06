@@ -15,45 +15,43 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { logger } from '../../utils/logger';
+import { Usuario as UsuarioBase } from '@types';
 
-interface Usuario {
-  id: string;
-  nome_completo: string;
-  email: string;
+type UsuarioComissao = Pick<UsuarioBase, 'id' | 'nome_completo' | 'email' | 'role'> & {
   avatar_url?: string;
   faz_atendimento?: boolean;
-  role?: string;
-}
+};
 
-interface RegistroComissao {
+type RegistroComissao = {
   id: string;
   usuario_id: string;
   valor: number;
   descricao: string;
   data: string;
   created_at: string;
-}
+};
 
-interface ComissoesUsuario {
+type ComissoesUsuario = {
   usuario_id: string;
   total_a_pagar: number;
-}
+};
 
 export default function ComissoesScreen() {
   const { estabelecimentoId, user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [usuarios, setUsuarios] = useState<UsuarioComissao[]>([]);
   const [modalDetalhesVisible, setModalDetalhesVisible] = useState(false);
-  const [usuarioSelecionado, setUsuarioSelecionado] = useState<Usuario | null>(null);
+  const [usuarioSelecionado, setUsuarioSelecionado] = useState<UsuarioComissao | null>(null);
   const [registrosComissao, setRegistrosComissao] = useState<RegistroComissao[]>([]);
   const [valoresComissao, setValoresComissao] = useState<{[key: string]: string}>({});
   const [descricoesComissao, setDescricoesComissao] = useState<{[key: string]: string}>({});
   const [comissoesAPagar, setComissoesAPagar] = useState<{[key: string]: number}>({});
 
   useEffect(() => {
-    console.log('🏢 Estabelecimento ID:', estabelecimentoId);
-    console.log('👤 Usuário logado:', user?.email);
+    logger.debug('🏢 Estabelecimento ID:', estabelecimentoId);
+    logger.debug('👤 Usuário logado:', user?.email);
     carregarDados();
   }, []);
 
@@ -63,7 +61,7 @@ export default function ComissoesScreen() {
       await carregarUsuarios();
       await carregarComissoesAPagar();
     } catch (error) {
-      console.error('Erro ao carregar dados:', error);
+      logger.error('Erro ao carregar dados:', error);
       Alert.alert('Erro', 'Não foi possível carregar os dados');
     } finally {
       setLoading(false);
@@ -73,31 +71,31 @@ export default function ComissoesScreen() {
 
   const carregarUsuarios = async () => {
     try {
-      console.log('🔍 Buscando usuários do estabelecimento:', estabelecimentoId);
-      console.log('🔍 Tipo de estabelecimentoId:', typeof estabelecimentoId);
+      logger.debug('🔍 Buscando usuários do estabelecimento:', estabelecimentoId);
+      logger.debug('🔍 Tipo de estabelecimentoId:', typeof estabelecimentoId);
       
       if (!estabelecimentoId) {
-        console.error('❌ estabelecimentoId está nulo!');
+        logger.error('❌ estabelecimentoId está nulo!');
         Alert.alert('Erro', 'ID do estabelecimento não encontrado');
         return;
       }
 
       // MÉTODO 1: Tentar usar RPC function (se existir)
-      console.log('🚀 Tentando usar função RPC get_usuarios_estabelecimento...');
+      logger.debug('🚀 Tentando usar função RPC get_usuarios_estabelecimento...');
       const { data: dataRpc, error: errorRpc } = await supabase
         .rpc('get_usuarios_estabelecimento', { 
           p_estabelecimento_id: estabelecimentoId 
         });
 
       if (!errorRpc && dataRpc) {
-        console.log('✅ Usuários encontrados via RPC:', dataRpc.length);
-        console.log('📋 Lista de usuários (RPC):', JSON.stringify(dataRpc, null, 2));
+        logger.debug('✅ Usuários encontrados via RPC:', dataRpc.length);
+        logger.debug('📋 Lista de usuários (RPC):', JSON.stringify(dataRpc, null, 2));
         setUsuarios(dataRpc || []);
         return;
       }
 
-      console.log('⚠️ RPC não disponível ou erro:', errorRpc?.message);
-      console.log('🔄 Tentando query direta...');
+      logger.debug('⚠️ RPC não disponível ou erro:', errorRpc?.message);
+      logger.debug('🔄 Tentando query direta...');
 
       // MÉTODO 2: Query direta (pode ser bloqueada por RLS)
       const { data, error } = await supabase
@@ -108,11 +106,11 @@ export default function ComissoesScreen() {
         .order('nome_completo');
 
       if (error) {
-        console.error('❌ Erro ao buscar usuários:', error);
-        console.error('❌ Detalhes do erro:', JSON.stringify(error, null, 2));
+        logger.error('❌ Erro ao buscar usuários:', error);
+        logger.error('❌ Detalhes do erro:', JSON.stringify(error, null, 2));
         
         // MÉTODO 3: Buscar todos e filtrar manualmente (último recurso)
-        console.log('🔄 Última tentativa: buscar todos os usuários...');
+        logger.debug('🔄 Última tentativa: buscar todos os usuários...');
         const { data: todosUsuarios, error: errorTodos } = await supabase
           .from('usuarios')
           .select('id, nome_completo, email, avatar_url, faz_atendimento, role, estabelecimento_id');
@@ -121,8 +119,8 @@ export default function ComissoesScreen() {
           const usuariosFiltrados = todosUsuarios.filter(u => 
             u.estabelecimento_id === estabelecimentoId && u.role !== 'super_admin'
           );
-          console.log('✅ Usuários filtrados manualmente:', usuariosFiltrados.length);
-          console.log('📋 Lista filtrada:', JSON.stringify(usuariosFiltrados, null, 2));
+          logger.debug('✅ Usuários filtrados manualmente:', usuariosFiltrados.length);
+          logger.debug('📋 Lista filtrada:', JSON.stringify(usuariosFiltrados, null, 2));
           setUsuarios(usuariosFiltrados);
           return;
         }
@@ -130,12 +128,12 @@ export default function ComissoesScreen() {
         throw error;
       }
       
-      console.log('✅ Usuários encontrados via query direta:', data?.length);
-      console.log('📋 Lista de usuários:', JSON.stringify(data, null, 2));
+      logger.debug('✅ Usuários encontrados via query direta:', data?.length);
+      logger.debug('📋 Lista de usuários:', JSON.stringify(data, null, 2));
       
       setUsuarios(data || []);
     } catch (error) {
-      console.error('💥 Erro ao carregar usuários:', error);
+      logger.error('💥 Erro ao carregar usuários:', error);
       Alert.alert('Erro', 'Não foi possível carregar os usuários. Verifique as permissões RLS.');
     }
   };
@@ -160,7 +158,7 @@ export default function ComissoesScreen() {
 
       setComissoesAPagar(totaisPorUsuario);
     } catch (error) {
-      console.error('Erro ao carregar comissões a pagar:', error);
+      logger.error('Erro ao carregar comissões a pagar:', error);
     }
   };
 
@@ -176,12 +174,12 @@ export default function ComissoesScreen() {
       if (error) throw error;
       setRegistrosComissao(data || []);
     } catch (error) {
-      console.error('Erro ao carregar registros de comissão:', error);
+      logger.error('Erro ao carregar registros de comissão:', error);
       Alert.alert('Erro', 'Não foi possível carregar os registros');
     }
   };
 
-  const abrirDetalhes = async (usuario: Usuario) => {
+  const abrirDetalhes = async (usuario: UsuarioComissao) => {
     setUsuarioSelecionado(usuario);
     await carregarRegistrosComissao(usuario.id);
     setModalDetalhesVisible(true);
@@ -203,7 +201,7 @@ export default function ComissoesScreen() {
     });
   };
 
-  const registrarComissao = async (usuario: Usuario) => {
+  const registrarComissao = async (usuario: UsuarioComissao) => {
     const valorFormatado = valoresComissao[usuario.id];
     const descricao = descricoesComissao[usuario.id]?.trim() || '';
 
@@ -241,12 +239,12 @@ export default function ComissoesScreen() {
       
       carregarDados();
     } catch (error) {
-      console.error('Erro ao registrar comissão:', error);
+      logger.error('Erro ao registrar comissão:', error);
       Alert.alert('Erro', 'Não foi possível registrar a comissão');
     }
   };
 
-  const pagarComissao = async (usuario: Usuario) => {
+  const pagarComissao = async (usuario: UsuarioComissao) => {
     const totalAPagar = comissoesAPagar[usuario.id] || 0;
 
     if (totalAPagar <= 0) {
@@ -279,7 +277,7 @@ export default function ComissoesScreen() {
               Alert.alert('Sucesso', `Pagamento de R$ ${totalAPagar.toFixed(2)} realizado com sucesso!`);
               carregarDados();
             } catch (error) {
-              console.error('Erro ao pagar comissão:', error);
+              logger.error('Erro ao pagar comissão:', error);
               Alert.alert('Erro', 'Não foi possível processar o pagamento');
             }
           },
@@ -297,7 +295,7 @@ export default function ComissoesScreen() {
     carregarDados();
   };
 
-  const renderUsuarioCard = ({ item }: { item: Usuario }) => {
+  const renderUsuarioCard = ({ item }: { item: UsuarioComissao }) => {
     const totalAPagar = calcularTotalComissoes(item.id);
     
     return (

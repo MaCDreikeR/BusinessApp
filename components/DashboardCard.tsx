@@ -10,7 +10,7 @@ interface DashboardCardProps {
 
 export default function DashboardCard({ title, description, route }: DashboardCardProps) {
   return (
-    <Link href={route} asChild>
+    <Link href={route as any} asChild>
       <TouchableOpacity style={styles.card}>
         <View>
           <Text style={styles.cardTitle}>{title}</Text>

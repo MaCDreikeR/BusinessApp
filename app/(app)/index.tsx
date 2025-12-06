@@ -7,31 +7,27 @@ import { ptBR } from 'date-fns/locale';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../hooks/usePermissions';
+import { logger } from '../../utils/logger';
+import { Agendamento as AgendamentoBase, Produto as ProdutoBase } from '@types';
 
-interface Agendamento {
-  id: string;
+// Tipos estendidos para o dashboard
+type AgendamentoDashboard = Pick<AgendamentoBase, 'id' | 'status'> & {
   cliente_nome: string;
   cliente_foto?: string | null;
   servico: string;
   horario: string;
   horario_termino?: string;
   usuario_nome?: string;
-  status?: string;
-}
+};
 
-interface Venda {
+type VendaDashboard = {
   id: string;
   cliente_nome: string;
   valor: number;
   data: string;
-}
+};
 
-interface Produto {
-  id: string;
-  nome: string;
-  quantidade: number;
-  quantidade_minima: number;
-}
+type ProdutoDashboard = Pick<ProdutoBase, 'id' | 'nome' | 'quantidade' | 'quantidade_minima'>;
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -41,22 +37,22 @@ export default function HomeScreen() {
   const [agendamentosHoje, setAgendamentosHoje] = useState(0);
   const [vendasHoje, setVendasHoje] = useState(0);
   const [clientesAtivos, setClientesAtivos] = useState(0);
-  const [proximosAgendamentos, setProximosAgendamentos] = useState<Agendamento[]>([]);
-  const [vendasRecentes, setVendasRecentes] = useState<Venda[]>([]);
-  const [produtosBaixoEstoque, setProdutosBaixoEstoque] = useState<Produto[]>([]);
+  const [proximosAgendamentos, setProximosAgendamentos] = useState<AgendamentoDashboard[]>([]);
+  const [vendasRecentes, setVendasRecentes] = useState<VendaDashboard[]>([]);
+  const [produtosBaixoEstoque, setProdutosBaixoEstoque] = useState<ProdutoDashboard[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
   const carregarProdutosBaixoEstoque = useCallback(async () => {
     if (!estabelecimentoId) return;
     try {
-      console.log(`Iniciando consulta de produtos com baixo estoque para o estabelecimento: ${estabelecimentoId}`);
+      logger.debug(`Iniciando consulta de produtos com baixo estoque para o estabelecimento: ${estabelecimentoId}`);
       // Tenta via RPC (pode estar desatualizada no banco)
       const { data: produtosRpc, error } = await supabase
         .rpc('get_produtos_baixo_estoque', { p_estabelecimento_id: estabelecimentoId })
         .limit(5);
 
       if (error) {
-        console.warn('RPC get_produtos_baixo_estoque falhou, aplicando fallback:', error);
+        logger.warn('RPC get_produtos_baixo_estoque falhou, aplicando fallback:', error);
         // Fallback: buscar produtos e filtrar em JS
         const { data: produtosRaw, error: errProdutos } = await supabase
           .from('produtos')
@@ -77,14 +73,14 @@ export default function HomeScreen() {
 
       setProdutosBaixoEstoque(produtosRpc || []);
     } catch (error) {
-      console.error('Erro inesperado ao carregar produtos baixo estoque:', error);
+      logger.error('Erro inesperado ao carregar produtos baixo estoque:', error);
     }
   }, [estabelecimentoId]);
 
   const carregarDados = useCallback(async () => {
     if (!user || !estabelecimentoId) return;
     try {
-      console.log('Buscando dados para o estabelecimento:', estabelecimentoId);
+      logger.debug('Buscando dados para o estabelecimento:', estabelecimentoId);
       const hoje = new Date();
       hoje.setHours(hoje.getHours() - 3);
       const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 0, 0, 0);
@@ -123,18 +119,18 @@ export default function HomeScreen() {
         supabase.from('comandas').select('id, cliente_nome, valor_total, finalized_at').eq('estabelecimento_id', estabelecimentoId).eq('status', 'fechada').order('finalized_at', { ascending: false }).limit(5),
       ]);
 
-      if (agendamentosError) console.error('Erro agendamentos:', agendamentosError); else setAgendamentosHoje(agendamentos?.length || 0);
+      if (agendamentosError) logger.error('Erro agendamentos:', agendamentosError); else setAgendamentosHoje(agendamentos?.length || 0);
       if (vendasError) {
-        console.error('Erro vendas hoje:', vendasError);
+        logger.error('Erro vendas hoje:', vendasError);
       } else {
-        console.log('Vendas hoje dados:', vendasHojeData);
+        logger.debug('Vendas hoje dados:', vendasHojeData);
         setVendasHoje(vendasHojeData?.reduce((total, v) => total + (v.preco_total || 0), 0) || 0);
       }
-      if (clientesError) console.error('Erro clientes:', clientesError); else setClientesAtivos(clientesCount || 0);
+      if (clientesError) logger.error('Erro clientes:', clientesError); else setClientesAtivos(clientesCount || 0);
       if (proxError) {
-        console.error('Erro próximos agendamentos:', proxError);
+        logger.error('Erro próximos agendamentos:', proxError);
       } else if (proxAgendamentos) {
-        console.log('Próximos agendamentos carregados:', proxAgendamentos);
+        logger.debug('Próximos agendamentos carregados:', proxAgendamentos);
         
         // Buscar nomes dos usuários e fotos dos clientes
         const agendamentosComDados = await Promise.all(
@@ -186,9 +182,9 @@ export default function HomeScreen() {
         setProximosAgendamentos(agendamentosComDados);
       }
       if (vendasRecentesError) {
-        console.error('Erro vendas recentes:', vendasRecentesError);
+        logger.error('Erro vendas recentes:', vendasRecentesError);
       } else if (vendasRecentesData) {
-        console.log('Vendas recentes dados:', vendasRecentesData);
+        logger.debug('Vendas recentes dados:', vendasRecentesData);
         setVendasRecentes(vendasRecentesData.map((v: any) => ({ 
           id: v.id, 
           cliente_nome: v.cliente_nome || 'Cliente não informado', 
@@ -198,7 +194,7 @@ export default function HomeScreen() {
       }
 
     } catch (error) {
-      console.error('Erro ao carregar dados:', error);
+      logger.error('Erro ao carregar dados:', error);
       Alert.alert('Erro', 'Não foi possível carregar os dados');
     }
   }, [user, estabelecimentoId]);
@@ -226,8 +222,8 @@ export default function HomeScreen() {
   const screenWidth = Dimensions.get('window').width;
   
   // Debug: verificar largura da tela
-  console.log('📱 Largura da tela (dp):', screenWidth);
-  console.log('🎯 Cards visíveis:', cardsVisiveis);
+  logger.debug('📱 Largura da tela (dp):', screenWidth);
+  logger.debug('🎯 Cards visíveis:', cardsVisiveis);
   
   // Determinar largura dos cards baseado no tamanho da tela e quantidade de cards
   // Sistema inteligente: sempre usa 2 colunas em smartphones, ajusta largura para ocupar espaço
@@ -240,7 +236,7 @@ export default function HomeScreen() {
     if (screenWidth < 600) {
       // Calcular largura exata: (largura disponível - gap) / 2
       const cardWidthPx = (availableWidth - gap) / 2;
-      console.log(`💡 Layout: 2 colunas (${cardWidthPx.toFixed(0)}px) - Smartphone`);
+      logger.debug(`💡 Layout: 2 colunas (${cardWidthPx.toFixed(0)}px) - Smartphone`);
       return cardWidthPx;
     }
     
@@ -249,11 +245,11 @@ export default function HomeScreen() {
       if (cardsVisiveis === 3) {
         // 3 cards: 2 na primeira linha, 1 na segunda (mas mantém tamanho de 2 colunas)
         const cardWidthPx = (availableWidth - gap) / 2;
-        console.log(`💡 Layout: 2 colunas para 3 cards (${cardWidthPx.toFixed(0)}px) - Tablet pequeno`);
+        logger.debug(`💡 Layout: 2 colunas para 3 cards (${cardWidthPx.toFixed(0)}px) - Tablet pequeno`);
         return cardWidthPx;
       }
       const cardWidthPx = (availableWidth - gap) / 2;
-      console.log(`💡 Layout: 2 colunas (${cardWidthPx.toFixed(0)}px) - Tablet pequeno`);
+      logger.debug(`💡 Layout: 2 colunas (${cardWidthPx.toFixed(0)}px) - Tablet pequeno`);
       return cardWidthPx;
     }
     
@@ -261,14 +257,14 @@ export default function HomeScreen() {
     if (screenWidth < 1200) {
       const cols = cardsVisiveis >= 3 ? 3 : 2;
       const cardWidthPx = (availableWidth - (gap * (cols - 1))) / cols;
-      console.log(`💡 Layout: ${cols} colunas (${cardWidthPx.toFixed(0)}px) - Tablet grande`);
+      logger.debug(`💡 Layout: ${cols} colunas (${cardWidthPx.toFixed(0)}px) - Tablet grande`);
       return cardWidthPx;
     }
     
     // Desktop/TV: 4 colunas
     const cols = Math.min(cardsVisiveis, 4);
     const cardWidthPx = (availableWidth - (gap * (cols - 1))) / cols;
-    console.log(`💡 Layout: ${cols} colunas (${cardWidthPx.toFixed(0)}px) - Desktop`);
+    logger.debug(`💡 Layout: ${cols} colunas (${cardWidthPx.toFixed(0)}px) - Desktop`);
     return cardWidthPx;
   };
 
@@ -307,7 +303,7 @@ export default function HomeScreen() {
           <TouchableOpacity
             style={[styles.card, styles.cardSuccess, { width: cardWidth }]}
             onPress={() => {
-              console.log('Navegando para vendas...');
+              logger.debug('Navegando para vendas...');
               router.push('/(app)/vendas');
             }}
           >
@@ -438,7 +434,7 @@ export default function HomeScreen() {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Vendas Recentes</Text>
             <TouchableOpacity onPress={() => {
-              console.log('Navegando para vendas via Ver todas...');
+              logger.debug('Navegando para vendas via Ver todas...');
               router.push('/(app)/vendas');
             }}>
               <Text style={styles.sectionAction}>Ver todas</Text>

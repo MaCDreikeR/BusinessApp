@@ -1,5 +1,6 @@
 import { Alert, Linking, Platform } from 'react-native';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../lib/supabase';
+import { logger } from '../utils/logger';
 
 export type AgendamentoMensagem = {
   cliente_nome: string;
@@ -140,7 +141,7 @@ export async function enviarMensagemWhatsapp(
 
     Alert.alert('WhatsApp indisponível', 'Não foi possível abrir o WhatsApp neste dispositivo.');
   } catch (err) {
-    console.error('Erro ao enviar WhatsApp:', err);
+    logger.error('Erro ao enviar WhatsApp:', err);
     Alert.alert('Erro', 'Não foi possível preparar a mensagem do WhatsApp.');
   }
 }

@@ -9,16 +9,22 @@
         "app/*"
       ],
       "@utils/*": [
-        "app/utils/*"
+        "utils/*"
+      ],
+      "@types": [
+        "types"
       ],
       "@components/*": [
-        "app/components/*"
+        "components/*"
       ],
       "@contexts/*": [
-        "app/contexts/*"
+        "contexts/*"
       ],
       "@lib/*": [
         "lib/*"
+      ],
+      "@services/*": [
+        "services/*"
       ]
     }
   },
@@ -27,5 +33,9 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "supabase/functions"
   ]
 }

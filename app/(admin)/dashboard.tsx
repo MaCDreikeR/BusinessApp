@@ -2,12 +2,10 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, RefreshControl, ScrollView, Alert } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { FontAwesome5 } from '@expo/vector-icons';
+import { logger } from '../../utils/logger';
+import { Estabelecimento as EstabelecimentoBase } from '@types';
 
-interface EstabelecimentoSlim {
-  id: string;
-  status: 'ativa' | 'suspensa' | 'banida';
-  created_at: string;
-}
+type EstabelecimentoSlim = Pick<EstabelecimentoBase, 'id' | 'status' | 'created_at'>;
 
 // Componente para os cartões de resumo
 const SummaryCard = ({ title, value, icon, color }: { title: string, value: string | number, icon: string, color: string }) => (
@@ -36,7 +34,7 @@ export default function AdminDashboardScreen() {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error("Erro ao buscar estabelecimentos:", error);
+      logger.error("Erro ao buscar estabelecimentos:", error);
       Alert.alert("Erro", "Não foi possível buscar a lista de estabelecimentos.");
     } else {
       const fetchedData = (data || []) as EstabelecimentoSlim[];

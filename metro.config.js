@@ -16,9 +16,11 @@ module.exports = (() => {
     sourceExts: [...resolver.sourceExts, 'svg'],
     extraNodeModules: {
       '@lib': path.resolve(__dirname, 'lib'),
-      '@components': path.resolve(__dirname, 'app/components'),
-      '@contexts': path.resolve(__dirname, 'app/contexts'),
-      '@utils': path.resolve(__dirname, 'app/utils')
+      '@components': path.resolve(__dirname, 'components'),
+      '@contexts': path.resolve(__dirname, 'contexts'),
+      '@utils': path.resolve(__dirname, 'utils'),
+      '@services': path.resolve(__dirname, 'services'),
+      '@types': path.resolve(__dirname, 'types')
     },
     unstable_enablePackageExports: true,
   };

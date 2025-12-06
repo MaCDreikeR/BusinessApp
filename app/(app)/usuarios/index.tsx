@@ -1,24 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Image } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ThemedText } from '../../../components/Themed';
+import { ThemedText } from '../../../components/ThemedText';
 import { Card } from '../../../components/Card';
 import { supabase } from '../../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
+import { logger } from '../../../utils/logger';
+import { Usuario as UsuarioBase } from '@types';
 
-interface Usuario {
-  id: string;
-  nome_completo: string;
-  email: string;
-  telefone?: string;
-  is_principal: boolean;
+type UsuarioLista = Pick<UsuarioBase, 'id' | 'nome_completo' | 'email' | 'telefone' | 'is_principal' | 'created_at'> & {
   avatar_url?: string;
-  created_at: string;
-}
+};
 
 export default function ListaUsuariosScreen() {
   const router = useRouter();
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [usuarios, setUsuarios] = useState<UsuarioLista[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +44,7 @@ export default function ListaUsuariosScreen() {
       if (error) throw error;
       setIsPrincipal(usuario?.is_principal || false);
     } catch (error) {
-      console.error('Erro ao verificar usuário principal:', error);
+      logger.error('Erro ao verificar usuário principal:', error);
     }
   }
 
@@ -82,27 +78,27 @@ export default function ListaUsuariosScreen() {
         });
 
         // Segundo teste: consulta específica para Borges por ID
-        console.log('🔍 DEBUG: Buscando usuário Borges por ID...');
+        logger.debug('🔍 DEBUG: Buscando usuário Borges por ID...');
         const { data: borgesData, error: borgesError } = await supabase
           .from('usuarios')
           .select('*')
           .eq('id', '3f09a534-8bd7-4534-9b53-60eb341ca1f3');
         
-        console.log('👤 DEBUG: Resultado busca Borges por ID:', borgesData);
-        console.log('❌ DEBUG: Erro busca Borges:', borgesError);
+        logger.debug('👤 DEBUG: Resultado busca Borges por ID:', borgesData);
+        logger.debug('❌ DEBUG: Erro busca Borges:', borgesError);
 
         // Terceiro teste: busca por email
-        console.log('📧 DEBUG: Buscando usuário Borges por email...');
+        logger.debug('📧 DEBUG: Buscando usuário Borges por email...');
         const { data: borgesEmail, error: emailError } = await supabase
           .from('usuarios')
           .select('*')
           .eq('email', 'fofopereira@gmail.com');
         
-        console.log('� DEBUG: Resultado busca por email:', borgesEmail);
-        console.log('❌ DEBUG: Erro busca por email:', emailError);
+        logger.debug('� DEBUG: Resultado busca por email:', borgesEmail);
+        logger.debug('❌ DEBUG: Erro busca por email:', emailError);
 
-        console.log('🔍 DEBUG: Total usuários no DB:', data?.length);
-        console.log('📋 DEBUG: TODOS os usuários no DB:', data?.map(u => ({
+        logger.debug('🔍 DEBUG: Total usuários no DB:', data?.length);
+        logger.debug('📋 DEBUG: TODOS os usuários no DB:', data?.map(u => ({
           nome: u.nome_completo,
           email: u.email,
           estabelecimento_id: u.estabelecimento_id,
@@ -123,7 +119,7 @@ export default function ListaUsuariosScreen() {
         setUsuarios(data ? [data] : []);
       }
     } catch (error) {
-      console.error('Erro ao carregar usuários:', error);
+      logger.error('Erro ao carregar usuários:', error);
       setError('Erro ao carregar usuários. Por favor, tente novamente.');
     } finally {
       setLoading(false);

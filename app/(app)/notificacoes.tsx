@@ -2,14 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getHistoricoNotificacoes } from '../../services/notifications';
+import { logger } from '../../utils/logger';
 
-interface Notificacao {
+type Notificacao = {
   id: string;
   titulo: string;
   mensagem: string;
   tipo: string;
   data_envio: string;
-}
+};
 
 // Função para formatar a data
 function formatarData(dataString: string) {
@@ -32,7 +33,7 @@ export default function NotificacoesScreen() {
       const historico = await getHistoricoNotificacoes();
       setNotificacoes(historico);
     } catch (error) {
-      console.error('Erro ao carregar notificações:', error);
+      logger.error('Erro ao carregar notificações:', error);
       Alert.alert('Erro', 'Não foi possível carregar o histórico de notificações');
     } finally {
       setLoading(false);

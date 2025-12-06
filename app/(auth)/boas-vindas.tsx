@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
+import { logger } from '../../utils/logger';
 
 const { width, height } = Dimensions.get('window');
 
@@ -23,7 +24,7 @@ export default function BoasVindas() {
       // Use o caminho absoluto com o grupo para evitar conflitos com o guardião do layout
       router.replace('/(auth)/login');
     } catch (error) {
-      console.error('Erro ao salvar estado de boas-vindas:', error);
+      logger.error('Erro ao salvar estado de boas-vindas:', error);
       router.replace('/(auth)/login');
     } finally {
       setIsLoading(false);

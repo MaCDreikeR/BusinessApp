@@ -1,14 +1,8 @@
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Animated, ActivityIndicator, TextInput, ScrollView } from 'react-native';
-// Filtros de status
-const STATUS_FILTROS = [
-  { label: 'Todos', value: null },
-  { label: 'Aprovados', value: 'aprovado' },
-  { label: 'Pendentes', value: 'pendente' },
-  { label: 'Rejeitados', value: 'rejeitado' },
-];
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState, useEffect, useRef } from 'react';
+import { logger } from '../../../utils/logger';
 import { 
   Orcamento, 
   carregarOrcamentos, 
@@ -17,6 +11,14 @@ import {
   getStatusColor, 
   getStatusText 
 } from './utils';
+
+// Filtros de status
+const STATUS_FILTROS = [
+  { label: 'Todos', value: null },
+  { label: 'Aprovados', value: 'aprovado' },
+  { label: 'Pendentes', value: 'pendente' },
+  { label: 'Rejeitados', value: 'rejeitado' },
+];
 
 const SkeletonLoader = () => {
   const fadeAnim = useRef(new Animated.Value(0.3)).current;
@@ -98,7 +100,7 @@ export default function OrcamentosScreen() {
       setOrcamentos(data);
       setOrcamentosFiltrados(data);
     } catch (error) {
-      console.error('Erro ao carregar orçamentos:', error);
+      logger.error('Erro ao carregar orçamentos:', error);
       Alert.alert('Erro', 'Não foi possível carregar os orçamentos');
     } finally {
       setLoading(false);

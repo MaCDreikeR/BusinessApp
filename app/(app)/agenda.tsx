@@ -7,7 +7,9 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { useRouter } from 'expo-router';
-import { enviarMensagemWhatsapp, AgendamentoMensagem } from '../services/whatsapp';
+import { enviarMensagemWhatsapp, AgendamentoMensagem } from '../../services/whatsapp';
+import { logger } from '../../utils/logger';
+import { Usuario, Agendamento as AgendamentoBase } from '@types';
 
 // Configuração do idioma para o calendário
 LocaleConfig.locales['pt-br'] = {
@@ -29,28 +31,23 @@ LocaleConfig.defaultLocale = 'pt-br';
 //   return `${hora.toString().padStart(2, '0')}:${minutos}`;
 // });
 
-type Usuario = {
-  id: string;
-  nome_completo: string | null;
-  email: string | null;
-  avatar_url?: string | null;
+// Estender o tipo Usuario para incluir campos específicos da agenda
+type UsuarioAgenda = Pick<Usuario, 'id' | 'nome_completo' | 'email' | 'foto_url'> & {
   faz_atendimento: boolean | null;
+  avatar_url?: string | null;
 };
 
-type Agendamento = {
-  id: string;
+// Estender o tipo Agendamento para incluir campos específicos da tela
+type AgendamentoAgenda = Omit<AgendamentoBase, 'cliente_id' | 'horario' | 'status'> & {
   data_hora: string;
   horario_termino?: string;
   cliente: string;
-  cliente_foto?: string | null;
   cliente_telefone?: string | null;
   cliente_saldo?: number | null;
   servicos: any[];
   estabelecimento_id: string;
-  observacoes?: string;
-  status?: string;
+  status?: 'pendente' | 'confirmado' | 'concluido' | 'cancelado' | 'agendado' | 'em_atendimento' | 'falta';
   criar_comanda_automatica?: boolean;
-  usuario_id?: string;
   coluna?: number;
   comanda_id?: string | null;
 };
@@ -59,9 +56,9 @@ export default function AgendaScreen() {
   const { session, estabelecimentoId, role, user } = useAuth();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
-  const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
-  const [agendamentosMes, setAgendamentosMes] = useState<Agendamento[]>([]);
+  const [usuarios, setUsuarios] = useState<UsuarioAgenda[]>([]);
+  const [agendamentos, setAgendamentos] = useState<AgendamentoAgenda[]>([]);
+  const [agendamentosMes, setAgendamentosMes] = useState<AgendamentoAgenda[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPresencaModal, setShowPresencaModal] = useState(false);
   const [presencaUsuarios, setPresencaUsuarios] = useState<Record<string, boolean>>({});
@@ -92,7 +89,7 @@ export default function AgendaScreen() {
   
   // Novos estados para o modal de detalhes de agendamentos
   const [showAgendamentosModal, setShowAgendamentosModal] = useState(false);
-  const [agendamentosDoHorarioSelecionado, setAgendamentosDoHorarioSelecionado] = useState<Agendamento[]>([]);
+  const [agendamentosDoHorarioSelecionado, setAgendamentosDoHorarioSelecionado] = useState<AgendamentoAgenda[]>([]);
   const [horarioSelecionado, setHorarioSelecionado] = useState('');
 
   // Estado para controlar a confirmação de exclusão
@@ -116,7 +113,7 @@ export default function AgendaScreen() {
     });
 
     const subscriptionUsuario = DeviceEventEmitter.addListener('usuarioAtualizado', () => {
-      console.log('Usuário atualizado, recarregando lista...');
+      logger.debug('Usuário atualizado, recarregando lista...');
       carregarUsuarios();
     });
 
@@ -129,7 +126,7 @@ export default function AgendaScreen() {
           table: 'usuarios' 
         }, 
         () => {
-          console.log('Mudança detectada na tabela usuarios, recarregando...');
+          logger.debug('Mudança detectada na tabela usuarios, recarregando...');
           carregarUsuarios();
         }
       )
@@ -202,7 +199,7 @@ export default function AgendaScreen() {
       };
     });
     
-    console.log('Datas marcadas:', Object.keys(marked).length);
+    logger.debug('Datas marcadas:', Object.keys(marked).length);
     setMarkedDates(marked);
   }, [agendamentosMes, selectedDate, datasBloqueadas]);
 
@@ -220,7 +217,7 @@ export default function AgendaScreen() {
   useEffect(() => {
     // Escutar o evento de atualização de agendamentos
     const subscription = DeviceEventEmitter.addListener('atualizarAgendamentos', () => {
-      console.log('Recebido evento para atualizar agendamentos');
+      logger.debug('Recebido evento para atualizar agendamentos');
       // Recarregar os agendamentos
       carregarAgendamentos();
       // Recarregar os agendamentos do mês para atualizar o calendário
@@ -237,7 +234,7 @@ export default function AgendaScreen() {
   useEffect(() => {
     // Escutar o evento de agendamento criado
     const subscription = DeviceEventEmitter.addListener('agendamentoCriado', (mensagem: string) => {
-      console.log('Recebido evento de agendamento criado:', mensagem);
+      logger.debug('Recebido evento de agendamento criado:', mensagem);
       // Exibir mensagem de sucesso
       setSuccessMessage(mensagem || 'Agendamento criado com sucesso!');
       
@@ -257,10 +254,10 @@ export default function AgendaScreen() {
     try {
       setLoading(true);
       
-      console.log('Carregando usuários para estabelecimento:', estabelecimentoId);
+      logger.debug('Carregando usuários para estabelecimento:', estabelecimentoId);
       
       if (!estabelecimentoId) {
-        console.error('ID do estabelecimento não disponível');
+        logger.error('ID do estabelecimento não disponível');
         return;
       }
 
@@ -269,13 +266,13 @@ export default function AgendaScreen() {
         .rpc('get_usuarios_estabelecimento', { estabelecimento_uuid: estabelecimentoId });
 
       if (!rpcError && usuariosRpc) {
-        console.log('Usuários carregados via RPC:', usuariosRpc.length);
-        console.log('Todos os usuários RPC:', usuariosRpc);
+        logger.debug('Usuários carregados via RPC:', usuariosRpc.length);
+        logger.debug('Todos os usuários RPC:', usuariosRpc);
         
         // REGRA: Profissionais veem apenas a si mesmos
         if (role === 'profissional' && user?.id) {
           const profissionalAtual = usuariosRpc.filter((u: any) => u.id === user.id);
-          console.log('👤 Profissional logado - mostrando apenas próprio usuário:', profissionalAtual);
+          logger.debug('👤 Profissional logado - mostrando apenas próprio usuário:', profissionalAtual);
           setUsuarios(profissionalAtual);
           // Selecionar automaticamente o próprio usuário
           setSelectedUser(user.id);
@@ -287,10 +284,10 @@ export default function AgendaScreen() {
         return;
       }
       
-      console.log('Erro RPC ou dados vazios:', rpcError);
+      logger.debug('Erro RPC ou dados vazios:', rpcError);
 
       // Fallback para consulta direta
-      console.log('RPC não disponível, usando consulta direta...');
+      logger.debug('RPC não disponível, usando consulta direta...');
       const { data: usuarios, error } = await supabase
         .from('usuarios')
         .select('id, nome_completo, email, avatar_url, faz_atendimento')
@@ -298,17 +295,17 @@ export default function AgendaScreen() {
         .order('nome_completo');
 
       if (error) {
-        console.error('Erro ao carregar usuários via consulta direta:', error);
+        logger.error('Erro ao carregar usuários via consulta direta:', error);
         return;
       }
 
-      console.log('Usuários encontrados via consulta direta:', usuarios?.length);
-      console.log('Detalhes dos usuários via consulta direta:', usuarios);
+      logger.debug('Usuários encontrados via consulta direta:', usuarios?.length);
+      logger.debug('Detalhes dos usuários via consulta direta:', usuarios);
       
       // REGRA: Profissionais veem apenas a si mesmos
       if (role === 'profissional' && user?.id) {
         const profissionalAtual = usuarios?.filter((u: any) => u.id === user.id) || [];
-        console.log('👤 Profissional logado - mostrando apenas próprio usuário:', profissionalAtual);
+        logger.debug('👤 Profissional logado - mostrando apenas próprio usuário:', profissionalAtual);
         setUsuarios(profissionalAtual);
         // Selecionar automaticamente o próprio usuário
         setSelectedUser(user.id);
@@ -317,7 +314,7 @@ export default function AgendaScreen() {
       
       setUsuarios(usuarios || []);
     } catch (error) {
-      console.error('Erro ao carregar usuários:', error);
+      logger.error('Erro ao carregar usuários:', error);
     } finally {
       setLoading(false);
     }
@@ -328,7 +325,7 @@ export default function AgendaScreen() {
       setLoading(true);
       
       if (!estabelecimentoId) {
-        console.error('Estabelecimento ID não encontrado');
+        logger.error('Estabelecimento ID não encontrado');
         return;
       }
       
@@ -343,17 +340,17 @@ export default function AgendaScreen() {
       const usuarioFiltro = selectedUser || (role === 'profissional' ? user?.id : null);
       
       if (usuarioFiltro) {
-        console.log(`🔒 Filtrando agendamentos para o usuário: ${usuarioFiltro} (role: ${role})`);
+        logger.debug(`🔒 Filtrando agendamentos para o usuário: ${usuarioFiltro} (role: ${role})`);
         query = query.eq('usuario_id', usuarioFiltro);
       } else {
-        console.log('📋 Carregando agendamentos de todos os usuários');
+        logger.debug('📋 Carregando agendamentos de todos os usuários');
       }
 
       const { data, error } = await query;
 
       if (error) throw error;
 
-      console.log('Agendamentos carregados:', data?.length || 0);
+      logger.debug('Agendamentos carregados:', data?.length || 0);
       
       // Buscar dados dos clientes separadamente
       const agendamentosComClientes = await Promise.all(
@@ -362,7 +359,7 @@ export default function AgendaScreen() {
           let clienteTelefone = null;
           let clienteSaldo = null;
           
-          console.log('🔍 Processando agendamento:', { 
+          logger.debug('🔍 Processando agendamento:', { 
             id: ag.id, 
             cliente: ag.cliente, 
             cliente_id: ag.cliente_id 
@@ -377,7 +374,7 @@ export default function AgendaScreen() {
               .single();
             
             if (clienteError) {
-              console.log('❌ Erro ao buscar dados do cliente por ID:', clienteError);
+              logger.debug('❌ Erro ao buscar dados do cliente por ID:', clienteError);
             }
             
             if (clienteData) {
@@ -401,7 +398,7 @@ export default function AgendaScreen() {
                 clienteSaldo = 0;
               }
               
-              console.log('✅ Dados do cliente carregados por ID:', { 
+              logger.debug('✅ Dados do cliente carregados por ID:', { 
                 clienteId: ag.cliente_id, 
                 foto: clienteFoto, 
                 telefone: clienteTelefone,
@@ -410,7 +407,7 @@ export default function AgendaScreen() {
             }
           } else if (ag.cliente) {
             // Buscar por nome (fallback quando não há cliente_id)
-            console.log('🔎 Tentando buscar cliente por nome:', ag.cliente);
+            logger.debug('🔎 Tentando buscar cliente por nome:', ag.cliente);
             const { data: clienteData, error: clienteError } = await supabase
               .from('clientes')
               .select('id, foto_url, telefone')
@@ -420,7 +417,7 @@ export default function AgendaScreen() {
               .maybeSingle();
             
             if (clienteError) {
-              console.log('❌ Erro ao buscar dados do cliente por nome:', clienteError);
+              logger.debug('❌ Erro ao buscar dados do cliente por nome:', clienteError);
             }
             
             if (clienteData) {
@@ -444,17 +441,17 @@ export default function AgendaScreen() {
                 clienteSaldo = 0;
               }
               
-              console.log('✅ Dados do cliente carregados por nome:', { 
+              logger.debug('✅ Dados do cliente carregados por nome:', { 
                 clienteNome: ag.cliente, 
                 foto: clienteFoto, 
                 telefone: clienteTelefone,
                 saldo: clienteSaldo
               });
             } else {
-              console.log('⚠️ Cliente não encontrado no banco com nome:', ag.cliente);
+              logger.debug('⚠️ Cliente não encontrado no banco com nome:', ag.cliente);
             }
           } else {
-            console.log('⚠️ Agendamento sem cliente_id e sem nome:', ag.id);
+            logger.debug('⚠️ Agendamento sem cliente_id e sem nome:', ag.id);
           }
           
           return {
@@ -466,10 +463,10 @@ export default function AgendaScreen() {
         })
       );
       
-      console.log('Agendamentos processados com dados de clientes:', agendamentosComClientes);
+      logger.debug('Agendamentos processados com dados de clientes:', agendamentosComClientes);
       setAgendamentos(agendamentosComClientes);
     } catch (error) {
-      console.error('Erro ao carregar agendamentos:', error);
+      logger.error('Erro ao carregar agendamentos:', error);
       setAgendamentos([]); // Limpar os agendamentos em caso de erro
     } finally {
       setLoading(false);
@@ -479,7 +476,7 @@ export default function AgendaScreen() {
   const carregarAgendamentosMes = async () => {
     try {
       if (!estabelecimentoId) {
-        console.error('Estabelecimento ID não encontrado');
+        logger.error('Estabelecimento ID não encontrado');
         return;
       }
       
@@ -496,7 +493,7 @@ export default function AgendaScreen() {
 
       // Filtrar por usuário se selecionado
       if (selectedUser) {
-        console.log('Filtrando agendamentos do mês para o usuário:', selectedUser);
+        logger.debug('Filtrando agendamentos do mês para o usuário:', selectedUser);
         query = query.eq('usuario_id', selectedUser);
       }
 
@@ -504,10 +501,10 @@ export default function AgendaScreen() {
 
       if (error) throw error;
 
-      console.log('Agendamentos do mês carregados:', data?.length || 0);
+      logger.debug('Agendamentos do mês carregados:', data?.length || 0);
       setAgendamentosMes(data || []);
     } catch (error) {
-      console.error('Erro ao carregar agendamentos do mês:', error);
+      logger.error('Erro ao carregar agendamentos do mês:', error);
     }
   };
 
@@ -557,11 +554,11 @@ export default function AgendaScreen() {
       // Obter o usuário atual
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.error('Usuário não autenticado ao carregar bloqueios');
+        logger.error('Usuário não autenticado ao carregar bloqueios');
         return;
       }
       if (!estabelecimentoId) {
-        console.error('Estabelecimento ID não encontrado ao carregar bloqueios');
+        logger.error('Estabelecimento ID não encontrado ao carregar bloqueios');
         return;
       }
       
@@ -574,12 +571,12 @@ export default function AgendaScreen() {
         .maybeSingle();
         
       if (diasError) {
-        console.error('Erro ao carregar dias bloqueados:', diasError);
+        logger.error('Erro ao carregar dias bloqueados:', diasError);
       } else if (diasData && diasData.valor) {
         try {
           setDiasSemanaBloqueados(JSON.parse(diasData.valor));
         } catch (e) {
-          console.error('Erro ao fazer parse dos dias bloqueados:', e);
+          logger.error('Erro ao fazer parse dos dias bloqueados:', e);
         }
       }
       
@@ -592,17 +589,17 @@ export default function AgendaScreen() {
         .maybeSingle();
         
       if (datasError) {
-        console.error('Erro ao carregar datas bloqueadas:', datasError);
+        logger.error('Erro ao carregar datas bloqueadas:', datasError);
       } else if (datasData && datasData.valor) {
         try {
           setDatasBloqueadas(JSON.parse(datasData.valor));
         } catch (e) {
-          console.error('Erro ao fazer parse das datas bloqueadas:', e);
+          logger.error('Erro ao fazer parse das datas bloqueadas:', e);
         }
       }
       
     } catch (error) {
-      console.error('Erro ao carregar bloqueios:', error);
+      logger.error('Erro ao carregar bloqueios:', error);
     }
   };
   
@@ -622,7 +619,7 @@ export default function AgendaScreen() {
         .eq('estabelecimento_id', estabelecimentoId);
         
       if (checkError) {
-        console.error('Erro ao verificar registros existentes:', checkError);
+        logger.error('Erro ao verificar registros existentes:', checkError);
         if (checkError.code === '42P01') {
           alert('A tabela de configurações não existe. Entre em contato com o suporte.');
           throw checkError;
@@ -636,7 +633,7 @@ export default function AgendaScreen() {
       }, {} as Record<string, string>);
       
       // Salvar dias da semana bloqueados
-      console.log('Salvando dias bloqueados:', diasSemanaBloqueados);
+      logger.debug('Salvando dias bloqueados:', diasSemanaBloqueados);
       
       const dias = JSON.stringify(diasSemanaBloqueados);
       let sucessoDias = false;
@@ -649,7 +646,7 @@ export default function AgendaScreen() {
           .eq('id', registrosMap['dias_semana_bloqueados']);
           
         if (updateError) {
-          console.error('Erro ao atualizar dias bloqueados:', updateError);
+          logger.error('Erro ao atualizar dias bloqueados:', updateError);
         } else {
           sucessoDias = true;
         }
@@ -664,14 +661,14 @@ export default function AgendaScreen() {
           });
           
         if (insertError) {
-          console.error('Erro ao inserir dias bloqueados:', insertError);
+          logger.error('Erro ao inserir dias bloqueados:', insertError);
         } else {
           sucessoDias = true;
         }
       }
       
       // Salvar datas específicas
-      console.log('Salvando datas bloqueadas:', datasBloqueadas);
+      logger.debug('Salvando datas bloqueadas:', datasBloqueadas);
       
       const datas = JSON.stringify(datasBloqueadas);
       let sucessoDatas = false;
@@ -684,7 +681,7 @@ export default function AgendaScreen() {
           .eq('id', registrosMap['datas_bloqueadas']);
           
         if (updateError) {
-          console.error('Erro ao atualizar datas bloqueadas:', updateError);
+          logger.error('Erro ao atualizar datas bloqueadas:', updateError);
         } else {
           sucessoDatas = true;
         }
@@ -699,21 +696,21 @@ export default function AgendaScreen() {
           });
           
         if (insertError) {
-          console.error('Erro ao inserir datas bloqueadas:', insertError);
+          logger.error('Erro ao inserir datas bloqueadas:', insertError);
         } else {
           sucessoDatas = true;
         }
       }
       
       if (sucessoDias && sucessoDatas) {
-        console.log('Bloqueios salvos com sucesso!');
+        logger.debug('Bloqueios salvos com sucesso!');
         alert('Bloqueios salvos com sucesso!');
       } else {
         throw new Error('Não foi possível salvar todos os bloqueios');
       }
     } catch (error: any) {
-      console.error('Erro ao salvar bloqueios:', error);
-      console.error('Detalhes adicionais:', JSON.stringify(error, null, 2));
+      logger.error('Erro ao salvar bloqueios:', error);
+      logger.error('Detalhes adicionais:', JSON.stringify(error, null, 2));
       alert(`Erro ao salvar: ${error.message || 'Verifique o console para mais detalhes'}`);
     }
   };
@@ -742,7 +739,7 @@ export default function AgendaScreen() {
       const parsedDate = new Date(ano, mes - 1, dia);
       
       if (!isValid(parsedDate)) {
-        console.error('Data inválida');
+        logger.error('Data inválida');
         return;
       }
       
@@ -753,7 +750,7 @@ export default function AgendaScreen() {
         setNovaDataBloqueada('');
       }
     } catch (error) {
-      console.error('Erro ao adicionar data:', error);
+      logger.error('Erro ao adicionar data:', error);
     }
   };
   
@@ -796,13 +793,13 @@ export default function AgendaScreen() {
       // Obter o usuário atual
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.error('Usuário não autenticado ao carregar horários');
+        logger.error('Usuário não autenticado ao carregar horários');
         // Inicializar com valores padrão
         inicializarHorariosPadrao();
         return;
       }
       if (!estabelecimentoId) {
-        console.error('Estabelecimento ID não encontrado ao carregar horários');
+        logger.error('Estabelecimento ID não encontrado ao carregar horários');
         inicializarHorariosPadrao();
         return;
       }
@@ -822,7 +819,7 @@ export default function AgendaScreen() {
         .eq('estabelecimento_id', estabelecimentoId);
         
       if (error) {
-        console.error('Erro ao carregar configurações de horários:', error);
+        logger.error('Erro ao carregar configurações de horários:', error);
         // Inicializar com valores padrão
         inicializarHorariosPadrao();
         return;
@@ -870,7 +867,7 @@ export default function AgendaScreen() {
         atualizarListaHorarios();
       }
     } catch (error) {
-      console.error('Erro ao carregar configurações de horários:', error);
+      logger.error('Erro ao carregar configurações de horários:', error);
       // Inicializar com valores padrão
       inicializarHorariosPadrao();
     }
@@ -889,16 +886,16 @@ export default function AgendaScreen() {
   // Atualizar a função atualizarListaHorarios para atualizar o estado horarios
   const atualizarListaHorarios = () => {
     try {
-      console.log('Atualizando lista de horários com as configurações:');
-      console.log(`- Horário início: ${horarioInicio}`);
-      console.log(`- Horário fim: ${horarioFim}`);
-      console.log(`- Tem intervalo: ${temIntervalo}`);
+      logger.debug('Atualizando lista de horários com as configurações:');
+      logger.debug(`- Horário início: ${horarioInicio}`);
+      logger.debug(`- Horário fim: ${horarioFim}`);
+      logger.debug(`- Tem intervalo: ${temIntervalo}`);
       if (temIntervalo) {
-        console.log(`- Intervalo início: ${horarioIntervaloInicio}`);
-        console.log(`- Intervalo fim: ${horarioIntervaloFim}`);
+        logger.debug(`- Intervalo início: ${horarioIntervaloInicio}`);
+        logger.debug(`- Intervalo fim: ${horarioIntervaloFim}`);
       }
-      console.log(`- Intervalo entre agendamentos: ${intervaloAgendamentos} minutos`);
-      console.log(`- Limite de agendamentos simultâneos: ${limiteSimultaneos}`);
+      logger.debug(`- Intervalo entre agendamentos: ${intervaloAgendamentos} minutos`);
+      logger.debug(`- Limite de agendamentos simultâneos: ${limiteSimultaneos}`);
       
       const inicioMinutos = converterHoraParaMinutos(horarioInicio);
       const fimMinutos = converterHoraParaMinutos(horarioFim);
@@ -917,7 +914,7 @@ export default function AgendaScreen() {
       for (let i = inicioMinutos; i < fimMinutos; i += intervalo) {
         // Pular horários durante o intervalo
         if (temIntervalo && i >= intervaloInicioMinutos && i < intervaloFimMinutos) {
-          console.log(`Pulando horário ${converterMinutosParaHora(i)} (dentro do intervalo)`);
+          logger.debug(`Pulando horário ${converterMinutosParaHora(i)} (dentro do intervalo)`);
           continue;
         }
         
@@ -926,10 +923,10 @@ export default function AgendaScreen() {
       
       // Atualizar o estado com os novos horários
       setHorarios(novosHorarios);
-      console.log('Lista de horários atualizada:', novosHorarios.length);
-      console.log('Horários gerados:', novosHorarios.join(', '));
+      logger.debug('Lista de horários atualizada:', novosHorarios.length);
+      logger.debug('Horários gerados:', novosHorarios.join(', '));
     } catch (error) {
-      console.error('Erro ao atualizar lista de horários:', error);
+      logger.error('Erro ao atualizar lista de horários:', error);
       inicializarHorariosPadrao();
     }
   };
@@ -1003,7 +1000,7 @@ export default function AgendaScreen() {
         .eq('estabelecimento_id', estabelecimentoId);
         
       if (checkError) {
-        console.error('Erro ao verificar registros existentes:', checkError);
+        logger.error('Erro ao verificar registros existentes:', checkError);
         if (checkError.code === '42P01') {
           alert('A tabela de configurações não existe. Entre em contato com o suporte.');
           throw checkError;
@@ -1028,7 +1025,7 @@ export default function AgendaScreen() {
             .eq('id', registrosMap[chave]);
             
           if (error) {
-            console.error(`Erro ao atualizar configuração ${chave}:`, error);
+            logger.error(`Erro ao atualizar configuração ${chave}:`, error);
             return false;
           }
           return true;
@@ -1043,7 +1040,7 @@ export default function AgendaScreen() {
             });
             
           if (error) {
-            console.error(`Erro ao inserir configuração ${chave}:`, error);
+            logger.error(`Erro ao inserir configuração ${chave}:`, error);
             return false;
           }
           return true;
@@ -1054,7 +1051,7 @@ export default function AgendaScreen() {
       const resultados = await Promise.all(promises);
       
       if (resultados.every(r => r === true)) {
-        console.log('Configurações de horários salvas com sucesso!');
+        logger.debug('Configurações de horários salvas com sucesso!');
         alert('Configurações de horários salvas com sucesso!');
         
         // Fechar o modal
@@ -1066,8 +1063,8 @@ export default function AgendaScreen() {
         throw new Error('Não foi possível salvar todas as configurações');
       }
     } catch (error: any) {
-      console.error('Erro ao salvar configurações de horários:', error);
-      console.error('Detalhes adicionais:', JSON.stringify(error, null, 2));
+      logger.error('Erro ao salvar configurações de horários:', error);
+      logger.error('Detalhes adicionais:', JSON.stringify(error, null, 2));
       alert(`Erro ao salvar: ${error.message || 'Verifique o console para mais detalhes'}`);
     }
   };
@@ -1147,14 +1144,14 @@ export default function AgendaScreen() {
       
       return true;
     } catch (error) {
-      console.error('Erro na validação de horários:', error);
+      logger.error('Erro na validação de horários:', error);
       alert('Erro ao validar horários. Verifique o formato e tente novamente.');
       return false;
     }
   };
 
   // Nova função para abrir modal de detalhes de agendamentos
-  const abrirModalAgendamentos = (horario: string, agendamentosDoHorario: Agendamento[]) => {
+  const abrirModalAgendamentos = (horario: string, agendamentosDoHorario: AgendamentoAgenda[]) => {
     setHorarioSelecionado(horario);
     setAgendamentosDoHorarioSelecionado(agendamentosDoHorario);
     setShowAgendamentosModal(true);
@@ -1199,7 +1196,7 @@ export default function AgendaScreen() {
       setTimeout(() => setSuccessMessage(''), 3000);
       
     } catch (error: any) {
-      console.error('Erro ao excluir agendamento:', error);
+      logger.error('Erro ao excluir agendamento:', error);
       alert(`Erro ao excluir agendamento: ${error.message}`);
     } finally {
       // Limpar o agendamento para exclusão
@@ -1219,7 +1216,7 @@ export default function AgendaScreen() {
       
       // Atualizar localmente
       const agendamentosAtualizados = agendamentosDoHorarioSelecionado.map(ag =>
-        ag.id === agendamentoId ? { ...ag, status: novoStatus } : ag
+        ag.id === agendamentoId ? { ...ag, status: novoStatus as AgendamentoAgenda['status'] } : ag
       );
       setAgendamentosDoHorarioSelecionado(agendamentosAtualizados);
       
@@ -1231,7 +1228,7 @@ export default function AgendaScreen() {
       setTimeout(() => setSuccessMessage(''), 3000);
       
     } catch (error: any) {
-      console.error('Erro ao atualizar status:', error);
+      logger.error('Erro ao atualizar status:', error);
       Alert.alert('Erro', `Não foi possível atualizar o status: ${error.message}`);
     }
   };
@@ -1356,9 +1353,9 @@ export default function AgendaScreen() {
             };
 
             // Calcular altura do card com base na duração (30min por slot = 40px)
-            const calcularAlturaCard = (ag: Agendamento) => {
+            const calcularAlturaCard = (ag: AgendamentoAgenda) => {
               if (!ag.horario_termino) {
-                console.log('⚠️ Agendamento sem horário de término:', ag.cliente);
+                logger.debug('⚠️ Agendamento sem horário de término:', ag.cliente);
                 return 60;
               }
               
@@ -1368,7 +1365,7 @@ export default function AgendaScreen() {
               const duracaoMinutos = minutosTermino - minutosInicio;
               const alturaCalculada = Math.max(60, (duracaoMinutos / 30) * 40);
               
-              console.log(`📏 Card "${ag.cliente}": ${minutosInicio}min → ${minutosTermino}min = ${duracaoMinutos}min = ${alturaCalculada}px`);
+              logger.debug(`📏 Card "${ag.cliente}": ${minutosInicio}min → ${minutosTermino}min = ${duracaoMinutos}min = ${alturaCalculada}px`);
               
               return alturaCalculada;
             };
@@ -1400,7 +1397,7 @@ export default function AgendaScreen() {
             });
 
             // Formatar horário com início e término
-            const formatarHorarioAgendamento = (ag: Agendamento) => {
+            const formatarHorarioAgendamento = (ag: AgendamentoAgenda) => {
               const dataInicio = new Date(ag.data_hora);
               const horaInicio = dataInicio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
               
@@ -1909,8 +1906,8 @@ export default function AgendaScreen() {
                           <Image 
                             source={{ uri: item.cliente_foto }} 
                             style={styles.detalhesAvatar}
-                            onError={() => console.log('Erro ao carregar imagem:', item.cliente_foto)}
-                            onLoad={() => console.log('Imagem carregada:', item.cliente_foto)}
+                            onError={() => logger.debug('Erro ao carregar imagem:', item.cliente_foto)}
+                            onLoad={() => logger.debug('Imagem carregada:', item.cliente_foto)}
                           />
                         ) : (
                           <View style={styles.detalhesAvatarPlaceholder}>
@@ -1974,7 +1971,7 @@ export default function AgendaScreen() {
                           };
                           await enviarMensagemWhatsapp(payload);
                         } catch (err) {
-                          console.error('Erro ao preparar WhatsApp:', err);
+                          logger.error('Erro ao preparar WhatsApp:', err);
                           Alert.alert('Erro', 'Não foi possível abrir o WhatsApp.');
                         }
                       }}
@@ -2090,7 +2087,7 @@ export default function AgendaScreen() {
                         onPress={() => {
                           if (item.comanda_id) {
                             // Navegar para ver comanda
-                            console.log('Ver comanda:', item.comanda_id);
+                            logger.debug('Ver comanda:', item.comanda_id);
                           }
                         }}
                         disabled={!item.comanda_id}

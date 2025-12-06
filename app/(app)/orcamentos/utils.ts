@@ -1,4 +1,6 @@
 import { supabase } from '@lib/supabase';
+import { logger } from '../../../utils/logger';
+import { Cliente as ClienteBase, Produto as ProdutoBase, Servico as ServicoBase, Pacote as PacoteBase } from '@types';
 
 export interface Orcamento {
   id: string;
@@ -31,11 +33,7 @@ export interface OrcamentoItem {
   updated_at: string;
 }
 
-export interface Cliente {
-  id: string;
-  nome: string;
-  telefone: string;
-  email?: string;
+export type Cliente = Pick<ClienteBase, 'id' | 'nome' | 'telefone' | 'email'> & {
   cpf?: string;
   data_nascimento?: string;
   endereco?: string;
@@ -43,49 +41,36 @@ export interface Cliente {
   estado?: string;
   cep?: string;
   observacoes?: string;
-}
+};
 
-export interface Produto {
-  id: string;
-  nome: string;
-  preco: number;
+export type Produto = Pick<ProdutoBase, 'id' | 'nome' | 'preco' | 'descricao'> & {
   quantidade_disponivel: number;
-  descricao?: string;
-}
+};
 
-export interface Servico {
-  id: string;
-  nome: string;
-  preco: number;
+export type Servico = Pick<ServicoBase, 'id' | 'nome' | 'preco' | 'descricao' | 'categoria_id'> & {
   duracao?: number;
-  descricao?: string;
-  categoria_id?: string;
-}
+};
 
-export interface Pacote {
-  id: string;
-  nome: string;
-  descricao?: string;
-  valor: number;
+export type Pacote = Pick<PacoteBase, 'id' | 'nome' | 'descricao' | 'valor'> & {
   desconto: number;
-}
+};
 
 export async function carregarOrcamentos() {
   try {
-    console.log('Verificando autenticação...');
+    logger.debug('Verificando autenticação...');
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
     if (userError) {
-      console.error('Erro ao verificar usuário:', userError);
+      logger.error('Erro ao verificar usuário:', userError);
       throw new Error('Erro ao verificar autenticação');
     }
 
     if (!user) {
-      console.error('Usuário não autenticado');
+      logger.error('Usuário não autenticado');
       throw new Error('Usuário não autenticado');
     }
 
-    console.log('Usuário autenticado, carregando orçamentos...');
+    logger.debug('Usuário autenticado, carregando orçamentos...');
     const { data, error } = await supabase
       .from('orcamentos')
       .select('*')
@@ -93,14 +78,14 @@ export async function carregarOrcamentos() {
       .order('data', { ascending: false });
 
     if (error) {
-      console.error('Erro ao carregar orçamentos:', error);
+      logger.error('Erro ao carregar orçamentos:', error);
       throw error;
     }
 
-    console.log('Orçamentos carregados com sucesso:', data?.length);
+    logger.debug('Orçamentos carregados com sucesso:', data?.length);
     return data;
   } catch (error) {
-    console.error('Erro na função carregarOrcamentos:', error);
+    logger.error('Erro na função carregarOrcamentos:', error);
     throw error;
   }
 }
@@ -125,13 +110,13 @@ export async function carregarOrcamentoPorId(id: string) {
       .single();
 
     if (error) {
-      console.error('Erro ao carregar orçamento:', error);
+      logger.error('Erro ao carregar orçamento:', error);
       throw new Error('Não foi possível carregar o orçamento');
     }
 
     return orcamento;
   } catch (error) {
-    console.error('Erro ao carregar orçamento:', error);
+    logger.error('Erro ao carregar orçamento:', error);
     throw new Error('Não foi possível carregar o orçamento');
   }
 }
@@ -290,7 +275,7 @@ export async function buscarClientes(nome: string): Promise<Cliente[]> {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Erro ao buscar clientes:', error);
+    logger.error('Erro ao buscar clientes:', error);
     throw error;
   }
 }
@@ -306,7 +291,7 @@ export async function criarCliente(cliente: Omit<Cliente, 'id'>): Promise<Client
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Erro ao criar cliente:', error);
+    logger.error('Erro ao criar cliente:', error);
     throw error;
   }
 }
@@ -325,7 +310,7 @@ export async function buscarProdutos(nome: string): Promise<Produto[]> {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Erro ao buscar produtos:', error);
+    logger.error('Erro ao buscar produtos:', error);
     throw error;
   }
 }
@@ -344,7 +329,7 @@ export async function buscarServicos(nome: string): Promise<Servico[]> {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Erro ao buscar serviços:', error);
+    logger.error('Erro ao buscar serviços:', error);
     throw error;
   }
 }
@@ -393,10 +378,10 @@ export async function buscarPacotes(nome: string): Promise<Pacote[]> {
       desconto: Number(pacote.desconto || 0)
     }));
 
-    console.log('Pacotes encontrados:', pacotesFormatados); // Debug
+    logger.debug('Pacotes encontrados:', pacotesFormatados); // Debug
     return pacotesFormatados;
   } catch (error) {
-    console.error('Erro ao buscar pacotes:', error);
+    logger.error('Erro ao buscar pacotes:', error);
     throw error;
   }
 }
@@ -418,13 +403,13 @@ export async function carregarItensOrcamento(orcamentoId: string) {
       .eq('orcamento_id', orcamentoId);
 
     if (error) {
-      console.error('Erro ao carregar itens do orçamento:', error);
+      logger.error('Erro ao carregar itens do orçamento:', error);
       throw new Error('Não foi possível carregar os itens do orçamento');
     }
 
     return itens;
   } catch (error) {
-    console.error('Erro ao carregar itens do orçamento:', error);
+    logger.error('Erro ao carregar itens do orçamento:', error);
     throw new Error('Não foi possível carregar os itens do orçamento');
   }
 }

@@ -7,14 +7,11 @@ import { useAuth } from '../../../contexts/AuthContext';
 import * as Contacts from 'expo-contacts';
 import { useFocusEffect, useNavigation, DrawerActions } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { logger } from '../../../utils/logger';
+import { Cliente as ClienteBase } from '@types';
 
-type Cliente = {
-  id: string;
-  nome: string;
-  telefone: string;
+type ClienteLista = Pick<ClienteBase, 'id' | 'nome' | 'telefone' | 'estabelecimento_id' | 'created_at'> & {
   foto_url?: string;
-  estabelecimento_id: string;
-  created_at: string;
   debito?: boolean;
   credito?: boolean;
   saldo?: number;
@@ -27,7 +24,7 @@ type Cliente = {
 
 export default function ClientesScreen() {
   const { estabelecimentoId } = useAuth();
-  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [clientes, setClientes] = useState<ClienteLista[]>([]);
   const [filtro, setFiltro] = useState('todos');
   const [pesquisa, setPesquisa] = useState('');
   const [menuAberto, setMenuAberto] = useState(false);
@@ -55,7 +52,7 @@ export default function ClientesScreen() {
         .order('nome');
 
       if (clientesError) {
-        console.error('Erro ao carregar clientes:', clientesError);
+        logger.error('Erro ao carregar clientes:', clientesError);
         Alert.alert('Erro', 'Erro ao carregar clientes');
         return;
       }
@@ -67,7 +64,7 @@ export default function ClientesScreen() {
         .order('data_hora');
 
       if (agendamentosError) {
-        console.error('Erro ao carregar agendamentos:', agendamentosError);
+        logger.error('Erro ao carregar agendamentos:', agendamentosError);
         Alert.alert('Erro', 'Erro ao carregar agendamentos');
         return;
       }
@@ -85,7 +82,7 @@ export default function ClientesScreen() {
           .in('cliente_id', clienteIds);
 
         if (movimentacoesError) {
-          console.error('Erro ao carregar movimentações:', movimentacoesError);
+          logger.error('Erro ao carregar movimentações:', movimentacoesError);
         } else {
           movimentacoesData = data || [];
         }
@@ -124,7 +121,7 @@ export default function ClientesScreen() {
 
       setClientes(clientesComAgendamentos);
     } catch (error) {
-      console.error('Erro ao carregar clientes:', error);
+      logger.error('Erro ao carregar clientes:', error);
       Alert.alert('Erro', 'Não foi possível carregar os clientes');
     }
   };
@@ -191,7 +188,7 @@ export default function ClientesScreen() {
         return Linking.openURL(url);
       })
       .catch(err => {
-        console.error('Erro ao abrir WhatsApp:', err);
+        logger.error('Erro ao abrir WhatsApp:', err);
         Alert.alert('Erro', 'Não foi possível abrir o WhatsApp');
       });
   };
@@ -251,7 +248,7 @@ export default function ClientesScreen() {
       });
 
     } catch (error) {
-      console.error('Erro ao acessar contatos:', error);
+      logger.error('Erro ao acessar contatos:', error);
       Alert.alert('Erro', 'Não foi possível acessar os contatos do dispositivo.');
     }
   };

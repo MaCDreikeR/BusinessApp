@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { logger } from '../../utils/logger';
 
 export default function AuthLayout() {
   const [session, setSession] = useState(null);
@@ -11,14 +12,14 @@ export default function AuthLayout() {
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.log('Erro ao obter sessão:', error.message);
+          logger.debug('Erro ao obter sessão:', error.message);
           setSession(null);
           return;
         }
 
         setSession(session);
       } catch (error) {
-        console.log('Erro ao inicializar auth:', error);
+        logger.debug('Erro ao inicializar auth:', error);
         setSession(null);
       }
     };

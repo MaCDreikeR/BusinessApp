@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { salvarModeloMensagem, getModeloMensagem } from '../services/whatsapp';
+import { salvarModeloMensagem, getModeloMensagem } from '../../services/whatsapp';
+import { logger } from '../../utils/logger';
 
 export default function AutomacaoScreen() {
   const { estabelecimentoId } = useAuth();
@@ -17,7 +18,7 @@ export default function AutomacaoScreen() {
         const atual = await getModeloMensagem(estabelecimentoId || undefined);
         setModelo(atual);
       } catch (e) {
-        console.error(e);
+        logger.error(e);
       } finally {
         setLoading(false);
       }
@@ -29,7 +30,7 @@ export default function AutomacaoScreen() {
       await salvarModeloMensagem(modelo, estabelecimentoId || undefined);
       Alert.alert('Sucesso', 'Modelo de mensagem salvo.');
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       Alert.alert('Erro', 'Não foi possível salvar o modelo.');
     }
   };

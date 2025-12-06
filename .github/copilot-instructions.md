@@ -26,9 +26,9 @@ Estas regras tornam você produtivo rapidamente no BusinessApp (Expo + React Nat
 
 ## Convenções e padrões do projeto
 - Agrupe telas usando pastas com parênteses: `(auth)`, `(app)`, `(admin)`. Layouts específicos ficam em `app/(grupo)/_layout.tsx`.
-- Componentes reutilizáveis: `components/` e `app/components/` (há duas árvores; mantenha consistência onde já houver componentes sendo usados pelo trecho em questão).
-- Temas e UI: `components/Themed*.tsx` e `app/components/ui/*` fornecem wrappers para texto, view e ícones.
-- Serviços: `app/services/notifications.ts` usa `expo-notifications`. Em Expo Go (SDK 54), push remoto não é suportado — prefira build de desenvolvimento.
+- Componentes reutilizáveis: **SEMPRE** use `/components/` na raiz do projeto. A pasta `/app/components/` foi removida para eliminar duplicação.
+- Temas e UI: `components/Themed*.tsx` e `components/ui/*` fornecem wrappers para texto, view e ícones.
+- Serviços: **SEMPRE** use `/services/` na raiz. Contém `notifications.ts` e `whatsapp.ts` para funcionalidades específicas.
 - Supabase: configure chaves públicas via `.env`/`app.config.js` e `lib/supabase.ts`. Não exponha chaves privadas.
 
 ## Rotina de desenvolvimento
@@ -52,5 +52,5 @@ Estas regras tornam você produtivo rapidamente no BusinessApp (Expo + React Nat
 - Expo Go não suporta push remoto com `expo-notifications` no SDK 53/54 — não trate como bug de navegação.
 - Evite paths relativos nos `router.push/replace` quando houver guardiões de layout.
 - Não manipule diretamente `user/role` fora do `AuthContext`; consuma via `useAuth()`.
-
-Se algo não estiver claro (por exemplo, padrões duplicados em `components/` vs `app/components/`), pergunte antes de padronizar em larga escala.
+- **IMPORTANTE:** Componentes devem ser importados de `/components/` (raiz), nunca de `/app/components/` (pasta removida).
+- **IMPORTANTE:** Serviços devem ser importados de `/services/` (raiz), nunca de `/app/services/` (pasta removida).

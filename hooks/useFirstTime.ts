@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logger } from '../utils/logger';
 
 const FIRST_TIME_KEY = '@hasSeenWelcome';
 
@@ -13,7 +14,7 @@ export const useFirstTime = () => {
       const hasSeenWelcome = await AsyncStorage.getItem(FIRST_TIME_KEY);
       setIsFirstTime(hasSeenWelcome === null);
     } catch (error) {
-      console.error('Erro ao verificar primeira visita:', error);
+      logger.error('Erro ao verificar primeira visita:', error);
       setIsFirstTime(false);
     } finally {
       setLoading(false);
@@ -25,7 +26,7 @@ export const useFirstTime = () => {
       await AsyncStorage.setItem(FIRST_TIME_KEY, 'true');
       setIsFirstTime(false);
     } catch (error) {
-      console.error('Erro ao marcar primeira visita:', error);
+      logger.error('Erro ao marcar primeira visita:', error);
     }
   };
 

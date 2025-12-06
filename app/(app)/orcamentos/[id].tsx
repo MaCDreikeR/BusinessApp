@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import { logger } from '../../../utils/logger';
 import { 
   Orcamento, 
   carregarOrcamentoPorId,
@@ -16,13 +17,13 @@ import {
   getStatusText 
 } from './utils';
 
-interface ItemOrcamento {
+type ItemOrcamento = {
   id: string;
   descricao: string;
   quantidade: number;
   valor_unitario: number;
   tipo: 'produto' | 'servico' | 'pacote';
-}
+};
 
 export default function DetalhesOrcamentoScreen() {
   const { id } = useLocalSearchParams();
@@ -38,9 +39,9 @@ export default function DetalhesOrcamentoScreen() {
   async function carregarDados() {
     try {
       setLoading(true);
-      console.log('Carregando orçamento:', id);
+      logger.debug('Carregando orçamento:', id);
       const o = await carregarOrcamentoPorId(id as string);
-      console.log('Orçamento carregado:', o);
+      logger.debug('Orçamento carregado:', o);
       // Normaliza para o tipo Orcamento esperado, preenchendo campos ausentes
       setOrcamento({
         id: o.id,
@@ -58,12 +59,12 @@ export default function DetalhesOrcamentoScreen() {
         updated_at: new Date().toISOString(),
       });
       
-      console.log('Carregando itens do orçamento');
+      logger.debug('Carregando itens do orçamento');
       const itensData = await carregarItensOrcamento(id as string);
-      console.log('Itens carregados:', itensData);
+      logger.debug('Itens carregados:', itensData);
       setItens(itensData || []);
     } catch (error) {
-      console.error('Erro ao carregar dados:', error);
+      logger.error('Erro ao carregar dados:', error);
       Alert.alert('Erro', 'Não foi possível carregar os detalhes do orçamento');
     } finally {
       setLoading(false);
@@ -84,7 +85,7 @@ export default function DetalhesOrcamentoScreen() {
               await excluirOrcamento(id as string);
               router.replace('/(app)/orcamentos');
             } catch (error) {
-              console.error('Erro ao excluir orçamento:', error);
+              logger.error('Erro ao excluir orçamento:', error);
               Alert.alert('Erro', 'Não foi possível excluir o orçamento');
             }
           }
@@ -281,7 +282,7 @@ export default function DetalhesOrcamentoScreen() {
         UTI: 'com.adobe.pdf' // para iOS
       });
     } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
+      logger.error('Erro ao gerar PDF:', error);
       Alert.alert('Erro', 'Não foi possível gerar o PDF do orçamento');
     }
   }
@@ -293,7 +294,7 @@ export default function DetalhesOrcamentoScreen() {
       setOrcamento(prev => prev ? { ...prev, status: novoStatus } : null);
       Alert.alert('Sucesso', `Status alterado para ${getStatusText(novoStatus)}`);
     } catch (error) {
-      console.error('Erro ao alterar status:', error);
+      logger.error('Erro ao alterar status:', error);
       Alert.alert('Erro', 'Não foi possível alterar o status do orçamento');
     }
   }

@@ -4,21 +4,19 @@ import { supabase } from '../../lib/supabase';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { useRouter } from 'expo-router';
+import { logger } from '../../utils/logger';
+import { Estabelecimento as EstabelecimentoBase } from '@types';
 
-interface Estabelecimento {
-  id: string;
-  nome: string;
-  status: 'ativa' | 'suspensa' | 'banida';
-  created_at: string;
+type EstabelecimentoAdmin = Pick<EstabelecimentoBase, 'id' | 'nome' | 'status' | 'created_at'> & {
   usuarios: {
     email: string;
     is_principal: boolean;
   }[];
-}
+};
 
 export default function UsersScreen() {
   const router = useRouter();
-  const [estabelecimentos, setEstabelecimentos] = useState<Estabelecimento[]>([]);
+  const [estabelecimentos, setEstabelecimentos] = useState<EstabelecimentoAdmin[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
@@ -35,7 +33,7 @@ export default function UsersScreen() {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Erro ao buscar estabelecimentos:', error);
+      logger.error('Erro ao buscar estabelecimentos:', error);
       Alert.alert('Erro', 'Não foi possível buscar a lista de estabelecimentos.');
     } else {
       setEstabelecimentos(data || []);
@@ -96,7 +94,7 @@ export default function UsersScreen() {
     });
   }, [estabelecimentos, search, statusFilter]);
 
-  const renderItem = ({ item }: { item: Estabelecimento }) => {
+  const renderItem = ({ item }: { item: EstabelecimentoAdmin }) => {
     const principal = item.usuarios.find((u) => u.is_principal);
     return (
       <View style={styles.card}>

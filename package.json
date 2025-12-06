@@ -10,6 +10,8 @@
     "ios": "expo run:ios",
     "test": "jest --watchAll",
     "lint": "expo lint",
+    "check:console": "node ./scripts/check-console-log.js",
+    "prebuild": "npm run check:console",
     "setup:supabase": "node ./scripts/setup-supabase-local.js",
     "migrate:database": "node ./scripts/migrate-database.js",
     "env:local": "copy .env.development .env",

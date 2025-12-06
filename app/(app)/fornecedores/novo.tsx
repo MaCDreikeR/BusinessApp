@@ -4,10 +4,11 @@ import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { router } from 'expo-router';
 import MaskInput, { Masks } from 'react-native-mask-input';
+import { logger } from '../../../utils/logger';
 
-interface ValidationErrors {
+type ValidationErrors = {
   [key: string]: string;
-}
+};
 
 export default function NovoFornecedorScreen() {
   const { estabelecimentoId } = useAuth();
@@ -139,7 +140,7 @@ export default function NovoFornecedorScreen() {
         },
       ]);
     } catch (error: any) {
-      console.error('Erro ao cadastrar fornecedor:', error);
+      logger.error('Erro ao cadastrar fornecedor:', error);
       Alert.alert('Erro', error?.message ?? 'Não foi possível cadastrar o fornecedor');
     } finally {
       setLoading(false);
@@ -170,7 +171,7 @@ export default function NovoFornecedorScreen() {
         estado: data.uf || '',
       }));
     } catch (error) {
-      console.error('Erro ao buscar CEP:', error);
+      logger.error('Erro ao buscar CEP:', error);
       Alert.alert('Erro', 'Não foi possível buscar o endereço');
     } finally {
       setLoadingCep(false);

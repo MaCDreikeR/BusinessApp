@@ -6,6 +6,14 @@ import { FontAwesome5, MaterialIcons, Feather } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
+import { logger } from '../../../utils/logger';
+import { 
+  formatarTelefoneInput, 
+  formatarDataInput,
+  formatarMoedaInput,
+  validarTelefone,
+  validarDataFormatada
+} from '../../../utils/validators';
 
 export default function NovoClienteScreen() {
   const router = useRouter();
@@ -58,70 +66,9 @@ export default function NovoClienteScreen() {
         setFoto(result.assets[0].base64);
       }
     } catch (error) {
-      console.error('Erro ao selecionar foto:', error);
+      logger.error('Erro ao selecionar foto:', error);
       Alert.alert('Erro', 'Não foi possível selecionar a foto.');
     }
-  };
-
-  const formatarTelefoneInput = (valor: string) => {
-    const numeroLimpo = valor.replace(/\D/g, '');
-    let telefoneFormatado = numeroLimpo;
-    if (numeroLimpo.length > 0) {
-      if (numeroLimpo.length <= 2) {
-        telefoneFormatado = `(${numeroLimpo}`;
-      } else if (numeroLimpo.length <= 7) {
-        telefoneFormatado = `(${numeroLimpo.slice(0, 2)}) ${numeroLimpo.slice(2)}`;
-      } else {
-        telefoneFormatado = `(${numeroLimpo.slice(0, 2)}) ${numeroLimpo.slice(2, 7)}-${numeroLimpo.slice(7, 11)}`;
-      }
-    }
-    return telefoneFormatado;
-  };
-
-  const formatarDataNascimento = (valor: string) => {
-    const numeroLimpo = valor.replace(/\D/g, '');
-    let dataFormatada = numeroLimpo;
-    if (numeroLimpo.length > 0) {
-      if (numeroLimpo.length <= 2) {
-        dataFormatada = numeroLimpo;
-      } else if (numeroLimpo.length <= 4) {
-        dataFormatada = `${numeroLimpo.slice(0, 2)}/${numeroLimpo.slice(2)}`;
-      } else {
-        dataFormatada = `${numeroLimpo.slice(0, 2)}/${numeroLimpo.slice(2, 4)}/${numeroLimpo.slice(4, 8)}`;
-      }
-    }
-    return dataFormatada;
-  };
-
-  const formatarSaldoInput = (valor: string) => {
-    const numeroLimpo = valor.replace(/\D/g, '');
-    const numero = parseInt(numeroLimpo) / 100;
-    return numero.toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
-
-  const validarTelefone = (telefone: string) => {
-    const numeroLimpo = telefone.replace(/\D/g, '');
-    return numeroLimpo.length >= 10 && numeroLimpo.length <= 11;
-  };
-
-  const validarDataNascimento = (data: string) => {
-    if (!data) return true; // Data não é obrigatória
-    const [dia, mes, ano] = data.split('/').map(Number);
-    const dataObj = new Date(ano, mes - 1, dia);
-    return (
-      dataObj instanceof Date &&
-      !isNaN(dataObj.getTime()) &&
-      dataObj.getDate() === dia &&
-      dataObj.getMonth() === mes - 1 &&
-      dataObj.getFullYear() === ano &&
-      ano >= 1900 &&
-      ano <= new Date().getFullYear()
-    );
   };
 
   const validarSaldo = (valor: string) => {
@@ -133,9 +80,7 @@ export default function NovoClienteScreen() {
 
   const validarData = (data: string) => {
     if (!data) return true;
-    const [dia, mes, ano] = data.split('/');
-    const dataObj = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
-    return dataObj instanceof Date && !isNaN(dataObj.getTime());
+    return validarDataFormatada(data);
   };
 
   const validarHora = (hora: string) => {
@@ -148,20 +93,12 @@ export default function NovoClienteScreen() {
   };
 
   const handleSaldoChange = (valor: string) => {
-    const saldoFormatado = formatarSaldoInput(valor);
+    const saldoFormatado = formatarMoedaInput(valor);
     setSaldoInicial(saldoFormatado);
   };
 
   const handleDataChange = (valor: string) => {
-    let dataFormatada = valor.replace(/\D/g, '');
-    if (dataFormatada.length > 8) {
-      dataFormatada = dataFormatada.substr(0, 8);
-    }
-    if (dataFormatada.length >= 4) {
-      dataFormatada = dataFormatada.replace(/(\d{2})(\d{2})(\d{0,4})/, '$1/$2/$3');
-    } else if (dataFormatada.length >= 2) {
-      dataFormatada = dataFormatada.replace(/(\d{2})(\d{0,2})/, '$1/$2');
-    }
+    const dataFormatada = formatarDataInput(valor);
     setDataAgendamento(dataFormatada);
   };
 
@@ -187,7 +124,7 @@ export default function NovoClienteScreen() {
       return;
     }
 
-    if (dataNascimento && !validarDataNascimento(dataNascimento)) {
+    if (dataNascimento && !validarDataFormatada(dataNascimento)) {
       Alert.alert('Atenção', 'Digite uma data de nascimento válida.');
       return;
     }
@@ -233,7 +170,7 @@ export default function NovoClienteScreen() {
           });
 
         if (uploadError) {
-          console.error('Erro ao fazer upload da foto:', uploadError);
+          logger.error('Erro ao fazer upload da foto:', uploadError);
         } else {
           const { data: { publicUrl } } = supabase.storage
             .from('fotos-clientes')
@@ -258,7 +195,7 @@ export default function NovoClienteScreen() {
         .single();
 
       if (clienteError) {
-        console.error('Erro ao criar cliente:', clienteError);
+        logger.error('Erro ao criar cliente:', clienteError);
         Alert.alert('Erro', 'Não foi possível criar o cliente. Por favor, tente novamente.');
         return;
       }
@@ -276,7 +213,7 @@ export default function NovoClienteScreen() {
           });
 
         if (saldoError) {
-          console.error('Erro ao criar saldo:', saldoError);
+          logger.error('Erro ao criar saldo:', saldoError);
           // Não impede a criação do cliente, apenas mostra um alerta
           Alert.alert('Atenção', 'Cliente criado, mas houve um erro ao registrar o saldo inicial.');
           router.back();
@@ -302,7 +239,7 @@ export default function NovoClienteScreen() {
           });
 
         if (agendamentoError) {
-          console.error('Erro ao criar agendamento:', agendamentoError);
+          logger.error('Erro ao criar agendamento:', agendamentoError);
           // Não impede a criação do cliente, apenas mostra um alerta
           Alert.alert('Atenção', 'Cliente criado, mas houve um erro ao registrar o agendamento.');
           router.back();
@@ -326,7 +263,7 @@ export default function NovoClienteScreen() {
         [{ text: 'OK', onPress: () => router.back() }]
       );
     } catch (error) {
-      console.error('Erro ao criar cliente:', error);
+      logger.error('Erro ao criar cliente:', error);
       Alert.alert('Erro', 'Ocorreu um erro ao criar o cliente. Por favor, tente novamente.');
     } finally {
       setSalvando(false);
@@ -407,7 +344,7 @@ export default function NovoClienteScreen() {
                 <TextInput
                   style={styles.input}
                   value={dataNascimento}
-                  onChangeText={(valor) => setDataNascimento(formatarDataNascimento(valor))}
+                  onChangeText={(valor) => setDataNascimento(formatarDataInput(valor))}
                   placeholder="DD/MM/AAAA"
                   placeholderTextColor="#9CA3AF"
                   keyboardType="numeric"
@@ -441,7 +378,7 @@ export default function NovoClienteScreen() {
                 <TextInput
                   style={styles.input}
                   value={saldoInicial}
-                  onChangeText={(valor) => setSaldoInicial(formatarSaldoInput(valor))}
+                  onChangeText={(valor) => setSaldoInicial(formatarMoedaInput(valor))}
                   placeholder="R$ 0,00"
                   placeholderTextColor="#9CA3AF"
                   keyboardType="numeric"

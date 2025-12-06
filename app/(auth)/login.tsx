@@ -7,6 +7,7 @@ import { AuthError } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { logger } from '../../utils/logger';
 
 const { width } = Dimensions.get('window');
 
@@ -34,7 +35,7 @@ export default function LoginScreen() {
         setLembrarMe(lembrarMeSalvo);
       }
     } catch (error) {
-      console.error('Erro ao carregar dados salvos:', error);
+      logger.error('Erro ao carregar dados salvos:', error);
     }
   };
 
@@ -50,7 +51,7 @@ export default function LoginScreen() {
         await AsyncStorage.removeItem('@loginData');
       }
     } catch (error) {
-      console.error('Erro ao salvar dados:', error);
+      logger.error('Erro ao salvar dados:', error);
     }
   };
 

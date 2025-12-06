@@ -7,15 +7,12 @@ import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
+import { logger } from '../../../utils/logger';
+import { Cliente as ClienteBase } from '@types';
+import { formatarTelefoneInput, formatarDataInput, somenteNumeros } from '../../../utils/validators';
 
-type Cliente = {
-  id: string;
-  nome: string;
-  telefone: string;
-  email: string | null;
-  observacoes: string | null;
+type ClienteDetalhes = Pick<ClienteBase, 'id' | 'nome' | 'telefone' | 'email' | 'observacoes' | 'estabelecimento_id'> & {
   foto_url: string | null;
-  estabelecimento_id: string;
   data_nascimento?: string;
 };
 
@@ -24,7 +21,7 @@ export default function EditarClienteScreen() {
   const { id } = useLocalSearchParams();
   const { estabelecimentoId, user } = useAuth();
   const [activeTab, setActiveTab] = useState('dados');
-  const [cliente, setCliente] = useState<Cliente | null>(null);
+  const [cliente, setCliente] = useState<ClienteDetalhes | null>(null);
   const [nome, setNome] = useState('');
   const [telefone, setTelefone] = useState('');
   const [email, setEmail] = useState('');
@@ -87,7 +84,7 @@ export default function EditarClienteScreen() {
         .single();
 
       if (error) {
-        console.error('Erro ao carregar cliente:', error);
+        logger.error('Erro ao carregar cliente:', error);
         Alert.alert('Erro', 'Não foi possível carregar os dados do cliente');
         return;
       }
@@ -108,7 +105,7 @@ export default function EditarClienteScreen() {
         }
       }
     } catch (error) {
-      console.error('Erro ao carregar cliente:', error);
+      logger.error('Erro ao carregar cliente:', error);
       Alert.alert('Erro', 'Ocorreu um erro ao carregar os dados do cliente');
     } finally {
       setCarregando(false);
@@ -135,33 +132,16 @@ export default function EditarClienteScreen() {
         setFoto(result.assets[0].base64);
       }
     } catch (error) {
-      console.error('Erro ao selecionar foto:', error);
+      logger.error('Erro ao selecionar foto:', error);
       Alert.alert('Erro', 'Não foi possível selecionar a foto.');
     }
   };
 
   const formatarTelefone = (telefone: string) => {
-    const numeroLimpo = telefone.replace(/\D/g, '');
+    const numeroLimpo = somenteNumeros(telefone);
     const numeroBR = numeroLimpo.replace(/^55/, '');
     if (numeroBR.length < 10) return null;
     return numeroBR.slice(-11);
-  };
-
-  const formatarData = (texto: string) => {
-    // Remove qualquer caractere que não seja número
-    const apenasNumeros = texto.replace(/\D/g, '');
-    
-    // Limita para 8 dígitos
-    const limitado = apenasNumeros.slice(0, 8);
-    
-    // Formata como DD/MM/AAAA
-    if (limitado.length <= 2) {
-      return limitado;
-    } else if (limitado.length <= 4) {
-      return `${limitado.slice(0, 2)}/${limitado.slice(2)}`;
-    } else {
-      return `${limitado.slice(0, 2)}/${limitado.slice(2, 4)}/${limitado.slice(4)}`;
-    }
   };
 
   const excluirCliente = async () => {
@@ -188,7 +168,7 @@ export default function EditarClienteScreen() {
                 .eq('estabelecimento_id', estabelecimentoId);
 
               if (error) {
-                console.error('Erro ao excluir cliente:', error);
+                logger.error('Erro ao excluir cliente:', error);
                 Alert.alert('Erro', 'Não foi possível excluir o cliente');
                 return;
               }
@@ -196,7 +176,7 @@ export default function EditarClienteScreen() {
               Alert.alert('Sucesso', 'Cliente excluído com sucesso');
               router.back();
             } catch (error) {
-              console.error('Erro ao excluir cliente:', error);
+              logger.error('Erro ao excluir cliente:', error);
               Alert.alert('Erro', 'Ocorreu um erro ao excluir o cliente');
             }
           }
@@ -254,7 +234,7 @@ export default function EditarClienteScreen() {
           });
 
         if (uploadError) {
-          console.error('Erro ao fazer upload da foto:', uploadError);
+          logger.error('Erro ao fazer upload da foto:', uploadError);
         } else {
           const { data: { publicUrl } } = supabase.storage
             .from('fotos-clientes')
@@ -277,7 +257,7 @@ export default function EditarClienteScreen() {
         .eq('estabelecimento_id', estabelecimentoId);
 
       if (error) {
-        console.error('Erro ao atualizar cliente:', error);
+        logger.error('Erro ao atualizar cliente:', error);
         Alert.alert('Erro', 'Não foi possível atualizar o cliente');
         return;
       }
@@ -288,7 +268,7 @@ export default function EditarClienteScreen() {
         [{ text: 'OK', onPress: () => router.back() }]
       );
     } catch (error) {
-      console.error('Erro ao atualizar cliente:', error);
+      logger.error('Erro ao atualizar cliente:', error);
       Alert.alert('Erro', 'Ocorreu um erro ao atualizar o cliente');
     } finally {
       setSalvando(false);
@@ -330,7 +310,7 @@ export default function EditarClienteScreen() {
       // Outros carregamentos podem ser adicionados aqui...
 
     } catch (error) {
-      console.error('Erro ao carregar dados adicionais:', error);
+      logger.error('Erro ao carregar dados adicionais:', error);
     }
   };
 
@@ -428,7 +408,7 @@ export default function EditarClienteScreen() {
                 <TextInput
                   style={styles.input}
                   value={dataNascimento}
-                  onChangeText={(texto) => setDataNascimento(formatarData(texto))}
+                  onChangeText={(texto) => setDataNascimento(formatarDataInput(texto))}
                   placeholder="DD/MM/AAAA"
                   placeholderTextColor="#9CA3AF"
                   keyboardType="numeric"
@@ -634,7 +614,7 @@ export default function EditarClienteScreen() {
                       style={[styles.input, { flex: 1, backgroundColor: 'transparent', borderWidth: 0, fontSize: 16 }]}
                       placeholder="DD/MM/AAAA (opcional)"
                       value={dataCredito}
-                      onChangeText={txt => setDataCredito(formatarData(txt))}
+                      onChangeText={txt => setDataCredito(formatarDataInput(txt))}
                       keyboardType="numeric"
                       maxLength={10}
                     />

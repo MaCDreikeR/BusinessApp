@@ -6,6 +6,7 @@ import {
 import * as Contacts from 'expo-contacts';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from 'expo-router';
+import { logger } from '../../../utils/logger';
 
 // Definindo uma interface para o objeto de contato para melhor tipagem
 interface Contato {
@@ -72,7 +73,7 @@ export default function SelecionarContatoScreen() {
   const handleSelecionarContato = (contato: Contato) => {
     // Lógica para quando um contato é selecionado
     // Por exemplo, voltar para a tela anterior e passar os dados
-    console.log('Contato Selecionado:', contato);
+    logger.debug('Contato Selecionado:', contato);
     navigation.goBack(); 
   };
 

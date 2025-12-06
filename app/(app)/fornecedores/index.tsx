@@ -4,10 +4,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
 import { router, usePathname } from 'expo-router';
 import { useAuth } from '../../../contexts/AuthContext';
+import { logger } from '../../../utils/logger';
+import { Fornecedor as FornecedorBase } from '@types';
 
-interface Fornecedor {
-  id: string;
-  nome: string;
+type FornecedorLista = Pick<FornecedorBase, 'id' | 'nome'> & {
   cnpj: string;
   telefone: string;
   email: string;
@@ -16,10 +16,10 @@ interface Fornecedor {
   estado: string;
   cep: string;
   data_cadastro: string;
-}
+};
 
 export default function FornecedoresScreen() {
-  const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
+  const [fornecedores, setFornecedores] = useState<FornecedorLista[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const pathname = usePathname();
@@ -35,7 +35,7 @@ export default function FornecedoresScreen() {
   const carregarFornecedores = async () => {
     try {
       setLoading(true);
-      console.log('Iniciando carregamento de fornecedores...');
+      logger.debug('Iniciando carregamento de fornecedores...');
       if (!estabelecimentoId) {
         Alert.alert('Erro', 'Estabelecimento não identificado.');
         return;
@@ -47,16 +47,16 @@ export default function FornecedoresScreen() {
         .order('nome');
 
       if (error) {
-        console.error('Erro ao carregar fornecedores:', error);
+        logger.error('Erro ao carregar fornecedores:', error);
         throw error;
       }
 
-      console.log('Fornecedores carregados com sucesso:', data);
+      logger.debug('Fornecedores carregados com sucesso:', data);
       if (data) {
         setFornecedores(data);
       }
     } catch (error) {
-      console.error('Erro ao carregar fornecedores:', error);
+      logger.error('Erro ao carregar fornecedores:', error);
       Alert.alert('Erro', 'Não foi possível carregar os fornecedores');
     } finally {
       setLoading(false);
@@ -67,11 +67,11 @@ export default function FornecedoresScreen() {
     router.push('/(app)/fornecedores/novo');
   };
 
-  const handleEditarFornecedor = (fornecedor: Fornecedor) => {
+  const handleEditarFornecedor = (fornecedor: FornecedorLista) => {
     router.push(`/(app)/fornecedores/${fornecedor.id}`);
   };
 
-  const handleExcluirFornecedor = async (fornecedor: Fornecedor) => {
+  const handleExcluirFornecedor = async (fornecedor: FornecedorLista) => {
     Alert.alert(
       'Confirmar Exclusão',
       'Tem certeza que deseja excluir este fornecedor?',
@@ -93,7 +93,7 @@ export default function FornecedoresScreen() {
               if (error) throw error;
               await carregarFornecedores();
             } catch (error) {
-              console.error('Erro ao excluir fornecedor:', error);
+              logger.error('Erro ao excluir fornecedor:', error);
               Alert.alert('Erro', 'Não foi possível excluir o fornecedor');
             }
           },
@@ -102,7 +102,7 @@ export default function FornecedoresScreen() {
     );
   };
 
-  const renderItem = ({ item }: { item: Fornecedor }) => {
+  const renderItem = ({ item }: { item: FornecedorLista }) => {
     return (
       <TouchableOpacity 
         style={styles.fornecedorCard}

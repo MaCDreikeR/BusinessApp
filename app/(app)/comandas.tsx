@@ -24,73 +24,51 @@ import { useRouter } from 'expo-router';
 import { format } from 'date-fns';
 import { useAuth } from '../../contexts/AuthContext';
 import * as ImagePicker from 'expo-image-picker';
+import { logger } from '../../utils/logger';
+import { Cliente as ClienteBase, Produto as ProdutoBase, Servico as ServicoBase, Pacote as PacoteBase, Comanda as ComandaBase } from '@types';
 
-// Interfaces
-interface Cliente {
-  id: string;
-  nome: string;
-  telefone?: string;
-  email?: string;
+// Tipos específicos para comandas
+type ClienteComanda = Pick<ClienteBase, 'id' | 'nome' | 'telefone' | 'email' | 'estabelecimento_id' | 'created_at'> & {
   foto_url?: string;
   saldo_crediario?: number;
-  estabelecimento_id: string;
-  created_at?: string;
-}
+};
 
-interface Produto {
-  id: string;
-  nome: string;
-  preco: number;
-  quantidade: number;
-}
+type ProdutoComanda = Pick<ProdutoBase, 'id' | 'nome' | 'preco' | 'quantidade'>;
 
-interface Servico {
-  id: string;
-  nome: string;
-  preco: number;
-}
+type ServicoComanda = Pick<ServicoBase, 'id' | 'nome' | 'preco'>;
 
-interface Pacote {
-  id: string;
-  nome: string;
-  valor: number;
+type PacoteComanda = Pick<PacoteBase, 'id' | 'nome' | 'valor'> & {
   desconto: number;
-}
+};
 
-interface ItemComanda {
+type ItemComanda = {
   id: string;
   tipo: 'produto' | 'servico' | 'pacote';
   nome: string;
   quantidade: number;
   preco?: number;
-  preco_unitario?: number; // Adicionado para compatibilidade com o banco de dados
+  preco_unitario?: number;
   preco_total: number;
   item_id: string;
-}
+};
 
-interface ItemSelecionado {
+type ItemSelecionado = {
   id: string;
   nome: string;
   preco: number;
   quantidade: number;
   tipo: 'produto' | 'servico' | 'pacote' | 'pagamento';
   quantidade_disponivel?: number;
-}
+};
 
-interface Comanda {
-  id: string;
-  cliente_id: string;
+type ComandaDetalhada = Pick<ComandaBase, 'id' | 'cliente_id' | 'status' | 'valor_total' | 'observacoes' | 'usuario_id' | 'created_at'> & {
   cliente_nome: string;
   cliente_foto_url?: string;
   data_abertura: string;
-  status: 'aberta' | 'fechada' | 'cancelada';
-  valor_total: number;
   itens: ItemComanda[];
-  observacoes?: string;
-  usuario_id?: string;
   usuario_nome?: string;
   forma_pagamento?: 'dinheiro' | 'cartao_credito' | 'cartao_debito' | 'pix' | 'crediario' | 'multiplo';
-  formas_pagamento_detalhes?: string; // JSON com array de { forma_pagamento, valor }
+  formas_pagamento_detalhes?: string;
   valor_pago?: number;
   troco?: number;
   comprovante_pix?: string | null;
@@ -103,33 +81,32 @@ interface Comanda {
   saldo_aplicado?: number;
   troco_para_credito?: number;
   falta_para_debito?: number;
-}
+};
 
-interface Pagamento {
+type Pagamento = {
   forma_pagamento: 'dinheiro' | 'cartao_credito' | 'cartao_debito' | 'pix' | 'crediario';
   valor_pago: number;
   troco: number;
-  parcelas?: number; // Adicionando campo de parcelas
-  comprovante_pix?: string; // Adicionando campo para URL do comprovante
-}
+  parcelas?: number;
+  comprovante_pix?: string;
+};
 
-interface PagamentoMultiplo {
+type PagamentoMultiplo = {
   forma_pagamento: 'dinheiro' | 'cartao_credito' | 'cartao_debito' | 'pix' | 'crediario';
   valor: number;
   parcelas?: number;
   comprovante_pix?: string;
-}
+};
 
-// Interface para parâmetros de rota
-interface RouteParams {
+type RouteParams = {
   clienteId?: string;
   clienteNome?: string;
   returnTo?: string;
-}
+};
 
 export default function ComandasScreen() {
   // Estados para gerenciar comandas
-  const [comandas, setComandas] = useState<Comanda[]>([]);
+  const [comandas, setComandas] = useState<ComandaDetalhada[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [abaAtiva, setAbaAtiva] = useState<'abertas' | 'fechadas' | 'canceladas'>('abertas');
@@ -138,11 +115,11 @@ export default function ComandasScreen() {
 
   // Estados para cliente e comanda
   const [clienteQuery, setClienteQuery] = useState('');
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [clientesEncontrados, setClientesEncontrados] = useState<Cliente[]>([]);
+  const [clientes, setClientes] = useState<ClienteComanda[]>([]);
+  const [clientesEncontrados, setClientesEncontrados] = useState<ClienteComanda[]>([]);
   const [buscandoClientes, setBuscandoClientes] = useState(false);
   const [mostrarListaClientes, setMostrarListaClientes] = useState(false);
-  const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
+  const [selectedCliente, setSelectedCliente] = useState<ClienteComanda | null>(null);
   const [observacoes, setObservacoes] = useState('');
 
   // Estados para itens da comanda
@@ -152,13 +129,13 @@ export default function ComandasScreen() {
   const [tipoItem, setTipoItem] = useState<'produto' | 'servico' | 'pacote' | 'pagamento' | null>(null);
   const [valorPagamento, setValorPagamento] = useState('');
   const [termoBusca, setTermoBusca] = useState('');
-  const [itensEncontrados, setItensEncontrados] = useState<(Produto | Servico | Pacote)[]>([]);
+  const [itensEncontrados, setItensEncontrados] = useState<(ProdutoComanda | ServicoComanda | PacoteComanda)[]>([]);
   const [buscandoItens, setBuscandoItens] = useState(false);
 
   // Estados para modal
   const [modalVisible, setModalVisible] = useState(false);
   const [modalNovaComandaVisible, setModalNovaComandaVisible] = useState(false);
-  const [comandaEmEdicao, setComandaEmEdicao] = useState<Comanda | null>(null);
+  const [comandaEmEdicao, setComandaEmEdicao] = useState<ComandaDetalhada | null>(null);
   const [modalPagamentoVisible, setModalPagamentoVisible] = useState(false);
   
   // Estados para múltiplas formas de pagamento
@@ -217,7 +194,7 @@ export default function ComandasScreen() {
     });
     
     const subscriptionNovaComanda = DeviceEventEmitter.addListener('novaComanda', () => {
-      console.log("Evento novaComanda recebido");
+      logger.debug("Evento novaComanda recebido");
       // Definir a posição inicial da animação
       translateYNovaComanda.setValue(500);
       // Abrir o modal
@@ -237,11 +214,11 @@ export default function ComandasScreen() {
     
     // Monitorar evento de navegação para retornar após cadastrar cliente
     const subscriptionNovoCliente = DeviceEventEmitter.addListener('clienteCadastrado', (data: RouteParams) => {
-      console.log("Evento clienteCadastrado recebido", data);
+      logger.debug("Evento clienteCadastrado recebido", data);
       
       if (data.clienteId && data.clienteNome && data.returnTo === 'comandas') {
         // Selecionar o cliente recém-cadastrado
-        const novoCliente: Cliente = {
+        const novoCliente: ClienteComanda = {
           id: data.clienteId,
           nome: data.clienteNome,
           estabelecimento_id: ''
@@ -400,18 +377,18 @@ export default function ComandasScreen() {
       if (error) throw error;
       
       // Adicionar logs para debug
-      console.log('Query de busca:', query);
-      console.log('Produtos encontrados:', data);
+      logger.debug('Query de busca:', query);
+      logger.debug('Produtos encontrados:', data);
       
       // Verificar se a quantidade está presente
       if (data && data.length > 0) {
-        console.log('Primeiro produto:', data[0]);
-        console.log('Quantidade do primeiro produto:', data[0].quantidade);
+        logger.debug('Primeiro produto:', data[0]);
+        logger.debug('Quantidade do primeiro produto:', data[0].quantidade);
       }
       
       return data || [];
     } catch (error) {
-      console.error('Erro ao buscar produtos:', error);
+      logger.error('Erro ao buscar produtos:', error);
       return [];
     } finally {
       setBuscandoItens(false);
@@ -435,7 +412,7 @@ export default function ComandasScreen() {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Erro ao buscar serviços:', error);
+      logger.error('Erro ao buscar serviços:', error);
       return [];
     } finally {
       setBuscandoItens(false);
@@ -459,7 +436,7 @@ export default function ComandasScreen() {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Erro ao buscar pacotes:', error);
+      logger.error('Erro ao buscar pacotes:', error);
       return [];
     } finally {
       setBuscandoItens(false);
@@ -484,7 +461,7 @@ export default function ComandasScreen() {
       }
       setItensEncontrados(resultados || []);
     } catch (error) {
-      console.error('Erro ao carregar itens iniciais:', error);
+      logger.error('Erro ao carregar itens iniciais:', error);
       setItensEncontrados([]);
     } finally {
       setBuscandoItens(false);
@@ -518,7 +495,7 @@ export default function ComandasScreen() {
       }
       setItensEncontrados(resultados || []);
     } catch (error) {
-      console.error('Erro ao buscar itens:', error);
+      logger.error('Erro ao buscar itens:', error);
       setItensEncontrados([]);
     } finally {
       setBuscandoItens(false);
@@ -526,7 +503,7 @@ export default function ComandasScreen() {
   };
 
   // Função para selecionar um item
-  const selecionarItem = (item: Produto | Servico | Pacote) => {
+  const selecionarItem = (item: ProdutoComanda | ServicoComanda | PacoteComanda) => {
     // Se está editando uma comanda, usa a função de adicionar item em edição
     if (editandoComanda) {
       adicionarItemEdicao(item);
@@ -545,8 +522,8 @@ export default function ComandasScreen() {
 
       // Adiciona o item à lista de selecionados
       // Para pacotes, sempre usar o valor final (valor - desconto)
-      const preco = tipoItem === 'pacote' ? Number((item as Pacote).valor) - Number((item as Pacote).desconto || 0) : 
-                   ('valor' in item ? Number(item.valor) : Number((item as Produto | Servico).preco));
+      const preco = tipoItem === 'pacote' ? Number((item as PacoteComanda).valor) - Number((item as PacoteComanda).desconto || 0) : 
+                   ('valor' in item ? Number(item.valor) : Number((item as ProdutoComanda | ServicoComanda).preco));
       const itemSelecionado: ItemSelecionado = {
         id: item.id,
         nome: item.nome,
@@ -556,10 +533,10 @@ export default function ComandasScreen() {
       };
       
       if ('quantidade' in item) {
-        console.log('Item com quantidade:', item);
-        console.log('Quantidade:', item.quantidade);
+        logger.debug('Item com quantidade:', item);
+        logger.debug('Quantidade:', item.quantidade);
         itemSelecionado.quantidade_disponivel = item.quantidade;
-        console.log('Item selecionado com quantidade_disponivel:', itemSelecionado);
+        logger.debug('Item selecionado com quantidade_disponivel:', itemSelecionado);
       }
       
       setItensSelecionados(prev => [...prev, itemSelecionado]);
@@ -644,7 +621,7 @@ export default function ComandasScreen() {
       setError(null);
       
       if (!estabelecimentoId) {
-        console.error('Estabelecimento ID não encontrado');
+        logger.error('Estabelecimento ID não encontrado');
         return;
       }
 
@@ -663,7 +640,7 @@ export default function ComandasScreen() {
         throw error;
       }
 
-      const comandasFormatadas: Comanda[] = await Promise.all((data || []).map(async (comanda) => {
+      const comandasFormatadas: ComandaDetalhada[] = await Promise.all((data || []).map(async (comanda) => {
         // Buscar itens da comanda
         const { data: itens, error: itensError } = await supabase
           .from('comandas_itens')
@@ -697,7 +674,7 @@ export default function ComandasScreen() {
 
       setComandas(comandasFormatadas);
     } catch (error) {
-      console.error('Erro ao carregar comandas:', error);
+      logger.error('Erro ao carregar comandas:', error);
       if ((error as any)?.message?.includes('relation "comandas" does not exist')) {
         setError('tabela_nao_existe');
       } else {
@@ -729,7 +706,7 @@ export default function ComandasScreen() {
       setBuscandoClientes(true);
       setMostrarListaClientes(true);
       
-      console.log("Buscando cliente: ", query);
+      logger.debug("Buscando cliente: ", query);
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -742,10 +719,10 @@ export default function ComandasScreen() {
   .eq('estabelecimento_id', estabelecimentoId)
         .limit(10);
       
-      console.log("Clientes encontrados:", data ? data.length : 0);
+      logger.debug("Clientes encontrados:", data ? data.length : 0);
         
       if (error) {
-        console.error("Erro na busca de clientes: ", error);
+        logger.error("Erro na busca de clientes: ", error);
         
         // Tentar uma busca alternativa se a primeira falhar
         const { data: altData, error: altError } = await supabase
@@ -755,11 +732,11 @@ export default function ComandasScreen() {
           .limit(10);
           
         if (altError) {
-          console.error("Erro na busca alternativa:", altError);
+          logger.error("Erro na busca alternativa:", altError);
           throw altError;
         }
         
-        console.log("Estrutura da tabela clientes:", altData?.[0] ? Object.keys(altData[0]) : "Sem dados");
+        logger.debug("Estrutura da tabela clientes:", altData?.[0] ? Object.keys(altData[0]) : "Sem dados");
         
         // Filtrar localmente se a consulta falhar
         const filteredData = altData?.filter(cliente => 
@@ -772,7 +749,7 @@ export default function ComandasScreen() {
       
       setClientesEncontrados(data || []);
     } catch (error) {
-      console.error('Erro ao buscar clientes:', error);
+      logger.error('Erro ao buscar clientes:', error);
       Alert.alert('Erro', 'Falha ao buscar clientes');
     } finally {
       setBuscandoClientes(false);
@@ -780,7 +757,7 @@ export default function ComandasScreen() {
   };
   
   // Função para selecionar um cliente
-  const selecionarCliente = async (cliente: Cliente) => {
+  const selecionarCliente = async (cliente: ClienteComanda) => {
     // Definir o cliente selecionado e atualizar o campo de busca
     setClienteQuery(cliente.nome);
     
@@ -798,7 +775,7 @@ export default function ComandasScreen() {
         .eq('cliente_id', cliente.id);
       
       if (error) {
-        console.error('Erro ao buscar saldo do crediário:', error);
+        logger.error('Erro ao buscar saldo do crediário:', error);
       }
       
       // Calcular saldo (créditos são positivos, débitos são negativos)
@@ -814,7 +791,7 @@ export default function ComandasScreen() {
       });
       
     } catch (error) {
-      console.error('Erro ao calcular saldo:', error);
+      logger.error('Erro ao calcular saldo:', error);
       // Mesmo com erro, define o cliente (sem saldo)
       setSelectedCliente(cliente);
     }
@@ -849,8 +826,8 @@ export default function ComandasScreen() {
         return;
       }
 
-      console.log('Criando comanda para usuário:', user.id);
-      console.log('Estabelecimento ID:', estabelecimentoId);
+      logger.debug('Criando comanda para usuário:', user.id);
+      logger.debug('Estabelecimento ID:', estabelecimentoId);
 
       // Verificar se o usuário existe na tabela usuarios com estabelecimento_id
       const { data: usuarioData, error: usuarioError } = await supabase
@@ -860,19 +837,19 @@ export default function ComandasScreen() {
         .single();
 
       if (usuarioError) {
-        console.error('Erro ao verificar usuário:', usuarioError);
+        logger.error('Erro ao verificar usuário:', usuarioError);
         Alert.alert('Erro', 'Usuário não encontrado na base de dados. Entre em contato com o suporte.');
         return;
       }
 
       if (!usuarioData.estabelecimento_id) {
-        console.error('Usuário sem estabelecimento_id:', usuarioData);
+        logger.error('Usuário sem estabelecimento_id:', usuarioData);
         Alert.alert('Erro', 'Usuário não está associado a um estabelecimento. Entre em contato com o suporte.');
         return;
       }
 
       if (usuarioData.estabelecimento_id !== estabelecimentoId) {
-        console.error('Estabelecimento ID não confere:', {
+        logger.error('Estabelecimento ID não confere:', {
           usuario: usuarioData.estabelecimento_id,
           contexto: estabelecimentoId
         });
@@ -880,7 +857,7 @@ export default function ComandasScreen() {
         return;
       }
 
-      console.log('Dados do usuário verificados:', usuarioData);
+      logger.debug('Dados do usuário verificados:', usuarioData);
 
       // Criar comanda no banco de dados
       const comandaData = {
@@ -894,7 +871,7 @@ export default function ComandasScreen() {
         created_by_user_nome: usuarioData.nome_completo
       };
 
-      console.log('Dados da comanda a ser criada:', comandaData);
+      logger.debug('Dados da comanda a ser criada:', comandaData);
 
       const { data, error } = await supabase
         .from('comandas')
@@ -903,7 +880,7 @@ export default function ComandasScreen() {
         .single();
 
       if (error) {
-        console.error('Erro ao criar comanda:', error);
+        logger.error('Erro ao criar comanda:', error);
         Alert.alert('Erro', 'Não foi possível criar a comanda. Tente novamente.');
         return;
       }
@@ -933,20 +910,20 @@ export default function ComandasScreen() {
           return baseItem;
         });
 
-        console.log('DEBUG: Itens da comanda a serem inseridos:', JSON.stringify(itensComanda, null, 2));
+        logger.debug('DEBUG: Itens da comanda a serem inseridos:', JSON.stringify(itensComanda, null, 2));
 
         const { error: itensError } = await supabase
           .from('comandas_itens')
           .insert(itensComanda);
 
         if (itensError) {
-          console.error('Erro ao adicionar itens na comanda:', itensError);
+          logger.error('Erro ao adicionar itens na comanda:', itensError);
           Alert.alert('Atenção', 'A comanda foi criada, mas houve um erro ao adicionar os itens.');
         }
       }
 
       // Adicionar a nova comanda à lista
-      const novaComandaCompleta: Comanda = {
+      const novaComandaCompleta: ComandaDetalhada = {
         ...data,
         cliente_nome: selectedCliente.nome,
         itens: itensSelecionados.map(item => {
@@ -992,7 +969,7 @@ export default function ComandasScreen() {
         }, 1000);
       });
     } catch (error) {
-      console.error('Erro ao criar comanda:', error);
+      logger.error('Erro ao criar comanda:', error);
       Alert.alert('Erro', 'Ocorreu um erro ao criar a comanda. Tente novamente.');
     }
   };
@@ -1009,7 +986,7 @@ export default function ComandasScreen() {
   };
   
   // Função para abrir uma comanda e exibir seus detalhes
-  const abrirComanda = (comanda: Comanda) => {
+  const abrirComanda = (comanda: ComandaDetalhada) => {
     setComandaEmEdicao(comanda);
     setModalVisible(true);
     
@@ -1045,12 +1022,12 @@ export default function ComandasScreen() {
 
       if (itensError) throw itensError;
 
-      console.log('Itens da comanda:', itensComanda);
+      logger.debug('Itens da comanda:', itensComanda);
 
       // Verificar estoque para cada produto
       for (const item of itensComanda) {
         if (item.tipo === 'produto') {
-          console.log('Verificando estoque do produto:', item.nome);
+          logger.debug('Verificando estoque do produto:', item.nome);
           
           // Buscar o produto atual
           const { data: produto, error: produtoError } = await supabase
@@ -1060,13 +1037,13 @@ export default function ComandasScreen() {
             .single();
 
           if (produtoError) {
-            console.error('Erro ao buscar produto:', produtoError);
+            logger.error('Erro ao buscar produto:', produtoError);
             throw produtoError;
           }
 
-          console.log('Produto encontrado:', produto);
-          console.log('Quantidade solicitada:', item.quantidade);
-          console.log('Quantidade em estoque:', produto.quantidade);
+          logger.debug('Produto encontrado:', produto);
+          logger.debug('Quantidade solicitada:', item.quantidade);
+          logger.debug('Quantidade em estoque:', produto.quantidade);
 
           // Verificar se há estoque suficiente
           if (produto.quantidade < item.quantidade) {
@@ -1148,7 +1125,7 @@ export default function ComandasScreen() {
             descricao: 'Uso de saldo em comanda'
           });
         } catch (e) {
-          console.warn('Falha ao registrar movimentação de crediário:', e);
+          logger.warn('Falha ao registrar movimentação de crediário:', e);
         }
       }
 
@@ -1163,7 +1140,7 @@ export default function ComandasScreen() {
             data: new Date().toISOString().slice(0, 10)
           });
         } catch (e) {
-          console.warn('Falha ao registrar compra a crediário:', e);
+          logger.warn('Falha ao registrar compra a crediário:', e);
         }
       }
 
@@ -1200,7 +1177,7 @@ export default function ComandasScreen() {
         }
       }
     } catch (error: any) {
-      console.error('Erro ao fechar comanda:', error);
+      logger.error('Erro ao fechar comanda:', error);
       Alert.alert('Erro', error.message || 'Não foi possível fechar a comanda');
     }
   };
@@ -1235,7 +1212,7 @@ export default function ComandasScreen() {
       await carregarComandas();
       fecharModal();
     } catch (error) {
-      console.error('Erro ao cancelar comanda:', error);
+      logger.error('Erro ao cancelar comanda:', error);
       Alert.alert('Erro', 'Não foi possível cancelar a comanda');
     }
   };
@@ -1319,18 +1296,17 @@ export default function ComandasScreen() {
         observacoes: observacoesEditadas || undefined
       };
       
-      setComandaEmEdicao(comandaAtualizada as Comanda);
+      setComandaEmEdicao(comandaAtualizada as ComandaDetalhada);
       setEditandoComanda(false);
       
       Alert.alert('Sucesso', 'Comanda atualizada com sucesso!');
     } catch (error) {
-      console.error('Erro ao atualizar comanda:', error);
+      logger.error('Erro ao atualizar comanda:', error);
       Alert.alert('Erro', 'Não foi possível atualizar a comanda');
     }
   };
-
   // Função para adicionar item à comanda em edição
-  const adicionarItemEdicao = (item: Produto | Servico | Pacote) => {
+  const adicionarItemEdicao = (item: ProdutoComanda | ServicoComanda | PacoteComanda) => {
     // Verificar se já existe item com mesmo ID
     const itemExistente = itensEditados.find(i => i.item_id === item.id);
     
@@ -1344,14 +1320,19 @@ export default function ComandasScreen() {
       setItensEditados(novosItens);
     } else {
       // Se não existe, adiciona como novo item
-      const preco = tipoItem === 'pacote' 
-        ? Number((item as Pacote).valor) - Number((item as Pacote).desconto || 0) 
-        : ('valor' in item ? Number(item.valor) : Number((item as Produto | Servico).preco));
+      // Determinar tipo do item dinamicamente
+      const isPacote = 'valor' in item && 'desconto' in item;
+      const isProduto = 'quantidade' in item;
+      const tipo: 'produto' | 'servico' | 'pacote' = isPacote ? 'pacote' : (isProduto ? 'produto' : 'servico');
+      
+      const preco = isPacote 
+        ? Number((item as PacoteComanda).valor) - Number((item as PacoteComanda).desconto || 0) 
+        : Number((item as ProdutoComanda | ServicoComanda).preco);
       
       const novoItem: ItemComanda = {
         id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         nome: item.nome,
-        tipo: (tipoItem === 'pagamento' ? 'produto' : tipoItem) as 'produto' | 'servico' | 'pacote',
+        tipo: tipo,
         preco: preco,
         preco_unitario: preco,
         quantidade: 1,
@@ -1374,7 +1355,7 @@ export default function ComandasScreen() {
         return;
       }
 
-      console.log('Iniciando exclusão da comanda:', comandaId);
+      logger.debug('Iniciando exclusão da comanda:', comandaId);
       
       // Confirmar exclusão
       Alert.alert(
@@ -1388,41 +1369,41 @@ export default function ComandasScreen() {
             onPress: async () => {
               try {
                 // Primeiro excluir os itens da comanda
-                console.log('Excluindo itens da comanda...');
+                logger.debug('Excluindo itens da comanda...');
                 const { error: itensError } = await supabase
                   .from('comandas_itens')
                   .delete()
                   .eq('comanda_id', comandaId);
                 
                 if (itensError) {
-                  console.error('Erro ao excluir itens da comanda:', itensError);
+                  logger.error('Erro ao excluir itens da comanda:', itensError);
                   Alert.alert('Erro', 'Não foi possível excluir os itens da comanda');
                   return;
                 }
                 
-                console.log('Itens excluídos com sucesso');
+                logger.debug('Itens excluídos com sucesso');
                 
                 // Depois excluir a comanda
-                console.log('Excluindo comanda...');
+                logger.debug('Excluindo comanda...');
                 const { error } = await supabase
                   .from('comandas')
                   .delete()
                   .eq('id', comandaId);
                 
                 if (error) {
-                  console.error('Erro ao excluir comanda:', error);
+                  logger.error('Erro ao excluir comanda:', error);
                   Alert.alert('Erro', 'Não foi possível excluir a comanda. Verifique se você tem permissão para esta ação.');
                   return;
                 }
                 
-                console.log('Comanda excluída com sucesso');
+                logger.debug('Comanda excluída com sucesso');
                 
                 // Fechar o modal e recarregar comandas
                 setModalVisible(false);
                 await carregarComandas();
                 Alert.alert('Sucesso', 'Comanda excluída com sucesso');
               } catch (error) {
-                console.error('Erro durante a exclusão:', error);
+                logger.error('Erro durante a exclusão:', error);
                 Alert.alert('Erro', 'Ocorreu um erro ao tentar excluir a comanda. Por favor, tente novamente.');
               }
             }
@@ -1430,7 +1411,7 @@ export default function ComandasScreen() {
         ]
       );
     } catch (error) {
-      console.error('Erro ao iniciar exclusão:', error);
+      logger.error('Erro ao iniciar exclusão:', error);
       Alert.alert('Erro', 'Não foi possível iniciar o processo de exclusão');
     }
   };
@@ -1449,13 +1430,13 @@ export default function ComandasScreen() {
         .limit(5);
         
       if (error) {
-        console.error("Erro ao listar clientes:", error);
+        logger.error("Erro ao listar clientes:", error);
         return;
       }
       
-      console.log("Amostra de clientes:", data);
+      logger.debug("Amostra de clientes:", data);
     } catch (error) {
-      console.error("Erro ao diagnosticar tabela clientes:", error);
+      logger.error("Erro ao diagnosticar tabela clientes:", error);
     }
   };
 
@@ -1463,7 +1444,7 @@ export default function ComandasScreen() {
   const carregarClientesIniciais = async () => {
     try {
       if (!estabelecimentoId) {
-        console.error('Estabelecimento ID não encontrado');
+        logger.error('Estabelecimento ID não encontrado');
         return;
       }
 
@@ -1477,7 +1458,7 @@ export default function ComandasScreen() {
       if (error) throw error;
       setClientes(data || []);
     } catch (error) {
-      console.error('Erro ao carregar clientes iniciais:', error);
+      logger.error('Erro ao carregar clientes iniciais:', error);
     }
   };
 
@@ -1485,7 +1466,7 @@ export default function ComandasScreen() {
   const carregarClientes = async () => {
     try {
       if (!estabelecimentoId) {
-        console.error('Estabelecimento ID não encontrado');
+        logger.error('Estabelecimento ID não encontrado');
         return;
       }
 
@@ -1498,7 +1479,7 @@ export default function ComandasScreen() {
       if (error) throw error;
       setClientes(data || []);
     } catch (error) {
-      console.error('Erro ao carregar clientes:', error);
+      logger.error('Erro ao carregar clientes:', error);
     }
   };
 
@@ -1608,7 +1589,7 @@ export default function ComandasScreen() {
           setIsAdmin(true);
           return;
         }
-        console.error('Erro ao verificar permissões:', error);
+        logger.error('Erro ao verificar permissões:', error);
         return;
       }
 
@@ -1616,13 +1597,13 @@ export default function ComandasScreen() {
       const temPermissao = !data?.nivel_acesso_id || data?.nivel_acesso_id === '1' || data?.is_admin === true;
       setIsAdmin(temPermissao);
     } catch (error) {
-      console.error('Erro ao verificar permissões:', error);
+      logger.error('Erro ao verificar permissões:', error);
       setIsAdmin(false);
     }
   };
 
   // Função para abrir o modal de pagamento
-  const abrirModalPagamento = (comanda: Comanda) => {
+  const abrirModalPagamento = (comanda: ComandaDetalhada) => {
     setComandaEmEdicao(comanda);
     setValorTotalPagamento(comanda.valor_total);
     
@@ -1790,7 +1771,7 @@ export default function ComandasScreen() {
       setModalTrocoFaltaVisible(false);
       Alert.alert('Sucesso', `${tipoTrocoFalta === 'troco' ? 'Troco' : 'Falta'} adicionado ao crediário do cliente!`);
     } catch (error) {
-      console.error('Erro ao adicionar ao crediário:', error);
+      logger.error('Erro ao adicionar ao crediário:', error);
       Alert.alert('Erro', 'Não foi possível adicionar ao crediário.');
     }
   };
@@ -1883,7 +1864,7 @@ export default function ComandasScreen() {
 
       return publicUrl;
     } catch (error) {
-      console.error('Erro no upload:', error);
+      logger.error('Erro no upload:', error);
       throw error;
     }
   };

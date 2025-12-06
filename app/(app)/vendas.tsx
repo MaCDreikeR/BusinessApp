@@ -7,8 +7,11 @@ import { ptBR } from 'date-fns/locale';
 import { Calendar } from 'react-native-calendars';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
+import { logger } from '../../utils/logger';
+import { Cliente as ClienteBase, Comanda as ComandaBase } from '@types';
 
-interface VendaItem {
+// Tipos específicos da tela de vendas
+type VendaItem = {
   id: number;
   nome: string;
   quantidade: number;
@@ -18,26 +21,18 @@ interface VendaItem {
   vendedor: string;
   cliente_nome: string;
   tipo: 'produto' | 'servico' | 'pacote' | 'pagamento';
-}
+};
 
-interface Cliente {
-  id: number;
-  nome: string;
-}
+type ClienteVenda = Pick<ClienteBase, 'id' | 'nome'>;
 
-interface Comanda {
-  id: number;
-  created_at: string;
+type ComandaVenda = Pick<ComandaBase, 'id' | 'created_at' | 'status' | 'valor_total' | 'cliente_id'> & {
   data_fechamento: string;
-  status: string;
-  valor_total: number;
   saldo_aplicado: number | null;
   created_by_user_nome: string;
-  cliente_id: number;
-  clientes: Cliente;
-}
+  clientes: ClienteVenda;
+};
 
-interface ComandaItem {
+type ComandaItemVenda = {
   id: number;
   quantidade: number;
   preco: number;
@@ -45,10 +40,10 @@ interface ComandaItem {
   tipo: string;
   created_at: string;
   comanda_id: number;
-  comandas: Comanda;
-}
+  comandas: ComandaVenda;
+};
 
-interface Resumo {
+type ResumoVendas = {
   totalVendas: number;
   quantidadeItens: number;
   valorTotal: number;
@@ -56,11 +51,11 @@ interface Resumo {
   servicos: VendaItem[];
   pacotes: VendaItem[];
   pagamentos: VendaItem[];
-}
+};
 
 const VendasScreen = () => {
   const { estabelecimentoId } = useAuth();
-  const [vendas, setVendas] = useState<Resumo>({
+  const [vendas, setVendas] = useState<ResumoVendas>({
     totalVendas: 0,
     quantidadeItens: 0,
     valorTotal: 0,
@@ -80,7 +75,7 @@ const VendasScreen = () => {
     tipo: 'todos' as 'todos' | 'produtos' | 'servicos' | 'pacotes' | 'pagamentos'
   });
   const [debouncedFiltros, setDebouncedFiltros] = useState(filtros);
-  const debounceTimeout = useRef<NodeJS.Timeout>();
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
   const [isScrolling, setIsScrolling] = useState(false);
   const [showCalendarInicio, setShowCalendarInicio] = useState(false);
@@ -101,7 +96,7 @@ const VendasScreen = () => {
     }
     debounceTimeout.current = setTimeout(() => {
       setDebouncedFiltros(filtros);
-    }, 500);
+    }, 500) as unknown as NodeJS.Timeout;
   }, [filtros]);
 
   useEffect(() => {
@@ -110,14 +105,14 @@ const VendasScreen = () => {
   }, [debouncedFiltros]);
 
   useEffect(() => {
-    console.log('🎭 modalDetalhesVisible mudou:', modalDetalhesVisible);
-    console.log('📋 detalhesMovimentacao:', detalhesMovimentacao);
+    logger.debug('🎭 modalDetalhesVisible mudou:', modalDetalhesVisible);
+    logger.debug('📋 detalhesMovimentacao:', detalhesMovimentacao);
   }, [modalDetalhesVisible, detalhesMovimentacao]);
 
   const carregarVendas = async (pagina: number, refresh = false) => {
     try {
       if (!estabelecimentoId) {
-        console.log('❌ Sem estabelecimentoId para carregar vendas');
+        logger.debug('❌ Sem estabelecimentoId para carregar vendas');
         return;
       }
       
@@ -190,7 +185,7 @@ const VendasScreen = () => {
 
       if (error) throw error;
 
-      const vendasFormatadas = (data as unknown as ComandaItem[]).map(item => ({
+      const vendasFormatadas = (data as unknown as ComandaItemVenda[]).map(item => ({
         id: item.id,
         nome: item.nome,
         quantidade: item.quantidade,
@@ -225,7 +220,7 @@ const VendasScreen = () => {
       const quantidadeItens = vendasFormatadas.reduce((acc, item) => acc + item.quantidade, 0);
       const valorTotal = vendasFormatadas.reduce((acc, item) => acc + (item.quantidade * item.preco), 0);
 
-      const newData: Resumo = {
+      const newData: ResumoVendas = {
         totalVendas,
         quantidadeItens,
         valorTotal,
@@ -248,7 +243,7 @@ const VendasScreen = () => {
       });
       setHasMore(data.length === 20);
     } catch (error) {
-      console.error('Erro ao carregar vendas:', error);
+      logger.error('Erro ao carregar vendas:', error);
       Alert.alert('Erro', 'Não foi possível carregar as vendas');
     } finally {
       setLoading(false);
@@ -257,12 +252,12 @@ const VendasScreen = () => {
   };
 
   const carregarDetalhesMovimentacao = async () => {
-    console.log('🔍 carregarDetalhesMovimentacao chamada');
+    logger.debug('🔍 carregarDetalhesMovimentacao chamada');
     setLoadingDetalhes(true);
     try {
-      console.log('🏢 estabelecimentoId do contexto:', estabelecimentoId);
+      logger.debug('🏢 estabelecimentoId do contexto:', estabelecimentoId);
       if (!estabelecimentoId) {
-        console.log('❌ Sem estabelecimentoId');
+        logger.debug('❌ Sem estabelecimentoId');
         Alert.alert('Erro', 'Estabelecimento não identificado');
         return;
       }
@@ -272,7 +267,7 @@ const VendasScreen = () => {
       const dataFim = debouncedFiltros.dataFim || new Date();
       dataInicio.setHours(0, 0, 0, 0);
       dataFim.setHours(23, 59, 59, 999);
-      console.log('📅 Período:', { dataInicio, dataFim });
+      logger.debug('📅 Período:', { dataInicio, dataFim });
 
       // Buscar comandas fechadas no período
       const { data: comandas, error } = await supabase
@@ -283,9 +278,9 @@ const VendasScreen = () => {
         .gte('finalized_at', dataInicio.toISOString())
         .lte('finalized_at', dataFim.toISOString());
 
-      console.log('📊 Comandas encontradas:', comandas?.length || 0);
+      logger.debug('📊 Comandas encontradas:', comandas?.length || 0);
       if (error) {
-        console.error('❌ Erro na query:', error);
+        logger.error('❌ Erro na query:', error);
         throw error;
       }
 
@@ -325,7 +320,7 @@ const VendasScreen = () => {
               });
             });
           } catch (e) {
-            console.error('Erro ao processar pagamento múltiplo:', e);
+            logger.error('Erro ao processar pagamento múltiplo:', e);
           }
           return; // Pula o processamento normal
         }
@@ -373,16 +368,16 @@ const VendasScreen = () => {
         }
       });
 
-      console.log('✅ Detalhes processados:', detalhes);
+      logger.debug('✅ Detalhes processados:', detalhes);
       setDetalhesMovimentacao(detalhes);
       setModalDetalhesVisible(true);
-      console.log('🎯 Modal deve abrir agora');
+      logger.debug('🎯 Modal deve abrir agora');
     } catch (error) {
-      console.error('❌ Erro ao carregar detalhes:', error);
+      logger.error('❌ Erro ao carregar detalhes:', error);
       Alert.alert('Erro', 'Não foi possível carregar os detalhes');
     } finally {
       setLoadingDetalhes(false);
-      console.log('✅ Loading finalizado');
+      logger.debug('✅ Loading finalizado');
     }
   };
 
@@ -442,7 +437,7 @@ const VendasScreen = () => {
             <View style={styles.itemHeader}>
               <Text style={styles.itemTitle}>{item.nome}</Text>
               <Text style={styles.itemDate}>
-                {format(item.data, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                {format(item.data, "dd/MM/yyyy 'às' HH:mm")}
               </Text>
             </View>
             

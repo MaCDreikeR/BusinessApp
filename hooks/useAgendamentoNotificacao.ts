@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
 import * as Notifications from 'expo-notifications';
+import { logger } from '../utils/logger';
 
 interface AgendamentoAtivo {
   id: string;
@@ -38,7 +39,7 @@ export function useAgendamentoNotificacao() {
         .order('data_hora', { ascending: true });
 
       if (error) {
-        console.error('Erro ao verificar agendamentos:', error);
+        logger.error('Erro ao verificar agendamentos:', error);
         return;
       }
 
@@ -112,7 +113,7 @@ export function useAgendamentoNotificacao() {
             .maybeSingle();
           
           if (!comandaExistente) {
-            console.log('🔄 Criando comanda automaticamente para agendamento:', agendamentoParaNotificar.id);
+            logger.info('🔄 Criando comanda automaticamente para agendamento:', agendamentoParaNotificar.id);
             
             try {
               // Buscar ID do cliente por nome (OBRIGATÓRIO)
@@ -134,7 +135,7 @@ export function useAgendamentoNotificacao() {
               
               // Se não encontrou o cliente, não pode criar comanda (cliente_id é obrigatório)
               if (!clienteId) {
-                console.log('⚠️ Cliente não encontrado no banco. Não é possível criar comanda automaticamente.');
+                logger.warn('⚠️ Cliente não encontrado no banco. Não é possível criar comanda automaticamente.');
                 return;
               }
               
@@ -154,13 +155,13 @@ export function useAgendamentoNotificacao() {
                 .single();
               
               if (comandaError) {
-                console.error('❌ Erro ao criar comanda:', comandaError);
+                logger.error('❌ Erro ao criar comanda:', comandaError);
               } else if (novaComanda) {
-                console.log('✅ Comanda criada automaticamente:', novaComanda.id);
+                logger.success('✅ Comanda criada automaticamente:', novaComanda.id);
                 
                 // Adicionar itens dos serviços à comanda
                 if (agendamentoParaNotificar.servicos && agendamentoParaNotificar.servicos.length > 0) {
-                  console.log('📦 Serviços do agendamento:', JSON.stringify(agendamentoParaNotificar.servicos, null, 2));
+                  logger.debug('📦 Serviços do agendamento:', JSON.stringify(agendamentoParaNotificar.servicos, null, 2));
                   
                   const itens = agendamentoParaNotificar.servicos.map((servico: any) => {
                     // Converter preço para número (pode vir como string do banco)
@@ -180,7 +181,7 @@ export function useAgendamentoNotificacao() {
                     };
                   });
                   
-                  console.log('📝 Itens a serem inseridos:', JSON.stringify(itens, null, 2));
+                  logger.debug('📝 Itens a serem inseridos:', JSON.stringify(itens, null, 2));
                   
                   const { data: itensInseridos, error: itensError } = await supabase
                     .from('comandas_itens')
@@ -188,15 +189,15 @@ export function useAgendamentoNotificacao() {
                     .select();
                   
                   if (itensError) {
-                    console.error('❌ Erro ao adicionar itens:', itensError);
+                    logger.error('❌ Erro ao adicionar itens:', itensError);
                   } else {
-                    console.log('✅ Itens adicionados à comanda:', itensInseridos?.length || 0);
-                    console.log('📋 Itens inseridos:', JSON.stringify(itensInseridos, null, 2));
+                    logger.success('✅ Itens adicionados à comanda:', itensInseridos?.length || 0);
+                    logger.debug('📋 Itens inseridos:', JSON.stringify(itensInseridos, null, 2));
                   }
                   
                   // Atualizar valor total da comanda
                   const valorTotal = itens.reduce((sum: number, item: any) => sum + item.preco_total, 0);
-                  console.log('💰 Valor total calculado:', valorTotal);
+                  logger.debug('💰 Valor total calculado:', valorTotal);
                   
                   const { error: updateError } = await supabase
                     .from('comandas')
@@ -204,19 +205,19 @@ export function useAgendamentoNotificacao() {
                     .eq('id', novaComanda.id);
                   
                   if (updateError) {
-                    console.error('❌ Erro ao atualizar valor total:', updateError);
+                    logger.error('❌ Erro ao atualizar valor total:', updateError);
                   } else {
-                    console.log('✅ Valor total atualizado');
+                    logger.success('✅ Valor total atualizado');
                   }
                 }
                 
-                console.log('✅ Comanda criada e configurada com sucesso');
+                logger.success('✅ Comanda criada e configurada com sucesso');
               }
             } catch (comandaErr) {
-              console.error('❌ Erro ao criar comanda automaticamente:', comandaErr);
+              logger.error('❌ Erro ao criar comanda automaticamente:', comandaErr);
             }
           } else {
-            console.log('ℹ️ Comanda aberta já existe para este cliente hoje:', comandaExistente.id);
+            logger.info('ℹ️ Comanda aberta já existe para este cliente hoje:', comandaExistente.id);
           }
 
           // Marcar como notificado
@@ -224,7 +225,7 @@ export function useAgendamentoNotificacao() {
         }
       }
     } catch (error) {
-      console.error('Erro ao verificar agendamentos:', error);
+      logger.error('Erro ao verificar agendamentos:', error);
     }
   }, [estabelecimentoId, agendamentosNotificados]);
 
@@ -258,7 +259,7 @@ export function useAgendamentoNotificacao() {
 
     const timeout = setTimeout(() => {
       setAgendamentosNotificados(new Set());
-      console.log('Lista de agendamentos notificados resetada');
+      logger.debug('Lista de agendamentos notificados resetada');
     }, tempoAteMeiaNoite);
 
     return () => clearTimeout(timeout);

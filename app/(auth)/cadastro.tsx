@@ -6,6 +6,15 @@ import { Dropdown } from 'react-native-element-dropdown';
 import { supabase } from '../../lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { logger } from '../../utils/logger';
+import { 
+  validarCPF, 
+  validarCNPJ, 
+  validarTelefone as validarCelular,
+  formatarCPF, 
+  formatarCNPJ, 
+  formatarTelefone as formatarCelular 
+} from '../../utils/validators';
 
 const segmentos = [
   { label: 'Varejo', value: 'varejo' },
@@ -15,100 +24,6 @@ const segmentos = [
   { label: 'Saúde', value: 'saude' },
   { label: 'Outros', value: 'outros' },
 ];
-
-// Funções de validação
-const validarCPF = (cpf: string) => {
-  cpf = cpf.replace(/[^\d]/g, '');
-  if (cpf.length !== 11) return false;
-
-  // Verifica se todos os dígitos são iguais
-  if (/^(\d)\1{10}$/.test(cpf)) return false;
-
-  // Validação do primeiro dígito verificador
-  let soma = 0;
-  for (let i = 0; i < 9; i++) {
-    soma += parseInt(cpf.charAt(i)) * (10 - i);
-  }
-  let resto = 11 - (soma % 11);
-  let digitoVerificador1 = resto > 9 ? 0 : resto;
-  if (digitoVerificador1 !== parseInt(cpf.charAt(9))) return false;
-
-  // Validação do segundo dígito verificador
-  soma = 0;
-  for (let i = 0; i < 10; i++) {
-    soma += parseInt(cpf.charAt(i)) * (11 - i);
-  }
-  resto = 11 - (soma % 11);
-  let digitoVerificador2 = resto > 9 ? 0 : resto;
-  if (digitoVerificador2 !== parseInt(cpf.charAt(10))) return false;
-
-  return true;
-};
-
-const validarCNPJ = (cnpj: string) => {
-  cnpj = cnpj.replace(/[^\d]/g, '');
-  if (cnpj.length !== 14) return false;
-
-  // Verifica se todos os dígitos são iguais
-  if (/^(\d)\1{13}$/.test(cnpj)) return false;
-
-  // Validação do primeiro dígito verificador
-  let tamanho = cnpj.length - 2;
-  let numeros = cnpj.substring(0, tamanho);
-  let digitos = cnpj.substring(tamanho);
-  let soma = 0;
-  let pos = tamanho - 7;
-  for (let i = tamanho; i >= 1; i--) {
-    soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
-    if (pos < 2) pos = 9;
-  }
-  let resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
-  if (resultado !== parseInt(digitos.charAt(0))) return false;
-
-  // Validação do segundo dígito verificador
-  tamanho = tamanho + 1;
-  numeros = cnpj.substring(0, tamanho);
-  soma = 0;
-  pos = tamanho - 7;
-  for (let i = tamanho; i >= 1; i--) {
-    soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
-    if (pos < 2) pos = 9;
-  }
-  resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
-  if (resultado !== parseInt(digitos.charAt(1))) return false;
-
-  return true;
-};
-
-const validarCelular = (celular: string) => {
-  const celularLimpo = celular.replace(/\D/g, '');
-  return celularLimpo.length === 11;
-};
-
-// Funções de formatação
-const formatarCPF = (value: string) => {
-  const cpf = value.replace(/\D/g, '');
-  if (cpf.length <= 3) return cpf;
-  if (cpf.length <= 6) return `${cpf.slice(0, 3)}.${cpf.slice(3)}`;
-  if (cpf.length <= 9) return `${cpf.slice(0, 3)}.${cpf.slice(3, 6)}.${cpf.slice(6)}`;
-  return `${cpf.slice(0, 3)}.${cpf.slice(3, 6)}.${cpf.slice(6, 9)}-${cpf.slice(9, 11)}`;
-};
-
-const formatarCNPJ = (value: string) => {
-  const cnpj = value.replace(/\D/g, '');
-  if (cnpj.length <= 2) return cnpj;
-  if (cnpj.length <= 5) return `${cnpj.slice(0, 2)}.${cnpj.slice(2)}`;
-  if (cnpj.length <= 8) return `${cnpj.slice(0, 2)}.${cnpj.slice(2, 5)}.${cnpj.slice(5)}`;
-  if (cnpj.length <= 12) return `${cnpj.slice(0, 2)}.${cnpj.slice(2, 5)}.${cnpj.slice(5, 8)}/${cnpj.slice(8)}`;
-  return `${cnpj.slice(0, 2)}.${cnpj.slice(2, 5)}.${cnpj.slice(5, 8)}/${cnpj.slice(8, 12)}-${cnpj.slice(12, 14)}`;
-};
-
-const formatarCelular = (value: string) => {
-  const celular = value.replace(/\D/g, '');
-  if (celular.length <= 2) return celular;
-  if (celular.length <= 7) return `(${celular.slice(0, 2)}) ${celular.slice(2)}`;
-  return `(${celular.slice(0, 2)}) ${celular.slice(2, 7)}-${celular.slice(7, 11)}`;
-};
 
 export default function CadastroScreen() {
   const [nomeEstabelecimento, setNomeEstabelecimento] = useState('');
@@ -171,7 +86,7 @@ export default function CadastroScreen() {
       });
 
       if (authError) {
-        console.error('Erro no cadastro:', authError);
+        logger.error('Erro no cadastro:', authError);
         Alert.alert('Erro', 'Não foi possível criar o usuário. Tente novamente.');
         return;
       }
@@ -194,7 +109,7 @@ export default function CadastroScreen() {
       });
 
       if (contaError) {
-        console.error('Erro ao criar conta:', contaError);
+        logger.error('Erro ao criar conta:', contaError);
         Alert.alert('Erro', 'Não foi possível criar a conta. Tente novamente.');
         return;
       }
@@ -202,7 +117,7 @@ export default function CadastroScreen() {
       Alert.alert('Sucesso', 'Cadastro realizado com sucesso! Por favor, verifique o seu e-mail para ativar sua conta.');
       router.replace('/(auth)/login');
     } catch (error) {
-      console.error('Erro no cadastro:', error);
+      logger.error('Erro no cadastro:', error);
       Alert.alert('Erro', 'Ocorreu um erro durante o cadastro. Tente novamente.');
     } finally {
       setSaving(false);

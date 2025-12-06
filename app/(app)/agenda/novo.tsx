@@ -12,6 +12,7 @@ if (Platform.OS !== 'web') {
   DateTimePicker = require('@react-native-community/datetimepicker').default;
 }
 import { useAuth } from '../../../contexts/AuthContext';
+import { logger } from '../../../utils/logger';
 
 interface Cliente {
   id: string;
@@ -121,7 +122,7 @@ export default function NovoAgendamentoScreen() {
 
   // Log para debug quando showDatePicker muda
   useEffect(() => {
-    console.log('🗓️ [STATE] showDatePicker mudou para:', showDatePicker, 'Platform:', Platform.OS);
+    logger.debug('🗓️ [STATE] showDatePicker mudou para:', showDatePicker, 'Platform:', Platform.OS);
   }, [showDatePicker]);
 
   // Estados para usuários
@@ -170,11 +171,11 @@ export default function NovoAgendamentoScreen() {
     useCallback(() => {
       // Resetar loading ao entrar na tela
       setLoading(false);
-      console.log('Tela de novo agendamento focada - loading resetado');
+      logger.debug('Tela de novo agendamento focada - loading resetado');
       
       // Função de cleanup quando sair da tela
       return () => {
-        console.log('Saindo da tela de novo agendamento - limpando formulário');
+        logger.debug('Saindo da tela de novo agendamento - limpando formulário');
         // Limpar todos os campos
         setCliente('');
         setTelefone('');
@@ -235,10 +236,10 @@ export default function NovoAgendamentoScreen() {
 
   const carregarUsuarios = async () => {
     try {
-      console.log('Carregando usuários para novo agendamento - estabelecimento:', estabelecimentoId);
+      logger.debug('Carregando usuários para novo agendamento - estabelecimento:', estabelecimentoId);
       
       if (!estabelecimentoId) {
-        console.error('ID do estabelecimento não disponível');
+        logger.error('ID do estabelecimento não disponível');
         return;
       }
 
@@ -247,14 +248,14 @@ export default function NovoAgendamentoScreen() {
         .rpc('get_usuarios_estabelecimento', { estabelecimento_uuid: estabelecimentoId });
 
       if (!rpcError && usuariosRpc) {
-        console.log('✅ Usuários carregados via RPC:', usuariosRpc.length);
-        console.log('📋 Lista completa de usuários RPC:', JSON.stringify(usuariosRpc, null, 2));
+        logger.debug('✅ Usuários carregados via RPC:', usuariosRpc.length);
+        logger.debug('📋 Lista completa de usuários RPC:', JSON.stringify(usuariosRpc, null, 2));
         
         // REGRA: Profissionais veem apenas a si mesmos
         let usuariosFiltrados = usuariosRpc || [];
         if (role === 'profissional' && user?.id) {
           usuariosFiltrados = usuariosRpc.filter((u: any) => u.id === user.id);
-          console.log('👤 Profissional - mostrando apenas próprio usuário:', usuariosFiltrados);
+          logger.debug('👤 Profissional - mostrando apenas próprio usuário:', usuariosFiltrados);
           
           // Auto-selecionar o profissional
           if (usuariosFiltrados.length > 0) {
@@ -270,16 +271,16 @@ export default function NovoAgendamentoScreen() {
           return acc;
         }, {} as Record<string, boolean>);
         setPresencaUsuarios(presencaInicial);
-        console.log('✅ Total de usuários carregados:', usuariosFiltrados.length);
+        logger.debug('✅ Total de usuários carregados:', usuariosFiltrados.length);
         return;
       }
 
-      console.log('⚠️ Erro RPC ou dados vazios, tentando fallback...');
+      logger.debug('⚠️ Erro RPC ou dados vazios, tentando fallback...');
 
-      console.log('⚠️ Erro RPC ou dados vazios, tentando fallback...');
+      logger.debug('⚠️ Erro RPC ou dados vazios, tentando fallback...');
 
       // Fallback para consulta direta
-      console.log('🔍 RPC não disponível, usando consulta direta...');
+      logger.debug('🔍 RPC não disponível, usando consulta direta...');
       const { data, error } = await supabase
         .from('usuarios')
         .select('id, nome_completo, email, avatar_url, faz_atendimento')
@@ -288,14 +289,14 @@ export default function NovoAgendamentoScreen() {
 
       if (error) throw error;
 
-      console.log('✅ Usuários encontrados via consulta direta:', data?.length);
-      console.log('📋 Lista completa de usuários (fallback):', JSON.stringify(data, null, 2));
+      logger.debug('✅ Usuários encontrados via consulta direta:', data?.length);
+      logger.debug('📋 Lista completa de usuários (fallback):', JSON.stringify(data, null, 2));
       
       // REGRA: Profissionais veem apenas a si mesmos
       let usuariosFiltrados = data || [];
       if (role === 'profissional' && user?.id) {
         usuariosFiltrados = data?.filter((u: any) => u.id === user.id) || [];
-        console.log('👤 Profissional - mostrando apenas próprio usuário:', usuariosFiltrados);
+        logger.debug('👤 Profissional - mostrando apenas próprio usuário:', usuariosFiltrados);
         
         // Auto-selecionar o profissional
         if (usuariosFiltrados.length > 0) {
@@ -312,7 +313,7 @@ export default function NovoAgendamentoScreen() {
       }, {} as Record<string, boolean>);
       setPresencaUsuarios(presencaInicial);
     } catch (error) {
-      console.error('Erro ao carregar usuários:', error);
+      logger.error('Erro ao carregar usuários:', error);
       Alert.alert('Erro', 'Não foi possível carregar a lista de usuários');
     }
   };
@@ -336,7 +337,7 @@ export default function NovoAgendamentoScreen() {
       setTodosServicos(data || []);
       setServicosEncontrados(data || []);
     } catch (error) {
-      console.error('Erro ao carregar serviços:', error);
+      logger.error('Erro ao carregar serviços:', error);
     }
   };
 
@@ -379,7 +380,7 @@ export default function NovoAgendamentoScreen() {
       }
       
     } catch (error) {
-      console.error('Erro ao carregar configurações:', error);
+      logger.error('Erro ao carregar configurações:', error);
     }
   };
 
@@ -405,7 +406,7 @@ export default function NovoAgendamentoScreen() {
       const formattedDate = format(data, 'yyyy-MM-dd');
       return datasBloqueadas.includes(formattedDate);
     } catch (error) {
-      console.error('Erro ao verificar data bloqueada:', error);
+      logger.error('Erro ao verificar data bloqueada:', error);
       return false;
     }
   };
@@ -514,7 +515,7 @@ export default function NovoAgendamentoScreen() {
         
       if (erroConsulta) throw erroConsulta;
 
-      console.log(`Encontrados ${agendamentosExistentes?.length || 0} agendamentos no mesmo horário`);
+      logger.debug(`Encontrados ${agendamentosExistentes?.length || 0} agendamentos no mesmo horário`);
 
       // Verificar se atingiu o limite
       const limiteTotal = parseInt(limiteSimultaneos || '1');
@@ -585,7 +586,7 @@ export default function NovoAgendamentoScreen() {
         }]
       );
     } catch (error) {
-      console.error('Erro ao criar agendamento:', error);
+      logger.error('Erro ao criar agendamento:', error);
       Alert.alert('Erro', 'Não foi possível criar o agendamento');
     } finally {
       // Sempre resetar loading, independente de sucesso ou erro
@@ -637,7 +638,7 @@ export default function NovoAgendamentoScreen() {
     // Resetar loading (importante para destravar o botão)
     setLoading(false);
     
-    console.log('Formulário limpo com sucesso');
+    logger.debug('Formulário limpo com sucesso');
   };
 
   const buscarClientes = async (nome: string) => {
@@ -668,9 +669,9 @@ export default function NovoAgendamentoScreen() {
       
       setClientesEncontrados(data || []);
       setMostrarLista(true);
-      console.log('Clientes encontrados:', data?.length || 0);
+      logger.debug('Clientes encontrados:', data?.length || 0);
     } catch (error) {
-      console.error('Erro ao buscar clientes:', error);
+      logger.error('Erro ao buscar clientes:', error);
       setMostrarLista(false);
     } finally {
       setBuscandoClientes(false);
@@ -778,7 +779,7 @@ export default function NovoAgendamentoScreen() {
       // Obter o usuário atual
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.error('Usuário não autenticado ao carregar configurações de horários');
+        logger.error('Usuário não autenticado ao carregar configurações de horários');
         inicializarHorariosPadrao();
         return;
       }
@@ -797,7 +798,7 @@ export default function NovoAgendamentoScreen() {
         .eq('estabelecimento_id', estabelecimentoId);
         
       if (error) {
-        console.error('Erro ao carregar configurações de horários:', error);
+        logger.error('Erro ao carregar configurações de horários:', error);
         inicializarHorariosPadrao();
         return;
       }
@@ -841,7 +842,7 @@ export default function NovoAgendamentoScreen() {
         atualizarHorariosDisponiveis();
       }
     } catch (error) {
-      console.error('Erro ao carregar configurações de horários:', error);
+      logger.error('Erro ao carregar configurações de horários:', error);
       inicializarHorariosPadrao();
     }
   };
@@ -898,7 +899,7 @@ export default function NovoAgendamentoScreen() {
       
       return horarios;
     } catch (error) {
-      console.error('Erro ao gerar horários:', error);
+      logger.error('Erro ao gerar horários:', error);
       return [];
     }
   };
@@ -906,15 +907,15 @@ export default function NovoAgendamentoScreen() {
   // Função para atualizar a lista de horários disponíveis
   const atualizarHorariosDisponiveis = () => {
     try {
-      console.log('Atualizando horários disponíveis com as configurações:');
-      console.log(`- Horário início: ${horarioInicio}`);
-      console.log(`- Horário fim: ${horarioFim}`);
-      console.log(`- Tem intervalo: ${temIntervalo}`);
+      logger.debug('Atualizando horários disponíveis com as configurações:');
+      logger.debug(`- Horário início: ${horarioInicio}`);
+      logger.debug(`- Horário fim: ${horarioFim}`);
+      logger.debug(`- Tem intervalo: ${temIntervalo}`);
       if (temIntervalo) {
-        console.log(`- Intervalo início: ${horarioIntervaloInicio}`);
-        console.log(`- Intervalo fim: ${horarioIntervaloFim}`);
+        logger.debug(`- Intervalo início: ${horarioIntervaloInicio}`);
+        logger.debug(`- Intervalo fim: ${horarioIntervaloFim}`);
       }
-      console.log(`- Intervalo entre agendamentos: ${intervaloAgendamentos} minutos`);
+      logger.debug(`- Intervalo entre agendamentos: ${intervaloAgendamentos} minutos`);
       
       const intervalo = parseInt(intervaloAgendamentos);
       const novosHorarios = gerarHorarios(
@@ -933,10 +934,10 @@ export default function NovoAgendamentoScreen() {
         setHorariosDisponiveis(novosHorarios.map(h => ({ horario: h, ocupado: false, quantidade: 0 })));
       }
       
-      console.log('Lista de horários atualizada:', novosHorarios.length);
-      console.log('Horários gerados:', novosHorarios.join(', '));
+      logger.debug('Lista de horários atualizada:', novosHorarios.length);
+      logger.debug('Horários gerados:', novosHorarios.join(', '));
     } catch (error) {
-      console.error('Erro ao atualizar lista de horários:', error);
+      logger.error('Erro ao atualizar lista de horários:', error);
       inicializarHorariosPadrao();
     }
   };
@@ -978,12 +979,12 @@ export default function NovoAgendamentoScreen() {
         .lte('data_hora', fimDia);
         
       if (error) {
-        console.error('Erro ao verificar disponibilidade de horários:', error);
+        logger.error('Erro ao verificar disponibilidade de horários:', error);
         setHorariosDisponiveis(horarios.map(h => ({ horario: h, ocupado: false, quantidade: 0 })));
         return;
       }
       
-      console.log(`Encontrados ${agendamentosDia?.length || 0} agendamentos para o dia ${data}`);
+      logger.debug(`Encontrados ${agendamentosDia?.length || 0} agendamentos para o dia ${data}`);
       
       // Verificar disponibilidade de cada horário
       const horariosComStatus = horarios.map(horario => {
@@ -1019,7 +1020,7 @@ export default function NovoAgendamentoScreen() {
         }
       }
     } catch (error) {
-      console.error('Erro ao verificar disponibilidade de horários:', error);
+      logger.error('Erro ao verificar disponibilidade de horários:', error);
       setHorariosDisponiveis(horarios.map(h => ({ horario: h, ocupado: false, quantidade: 0 })));
     }
   };
@@ -1172,7 +1173,7 @@ export default function NovoAgendamentoScreen() {
   };
 
   const abrirSeletorData = () => {
-    console.log('🗓️ [NOVO AGENDAMENTO] Abrindo seletor de data, Platform.OS =', Platform.OS);
+    logger.debug('🗓️ [NOVO AGENDAMENTO] Abrindo seletor de data, Platform.OS =', Platform.OS);
     setShowDatePicker(true);
   };
 
