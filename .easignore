@@ -1,202 +1,36 @@
-# Abordagem ultra-restritiva para resolver problemas de permissão# Estratégia simplificada - excluir apenas o problemático# Incluir apenas arquivos essenciais
+# EAS Build Ignore File
+# Apenas arquivos temporários e caches desnecessários
 
-
-
-# Dependências e cache# Ignorar tudo primeiro
-
+# Dependências (serão reinstaladas no build)
 node_modules/
 
-.git/# Dependências e cache*
-
+# Cache local do Expo
 .expo/
-
-node_modules/
-
-# Build outputs
-
-**/build/.git/# Depois incluir apenas o necessário
-
-**/.gradle/
-
-dist/.expo/!app.config.js
-
-web-build/
-
-!babel.config.js
-
-# Arquivos e pastas problemáticas
-
-src/# Build outputs!metro.config.js
-
-supabase/
-
-docs/**/build/!package.json
-
-scripts/
-
-assets/animations/**/.gradle/!package-lock.json
-
-assets/fonts/
-
-assets/icons/dist/!tsconfig.json
-
-assets/images/
-
-assets/videos/web-build/!eas.json
-
-components/__tests__/
-
-
-
-# Arquivos temporários
-
-**/.temp/# Arquivos temporários que causam problemas de permissão# Incluir diretórios essenciais do app
-
-**/.tmp/
-
-**/tmp/**/.temp/!app/
-
-**/.cache/
-
-**/__pycache__/**/.tmp/app/**
-
-
-
-# Arquivos binários e grandes**/tmp/
-
-*.keystore
-
-*.jks**/.cache/# Incluir assets essenciais (apenas PNG básicos)
-
-*.so
-
-*.o**/__pycache__/!assets/
-
-*.dll
-
-*.exeassets/**
-
-*.bin
-
-*.mp4# Arquivos de desenvolvimento!assets/icon.png
-
-*.mov
-
-*.avi.vscode/!assets/splash.png
-
-*.zip
-
-*.tar.idea/!assets/adaptive-icon.png
-
-*.gz
-
-
-
-# Arquivos de backup e sistema
-
-*.log# Arquivos binários grandes# Incluir components essenciais
-
-*.tmp
-
-*.bak*.keystore!components/
-
-**/.DS_Store
-
-**/Thumbs.db*.jkscomponents/**
-
-**/desktop.ini
-
-*.so
-
-# Arquivos de documentação e análise
-
-**/*.sql*.o# Incluir configurações
-
-**/*.md
-
-**/*.ipynb*.dll!constants/
-
-
-
-# Arquivos de desenvolvimento*.execonstants/**
-
-.vscode/
-
-.idea/*.bin
-
-*.mp4# Incluir contextos
-
-*.mov!contexts/
-
-*.avicontexts/**
-
-
-
-# Arquivos de backup e sistema# Incluir hooks
-
-*.log!hooks/
-
-*.tmphooks/**
-
-*.bak
-
-**/.DS_Store# Incluir lib
-
-**/Thumbs.db!lib/
-
-**/desktop.inilib/**
-
-
-
-# Arquivos específicos que podem causar problemas# Incluir scripts essenciais
-
-**/*.sql!scripts/
-
-src/components/scripts/reset-project.js
-
-app/components/auth/
-
-assets/icons/# Configuração Android (essencial)
-!android/
-android/**
-!android/build/
-!android/app/build/
-!android/.gradle/
-!android/*/build/
-
-# Excluir tudo do supabase exceto algumas configs
-supabase/
-!supabase/config.toml
-
-# Excluir todos os arquivos problemáticos
-**/.temp/
-**/.tmp/
-**/tmp/
-**/.cache/
-**/__pycache__/
+.expo-shared/
+
+# Builds locais
+android/build/
+android/.gradle/
+android/app/build/
+ios/build/
+ios/Pods/
+
+# Temp files
 *.log
-*.tmp
-*.bak
-*.keystore
-*.jks
-*.so
-*.o
-*.dll
-*.exe
-*.bin
-*.mp4
-*.mov
-*.avi
-*.zip
-*.tar
-*.gz
-**/.DS_Store
-**/Thumbs.db
-**/desktop.ini
-**/*.sql
-**/*.md
-!README.md
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+
+# Editor
 .vscode/
 .idea/
-**/__tests__/
-**/node_modules//android
+
+# IMPORTANTE: NÃO ignorar:
+# - android/ (pasta raiz - já commitada)
+# - assets/ (necessário para prebuild)
+# - Arquivos de configuração

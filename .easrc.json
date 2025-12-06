@@ -1,0 +1,6 @@
+{
+  "cli": {
+    "requireCommit": false,
+    "clearCache": false
+  }
+}
