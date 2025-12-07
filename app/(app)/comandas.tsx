@@ -26,6 +26,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import * as ImagePicker from 'expo-image-picker';
 import { logger } from '../../utils/logger';
 import { Cliente as ClienteBase, Produto as ProdutoBase, Servico as ServicoBase, Pacote as PacoteBase, Comanda as ComandaBase } from '@types';
+import { theme } from '@utils/theme';
 
 // Tipos específicos para comandas
 type ClienteComanda = Pick<ClienteBase, 'id' | 'nome' | 'telefone' | 'email' | 'estabelecimento_id' | 'created_at'> & {
@@ -1504,7 +1505,7 @@ export default function ComandasScreen() {
               />
             ) : (
               <View style={styles.comandaCardFotoPlaceholder}>
-                <Ionicons name="person" size={18} color="#7C3AED" />
+                <Ionicons name="person" size={18} color="theme.colors.primary" />
               </View>
             )}
             <View style={styles.comandaCardClienteInfo}>
@@ -1904,7 +1905,7 @@ export default function ComandasScreen() {
           <Ionicons 
             name="ellipsis-horizontal-circle" 
             size={24} 
-            color={abaAtiva === 'abertas' ? '#7C3AED' : '#6B7280'} 
+            color={abaAtiva === 'abertas' ? 'theme.colors.primary' : '#6B7280'} 
           />
           <Text style={[styles.tabText, abaAtiva === 'abertas' && styles.tabTextActive]}>
             Abertas
@@ -1918,7 +1919,7 @@ export default function ComandasScreen() {
           <Ionicons 
             name="checkmark-circle" 
             size={24} 
-            color={abaAtiva === 'fechadas' ? '#7C3AED' : '#6B7280'}
+            color={abaAtiva === 'fechadas' ? 'theme.colors.primary' : '#6B7280'}
           />
           <Text style={[styles.tabText, abaAtiva === 'fechadas' && styles.tabTextActive]}>
             Fechadas
@@ -1932,7 +1933,7 @@ export default function ComandasScreen() {
           <Ionicons 
             name="close-circle" 
             size={24} 
-            color={abaAtiva === 'canceladas' ? '#7C3AED' : '#6B7280'}
+            color={abaAtiva === 'canceladas' ? 'theme.colors.primary' : '#6B7280'}
           />
           <Text style={[styles.tabText, abaAtiva === 'canceladas' && styles.tabTextActive]}>
             Canceladas
@@ -1964,7 +1965,7 @@ export default function ComandasScreen() {
             <RefreshControl
               refreshing={loading}
               onRefresh={carregarComandas}
-              colors={['#7C3AED']}
+              colors={['theme.colors.primary']}
             />
           }
           keyExtractor={(item) => item.id}
@@ -1975,7 +1976,7 @@ export default function ComandasScreen() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               {loading ? (
-                <ActivityIndicator size="large" color="#7C3AED" />
+                <ActivityIndicator size="large" color="theme.colors.primary" />
               ) : error === 'tabela_nao_existe' ? (
                 <>
                   <View style={styles.emptyIconContainer}>
@@ -2063,7 +2064,7 @@ export default function ComandasScreen() {
                     />
                   ) : selectedCliente ? (
                     <View style={styles.clienteFotoPlaceholderSelected}>
-                      <Ionicons name="person" size={16} color="#7C3AED" />
+                      <Ionicons name="person" size={16} color="theme.colors.primary" />
                     </View>
                   ) : (
                     <Ionicons name="person" size={20} color="#6B7280" style={{marginRight: 8}} />
@@ -2114,7 +2115,7 @@ export default function ComandasScreen() {
                   <View style={styles.clientesDropdown}>
                     {buscandoClientes ? (
                       <View style={styles.centeredContainer}>
-                        <ActivityIndicator size="small" color="#7C3AED" />
+                        <ActivityIndicator size="small" color="theme.colors.primary" />
                         <Text style={styles.mensagemCarregando}>Buscando clientes...</Text>
                       </View>
                     ) : clientesEncontrados.length > 0 ? (
@@ -2137,7 +2138,7 @@ export default function ComandasScreen() {
                               />
                             ) : (
                               <View style={styles.clienteFotoPlaceholder}>
-                                <Ionicons name="person" size={20} color="#7C3AED" />
+                                <Ionicons name="person" size={20} color="theme.colors.primary" />
                               </View>
                             )}
                             <View style={styles.clienteInfo}>
@@ -2199,7 +2200,7 @@ export default function ComandasScreen() {
                       <Ionicons 
                         name="cube-outline" 
                         size={24} 
-                        color={tipoItem === 'produto' ? '#fff' : '#7C3AED'} 
+                        color={tipoItem === 'produto' ? '#fff' : 'theme.colors.primary'} 
                       />
                       <Text style={[
                         styles.tipoItemButtonText,
@@ -2220,7 +2221,7 @@ export default function ComandasScreen() {
                       <Ionicons 
                         name="construct-outline" 
                         size={24} 
-                        color={tipoItem === 'servico' ? '#fff' : '#7C3AED'} 
+                        color={tipoItem === 'servico' ? '#fff' : 'theme.colors.primary'} 
                       />
                       <Text style={[
                         styles.tipoItemButtonText,
@@ -2241,7 +2242,7 @@ export default function ComandasScreen() {
                       <Ionicons 
                         name="gift-outline" 
                         size={24} 
-                        color={tipoItem === 'pacote' ? '#fff' : '#7C3AED'} 
+                        color={tipoItem === 'pacote' ? '#fff' : 'theme.colors.primary'} 
                       />
                       <Text style={[
                         styles.tipoItemButtonText,
@@ -2291,7 +2292,7 @@ export default function ComandasScreen() {
                       <Ionicons 
                         name="card-outline" 
                         size={24} 
-                        color={tipoItem === 'pagamento' ? '#fff' : '#7C3AED'} 
+                        color={tipoItem === 'pagamento' ? '#fff' : 'theme.colors.primary'} 
                       />
                       <Text style={[ 
                         styles.tipoItemButtonText,
@@ -2489,7 +2490,7 @@ export default function ComandasScreen() {
                       />
                     ) : (
                       <View style={styles.comandaDetailFotoPlaceholder}>
-                        <Ionicons name="person" size={24} color="#7C3AED" />
+                        <Ionicons name="person" size={24} color="theme.colors.primary" />
                       </View>
                     )}
                     <View style={styles.comandaDetailInfo}>
@@ -2539,7 +2540,7 @@ export default function ComandasScreen() {
                           setObservacoesEditadas(comandaEmEdicao.observacoes || '');
                         }}
                       >
-                        <Ionicons name="create-outline" size={18} color="#7C3AED" />
+                        <Ionicons name="create-outline" size={18} color="theme.colors.primary" />
                         <Text style={styles.editarItensText}>Editar</Text>
                       </TouchableOpacity>
                     )}
@@ -2582,7 +2583,7 @@ export default function ComandasScreen() {
                                   }}
                                   style={styles.quantidadeButton}
                                 >
-                                  <Ionicons name="remove" size={16} color="#7C3AED" />
+                                  <Ionicons name="remove" size={16} color="theme.colors.primary" />
                                 </TouchableOpacity>
                                 <Text style={styles.quantidadeText}>{item.quantidade}</Text>
                                 <TouchableOpacity 
@@ -2594,7 +2595,7 @@ export default function ComandasScreen() {
                                   }}
                                   style={styles.quantidadeButton}
                                 >
-                                  <Ionicons name="add" size={16} color="#7C3AED" />
+                                  <Ionicons name="add" size={16} color="theme.colors.primary" />
                                 </TouchableOpacity>
                                 <Text style={styles.comandaItemPrice}>
                                   x {((item.preco || item.preco_unitario || 0)).toLocaleString('pt-BR', {
@@ -2657,7 +2658,7 @@ export default function ComandasScreen() {
                             abrirModalItens('produto');
                           }}
                         >
-                          <Ionicons name="cube-outline" size={20} color="#7C3AED" />
+                          <Ionicons name="cube-outline" size={20} color="theme.colors.primary" />
                           <Text style={styles.adicionarItemButtonText}>Produto</Text>
                         </TouchableOpacity>
 
@@ -2668,7 +2669,7 @@ export default function ComandasScreen() {
                             abrirModalItens('servico');
                           }}
                         >
-                          <Ionicons name="cut-outline" size={20} color="#7C3AED" />
+                          <Ionicons name="cut-outline" size={20} color="theme.colors.primary" />
                           <Text style={styles.adicionarItemButtonText}>Serviço</Text>
                         </TouchableOpacity>
 
@@ -2679,7 +2680,7 @@ export default function ComandasScreen() {
                             abrirModalItens('pacote');
                           }}
                         >
-                          <Ionicons name="gift-outline" size={20} color="#7C3AED" />
+                          <Ionicons name="gift-outline" size={20} color="theme.colors.primary" />
                           <Text style={styles.adicionarItemButtonText}>Pacote</Text>
                         </TouchableOpacity>
                       </View>
@@ -3028,7 +3029,7 @@ export default function ComandasScreen() {
             >
               {buscandoItens ? (
                 <View style={styles.centeredContainer}>
-                  <ActivityIndicator size="large" color="#7C3AED" />
+                  <ActivityIndicator size="large" color="theme.colors.primary" />
                   <Text style={styles.mensagemCarregando}>Buscando itens...</Text>
                 </View>
               ) : itensEncontrados.length > 0 ? (
@@ -3071,7 +3072,7 @@ export default function ComandasScreen() {
                           </View>
                         </View>
                         {itemSelecionado && (
-                          <Ionicons name="checkmark-circle" size={24} color="#7C3AED" />
+                          <Ionicons name="checkmark-circle" size={24} color="theme.colors.primary" />
                         )}
                       </TouchableOpacity>
                     );
@@ -3102,14 +3103,14 @@ export default function ComandasScreen() {
                           onPress={() => alterarQuantidadeItem(item.id, Math.max(1, item.quantidade - 1))}
                           style={styles.modalQuantidadeButton}
                         >
-                          <Ionicons name="remove" size={20} color="#7C3AED" />
+                          <Ionicons name="remove" size={20} color="theme.colors.primary" />
                         </TouchableOpacity>
                         <Text style={styles.modalQuantidadeText}>{item.quantidade}</Text>
                         <TouchableOpacity
                           onPress={() => alterarQuantidadeItem(item.id, item.quantidade + 1)}
                           style={styles.modalQuantidadeButton}
                         >
-                          <Ionicons name="add" size={20} color="#7C3AED" />
+                          <Ionicons name="add" size={20} color="theme.colors.primary" />
                         </TouchableOpacity>
                       </View>
                       <TouchableOpacity
@@ -3592,7 +3593,7 @@ export default function ComandasScreen() {
               style={styles.optionButton}
               onPress={() => handleComprovantePix('camera')}
             >
-              <Ionicons name="camera" size={24} color="#7C3AED" />
+              <Ionicons name="camera" size={24} color="theme.colors.primary" />
               <Text style={styles.optionButtonText}>Tirar Foto</Text>
             </TouchableOpacity>
             
@@ -3600,7 +3601,7 @@ export default function ComandasScreen() {
               style={styles.optionButton}
               onPress={() => handleComprovantePix('gallery')}
             >
-              <Ionicons name="images" size={24} color="#7C3AED" />
+              <Ionicons name="images" size={24} color="theme.colors.primary" />
               <Text style={styles.optionButtonText}>Escolher da Galeria</Text>
             </TouchableOpacity>
             
@@ -3672,7 +3673,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   header: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     padding: 16,
     paddingTop: 45,
     paddingBottom: 25,
@@ -3742,7 +3743,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   tabTextActive: {
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: 'bold',
   },
   comandasList: {
@@ -3859,7 +3860,7 @@ const styles = StyleSheet.create({
   comandaDetailTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#6D28D9',
+    color: 'theme.colors.primaryDark',
     marginBottom: 8,
   },
   comandaDetailInfo: {
@@ -3962,7 +3963,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   itemTypeTabTextActive: {
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: 'bold',
   },
   comandaDetailData: {
@@ -3973,7 +3974,7 @@ const styles = StyleSheet.create({
   },
   comandaDetailFinalizadoPor: {
     fontSize: 14,
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     marginTop: 6,
     fontWeight: '500',
     lineHeight: 20,
@@ -4017,7 +4018,7 @@ const styles = StyleSheet.create({
   editarItensText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     marginLeft: 4,
   },
   salvarItensButton: {
@@ -4091,12 +4092,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#7C3AED',
+    borderColor: 'theme.colors.primary',
   },
   adicionarItemButtonText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     marginLeft: 6,
   },
   comandaActions: {
@@ -4140,7 +4141,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginHorizontal: 8,
     borderWidth: 1,
-    borderColor: '#7C3AED',
+    borderColor: 'theme.colors.primary',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -4153,7 +4154,7 @@ const styles = StyleSheet.create({
   manterAbertaText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     marginLeft: 8,
   },
   fecharComandaButton: {
@@ -4161,7 +4162,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     height: 48,
     borderRadius: 8,
     marginLeft: 8,
@@ -4211,7 +4212,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 24,
     left: 24,
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     width: 56,
     height: 56,
     borderRadius: 28,
@@ -4300,7 +4301,7 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     flex: 1,
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     paddingVertical: 14,
     borderRadius: 8,
     marginLeft: 8,
@@ -4453,7 +4454,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   novoClienteButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
@@ -4553,7 +4554,7 @@ const styles = StyleSheet.create({
   comandaTotalValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
   },
   comandaAcao: {
     marginLeft: 8,
@@ -4565,7 +4566,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 24,
     right: 24,
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     width: 56,
     height: 56,
     borderRadius: 28,
@@ -4621,16 +4622,16 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#7C3AED',
+    borderColor: 'theme.colors.primary',
     backgroundColor: '#FFFFFF',
   },
   tipoItemButtonActive: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
   },
   tipoItemButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
   },
   tipoItemButtonTextActive: {
     color: '#FFFFFF',
@@ -4672,7 +4673,7 @@ const styles = StyleSheet.create({
   itemPreco: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
   },
   itemRemoveButton: {
     padding: 8,
@@ -4748,7 +4749,7 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   modalItemNomeSelecionado: {
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '600',
   },
   modalItemDetalhes: {
@@ -4758,7 +4759,7 @@ const styles = StyleSheet.create({
   },
   modalItemPreco: {
     fontSize: 14,
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '600',
   },
   modalItemEstoque: {
@@ -4837,7 +4838,7 @@ const styles = StyleSheet.create({
   },
   modalConfirmButton: {
     flex: 1,
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     paddingVertical: 14,
     borderRadius: 8,
     marginLeft: 8,
@@ -4898,7 +4899,7 @@ const styles = StyleSheet.create({
   pagamentoValor: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
   },
   pagamentoForma: {
     marginBottom: 24,
@@ -4923,8 +4924,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   pagamentoOpcaoSelecionada: {
-    backgroundColor: '#7C3AED',
-    borderColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
+    borderColor: 'theme.colors.primary',
   },
   pagamentoOpcaoTexto: {
     fontSize: 14,
@@ -4978,7 +4979,7 @@ const styles = StyleSheet.create({
   pagamentoInfoValor: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
   },
   pagamentoParcelasContainer: {
     marginTop: 16,
@@ -4999,8 +5000,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pagamentoParcelaButtonSelecionada: {
-    backgroundColor: '#7C3AED',
-    borderColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
+    borderColor: 'theme.colors.primary',
   },
   pagamentoParcelaText: {
     fontSize: 14,
@@ -5039,7 +5040,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   comprovanteButtonTextSmall: {
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '600',
   },
   comprovanteContainer: {
@@ -5072,7 +5073,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   comprovanteButtonText: {
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontSize: 16,
     fontWeight: 'bold',
     marginLeft: 8,
@@ -5116,7 +5117,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   optionButtonText: {
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
@@ -5183,7 +5184,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginTop: 12,
     borderLeftWidth: 3,
-    borderLeftColor: '#7C3AED',
+    borderLeftColor: 'theme.colors.primary',
   },
   crediarioInfoRow: {
     flexDirection: 'row',
@@ -5244,7 +5245,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   adicionarPagamentoButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     borderRadius: 8,
     padding: 12,
     alignItems: 'center',

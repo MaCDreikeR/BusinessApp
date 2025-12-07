@@ -7,6 +7,7 @@ import { DeviceEventEmitter } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { logger } from '../../utils/logger';
 import { Produto as ProdutoBase, Servico as ServicoBase, Pacote as PacoteBase } from '@types';
+import { theme } from '@utils/theme';
 
 type ProdutoPacote = {
   id: string;
@@ -722,7 +723,7 @@ export default function PacotesScreen() {
         ListEmptyComponent={
           loading ? (
             <View style={styles.emptyContainer}>
-              <ActivityIndicator size="large" color="#7C3AED" />
+              <ActivityIndicator size="large" color="theme.colors.primary" />
             </View>
           ) : (
             <View style={styles.emptyContainer}>
@@ -816,7 +817,7 @@ export default function PacotesScreen() {
                       style={styles.addButton}
                       onPress={handleMostrarModalProdutos}
                     >
-                      <Ionicons name="add-circle-outline" size={24} color="#7C3AED" />
+                      <Ionicons name="add-circle-outline" size={24} color="theme.colors.primary" />
                       <Text style={styles.addButtonText}>Adicionar Produtos</Text>
                     </TouchableOpacity>
                     {novoPacote.produtos.map((produto, index) => (
@@ -847,7 +848,7 @@ export default function PacotesScreen() {
                       style={styles.addButton}
                       onPress={handleMostrarModalServicos}
                     >
-                      <Ionicons name="add-circle-outline" size={24} color="#7C3AED" />
+                      <Ionicons name="add-circle-outline" size={24} color="theme.colors.primary" />
                       <Text style={styles.addButtonText}>Adicionar Serviços</Text>
                     </TouchableOpacity>
                     {novoPacote.servicos.map((servico, index) => (
@@ -1018,7 +1019,7 @@ export default function PacotesScreen() {
                           <Ionicons 
                             name={produtosSelecionados.some(p => p.id === produto.id) ? "checkbox" : "square-outline"} 
                             size={24} 
-                            color="#7C3AED" 
+                            color="theme.colors.primary" 
                           />
                         </View>
                         <Text style={styles.modalItemText}>{produto.nome}</Text>
@@ -1042,7 +1043,7 @@ export default function PacotesScreen() {
                                 }
                               }}
                             >
-                              <Ionicons name="remove" size={20} color="#7C3AED" />
+                              <Ionicons name="remove" size={20} color="theme.colors.primary" />
                             </TouchableOpacity>
                             <TextInput
                               style={styles.quantidadeInput}
@@ -1064,7 +1065,7 @@ export default function PacotesScreen() {
                                 }
                               }}
                             >
-                              <Ionicons name="add" size={20} color="#7C3AED" />
+                              <Ionicons name="add" size={20} color="theme.colors.primary" />
                             </TouchableOpacity>
                           </View>
                         </View>
@@ -1160,7 +1161,7 @@ export default function PacotesScreen() {
                           <Ionicons 
                             name={servicosSelecionados.some(s => s.id === servico.id) ? "checkbox" : "square-outline"} 
                             size={24} 
-                            color="#7C3AED" 
+                            color="theme.colors.primary" 
                           />
                         </View>
                         <Text style={styles.modalItemText}>{servico.nome}</Text>
@@ -1184,7 +1185,7 @@ export default function PacotesScreen() {
                                 }
                               }}
                             >
-                              <Ionicons name="remove" size={20} color="#7C3AED" />
+                              <Ionicons name="remove" size={20} color="theme.colors.primary" />
                             </TouchableOpacity>
                             <TextInput
                               style={styles.quantidadeInput}
@@ -1206,7 +1207,7 @@ export default function PacotesScreen() {
                                 }
                               }}
                             >
-                              <Ionicons name="add" size={20} color="#7C3AED" />
+                              <Ionicons name="add" size={20} color="theme.colors.primary" />
                             </TouchableOpacity>
                           </View>
                         </View>
@@ -1302,17 +1303,17 @@ const styles = StyleSheet.create({
   valorOriginalText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
   },
   descontoText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
   },
   valorFinalText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
   },
   pacoteDescricao: {
     fontSize: 14,
@@ -1422,7 +1423,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     padding: 12,
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
   },
   cancelButton: {
     backgroundColor: '#F3F4F6',
@@ -1442,7 +1443,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   emptyText: {
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontSize: 16,
     fontWeight: '500',
     textAlign: 'center',
@@ -1459,7 +1460,7 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     marginLeft: 8,
   },
   itemLista: {
@@ -1485,7 +1486,7 @@ const styles = StyleSheet.create({
   itemPreco: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
   },
   removeButton: {
     padding: 8,
@@ -1521,7 +1522,7 @@ const styles = StyleSheet.create({
   modalItemPreco: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
   },
   quantidadeInputContainer: {
     marginTop: 8,
@@ -1649,7 +1650,7 @@ const styles = StyleSheet.create({
   itemPrecoCompacto: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     marginLeft: 8,
   },
   modalItemCheckbox: {

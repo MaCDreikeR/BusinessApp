@@ -18,6 +18,7 @@ import { useMemo } from 'react';
 import AgendamentoNotificacao from '../../components/AgendamentoNotificacao';
 import { useAgendamentoNotificacao } from '../../hooks/useAgendamentoNotificacao';
 import { logger } from '../../utils/logger';
+import { theme } from '@utils/theme';
 
 // Função para calcular largura responsiva do drawer
 const getDrawerWidth = (): number | `${number}%` => {
@@ -242,7 +243,7 @@ export default function AppLayout() {
                 {loadingAvatar && (
                   <ActivityIndicator 
                     size="small" 
-                    color="#7C3AED" 
+                    color="theme.colors.primary" 
                     style={styles.loadingIndicator}
                   />
                 )}
@@ -311,8 +312,8 @@ export default function AppLayout() {
         headerStyle: {
           backgroundColor: '#fff',
         },
-        headerTintColor: '#7C3AED',
-        drawerActiveTintColor: '#7C3AED',
+        headerTintColor: 'theme.colors.primary',
+        drawerActiveTintColor: 'theme.colors.primary',
         drawerInactiveTintColor: '#666',
         headerShown: !isEstoque && !isNovoOrcamento && !isPerfil && !isNovoUsuario,
         drawerType: isPermanentDrawer ? 'permanent' : 'slide',
@@ -346,7 +347,7 @@ export default function AppLayout() {
                 }}
                 style={{ marginRight: 16 }}
               >
-                <Ionicons name="add" size={24} color="#7C3AED" />
+                <Ionicons name="add" size={24} color="theme.colors.primary" />
               </TouchableOpacity>
             );
           }
@@ -358,7 +359,7 @@ export default function AppLayout() {
                     DeviceEventEmitter.emit('abrirModalCategorias');
                   }}
                 >
-                  <Ionicons name="list" size={24} color="#7C3AED" />
+                  <Ionicons name="list" size={24} color="theme.colors.primary" />
                 </TouchableOpacity>
                 <TouchableOpacity 
                   onPress={() => {
@@ -372,7 +373,7 @@ export default function AppLayout() {
                     }
                   }}
                 >
-                  <Ionicons name="add" size={24} color="#7C3AED" />
+                  <Ionicons name="add" size={24} color="theme.colors.primary" />
                 </TouchableOpacity>
               </View>
             );
@@ -400,10 +401,10 @@ export default function AppLayout() {
                     paddingVertical: 6,
                     borderRadius: 8,
                     borderWidth: 1,
-                    borderColor: '#7C3AED'
+                    borderColor: 'theme.colors.primary'
                   }}
                 >
-                  <FontAwesome5 name="calendar-alt" size={16} color="#7C3AED" />
+                  <FontAwesome5 name="calendar-alt" size={16} color="theme.colors.primary" />
                 </TouchableOpacity>
               </View>
             );
@@ -443,10 +444,10 @@ export default function AppLayout() {
                     paddingVertical: 6,
                     borderRadius: 8,
                     borderWidth: 1,
-                    borderColor: '#7C3AED'
+                    borderColor: 'theme.colors.primary'
                   }}
                 >
-                  <FontAwesome5 name="receipt" size={16} color="#7C3AED" />
+                  <FontAwesome5 name="receipt" size={16} color="theme.colors.primary" />
                 </TouchableOpacity>
               )}
               <TouchableOpacity
@@ -469,10 +470,10 @@ export default function AppLayout() {
                   paddingVertical: 6,
                   borderRadius: 8,
                   borderWidth: 1,
-                  borderColor: '#7C3AED'
+                  borderColor: 'theme.colors.primary'
                 }}
               >
-                <FontAwesome5 name="calendar-alt" size={16} color="#7C3AED" />
+                <FontAwesome5 name="calendar-alt" size={16} color="theme.colors.primary" />
               </TouchableOpacity>
             </View>
           ),
@@ -496,7 +497,7 @@ export default function AppLayout() {
                   DeviceEventEmitter.emit('togglePresencaUsuarios');
                 }}
               >
-                <Ionicons name="people-outline" size={24} color="#7C3AED" />
+                <Ionicons name="people-outline" size={24} color="theme.colors.primary" />
               </TouchableOpacity>
               
               {/* Gerenciar bloqueios - apenas para admins */}
@@ -507,7 +508,7 @@ export default function AppLayout() {
                     DeviceEventEmitter.emit('toggleBloqueioModal');
                   }}
                 >
-                  <Ionicons name="sunny-outline" size={24} color="#7C3AED" />
+                  <Ionicons name="sunny-outline" size={24} color="theme.colors.primary" />
                 </TouchableOpacity>
               )}
               
@@ -519,7 +520,7 @@ export default function AppLayout() {
                     DeviceEventEmitter.emit('toggleHorariosModal');
                   }}
                 >
-                  <Ionicons name="settings-outline" size={24} color="#7C3AED" />
+                  <Ionicons name="settings-outline" size={24} color="theme.colors.primary" />
                 </TouchableOpacity>
               )}
               
@@ -527,7 +528,7 @@ export default function AppLayout() {
               <TouchableOpacity 
                 onPress={() => router.push('/agenda/novo')}
               >
-                <Ionicons name="add" size={24} color="#7C3AED" />
+                <Ionicons name="add" size={24} color="theme.colors.primary" />
               </TouchableOpacity>
             </View>
           ),
@@ -556,7 +557,7 @@ export default function AppLayout() {
               }}
               style={{ marginRight: 16 }}
             >
-              <Ionicons name="add" size={24} color="#7C3AED" />
+              <Ionicons name="add" size={24} color="theme.colors.primary" />
             </TouchableOpacity>
           ),
         }}
@@ -600,7 +601,7 @@ export default function AppLayout() {
                 }}
                 style={{ padding: 8 }}
               >
-                <Ionicons name="list" size={24} color="#7C3AED" />
+                <Ionicons name="list" size={24} color="theme.colors.primary" />
               </TouchableOpacity>
               <TouchableOpacity 
                 onPress={() => {
@@ -615,7 +616,7 @@ export default function AppLayout() {
                 }}
                 style={{ padding: 8 }}
               >
-                <Ionicons name="add" size={24} color="#7C3AED" />
+                <Ionicons name="add" size={24} color="theme.colors.primary" />
               </TouchableOpacity>
             </View>
           ),
@@ -644,7 +645,7 @@ export default function AppLayout() {
                 }
               }}
             >
-              <Ionicons name="add" size={24} color="#7C3AED" />
+              <Ionicons name="add" size={24} color="theme.colors.primary" />
             </TouchableOpacity>
           ),
         }}
@@ -817,7 +818,7 @@ export default function AppLayout() {
               onPress={() => router.push('/agenda')}
               style={{ marginLeft: 8 }}
             >
-              <Ionicons name="arrow-back" size={24} color="#7C3AED" />
+              <Ionicons name="arrow-back" size={24} color="theme.colors.primary" />
             </TouchableOpacity>
           )
         }}
@@ -861,7 +862,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
   },
   placeholderAvatar: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     alignItems: 'center',
     justifyContent: 'center',
   },

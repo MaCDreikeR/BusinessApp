@@ -5,6 +5,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { router } from 'expo-router';
 import MaskInput, { Masks } from 'react-native-mask-input';
 import { logger } from '../../../utils/logger';
+import { theme } from '@utils/theme';
 
 type ValidationErrors = {
   [key: string]: string;
@@ -295,7 +296,7 @@ export default function NovoFornecedorScreen() {
               {loadingCep && (
                 <ActivityIndicator 
                   size="small" 
-                  color="#7C3AED" 
+                  color="theme.colors.primary" 
                   style={styles.cepLoader} 
                 />
               )}
@@ -444,7 +445,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   saveButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',

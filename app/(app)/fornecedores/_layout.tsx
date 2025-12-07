@@ -3,6 +3,7 @@ import { TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { DrawerToggleButton } from '@react-navigation/drawer';
+import { theme } from '@utils/theme';
 
 export default function FornecedoresLayout() {
   return (
@@ -11,10 +12,10 @@ export default function FornecedoresLayout() {
         headerStyle: {
           backgroundColor: '#FFFFFF',
         },
-        headerTintColor: '#7C3AED',
+        headerTintColor: 'theme.colors.primary',
         headerTitleStyle: {
           fontWeight: '600',
-          color: '#7C3AED'
+          color: 'theme.colors.primary'
         },
         headerShadowVisible: false,
       }}
@@ -23,13 +24,13 @@ export default function FornecedoresLayout() {
         name="index"
         options={{
           title: 'Fornecedores',
-          headerLeft: () => <DrawerToggleButton tintColor="#7C3AED" />,
+          headerLeft: () => <DrawerToggleButton tintColor="theme.colors.primary" />,
           headerRight: () => (
             <TouchableOpacity 
               onPress={() => router.push('/fornecedores/novo')}
               style={{ marginRight: 16 }}
             >
-              <Ionicons name="add" size={24} color="#7C3AED" />
+              <Ionicons name="add" size={24} color="theme.colors.primary" />
             </TouchableOpacity>
           ),
         }}
@@ -44,7 +45,7 @@ export default function FornecedoresLayout() {
               onPress={() => router.back()}
               style={{ marginLeft: 16 }}
             >
-              <Ionicons name="arrow-back" size={24} color="#7C3AED" />
+              <Ionicons name="arrow-back" size={24} color="theme.colors.primary" />
             </TouchableOpacity>
           ),
         }}
@@ -58,7 +59,7 @@ export default function FornecedoresLayout() {
               onPress={() => router.back()}
               style={{ marginLeft: 16 }}
             >
-              <Ionicons name="arrow-back" size={24} color="#7C3AED" />
+              <Ionicons name="arrow-back" size={24} color="theme.colors.primary" />
             </TouchableOpacity>
           ),
         }}

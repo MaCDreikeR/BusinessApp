@@ -5,6 +5,8 @@ import { criarOrcamento, adicionarItemOrcamento, buscarClientes, buscarProdutos,
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { logger } from '../../../utils/logger';
+import { formatarDataInput, formatarMoedaInput, formatarTelefoneInput } from '@utils/validators';
+import { theme } from '@utils/theme';
 
 interface ItemOrcamento {
   id: string;
@@ -556,27 +558,6 @@ export default function NovoOrcamentoScreen() {
            dataObj <= hoje;
   };
 
-  // Função para formatar data
-  const formatarData = (texto: string) => {
-    const numeros = texto.replace(/\D/g, '');
-    if (numeros.length <= 2) return numeros;
-    if (numeros.length <= 4) return `${numeros.slice(0, 2)}/${numeros.slice(2)}`;
-    return `${numeros.slice(0, 2)}/${numeros.slice(2, 4)}/${numeros.slice(4, 8)}`;
-  };
-
-  const formatarValorInput = (texto: string) => {
-    const numeros = texto.replace(/\D/g, '');
-    const valor = (parseInt(numeros) / 100).toFixed(2);
-    return valor.replace('.', ',');
-  };
-
-  const formatarTelefoneInput = (texto: string) => {
-    const numeros = texto.replace(/\D/g, '');
-    if (numeros.length <= 2) return numeros;
-    if (numeros.length <= 7) return `(${numeros.slice(0, 2)}) ${numeros.slice(2)}`;
-    return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 7)}-${numeros.slice(7, 11)}`;
-  };
-
   const handleSalvar = async () => {
     try {
       logger.debug('Itens antes de salvar:', itens);
@@ -693,7 +674,7 @@ export default function NovoOrcamentoScreen() {
                 editable={!clienteSelecionado}
               />
               {buscandoClientes && (
-                <Ionicons name="search" size={20} color="#7C3AED" style={styles.searchIcon} />
+                <Ionicons name="search" size={20} color="theme.colors.primary" style={styles.searchIcon} />
               )}
               {clienteSelecionado && (
                 <TouchableOpacity 
@@ -781,7 +762,7 @@ export default function NovoOrcamentoScreen() {
                 <Ionicons 
                   name="cube-outline" 
                   size={24} 
-                  color={tipoItem === 'produto' ? '#fff' : '#7C3AED'} 
+                  color={tipoItem === 'produto' ? '#fff' : 'theme.colors.primary'} 
                 />
                 <Text style={[
                   styles.tipoItemButtonText,
@@ -805,7 +786,7 @@ export default function NovoOrcamentoScreen() {
                 <Ionicons 
                   name="construct-outline" 
                   size={24} 
-                  color={tipoItem === 'servico' ? '#fff' : '#7C3AED'} 
+                  color={tipoItem === 'servico' ? '#fff' : 'theme.colors.primary'} 
                 />
                 <Text style={[
                   styles.tipoItemButtonText,
@@ -829,7 +810,7 @@ export default function NovoOrcamentoScreen() {
                 <Ionicons 
                   name="gift-outline" 
                   size={24} 
-                  color={tipoItem === 'pacote' ? '#fff' : '#7C3AED'} 
+                  color={tipoItem === 'pacote' ? '#fff' : 'theme.colors.primary'} 
                 />
                 <Text style={[
                   styles.tipoItemButtonText,
@@ -1002,7 +983,7 @@ export default function NovoOrcamentoScreen() {
                   placeholder={`Buscar ${tipoItem}s...`}
                 />
                 {buscandoItens && (
-                  <Ionicons name="search" size={20} color="#7C3AED" style={styles.modalSearchIcon} />
+                  <Ionicons name="search" size={20} color="theme.colors.primary" style={styles.modalSearchIcon} />
                 )}
               </View>
 
@@ -1062,7 +1043,7 @@ export default function NovoOrcamentoScreen() {
                         </View>
                       </View>
                       {itemSelecionado && (
-                        <Ionicons name="checkmark-circle" size={24} color="#7C3AED" />
+                        <Ionicons name="checkmark-circle" size={24} color="theme.colors.primary" />
                       )}
                     </TouchableOpacity>
                   );
@@ -1085,14 +1066,14 @@ export default function NovoOrcamentoScreen() {
                           onPress={() => handleAlterarQuantidade(item.id, Math.max(1, item.quantidade - 1))}
                           style={styles.modalQuantidadeButton}
                         >
-                          <Ionicons name="remove" size={20} color="#7C3AED" />
+                          <Ionicons name="remove" size={20} color="theme.colors.primary" />
                         </TouchableOpacity>
                         <Text style={styles.modalQuantidadeText}>{item.quantidade}</Text>
                         <TouchableOpacity
                           onPress={() => handleAlterarQuantidade(item.id, item.quantidade + 1)}
                           style={styles.modalQuantidadeButton}
                         >
-                          <Ionicons name="add" size={20} color="#7C3AED" />
+                          <Ionicons name="add" size={20} color="theme.colors.primary" />
                         </TouchableOpacity>
                       </View>
                       <TouchableOpacity
@@ -1187,7 +1168,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   button: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
@@ -1242,7 +1223,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   cadastrarClienteButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     padding: 8,
     borderRadius: 4,
     alignItems: 'center',
@@ -1265,7 +1246,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3e8fd',
   },
   clienteNomeSelecionado: {
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '600',
   },
   itemRow: {
@@ -1283,7 +1264,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   adicionarItemButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -1320,7 +1301,7 @@ const styles = StyleSheet.create({
   },
   itemValor: {
     fontSize: 14,
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '600',
   },
   removeButton: {
@@ -1370,7 +1351,7 @@ const styles = StyleSheet.create({
   valorFinalText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
   },
   produtoContainer: {
     position: 'relative',
@@ -1398,7 +1379,7 @@ const styles = StyleSheet.create({
   },
   produtoPreco: {
     fontSize: 14,
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '600',
   },
   produtoEstoque: {
@@ -1416,7 +1397,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   salvarButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
@@ -1448,16 +1429,16 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#7C3AED',
+    borderColor: 'theme.colors.primary',
     backgroundColor: '#fff',
   },
   tipoItemButtonActive: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
   },
   tipoItemButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
   },
   tipoItemButtonTextActive: {
     color: '#fff',
@@ -1532,7 +1513,7 @@ const styles = StyleSheet.create({
   },
   modalItemPreco: {
     fontSize: 14,
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '600',
   },
   modalItemEstoque: {
@@ -1568,7 +1549,7 @@ const styles = StyleSheet.create({
   },
   modalSelecionadoPreco: {
     fontSize: 14,
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '600',
   },
   modalSelecionadoQuantidade: {
@@ -1611,7 +1592,7 @@ const styles = StyleSheet.create({
   modalConfirmButton: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     borderRadius: 8,
     alignItems: 'center',
     marginLeft: 8,
@@ -1628,7 +1609,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3e8fd',
   },
   modalItemNomeSelecionado: {
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '600',
   },
   errorText: {

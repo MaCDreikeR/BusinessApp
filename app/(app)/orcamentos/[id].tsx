@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { logger } from '../../../utils/logger';
+import { theme } from '@utils/theme';
 import { 
   Orcamento, 
   carregarOrcamentoPorId,
@@ -117,7 +118,7 @@ export default function DetalhesOrcamentoScreen() {
                 font-size: 24px; 
                 font-weight: bold; 
                 margin-bottom: 10px; 
-                color: #7C3AED;
+                color: theme.colors.primary;
               }
               .info { 
                 margin-bottom: 20px;
@@ -159,7 +160,7 @@ export default function DetalhesOrcamentoScreen() {
                 margin-top: 20px; 
                 font-size: 18px;
                 font-weight: bold;
-                color: #7C3AED;
+                color: theme.colors.primary;
                 padding: 15px;
                 background-color: #F9FAFB;
                 border-radius: 8px;
@@ -361,7 +362,7 @@ export default function DetalhesOrcamentoScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#7C3AED" />
+        <ActivityIndicator size="large" color="theme.colors.primary" />
       </View>
     );
   }
@@ -382,7 +383,7 @@ export default function DetalhesOrcamentoScreen() {
             style={styles.backButton}
             onPress={() => router.replace('/(app)/orcamentos')}
           >
-            <Ionicons name="arrow-back" size={24} color="#7C3AED" />
+            <Ionicons name="arrow-back" size={24} color="theme.colors.primary" />
           </TouchableOpacity>
           <View style={styles.clienteContainer}>
             <Text style={styles.cliente}>{orcamento?.cliente}</Text>
@@ -396,13 +397,13 @@ export default function DetalhesOrcamentoScreen() {
             style={styles.iconButton}
             onPress={() => setStatusModalVisible(true)}
           >
-            <Ionicons name="ellipsis-vertical" size={24} color="#7C3AED" />
+            <Ionicons name="ellipsis-vertical" size={24} color="theme.colors.primary" />
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.iconButton}
             onPress={handleImprimir}
           >
-            <Ionicons name="print-outline" size={24} color="#7C3AED" />
+            <Ionicons name="print-outline" size={24} color="theme.colors.primary" />
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.iconButton}
@@ -415,17 +416,17 @@ export default function DetalhesOrcamentoScreen() {
 
       <View style={styles.card}>
         <View style={styles.infoRow}>
-          <Ionicons name="calendar-outline" size={20} color="#7C3AED" />
+          <Ionicons name="calendar-outline" size={20} color="theme.colors.primary" />
           <Text style={styles.infoText}>{formatarData(new Date(orcamento.data))}</Text>
         </View>
 
         <View style={styles.infoRow}>
-          <Ionicons name="cash-outline" size={20} color="#7C3AED" />
+          <Ionicons name="cash-outline" size={20} color="theme.colors.primary" />
           <Text style={styles.valor}>{formatarValor(orcamento.valor_total)}</Text>
         </View>
 
         <View style={styles.infoRow}>
-          <Ionicons name="card-outline" size={20} color="#7C3AED" />
+          <Ionicons name="card-outline" size={20} color="theme.colors.primary" />
           <Text style={styles.infoText}>
             {orcamento.forma_pagamento.charAt(0).toUpperCase() + orcamento.forma_pagamento.slice(1)}
             {orcamento.parcelas > 1 ? ` - ${orcamento.parcelas}x` : ''}
@@ -434,7 +435,7 @@ export default function DetalhesOrcamentoScreen() {
 
         {orcamento.desconto > 0 && (
           <View style={styles.infoRow}>
-            <Ionicons name="pricetag-outline" size={20} color="#7C3AED" />
+            <Ionicons name="pricetag-outline" size={20} color="theme.colors.primary" />
             <Text style={styles.infoText}>Desconto: {orcamento.desconto}%</Text>
           </View>
         )}
@@ -456,7 +457,7 @@ export default function DetalhesOrcamentoScreen() {
                       'layers-outline'
                     } 
                     size={16} 
-                    color="#7C3AED" 
+                    color="theme.colors.primary" 
                   />
                   {' '}
                   {item.tipo.charAt(0).toUpperCase() + item.tipo.slice(1)}
@@ -653,7 +654,7 @@ const styles = StyleSheet.create({
   itemTotalValor: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
   },
   observacoesText: {
     fontSize: 16,

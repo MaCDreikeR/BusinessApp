@@ -9,6 +9,7 @@ import { useFocusEffect, useNavigation, DrawerActions } from '@react-navigation/
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { logger } from '../../../utils/logger';
 import { Cliente as ClienteBase } from '@types';
+import { theme } from '@utils/theme';
 
 type ClienteLista = Pick<ClienteBase, 'id' | 'nome' | 'telefone' | 'estabelecimento_id' | 'created_at'> & {
   foto_url?: string;
@@ -266,7 +267,7 @@ export default function ClientesScreen() {
             style={styles.headerButton}
             onPress={abrirDrawer}
           >
-            <FontAwesome5 name="bars" size={20} color="#7C3AED" />
+            <FontAwesome5 name="bars" size={20} color="theme.colors.primary" />
           </TouchableOpacity>
           <Text style={styles.title}>Clientes</Text>
         </View>
@@ -275,7 +276,7 @@ export default function ClientesScreen() {
           style={styles.headerButton}
           onPress={abrirMenu}
         >
-          <FontAwesome5 name="plus" size={20} color="#7C3AED" />
+          <FontAwesome5 name="plus" size={20} color="theme.colors.primary" />
         </TouchableOpacity>
       </View>
 
@@ -291,7 +292,7 @@ export default function ClientesScreen() {
             onPress={() => setFiltro('todos')}
           >
             <View style={[styles.filtroIcone, filtro === 'todos' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="users" size={16} color={filtro === 'todos' ? '#7C3AED' : '#666'} />
+              <FontAwesome5 name="users" size={16} color={filtro === 'todos' ? 'theme.colors.primary' : '#666'} />
             </View>
             <Text style={[styles.filtroTexto, filtro === 'todos' && styles.filtroTextoAtivo]}>Todos</Text>
           </TouchableOpacity>
@@ -301,7 +302,7 @@ export default function ClientesScreen() {
             onPress={() => setFiltro('agendados')}
           >
             <View style={[styles.filtroIcone, filtro === 'agendados' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="calendar" size={16} color={filtro === 'agendados' ? '#7C3AED' : '#666'} />
+              <FontAwesome5 name="calendar" size={16} color={filtro === 'agendados' ? 'theme.colors.primary' : '#666'} />
             </View>
             <Text style={[styles.filtroTexto, filtro === 'agendados' && styles.filtroTextoAtivo]}>Agendados</Text>
           </TouchableOpacity>
@@ -311,7 +312,7 @@ export default function ClientesScreen() {
             onPress={() => setFiltro('com_credito')}
           >
             <View style={[styles.filtroIcone, filtro === 'com_credito' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="user" size={16} color={filtro === 'com_credito' ? '#7C3AED' : '#666'} />
+              <FontAwesome5 name="user" size={16} color={filtro === 'com_credito' ? 'theme.colors.primary' : '#666'} />
             </View>
             <Text style={[styles.filtroTexto, filtro === 'com_credito' && styles.filtroTextoAtivo]}>Com crédito</Text>
           </TouchableOpacity>
@@ -321,7 +322,7 @@ export default function ClientesScreen() {
             onPress={() => setFiltro('com_debito')}
           >
             <View style={[styles.filtroIcone, filtro === 'com_debito' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="exclamation-circle" size={16} color={filtro === 'com_debito' ? '#7C3AED' : '#666'} />
+              <FontAwesome5 name="exclamation-circle" size={16} color={filtro === 'com_debito' ? 'theme.colors.primary' : '#666'} />
             </View>
             <Text style={[styles.filtroTexto, filtro === 'com_debito' && styles.filtroTextoAtivo]}>Com Débito</Text>
           </TouchableOpacity>
@@ -418,7 +419,7 @@ export default function ClientesScreen() {
               style={styles.menuItem}
               onPress={novoCliente}
             >
-              <FontAwesome5 name="user-plus" size={20} color="#7C3AED" />
+              <FontAwesome5 name="user-plus" size={20} color="theme.colors.primary" />
               <Text style={styles.menuItemTexto}>Novo Cliente</Text>
             </TouchableOpacity>
 
@@ -426,7 +427,7 @@ export default function ClientesScreen() {
               style={styles.menuItem}
               onPress={importarContato}
             >
-              <FontAwesome5 name="address-book" size={20} color="#7C3AED" />
+              <FontAwesome5 name="address-book" size={20} color="theme.colors.primary" />
               <Text style={styles.menuItemTexto}>Importar contatos</Text>
             </TouchableOpacity>
           </View>
@@ -464,7 +465,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     marginLeft: 10, // Espaçamento entre o ícone de menu e o título
   },
   filtrosWrapper: {
@@ -506,7 +507,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   filtroTextoAtivo: {
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '500',
   },
   pesquisaContainer: {

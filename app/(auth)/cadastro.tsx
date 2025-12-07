@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { logger } from '../../utils/logger';
+import { theme } from '@utils/theme';
 import { 
   validarCPF, 
   validarCNPJ, 
@@ -130,7 +131,7 @@ export default function CadastroScreen() {
       style={styles.container}
     >
       <LinearGradient
-        colors={['#7C3AED', '#6D28D9']}
+        colors={['theme.colors.primary', 'theme.colors.primaryDark']}
         style={styles.gradient}
       >
         <ScrollView 
@@ -492,8 +493,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   checkboxChecked: {
-    backgroundColor: '#7C3AED',
-    borderColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
+    borderColor: 'theme.colors.primary',
   },
   checkboxLabel: {
     flex: 1,
@@ -502,16 +503,16 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   link: {
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     textDecorationLine: 'underline',
   },
   createButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
     marginBottom: 16,
-    shadowColor: '#7C3AED',
+    shadowColor: 'theme.colors.primary',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -539,7 +540,7 @@ const styles = StyleSheet.create({
   },
   loginLink: {
     fontSize: 14,
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '500',
   },
   trialButton: {

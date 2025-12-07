@@ -9,6 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../hooks/usePermissions';
 import { logger } from '../../utils/logger';
 import { Agendamento as AgendamentoBase, Produto as ProdutoBase } from '@types';
+import { theme } from '@utils/theme';
 
 // Tipos estendidos para o dashboard
 type AgendamentoDashboard = Pick<AgendamentoBase, 'id' | 'status'> & {
@@ -277,8 +278,8 @@ export default function HomeScreen() {
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          colors={["#7C3AED"]}
-          tintColor="#7C3AED"
+          colors={["theme.colors.primary"]}
+          tintColor="theme.colors.primary"
           title="Atualizando..."
           titleColor="#6B7280"
         />
@@ -291,7 +292,7 @@ export default function HomeScreen() {
             onPress={() => router.push('/agenda')}
           >
             <View style={styles.cardIconContainer}>
-              <FontAwesome5 name="calendar-check" size={24} color="#7C3AED" />
+              <FontAwesome5 name="calendar-check" size={24} color="theme.colors.primary" />
             </View>
             <Text style={styles.cardTitle}>Agendamentos Hoje</Text>
             <Text style={styles.cardValue}>{agendamentosHoje}</Text>
@@ -373,7 +374,7 @@ export default function HomeScreen() {
                     />
                   ) : (
                     <View style={styles.agendamentoFotoPlaceholder}>
-                      <FontAwesome5 name="user" size={20} color="#7C3AED" />
+                      <FontAwesome5 name="user" size={20} color="theme.colors.primary" />
                     </View>
                   )}
                 </View>
@@ -388,7 +389,7 @@ export default function HomeScreen() {
                   </Text>
                   {agendamento.usuario_nome && (
                     <View style={styles.agendamentoProfissionalContainer}>
-                      <FontAwesome5 name="user" size={10} color="#7C3AED" style={{ marginRight: 4 }} />
+                      <FontAwesome5 name="user" size={10} color="theme.colors.primary" style={{ marginRight: 4 }} />
                       <Text style={styles.agendamentoProfissional} numberOfLines={1}>
                         {agendamento.usuario_nome}
                       </Text>
@@ -400,7 +401,7 @@ export default function HomeScreen() {
               {/* Footer com horários */}
               <View style={styles.agendamentoFooter}>
                 <View style={styles.agendamentoHorarioContainer}>
-                  <FontAwesome5 name="clock" size={12} color="#7C3AED" />
+                  <FontAwesome5 name="clock" size={12} color="theme.colors.primary" />
                   <Text style={styles.agendamentoHorarioText}>
                     {agendamento.horario ? format(new Date(agendamento.horario), "HH:mm") : '--:--'}
                     {agendamento.horario_termino && (
@@ -565,7 +566,7 @@ const styles = StyleSheet.create({
   },
   cardPrimary: {
     borderLeftWidth: 4,
-    borderLeftColor: '#7C3AED',
+    borderLeftColor: 'theme.colors.primary',
   },
   cardSuccess: {
     borderLeftWidth: 4,
@@ -607,7 +608,7 @@ const styles = StyleSheet.create({
   },
   sectionAction: {
     fontSize: 14,
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '500',
   },
   vendaItem: {
@@ -763,7 +764,7 @@ const styles = StyleSheet.create({
   },
   agendamentoProfissional: {
     fontSize: 12,
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '500',
     flex: 1,
   },
@@ -788,7 +789,7 @@ const styles = StyleSheet.create({
   agendamentoHorarioText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
   },
   agendamentoHorarioSeparador: {
     fontSize: 14,

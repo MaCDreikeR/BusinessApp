@@ -13,6 +13,8 @@ if (Platform.OS !== 'web') {
 }
 import { useAuth } from '../../../contexts/AuthContext';
 import { logger } from '../../../utils/logger';
+import { formatarDataInput, formatarTelefoneInput } from '@utils/validators';
+import { theme } from '@utils/theme';
 
 interface Cliente {
   id: string;
@@ -199,24 +201,10 @@ export default function NovoAgendamentoScreen() {
     }, [])
   );
 
-  const formatarData = (texto: string) => {
-    const numeros = texto.replace(/\D/g, '');
-    if (numeros.length <= 2) return numeros;
-    if (numeros.length <= 4) return `${numeros.slice(0, 2)}/${numeros.slice(2)}`;
-    return `${numeros.slice(0, 2)}/${numeros.slice(2, 4)}/${numeros.slice(4, 8)}`;
-  };
-
   const formatarHora = (texto: string) => {
     const numeros = texto.replace(/\D/g, '');
     if (numeros.length <= 2) return numeros;
     return `${numeros.slice(0, 2)}:${numeros.slice(2, 4)}`;
-  };
-
-  const formatarTelefone = (texto: string) => {
-    const numeros = texto.replace(/\D/g, '');
-    if (numeros.length <= 2) return `(${numeros}`;
-    if (numeros.length <= 7) return `(${numeros.slice(0, 2)}) ${numeros.slice(2)}`;
-    return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 7)}-${numeros.slice(7, 11)}`;
   };
 
   const validarData = (data: string) => {
@@ -1206,7 +1194,7 @@ export default function NovoAgendamentoScreen() {
                   />
                 ) : clienteSelecionado ? (
                   <View style={styles.clienteFotoPlaceholder}>
-                    <FontAwesome5 name="user" size={12} color="#7C3AED" />
+                    <FontAwesome5 name="user" size={12} color="theme.colors.primary" />
                   </View>
                 ) : (
                   <FontAwesome5 name="user" size={16} color="#9CA3AF" style={styles.inputIcon} />
@@ -1237,7 +1225,7 @@ export default function NovoAgendamentoScreen() {
               <View style={styles.sugestoesList}>
                 {buscandoClientes ? (
                   <View style={styles.listLoadingContainer}>
-                    <ActivityIndicator size="small" color="#7C3AED" />
+                    <ActivityIndicator size="small" color="theme.colors.primary" />
                     <Text style={styles.listLoadingText}>Buscando clientes...</Text>
                   </View>
                 ) : clientesEncontrados.length > 0 ? (
@@ -1255,7 +1243,7 @@ export default function NovoAgendamentoScreen() {
                           />
                         ) : (
                           <View style={styles.sugestaoFotoPlaceholder}>
-                            <FontAwesome5 name="user" size={16} color="#7C3AED" />
+                            <FontAwesome5 name="user" size={16} color="theme.colors.primary" />
                           </View>
                         )}
                         <View style={styles.sugestaoInfo}>
@@ -1288,7 +1276,7 @@ export default function NovoAgendamentoScreen() {
                   style={styles.input}
                   value={telefone}
                   onChangeText={(text) => {
-                    setTelefone(formatarTelefone(text));
+                    setTelefone(formatarTelefoneInput(text));
                     setErrors({ ...errors, telefone: '' });
                   }}
                   placeholder="(00) 00000-0000"
@@ -1325,7 +1313,7 @@ export default function NovoAgendamentoScreen() {
                     />
                   ) : usuarioSelecionado ? (
                     <View style={styles.clienteFotoPlaceholder}>
-                      <FontAwesome5 name="user" size={12} color="#7C3AED" />
+                      <FontAwesome5 name="user" size={12} color="theme.colors.primary" />
                     </View>
                   ) : null}
                   <Text style={[styles.selectText, !usuarioSelecionado && styles.placeholder]}>
@@ -1357,13 +1345,13 @@ export default function NovoAgendamentoScreen() {
                         />
                       ) : (
                         <View style={styles.sugestaoFotoPlaceholder}>
-                          <FontAwesome5 name="user" size={16} color="#7C3AED" />
+                          <FontAwesome5 name="user" size={16} color="theme.colors.primary" />
                         </View>
                       )}
                       <Text style={styles.sugestaoNome}>{usuario.nome_completo}</Text>
                     </View>
                     {usuarioSelecionado?.id === usuario.id && (
-                      <FontAwesome5 name="check" size={16} color="#7C3AED" />
+                      <FontAwesome5 name="check" size={16} color="theme.colors.primary" />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -1390,7 +1378,7 @@ export default function NovoAgendamentoScreen() {
                 <FontAwesome5 
                   name="calendar" 
                   size={16} 
-                  color={data ? (isDataBloqueada(data) ? '#FF6B6B' : '#7C3AED') : '#9CA3AF'} 
+                  color={data ? (isDataBloqueada(data) ? '#FF6B6B' : 'theme.colors.primary') : '#9CA3AF'} 
                   style={styles.inputIcon} 
                 />
                 <Text 
@@ -1429,7 +1417,7 @@ export default function NovoAgendamentoScreen() {
                 }
               }}
             >
-              <FontAwesome5 name="clock" size={16} color={hora ? '#7C3AED' : '#9CA3AF'} style={styles.inputIcon} />
+              <FontAwesome5 name="clock" size={16} color={hora ? 'theme.colors.primary' : '#9CA3AF'} style={styles.inputIcon} />
               <Text style={[
                 styles.inputText,
                 hora ? styles.inputTextPreenchido : null
@@ -1462,7 +1450,7 @@ export default function NovoAgendamentoScreen() {
                 setMostrarSeletorHorarioTermino(true);
               }}
             >
-              <FontAwesome5 name="clock" size={16} color={horaTermino ? '#7C3AED' : '#9CA3AF'} style={styles.inputIcon} />
+              <FontAwesome5 name="clock" size={16} color={horaTermino ? 'theme.colors.primary' : '#9CA3AF'} style={styles.inputIcon} />
               <Text style={[
                 styles.inputText,
                 horaTermino ? styles.inputTextPreenchido : null
@@ -1486,7 +1474,7 @@ export default function NovoAgendamentoScreen() {
                 <FontAwesome5 
                   name="cut" 
                   size={16} 
-                  color={servicosSelecionados.length > 0 ? '#7C3AED' : '#9CA3AF'} 
+                  color={servicosSelecionados.length > 0 ? 'theme.colors.primary' : '#9CA3AF'} 
                   style={styles.servicoIcon} 
                 />
                 <Text 
@@ -1572,7 +1560,7 @@ export default function NovoAgendamentoScreen() {
                         </View>
                         {servicosSelecionados.some(s => s.id === servico.id) && (
                           <View style={styles.modalServicoCheck}>
-                            <FontAwesome5 name="check" size={16} color="#7C3AED" />
+                            <FontAwesome5 name="check" size={16} color="theme.colors.primary" />
                           </View>
                         )}
                       </TouchableOpacity>
@@ -1662,7 +1650,7 @@ export default function NovoAgendamentoScreen() {
           <View style={styles.inputGroup}>
             <View style={styles.switchContainer}>
               <View style={styles.switchLabelContainer}>
-                <FontAwesome5 name="clipboard-list" size={20} color="#7C3AED" />
+                <FontAwesome5 name="clipboard-list" size={20} color="theme.colors.primary" />
                 <View style={styles.switchTextContainer}>
                   <Text style={styles.switchLabel}>Criar comanda para o dia do agendamento?</Text>
                   <Text style={styles.switchSubtext}>Uma comanda será criada automaticamente no dia marcado</Text>
@@ -1672,7 +1660,7 @@ export default function NovoAgendamentoScreen() {
                 value={criarComandaAutomatica}
                 onValueChange={setCriarComandaAutomatica}
                 trackColor={{ false: '#D1D5DB', true: '#C4B5FD' }}
-                thumbColor={criarComandaAutomatica ? '#7C3AED' : '#F3F4F6'}
+                thumbColor={criarComandaAutomatica ? 'theme.colors.primary' : '#F3F4F6'}
                 ios_backgroundColor="#D1D5DB"
               />
             </View>
@@ -1807,7 +1795,7 @@ export default function NovoAgendamentoScreen() {
                     )}
                   </View>
                   {(hora === item.horario && !item.ocupado) && (
-                    <FontAwesome5 name="check" size={16} color="#7C3AED" />
+                    <FontAwesome5 name="check" size={16} color="theme.colors.primary" />
                   )}
                   {item.ocupado && (
                     <FontAwesome5 name="ban" size={16} color="#FF6B6B" />
@@ -1891,7 +1879,7 @@ export default function NovoAgendamentoScreen() {
                     {item}
                   </Text>
                   {horaTermino === item && (
-                    <FontAwesome5 name="check" size={16} color="#7C3AED" />
+                    <FontAwesome5 name="check" size={16} color="theme.colors.primary" />
                   )}
                 </TouchableOpacity>
               )}
@@ -2045,7 +2033,7 @@ const styles = StyleSheet.create({
   },
   modalServicoPreco: {
     fontSize: 14,
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '500',
   },
   modalServicoCheck: {
@@ -2079,7 +2067,7 @@ const styles = StyleSheet.create({
   },
   servicoSelecionadoPreco: {
     fontSize: 14,
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '500',
   },
   servicoSelecionadoControles: {
@@ -2136,7 +2124,7 @@ const styles = StyleSheet.create({
   modalAdicionarButton: {
     flex: 1,
     height: 44,
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -2171,11 +2159,11 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   servicoButtonTextSelecionado: {
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
   },
   servicoPrecoButton: {
     fontSize: 14,
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '500',
   },
   inputBloqueado: {
@@ -2232,7 +2220,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
   },
   horarioItemTextSelecionado: {
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '600',
   },
   horarioItemOcupado: {
@@ -2322,7 +2310,7 @@ const styles = StyleSheet.create({
   backButtonText: {
     marginLeft: 8,
     fontSize: 16,
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '500',
   },
   headerTitle: {
@@ -2431,14 +2419,14 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   saveButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 8,
     marginHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#7C3AED',
+    shadowColor: 'theme.colors.primary',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -2534,7 +2522,7 @@ const styles = StyleSheet.create({
   },
   sugestaoTelefone: {
     fontSize: 14,
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
   },
   semResultados: {
     padding: 16,
@@ -2547,7 +2535,7 @@ const styles = StyleSheet.create({
   },
   botaoCadastrar: {
     padding: 12,
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     borderRadius: 8,
     alignItems: 'center',
   },
@@ -2560,7 +2548,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   inputPreenchido: {
-    borderColor: '#7C3AED',
+    borderColor: 'theme.colors.primary',
     backgroundColor: '#F3E8FF',
   },
   inputContent: {
@@ -2572,7 +2560,7 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
   },
   inputTextPreenchido: {
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
   },
   // Estilos para o date picker no Web
   modalOverlay: {
@@ -2614,7 +2602,7 @@ const styles = StyleSheet.create({
   datePickerWebCloseButton: {
     marginTop: 16,
     padding: 12,
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     borderRadius: 8,
     alignItems: 'center',
   },

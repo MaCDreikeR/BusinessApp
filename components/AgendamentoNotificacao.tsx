@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform, Image } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { theme } from '@utils/theme';
 
 interface AgendamentoNotificacaoProps {
   visible: boolean;
@@ -39,7 +40,7 @@ export default function AgendamentoNotificacao({
         <View style={styles.notificacaoContainer}>
           <View style={styles.iconContainer}>
             <View style={styles.iconCircle}>
-              <Ionicons name="calendar" size={32} color="#7C3AED" />
+              <Ionicons name="calendar" size={32} color="theme.colors.primary" />
             </View>
           </View>
 
@@ -57,7 +58,7 @@ export default function AgendamentoNotificacao({
                 />
               ) : (
                 <View style={styles.clienteFotoPlaceholder}>
-                  <FontAwesome5 name="user" size={12} color="#7C3AED" />
+                  <FontAwesome5 name="user" size={12} color="theme.colors.primary" />
                 </View>
               )}
               <Text style={styles.infoValue}>{cliente}</Text>
@@ -205,7 +206,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   botaoVerAgendamento: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
   },
   botaoVerAgendamentoTexto: {
     fontSize: 15,

@@ -6,6 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { logger } from '../../../utils/logger';
+import { theme } from '@utils/theme';
 
 const formatarCelular = (valor: string) => {
   const celular = valor.replace(/\D/g, '');
@@ -223,7 +224,7 @@ export default function NovoUsuarioScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#7C3AED" />
+          <Ionicons name="arrow-back" size={24} color="theme.colors.primary" />
         </TouchableOpacity>
         <Text style={styles.title}>Novo Usuário</Text>
       </View>
@@ -237,7 +238,7 @@ export default function NovoUsuarioScreen() {
               <Image source={{ uri: avatarUrl }} style={styles.avatar} />
             ) : (
               <View style={styles.avatarPlaceholder}>
-                <Ionicons name="camera" size={32} color="#7C3AED" />
+                <Ionicons name="camera" size={32} color="theme.colors.primary" />
                 <Text style={styles.avatarText}>Adicionar Foto</Text>
               </View>
             )}
@@ -309,7 +310,7 @@ export default function NovoUsuarioScreen() {
               <Ionicons 
                 name={showSenha ? "eye-off" : "eye"} 
                 size={20} 
-                color="#7C3AED" 
+                color="theme.colors.primary" 
               />
             </TouchableOpacity>
           </View>
@@ -333,7 +334,7 @@ export default function NovoUsuarioScreen() {
               <Ionicons 
                 name={showConfirmarSenha ? "eye-off" : "eye"} 
                 size={20} 
-                color="#7C3AED" 
+                color="theme.colors.primary" 
               />
             </TouchableOpacity>
           </View>
@@ -494,12 +495,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#7C3AED',
+    borderColor: 'theme.colors.primary',
     borderStyle: 'dashed',
   },
   avatarText: {
     fontSize: 12,
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '500',
     marginTop: 4,
   },
@@ -553,7 +554,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   radioButtonActive: {
-    borderColor: '#7C3AED',
+    borderColor: 'theme.colors.primary',
     backgroundColor: '#F3E8FF',
   },
   radioCircle: {
@@ -567,20 +568,20 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   radioCircleActive: {
-    borderColor: '#7C3AED',
+    borderColor: 'theme.colors.primary',
   },
   radioDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
   },
   radioLabel: {
     fontSize: 16,
     color: '#6B7280',
   },
   radioLabelActive: {
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '500',
   },
   checkboxContainer: {
@@ -602,8 +603,8 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   checkboxActive: {
-    backgroundColor: '#7C3AED',
-    borderColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
+    borderColor: 'theme.colors.primary',
   },
   checkboxLabel: {
     fontSize: 14,
@@ -628,7 +629,7 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     flex: 1,
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     borderRadius: 8,
     paddingVertical: 16,
     alignItems: 'center',

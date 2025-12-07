@@ -6,6 +6,7 @@ import { ThemedText } from '../../../components/ThemedText';
 import { Card } from '../../../components/Card';
 import { logger } from '../../../utils/logger';
 import { Usuario as UsuarioBase } from '@types';
+import { theme } from '@utils/theme';
 
 type UsuarioDetalhes = Pick<UsuarioBase, 'id' | 'nome_completo' | 'email' | 'telefone' | 'is_principal'>;
 
@@ -87,7 +88,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   badge: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,

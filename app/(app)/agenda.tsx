@@ -10,6 +10,7 @@ import { useRouter } from 'expo-router';
 import { enviarMensagemWhatsapp, AgendamentoMensagem } from '../../services/whatsapp';
 import { logger } from '../../utils/logger';
 import { Usuario, Agendamento as AgendamentoBase } from '@types';
+import { theme } from '@utils/theme';
 
 // Configuração do idioma para o calendário
 LocaleConfig.locales['pt-br'] = {
@@ -165,7 +166,7 @@ export default function AgendaScreen() {
     
     // Marcar a data selecionada
     const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
-    marked[selectedDateStr] = { selected: true, selectedColor: '#7C3AED' };
+    marked[selectedDateStr] = { selected: true, selectedColor: 'theme.colors.primary' };
     
     // Marcar datas com agendamentos
     agendamentosMes.forEach(ag => {
@@ -176,13 +177,13 @@ export default function AgendaScreen() {
         marked[dataStr] = { 
           ...marked[dataStr],
           marked: true, 
-          dotColor: '#7C3AED'
+          dotColor: 'theme.colors.primary'
         };
       } else {
         marked[dataStr] = { 
           ...marked[dataStr],
           marked: true, 
-          dotColor: '#7C3AED'
+          dotColor: 'theme.colors.primary'
         };
       }
     });
@@ -193,7 +194,7 @@ export default function AgendaScreen() {
         ...marked[data],
         selected: data === selectedDateStr ? true : false,
         disableTouchEvent: false,
-        selectedColor: data === selectedDateStr ? '#7C3AED' : undefined,
+        selectedColor: data === selectedDateStr ? 'theme.colors.primary' : undefined,
         dotColor: '#FF6B6B',
         marked: true
       };
@@ -1275,9 +1276,9 @@ export default function AgendaScreen() {
               onDayPress={handleDateSelect}
               markedDates={markedDates}
               theme={{
-                selectedDayBackgroundColor: '#7C3AED',
-                todayTextColor: '#7C3AED',
-                arrowColor: '#7C3AED',
+                selectedDayBackgroundColor: 'theme.colors.primary',
+                todayTextColor: 'theme.colors.primary',
+                arrowColor: 'theme.colors.primary',
                 textDayFontSize: 14,
                 textMonthFontSize: 16,
                 textDayHeaderFontSize: 14,
@@ -1342,7 +1343,7 @@ export default function AgendaScreen() {
           ) : (
             horarios.length === 0 ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#7C3AED" />
+                <ActivityIndicator size="large" color="theme.colors.primary" />
                 <Text style={styles.loadingText}>Carregando horários...</Text>
               </View>
             ) : (() => {
@@ -1417,7 +1418,7 @@ export default function AgendaScreen() {
                 case 'concluido': return '#6B7280';
                 case 'cancelado': return '#EF4444';
                 case 'falta': return '#DC2626';
-                default: return '#7C3AED';
+                default: return 'theme.colors.primary';
               }
             };
 
@@ -1797,7 +1798,7 @@ export default function AgendaScreen() {
                       }
                     }}
                   >
-                    <Ionicons name="remove" size={20} color="#7C3AED" />
+                    <Ionicons name="remove" size={20} color="theme.colors.primary" />
                   </TouchableOpacity>
                   
                   <Text style={styles.counterValue}>{limiteSimultaneos}</Text>
@@ -1809,7 +1810,7 @@ export default function AgendaScreen() {
                       setLimiteSimultaneos((atual + 1).toString());
                     }}
                   >
-                    <Ionicons name="add" size={20} color="#7C3AED" />
+                    <Ionicons name="add" size={20} color="theme.colors.primary" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1875,7 +1876,7 @@ export default function AgendaScreen() {
                     case 'falta':
                       return { label: 'FALTA', icon: 'alert-circle', color: '#DC2626' };
                     default:
-                      return { label: 'AGENDADO', icon: 'calendar', color: '#7C3AED' };
+                      return { label: 'AGENDADO', icon: 'calendar', color: 'theme.colors.primary' };
                   }
                 };
 
@@ -1911,7 +1912,7 @@ export default function AgendaScreen() {
                           />
                         ) : (
                           <View style={styles.detalhesAvatarPlaceholder}>
-                            <Ionicons name="person" size={40} color="#7C3AED" />
+                            <Ionicons name="person" size={40} color="theme.colors.primary" />
                           </View>
                         )}
                       </View>
@@ -1993,7 +1994,7 @@ export default function AgendaScreen() {
                         <Ionicons 
                           name="calendar-outline" 
                           size={20} 
-                          color={item.status === 'agendado' ? '#7C3AED' : '#9CA3AF'} 
+                          color={item.status === 'agendado' ? 'theme.colors.primary' : '#9CA3AF'} 
                         />
                         <Text style={[
                           styles.statusButtonTextLarge,
@@ -2327,12 +2328,12 @@ const styles = StyleSheet.create({
   timeLineMultiplo: {
     backgroundColor: '#EFF6FF',
     borderLeftWidth: 3,
-    borderLeftColor: '#7C3AED',
+    borderLeftColor: 'theme.colors.primary',
   },
   timeLineUnico: {
     backgroundColor: '#F3E8FF',
     borderLeftWidth: 3,
-    borderLeftColor: '#7C3AED',
+    borderLeftColor: 'theme.colors.primary',
   },
   agendamentosScroll: {
     flex: 1,
@@ -2350,7 +2351,7 @@ const styles = StyleSheet.create({
     padding: 10,
     width: 180,
     borderLeftWidth: 4,
-    borderLeftColor: '#7C3AED',
+    borderLeftColor: 'theme.colors.primary',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: {
@@ -2378,7 +2379,7 @@ const styles = StyleSheet.create({
   agendamentoHorarioCard: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     marginBottom: 2,
   },
   agendamentoClienteCard: {
@@ -2398,7 +2399,7 @@ const styles = StyleSheet.create({
   agendamentoCliente: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
   },
   agendamentoServicos: {
     fontSize: 10,
@@ -2427,11 +2428,11 @@ const styles = StyleSheet.create({
   agendamentoHorario: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     marginBottom: 2,
   },
   agendamentoCounter: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     paddingHorizontal: 4,
     paddingVertical: 2,
     borderRadius: 8,
@@ -2443,7 +2444,7 @@ const styles = StyleSheet.create({
   },
   agendamentoMultiplo: {
     fontSize: 10,
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '500',
   },
   agendamentoMultiploContainer: {
@@ -2618,7 +2619,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   statusButtonActive: {
-    borderColor: '#7C3AED',
+    borderColor: 'theme.colors.primary',
     backgroundColor: '#F5F3FF',
   },
   statusButtonTextLarge: {
@@ -2775,7 +2776,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   diaSemanaSelected: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
   },
   diaSemanaText: {
     fontSize: 14,
@@ -2799,7 +2800,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   dataAddButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     width: 44,
     height: 44,
     borderRadius: 8,
@@ -2827,7 +2828,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   salvarButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
@@ -2895,7 +2896,7 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   switchOn: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
   },
   switchOff: {
     backgroundColor: '#D1D5DB',
@@ -2933,7 +2934,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
   },
   selectOptionSelected: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
   },
   selectOptionText: {
     fontSize: 16,
@@ -2972,14 +2973,14 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     marginTop: 16,
   },
   addButton: {
     position: 'absolute',
     bottom: 20,
     right: 20,
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     width: 60,
     height: 60,
     borderRadius: 30,
@@ -3040,7 +3041,7 @@ const styles = StyleSheet.create({
   },
   agendamentoModalNumero: {
     fontSize: 12,
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '500',
     backgroundColor: '#F3E8FF',
     paddingHorizontal: 8,
@@ -3068,7 +3069,7 @@ const styles = StyleSheet.create({
   agendamentoModalHorarioText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
   },
   agendamentoModalServicos: {
     marginLeft: 4,
@@ -3117,7 +3118,7 @@ const styles = StyleSheet.create({
   },
   agendamentoModalComandaText: {
     fontSize: 12,
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '500',
   },
   agendamentoModalFooter: {
@@ -3270,7 +3271,7 @@ const styles = StyleSheet.create({
   },
   agendamentoUnicoText: {
     fontSize: 12,
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '500',
     backgroundColor: '#F3E8FF',
     paddingHorizontal: 8,

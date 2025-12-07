@@ -7,6 +7,7 @@ import { router } from 'expo-router';
 import MaskInput from 'react-native-mask-input';
 import { logger } from '../../../utils/logger';
 import { Fornecedor as FornecedorBase } from '@types';
+import { theme } from '@utils/theme';
 
 type CategoriaEstoque = {
   id: string;
@@ -537,7 +538,7 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
   },
   saveButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',

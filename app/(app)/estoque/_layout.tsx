@@ -3,6 +3,7 @@ import { TouchableOpacity, View, Alert, DeviceEventEmitter } from 'react-native'
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { DrawerToggleButton } from '@react-navigation/drawer';
+import { theme } from '@utils/theme';
 
 export default function EstoqueLayout() {
   return (
@@ -11,13 +12,13 @@ export default function EstoqueLayout() {
         headerStyle: {
           backgroundColor: '#FFFFFF',
         },
-        headerTintColor: '#7C3AED',
+        headerTintColor: 'theme.colors.primary',
         headerTitleStyle: {
           fontWeight: '600',
-          color: '#7C3AED'
+          color: 'theme.colors.primary'
         },
         headerShadowVisible: false,
-        headerLeft: () => <DrawerToggleButton tintColor="#7C3AED" />,
+        headerLeft: () => <DrawerToggleButton tintColor="theme.colors.primary" />,
       }}
     >
       <Stack.Screen
@@ -31,12 +32,12 @@ export default function EstoqueLayout() {
                   DeviceEventEmitter.emit('addCategoriaProduto');
                 }}
               >
-                <Ionicons name="list" size={24} color="#7C3AED" />
+                <Ionicons name="list" size={24} color="theme.colors.primary" />
               </TouchableOpacity>
               <TouchableOpacity 
                 onPress={() => router.push('/estoque/novo')}
               >
-                <Ionicons name="add" size={24} color="#7C3AED" />
+                <Ionicons name="add" size={24} color="theme.colors.primary" />
               </TouchableOpacity>
             </View>
           ),
@@ -55,7 +56,7 @@ export default function EstoqueLayout() {
                 marginRight: 8
               }}
             >
-              <Ionicons name="arrow-back" size={24} color="#7C3AED" />
+              <Ionicons name="arrow-back" size={24} color="theme.colors.primary" />
             </TouchableOpacity>
           ),
         }}

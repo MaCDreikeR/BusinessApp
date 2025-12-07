@@ -7,6 +7,7 @@ import * as Contacts from 'expo-contacts';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from 'expo-router';
 import { logger } from '../../../utils/logger';
+import { theme } from '@utils/theme';
 
 // Definindo uma interface para o objeto de contato para melhor tipagem
 interface Contato {
@@ -92,7 +93,7 @@ export default function SelecionarContatoScreen() {
   if (loading) {
     return (
       <View style={styles.centeredContainer}>
-        <ActivityIndicator size="large" color="#7C3AED" />
+        <ActivityIndicator size="large" color="theme.colors.primary" />
       </View>
     );
   }
@@ -222,7 +223,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   botaoPermissao: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: 8,

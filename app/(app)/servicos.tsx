@@ -11,6 +11,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '../../utils/logger';
 import { Servico, CategoriaServico } from '@types';
+import { theme } from '@utils/theme';
 
 interface ServicoComCategoria extends Servico {
   descricaoServico?: string;
@@ -516,7 +517,7 @@ export default function ServicosScreen() {
   if (loading) {
     return (
       <ThemedView style={styles.container}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color="theme.colors.link" />
       </ThemedView>
     );
   }
@@ -739,7 +740,7 @@ export default function ServicosScreen() {
                           setNomeCategoria(item.nome);
                         }}
                             >
-                              <Ionicons name="pencil" size={20} color="#7C3AED" />
+                              <Ionicons name="pencil" size={20} color="theme.colors.primary" />
                             </TouchableOpacity>
                             <TouchableOpacity 
                         style={styles.categoriaActionButton}
@@ -798,7 +799,7 @@ const styles = StyleSheet.create({
   servicoPreco: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     marginBottom: 4,
   },
   servicoCategoria: {
@@ -877,7 +878,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
   },
   saveButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
   },
   modalButtonText: {
     fontSize: 16,
@@ -945,8 +946,8 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
   },
   filtroButtonSelected: {
-    backgroundColor: '#7C3AED',
-    borderColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
+    borderColor: 'theme.colors.primary',
   },
   filtroButtonText: {
     fontSize: 14,

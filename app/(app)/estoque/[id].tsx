@@ -7,6 +7,7 @@ import { router, useLocalSearchParams, Stack } from 'expo-router';
 import MaskInput from 'react-native-mask-input';
 import { logger } from '../../../utils/logger';
 import { Produto as ProdutoBase, Fornecedor as FornecedorBase } from '@types';
+import { theme } from '@utils/theme';
 
 type ProdutoDetalhes = Pick<ProdutoBase, 'id' | 'nome' | 'quantidade' | 'preco' | 'categoria_id' | 'fornecedor_id' | 'quantidade_minima'> & {
   codigo: string;
@@ -302,7 +303,7 @@ export default function EditarProdutoScreen() {
           headerTitle: 'Editar Produto',
           headerLeft: () => (
             <TouchableOpacity onPress={() => router.back()}>
-              <Ionicons name="arrow-back" size={24} color="#7C3AED" />
+              <Ionicons name="arrow-back" size={24} color="theme.colors.primary" />
             </TouchableOpacity>
           ),
         }} 
@@ -625,7 +626,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   saveButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',

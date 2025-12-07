@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { logger } from '../../utils/logger';
 import { Cliente as ClienteBase, Comanda as ComandaBase } from '@types';
+import { theme } from '@utils/theme';
 
 // Tipos específicos da tela de vendas
 type VendaItem = {
@@ -475,7 +476,7 @@ const VendasScreen = () => {
     if (!loading) return null;
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color="theme.colors.link" />
       </View>
     );
   }, [loading]);
@@ -519,7 +520,7 @@ const VendasScreen = () => {
             {loadingDetalhes ? '...' : `R$ ${vendas.valorTotal.toFixed(2)}`}
           </Text>
           {!loadingDetalhes && (
-            <Ionicons name="information-circle-outline" size={20} color="#7C3AED" style={{ position: 'absolute', top: 8, right: 8 }} />
+            <Ionicons name="information-circle-outline" size={20} color="theme.colors.primary" style={{ position: 'absolute', top: 8, right: 8 }} />
           )}
         </TouchableOpacity>
       </View>
@@ -695,7 +696,7 @@ const VendasScreen = () => {
               </View>
 
               {loadingDetalhes ? (
-                <ActivityIndicator size="large" color="#7C3AED" style={{ marginVertical: 20 }} />
+                <ActivityIndicator size="large" color="theme.colors.primary" style={{ marginVertical: 20 }} />
               ) : detalhesMovimentacao ? (
                 <ScrollView style={styles.detalhesContent}>
                   {/* Dinheiro */}
@@ -936,8 +937,8 @@ const VendasScreen = () => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#007AFF']}
-            tintColor="#007AFF"
+            colors={['theme.colors.link']}
+            tintColor="theme.colors.link"
           />
         }
         onMomentumScrollEnd={() => {
@@ -1055,7 +1056,7 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   contadorBadge: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     borderRadius: 10,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -1199,7 +1200,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
     borderRadius: 8,
     borderLeftWidth: 3,
-    borderLeftColor: '#7C3AED',
+    borderLeftColor: 'theme.colors.primary',
   },
   detalhesSecaoHeader: {
     flexDirection: 'row',
@@ -1240,7 +1241,7 @@ const styles = StyleSheet.create({
   detalhesFecharButton: {
     margin: 16,
     padding: 12,
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     borderRadius: 8,
     alignItems: 'center',
   },

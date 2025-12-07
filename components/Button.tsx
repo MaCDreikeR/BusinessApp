@@ -1,6 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
+import { theme } from '@utils/theme';
 
 interface ButtonProps {
   onPress: () => void;
@@ -31,13 +32,13 @@ export const Button = ({
             styles.filterText,
             active && styles.filterTextActive
           ],
-          icon: active ? '#7C3AED' : '#666'
+          icon: active ? 'theme.colors.primary' : '#666'
         };
       case 'header':
         return {
           button: [styles.button, styles.headerButton],
           text: styles.text,
-          icon: '#7C3AED'
+          icon: 'theme.colors.primary'
         };
       default:
         return {
@@ -79,7 +80,7 @@ const styles = StyleSheet.create({
   },
   // Botão primário (padrão)
   primaryButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     paddingHorizontal: 24,
     paddingVertical: 12,
     minWidth: 120,
@@ -114,7 +115,7 @@ const styles = StyleSheet.create({
     color: '#666666',
   },
   filterTextActive: {
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
   },
   // Container do ícone
   iconContainer: {

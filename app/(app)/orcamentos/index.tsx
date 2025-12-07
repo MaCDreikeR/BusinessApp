@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState, useEffect, useRef } from 'react';
 import { logger } from '../../../utils/logger';
+import { theme } from '@utils/theme';
 import { 
   Orcamento, 
   carregarOrcamentos, 
@@ -138,7 +139,7 @@ export default function OrcamentosScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#7C3AED" />
+        <ActivityIndicator size="large" color="theme.colors.primary" />
       </View>
     );
   }
@@ -220,7 +221,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   filtroButtonSelected: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
   },
   filtroButtonText: {
     color: '#6B7280',

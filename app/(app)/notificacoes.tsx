@@ -3,6 +3,7 @@ import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react
 import { Ionicons } from '@expo/vector-icons';
 import { getHistoricoNotificacoes } from '../../services/notifications';
 import { logger } from '../../utils/logger';
+import { theme } from '@utils/theme';
 
 type Notificacao = {
   id: string;
@@ -52,7 +53,7 @@ export default function NotificacoesScreen() {
                 item.tipo === 'aniversario' ? 'gift' : 
                 'notifications'} 
           size={24} 
-          color="#7C3AED" 
+          color="theme.colors.primary" 
         />
       </View>
       <View style={styles.notificacaoConteudo}>
@@ -87,7 +88,7 @@ export default function NotificacoesScreen() {
               style={styles.refreshButton}
               onPress={carregarNotificacoes}
             >
-              <Ionicons name="refresh" size={24} color="#7C3AED" />
+              <Ionicons name="refresh" size={24} color="theme.colors.primary" />
             </TouchableOpacity>
           }
         />

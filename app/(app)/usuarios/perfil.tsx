@@ -8,6 +8,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { Picker } from '@react-native-picker/picker';
 import { logger } from '../../../utils/logger';
 import { formatarCPF, formatarCNPJ, formatarTelefone as formatarCelular } from '../../../utils/validators';
+import { theme } from '@utils/theme';
 
 const SEGMENTOS = [
   { label: 'Selecione um segmento', value: '' },
@@ -106,12 +107,12 @@ export default function PerfilScreen() {
       headerTitle: editandoOutroUsuario ? 'Editar Usuário' : 'Editar Perfil',
       headerLeft: () => (
         <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 16 }}>
-          <Ionicons name="arrow-back" size={24} color="#7C3AED" />
+          <Ionicons name="arrow-back" size={24} color="theme.colors.primary" />
         </TouchableOpacity>
       ),
       headerRight: () => (
         <TouchableOpacity onPress={handleOpenPermissionsModal} style={{ marginRight: 16 }}>
-          <Ionicons name="shield-checkmark" size={24} color="#7C3AED" />
+          <Ionicons name="shield-checkmark" size={24} color="theme.colors.primary" />
         </TouchableOpacity>
       ),
     });
@@ -488,7 +489,7 @@ export default function PerfilScreen() {
         <Ionicons 
           name={item.icon as any} 
           size={24} 
-          color="#7C3AED" 
+          color="theme.colors.primary" 
           style={styles.permissionIcon} 
         />
         <Text style={styles.permissionLabel}>{item.label}</Text>
@@ -497,7 +498,7 @@ export default function PerfilScreen() {
         <Ionicons
           name={permissoes[item.key] ? "checkbox" : "square-outline"}
           size={24}
-          color={permissoes[item.key] ? "#7C3AED" : "#9CA3AF"}
+          color={permissoes[item.key] ? "theme.colors.primary" : "#9CA3AF"}
         />
       </View>
     </TouchableOpacity>
@@ -506,7 +507,7 @@ export default function PerfilScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#7C3AED" />
+        <ActivityIndicator size="large" color="theme.colors.primary" />
       </View>
     );
   }
@@ -521,7 +522,7 @@ export default function PerfilScreen() {
                 <Image source={{ uri: avatarUrl }} style={styles.avatar} />
               ) : (
                 <View style={styles.avatarPlaceholder}>
-                  <Ionicons name="person" size={40} color="#7C3AED" />
+                  <Ionicons name="person" size={40} color="theme.colors.primary" />
                 </View>
               )}
               <TouchableOpacity style={styles.editAvatarButton} onPress={handleUploadAvatar} disabled={saving}>
@@ -552,7 +553,7 @@ export default function PerfilScreen() {
             </View>
             <View style={styles.switchContainer}>
                 <Text style={styles.label}>Este usuário faz atendimentos/agendamentos</Text>
-                <Switch trackColor={{ false: "#767577", true: "#81b0ff" }} thumbColor={fazAtendimento ? "#7C3AED" : "#f4f3f4"} value={fazAtendimento} onValueChange={setFazAtendimento} />
+                <Switch trackColor={{ false: "#767577", true: "#81b0ff" }} thumbColor={fazAtendimento ? "theme.colors.primary" : "#f4f3f4"} value={fazAtendimento} onValueChange={setFazAtendimento} />
             </View>
           </View>
           
@@ -629,7 +630,7 @@ export default function PerfilScreen() {
 
           {loadingPermissions ? (
             <View style={styles.modalLoadingContainer}>
-              <ActivityIndicator size="large" color="#7C3AED" />
+              <ActivityIndicator size="large" color="theme.colors.primary" />
               <Text style={styles.loadingText}>Carregando permissões...</Text>
             </View>
           ) : (
@@ -705,7 +706,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
     bottom: 0,
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -786,7 +787,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   mainSaveButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     padding: 16,
     marginTop: 16,
   },
@@ -880,7 +881,7 @@ const styles = StyleSheet.create({
   },
   modalSaveButton: {
     flex: 1,
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',

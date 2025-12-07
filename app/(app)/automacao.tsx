@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { salvarModeloMensagem, getModeloMensagem } from '../../services/whatsapp';
 import { logger } from '../../utils/logger';
+import { theme } from '@utils/theme';
 
 export default function AutomacaoScreen() {
   const { estabelecimentoId } = useAuth();
@@ -74,9 +75,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   tabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#eee' },
   tab: { paddingVertical: 12, paddingHorizontal: 16 },
-  tabActive: { borderBottomWidth: 2, borderBottomColor: '#7C3AED' },
+  tabActive: { borderBottomWidth: 2, borderBottomColor: 'theme.colors.primary' },
   tabText: { color: '#6B7280', fontWeight: '600' },
-  tabTextActive: { color: '#7C3AED' },
+  tabTextActive: { color: 'theme.colors.primary' },
   content: { padding: 16 },
   title: { fontSize: 18, fontWeight: '700', marginBottom: 12 },
   help: { color: '#6B7280', marginBottom: 12, lineHeight: 20 },

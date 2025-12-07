@@ -7,6 +7,7 @@ import { supabase } from '../../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { logger } from '../../../utils/logger';
 import { Usuario as UsuarioBase } from '@types';
+import { theme } from '@utils/theme';
 
 type UsuarioLista = Pick<UsuarioBase, 'id' | 'nome_completo' | 'email' | 'telefone' | 'is_principal' | 'created_at'> & {
   avatar_url?: string;
@@ -135,7 +136,7 @@ export default function ListaUsuariosScreen() {
   if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#7C3AED" />
+        <ActivityIndicator size="large" color="theme.colors.primary" />
         <ThemedText style={styles.loadingText}>Carregando usuários...</ThemedText>
       </View>
     );
@@ -179,8 +180,8 @@ export default function ListaUsuariosScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#7C3AED']}
-            tintColor="#7C3AED"
+            colors={['theme.colors.primary']}
+            tintColor="theme.colors.primary"
           />
         }
       >
@@ -301,7 +302,7 @@ const styles = StyleSheet.create({
   userInitials: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
   },
   userInfo: {
     flex: 1,
@@ -334,7 +335,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   principalBadge: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
   },
   badgeText: {
     color: '#FFFFFF',
@@ -357,7 +358,7 @@ const styles = StyleSheet.create({
   retryButton: {
     marginTop: 16,
     padding: 12,
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     borderRadius: 8,
   },
   retryButtonText: {
@@ -381,7 +382,7 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   addButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,

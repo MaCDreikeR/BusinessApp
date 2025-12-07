@@ -7,6 +7,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { DeviceEventEmitter } from 'react-native';
 import { logger } from '../../../utils/logger';
 import { Produto as ProdutoBase, Fornecedor as FornecedorBase } from '@types';
+import { theme } from '@utils/theme';
 
 type ProdutoEstoque = Pick<ProdutoBase, 'id' | 'nome' | 'descricao' | 'quantidade' | 'preco' | 'categoria_id' | 'fornecedor_id' | 'quantidade_minima'> & {
   codigo: string;
@@ -778,7 +779,7 @@ export default function EstoqueScreen() {
         ListEmptyComponent={
           loading ? (
             <View style={styles.emptyContainer}>
-              <ActivityIndicator size="large" color="#7C3AED" />
+              <ActivityIndicator size="large" color="theme.colors.primary" />
             </View>
           ) : (
             <View style={styles.emptyContainer}>
@@ -886,7 +887,7 @@ export default function EstoqueScreen() {
                                   style={styles.actionButton}
                                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                                 >
-                                  <Ionicons name="pencil" size={20} color="#7C3AED" />
+                                  <Ionicons name="pencil" size={20} color="theme.colors.primary" />
                                 </TouchableOpacity>
                                 <TouchableOpacity 
                                   onPress={() => handleExcluirCategoria(item)}
@@ -945,7 +946,7 @@ export default function EstoqueScreen() {
                                   style={styles.actionButton}
                                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                                 >
-                                  <Ionicons name="pencil" size={20} color="#7C3AED" />
+                                  <Ionicons name="pencil" size={20} color="theme.colors.primary" />
                                 </TouchableOpacity>
                                 <TouchableOpacity 
                                   onPress={() => handleExcluirMarca(item)}
@@ -1013,7 +1014,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   limparFiltrosTexto: {
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -1030,7 +1031,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
   },
   tabAtiva: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
   },
   tabText: {
     fontSize: 14,
@@ -1058,14 +1059,14 @@ const styles = StyleSheet.create({
   },
   filtroChipAtivo: {
     backgroundColor: '#EDE9FE',
-    borderColor: '#7C3AED',
+    borderColor: 'theme.colors.primary',
   },
   filtroChipText: {
     fontSize: 14,
     color: '#374151',
   },
   filtroChipTextAtivo: {
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
   },
   listContent: {
     padding: 16,
@@ -1074,7 +1075,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 20,
     right: 20,
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     borderRadius: 24,
     width: 48,
     height: 48,
@@ -1116,7 +1117,7 @@ const styles = StyleSheet.create({
   },
   produtoCategoria: {
     fontSize: 14,
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     marginTop: 4,
   },
   statusContainer: {
@@ -1207,7 +1208,7 @@ const styles = StyleSheet.create({
   },
   modalTabAtiva: {
     borderBottomWidth: 2,
-    borderBottomColor: '#7C3AED',
+    borderBottomColor: 'theme.colors.primary',
   },
   modalTabText: {
     fontSize: 16,
@@ -1215,7 +1216,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   modalTabTextAtiva: {
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '600',
   },
   categoriaForm: {
@@ -1239,7 +1240,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     minWidth: 100,
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     paddingHorizontal: 16,
     height: 44,
     justifyContent: 'center',
@@ -1286,7 +1287,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   emptyText: {
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontSize: 16,
     fontWeight: '500',
     textAlign: 'center',

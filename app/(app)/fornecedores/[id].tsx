@@ -6,6 +6,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import MaskInput, { Masks } from 'react-native-mask-input';
 import { logger } from '../../../utils/logger';
 import { Fornecedor as FornecedorBase } from '@types';
+import { theme } from '@utils/theme';
 
 type ValidationErrors = {
   [key: string]: string;
@@ -228,7 +229,7 @@ export default function EditarFornecedorScreen() {
   if (loading && !formData.nome) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#7C3AED" />
+        <ActivityIndicator size="large" color="theme.colors.primary" />
         <Text style={styles.loadingText}>Carregando...</Text>
       </View>
     );
@@ -344,7 +345,7 @@ export default function EditarFornecedorScreen() {
               {loadingCep && (
                 <ActivityIndicator 
                   size="small" 
-                  color="#7C3AED" 
+                  color="theme.colors.primary" 
                   style={styles.cepLoader} 
                 />
               )}
@@ -544,7 +545,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   saveButton: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',

@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import { TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerToggleButton } from '@react-navigation/drawer';
+import { theme } from '@utils/theme';
 
 export default function UsuariosLayout() {
   return (
@@ -10,12 +11,12 @@ export default function UsuariosLayout() {
         headerStyle: {
           backgroundColor: '#FFFFFF',
         },
-        headerTintColor: '#7C3AED',
+        headerTintColor: 'theme.colors.primary',
         headerTitleStyle: {
           fontWeight: 'bold',
         },
         headerShadowVisible: false,
-        headerLeft: () => <DrawerToggleButton tintColor="#7C3AED" />,
+        headerLeft: () => <DrawerToggleButton tintColor="theme.colors.primary" />,
         headerTitleAlign: 'center',
       }}
     >

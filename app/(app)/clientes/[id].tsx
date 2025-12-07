@@ -10,6 +10,7 @@ import { decode } from 'base64-arraybuffer';
 import { logger } from '../../../utils/logger';
 import { Cliente as ClienteBase } from '@types';
 import { formatarTelefoneInput, formatarDataInput, somenteNumeros } from '../../../utils/validators';
+import { theme } from '@utils/theme';
 
 type ClienteDetalhes = Pick<ClienteBase, 'id' | 'nome' | 'telefone' | 'email' | 'observacoes' | 'estabelecimento_id'> & {
   foto_url: string | null;
@@ -511,7 +512,7 @@ export default function EditarClienteScreen() {
               style={styles.addButton}
               onPress={() => setModalCreditoVisible(true)}
             >
-              <FontAwesome5 name="plus" size={16} color="#7C3AED" />
+              <FontAwesome5 name="plus" size={16} color="theme.colors.primary" />
               <Text style={styles.addButtonText}>Adicionar Crédito</Text>
             </TouchableOpacity>
 
@@ -569,7 +570,7 @@ export default function EditarClienteScreen() {
                   </View>
                   <Text style={{ color: '#6B7280', marginBottom: 4 }}>Valor</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F4F6', borderRadius: 8, marginBottom: 12, borderWidth: 1, borderColor: '#E5E7EB' }}>
-                    <Text style={{ fontSize: 18, color: '#7C3AED', marginLeft: 12 }}>R$</Text>
+                    <Text style={{ fontSize: 18, color: 'theme.colors.primary', marginLeft: 12 }}>R$</Text>
                     <TextInput
                       ref={valorInputRef}
                       style={[styles.input, { flex: 1, backgroundColor: 'transparent', borderWidth: 0, fontSize: 18 }]}
@@ -730,7 +731,7 @@ export default function EditarClienteScreen() {
               style={styles.addButton}
               onPress={() => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento')}
             >
-              <FontAwesome5 name="plus" size={16} color="#7C3AED" />
+              <FontAwesome5 name="plus" size={16} color="theme.colors.primary" />
               <Text style={styles.addButtonText}>Novo Agendamento</Text>
             </TouchableOpacity>
           </View>
@@ -764,7 +765,7 @@ export default function EditarClienteScreen() {
               style={styles.addButton}
               onPress={() => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento')}
             >
-              <FontAwesome5 name="plus" size={16} color="#7C3AED" />
+              <FontAwesome5 name="plus" size={16} color="theme.colors.primary" />
               <Text style={styles.addButtonText}>
                 {`Adicionar ${
                   activeTab === 'historico' ? 'Registro' :
@@ -789,7 +790,7 @@ export default function EditarClienteScreen() {
             style={[styles.headerButton, styles.headerButtonImport]}
             onPress={() => router.back()}
           >
-            <FontAwesome5 name="arrow-left" size={20} color="#7C3AED" />
+            <FontAwesome5 name="arrow-left" size={20} color="theme.colors.primary" />
           </TouchableOpacity>
           <Text style={styles.title}>Carregando...</Text>
           <View style={[styles.headerButton, { opacity: 0 }]} />
@@ -806,7 +807,7 @@ export default function EditarClienteScreen() {
             style={[styles.headerButton, styles.headerButtonImport]}
             onPress={() => router.back()}
           >
-            <FontAwesome5 name="arrow-left" size={20} color="#7C3AED" />
+            <FontAwesome5 name="arrow-left" size={20} color="theme.colors.primary" />
           </TouchableOpacity>
           <Text style={styles.title}>Editar Cliente</Text>
           <TouchableOpacity 
@@ -836,7 +837,7 @@ export default function EditarClienteScreen() {
                 <FontAwesome5
                   name={tab.icon}
                   size={16}
-                  color={activeTab === tab.id ? "#7C3AED" : "#666"}
+                  color={activeTab === tab.id ? "theme.colors.primary" : "#666"}
                 />
                 <Text 
                   style={[
@@ -911,7 +912,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     flex: 1,
     textAlign: 'center',
   },
@@ -944,7 +945,7 @@ const styles = StyleSheet.create({
   tabActive: {
     backgroundColor: '#EDE9FE',
     borderBottomWidth: 2,
-    borderBottomColor: '#7C3AED',
+    borderBottomColor: 'theme.colors.primary',
   },
   tabText: {
     fontSize: 12,
@@ -953,7 +954,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   tabTextActive: {
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '500',
   },
   form: {
@@ -1075,7 +1076,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   addButtonText: {
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '500',
     marginLeft: 8,
   },
@@ -1099,7 +1100,7 @@ const styles = StyleSheet.create({
   },
   agendamentoHora: {
     fontSize: 14,
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '500',
   },
   agendamentoServico: {

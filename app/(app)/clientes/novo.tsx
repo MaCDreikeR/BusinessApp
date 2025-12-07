@@ -7,6 +7,7 @@ import { supabase } from '../../../lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 import { logger } from '../../../utils/logger';
+import { theme } from '@utils/theme';
 import { 
   formatarTelefoneInput, 
   formatarDataInput,
@@ -513,7 +514,7 @@ export default function NovoClienteScreen() {
             style={[styles.headerButton, styles.headerButtonImport]}
             onPress={() => router.back()}
           >
-            <FontAwesome5 name="arrow-left" size={20} color="#7C3AED" />
+            <FontAwesome5 name="arrow-left" size={20} color="theme.colors.primary" />
           </TouchableOpacity>
           <Text style={styles.title}>Novo Cliente</Text>
           <View style={[styles.headerButton, { opacity: 0 }]} />
@@ -538,7 +539,7 @@ export default function NovoClienteScreen() {
                 <FontAwesome5
                   name={tab.icon}
                   size={16}
-                  color={activeTab === tab.id ? "#7C3AED" : "#666"}
+                  color={activeTab === tab.id ? "theme.colors.primary" : "#666"}
                 />
                 <Text 
                   style={[
@@ -610,7 +611,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     flex: 1,
     textAlign: 'center',
   },
@@ -643,7 +644,7 @@ const styles = StyleSheet.create({
   tabActive: {
     backgroundColor: '#EDE9FE',
     borderBottomWidth: 2,
-    borderBottomColor: '#7C3AED',
+    borderBottomColor: 'theme.colors.primary',
   },
   tabText: {
     fontSize: 12,
@@ -652,7 +653,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   tabTextActive: {
-    color: '#7C3AED',
+    color: 'theme.colors.primary',
     fontWeight: '500',
   },
   form: {

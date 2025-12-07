@@ -8,6 +8,7 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
 import { logger } from '../../utils/logger';
+import { theme } from '@utils/theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -39,7 +40,7 @@ export default function BoasVindas() {
       <StatusBar style="light" />
       
       <LinearGradient
-        colors={['#7C3AED', '#6D28D9']}
+        colors={['theme.colors.primary', 'theme.colors.primaryDark']}
         style={styles.gradient}
       >
         <ScrollView 
@@ -69,7 +70,7 @@ export default function BoasVindas() {
 
             <View style={styles.cardsContainer}>
               <View style={styles.card}>
-                <Ionicons name="calendar-outline" size={24} color="#7C3AED" />
+                <Ionicons name="calendar-outline" size={24} color="theme.colors.primary" />
                 <View style={styles.cardTextContainer}>
                   <Text style={styles.cardTitle}>Agenda Inteligente</Text>
                   <Text style={styles.cardText}>
@@ -79,7 +80,7 @@ export default function BoasVindas() {
               </View>
 
               <View style={styles.card}>
-                <Ionicons name="people-outline" size={24} color="#7C3AED" />
+                <Ionicons name="people-outline" size={24} color="theme.colors.primary" />
                 <View style={styles.cardTextContainer}>
                   <Text style={styles.cardTitle}>Gestão de Clientes</Text>
                   <Text style={styles.cardText}>
@@ -89,7 +90,7 @@ export default function BoasVindas() {
               </View>
 
               <View style={styles.card}>
-                <Ionicons name="cash-outline" size={24} color="#7C3AED" />
+                <Ionicons name="cash-outline" size={24} color="theme.colors.primary" />
                 <View style={styles.cardTextContainer}>
                   <Text style={styles.cardTitle}>Controle Financeiro</Text>
                   <Text style={styles.cardText}>
@@ -233,14 +234,14 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   button: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: 'theme.colors.primary',
     paddingVertical: 16,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    shadowColor: '#7C3AED',
+    shadowColor: 'theme.colors.primary',
     shadowOffset: {
       width: 0,
       height: 4,
