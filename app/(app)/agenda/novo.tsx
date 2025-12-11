@@ -15,6 +15,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { logger } from '../../../utils/logger';
 import { formatarDataInput, formatarTelefoneInput } from '@utils/validators';
 import { theme } from '@utils/theme';
+import { CacheManager, CacheNamespaces } from '../../../utils/cacheManager';
 
 interface Cliente {
   id: string;
@@ -553,6 +554,9 @@ export default function NovoAgendamentoScreen() {
         });
 
       if (error) throw error;
+
+      // Limpar cache de agendamentos
+      await CacheManager.clearNamespace(CacheNamespaces.AGENDAMENTOS);
 
       // Emitir evento para que a tela de agenda recarregue
       DeviceEventEmitter.emit('atualizarAgendamentos');

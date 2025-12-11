@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert, Image, Dimensions } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -9,7 +9,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../hooks/usePermissions';
 import { logger } from '../../utils/logger';
 import { Agendamento as AgendamentoBase, Produto as ProdutoBase } from '@types';
-import { theme } from '@utils/theme';
+import { useTheme } from '../../contexts/ThemeContext';
+import { CacheManager, CacheNamespaces, CacheTTL } from '../../utils/cacheManager';
 
 // Tipos estendidos para o dashboard
 type AgendamentoDashboard = Pick<AgendamentoBase, 'id' | 'status'> & {
@@ -34,6 +35,298 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user, estabelecimentoId, role } = useAuth();
   const { permissions, loading: loadingPermissions } = usePermissions();
+  const { colors } = useTheme();
+
+  // Styles dinâmicos baseados no tema
+  const styles = useMemo(() => StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    grid: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      padding: 16,
+      gap: 16,
+      justifyContent: 'flex-start' as const,
+    },
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      padding: 20,
+      minHeight: 160,
+      marginBottom: 0,
+      elevation: 2,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      maxWidth: '48%' as const,
+      flexGrow: 1,
+    },
+    cardIconContainer: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: 'rgba(124, 58, 237, 0.1)',
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      marginBottom: 12,
+    },
+    cardTitle: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginBottom: 8,
+      lineHeight: 18,
+    },
+    cardValue: {
+      fontSize: 28,
+      fontWeight: 'bold' as const,
+      color: colors.text,
+      marginBottom: 4,
+    },
+    cardSubtitle: {
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    cardPrimary: { borderLeftWidth: 4 },
+    cardSuccess: { borderLeftWidth: 4, borderLeftColor: '#22C55E' },
+    cardInfo: { borderLeftWidth: 4, borderLeftColor: '#0066FF' },
+    cardDanger: { borderLeftWidth: 4, borderLeftColor: '#EF4444' },
+    section: {
+      backgroundColor: colors.surface,
+      marginTop: 16,
+      marginHorizontal: 16,
+      borderRadius: 16,
+      padding: 20,
+      elevation: 2,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+    },
+    sectionHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      marginBottom: 16,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '600' as const,
+      color: colors.text,
+    },
+    sectionAction: {
+      fontSize: 14,
+      fontWeight: '500' as const,
+    },
+    vendaItem: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    vendaContent: {
+      flex: 1,
+      marginRight: 16,
+    },
+    vendaCliente: {
+      fontSize: 16,
+      fontWeight: '500' as const,
+      color: colors.text,
+      marginBottom: 4,
+    },
+    vendaData: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    vendaValor: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: '#22C55E',
+    },
+    produtoItem: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    produtoContent: {
+      flex: 1,
+      marginRight: 16,
+    },
+    produtoNome: {
+      fontSize: 16,
+      fontWeight: '500' as const,
+      color: colors.text,
+      marginBottom: 4,
+    },
+    produtoInfo: {
+      flexDirection: 'row' as const,
+      gap: 16,
+    },
+    produtoQuantidade: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    produtoMinimo: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    produtoStatus: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+    },
+    emptyState: {
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      padding: 24,
+      backgroundColor: colors.background,
+      borderRadius: 12,
+    },
+    emptyText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginTop: 8,
+      textAlign: 'center' as const,
+    },
+    agendamentoItem: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 8,
+      minHeight: 110,
+      elevation: 2,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+    },
+    primeiroAgendamento: {
+      borderTopLeftRadius: 12,
+      borderTopRightRadius: 12,
+    },
+    ultimoAgendamento: {
+      borderBottomLeftRadius: 12,
+      borderBottomRightRadius: 12,
+      marginBottom: 0,
+    },
+    agendamentoHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: 12,
+    },
+    agendamentoFotoContainer: {
+      marginRight: 12,
+    },
+    agendamentoFoto: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+    },
+    agendamentoFotoPlaceholder: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: '#F3E8FF',
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+    },
+    agendamentoIcon: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: '#F3E8FF',
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      marginBottom: 4,
+    },
+    agendamentoHorario: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.text,
+    },
+    agendamentoContent: {
+      flex: 1,
+    },
+    agendamentoCliente: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.text,
+      marginBottom: 4,
+    },
+    agendamentoServico: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginBottom: 4,
+    },
+    agendamentoProfissional: {
+      fontSize: 12,
+      fontWeight: '500' as const,
+      flex: 1,
+    },
+    agendamentoProfissionalContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginTop: 2,
+    },
+    agendamentoFooter: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    agendamentoHorarioContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 6,
+    },
+    agendamentoHorarioText: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+    },
+    agendamentoHorarioSeparador: {
+      fontSize: 14,
+      fontWeight: '400' as const,
+      color: colors.textSecondary,
+    },
+    agendamentoData: {
+      backgroundColor: colors.background,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 8,
+    },
+    agendamentoDia: {
+      fontSize: 14,
+      fontWeight: '500' as const,
+      color: colors.textSecondary,
+    },
+    emptyAgendamentos: {
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      padding: 24,
+      backgroundColor: colors.background,
+      borderRadius: 12,
+    },
+    produtoZerado: {
+      color: '#EF4444',
+      fontWeight: 'bold' as const,
+    },
+    produtoBaixo: {
+      color: '#F59E0B',
+      fontWeight: 'bold' as const,
+    },
+  }), [colors]);
 
   const [agendamentosHoje, setAgendamentosHoje] = useState(0);
   const [vendasHoje, setVendasHoje] = useState(0);
@@ -46,6 +339,18 @@ export default function HomeScreen() {
   const carregarProdutosBaixoEstoque = useCallback(async () => {
     if (!estabelecimentoId) return;
     try {
+      // Tentar cache primeiro
+      const cacheKey = `baixo_estoque_${estabelecimentoId}`;
+      const cachedData = await CacheManager.get<ProdutoDashboard[]>(
+        CacheNamespaces.ESTOQUE,
+        cacheKey
+      );
+      
+      if (cachedData) {
+        setProdutosBaixoEstoque(cachedData);
+        return;
+      }
+      
       logger.debug(`Iniciando consulta de produtos com baixo estoque para o estabelecimento: ${estabelecimentoId}`);
       // Tenta via RPC (pode estar desatualizada no banco)
       const { data: produtosRpc, error } = await supabase
@@ -68,10 +373,26 @@ export default function HomeScreen() {
           .filter(p => (p.quantidade ?? 0) <= (p.quantidade_minima ?? 5))
           .slice(0, 5);
 
+        // Salvar no cache (reutiliza cacheKey já declarado acima)
+        await CacheManager.set(
+          CacheNamespaces.ESTOQUE,
+          cacheKey,
+          filtrados,
+          CacheTTL.TWO_MINUTES
+        );
+        
         setProdutosBaixoEstoque(filtrados);
         return;
       }
 
+      // Salvar no cache (reutiliza cacheKey já declarado acima)
+      await CacheManager.set(
+        CacheNamespaces.ESTOQUE,
+        cacheKey,
+        produtosRpc || [],
+        CacheTTL.TWO_MINUTES
+      );
+      
       setProdutosBaixoEstoque(produtosRpc || []);
     } catch (error) {
       logger.error('Erro inesperado ao carregar produtos baixo estoque:', error);
@@ -81,6 +402,22 @@ export default function HomeScreen() {
   const carregarDados = useCallback(async () => {
     if (!user || !estabelecimentoId) return;
     try {
+      // Tentar cache primeiro
+      const cacheKey = `dashboard_${estabelecimentoId}_${role || 'all'}`;
+      const cachedData = await CacheManager.get<any>(
+        CacheNamespaces.RELATORIOS,
+        cacheKey
+      );
+      
+      if (cachedData) {
+        setAgendamentosHoje(cachedData.agendamentosHoje);
+        setVendasHoje(cachedData.vendasHoje);
+        setClientesAtivos(cachedData.clientesAtivos);
+        setProximosAgendamentos(cachedData.proximosAgendamentos);
+        setVendasRecentes(cachedData.vendasRecentes);
+        return;
+      }
+      
       logger.debug('Buscando dados para o estabelecimento:', estabelecimentoId);
       const hoje = new Date();
       hoje.setHours(hoje.getHours() - 3);
@@ -193,18 +530,43 @@ export default function HomeScreen() {
           data: v.finalized_at 
         })));
       }
+      
+      // Salvar no cache (reutiliza cacheKey já declarado acima)
+      await CacheManager.set(
+        CacheNamespaces.RELATORIOS,
+        cacheKey,
+        {
+          agendamentosHoje: agendamentos?.length || 0,
+          vendasHoje: vendasHojeData?.reduce((total, v) => total + (v.preco_total || 0), 0) || 0,
+          clientesAtivos: clientesCount || 0,
+          proximosAgendamentos: proximosAgendamentos,
+          vendasRecentes: vendasRecentesData?.map((v: any) => ({ 
+            id: v.id, 
+            cliente_nome: v.cliente_nome || 'Cliente não informado', 
+            valor: v.valor_total || 0, 
+            data: v.finalized_at 
+          })) || []
+        },
+        CacheTTL.TWO_MINUTES
+      );
 
     } catch (error) {
       logger.error('Erro ao carregar dados:', error);
       Alert.alert('Erro', 'Não foi possível carregar os dados');
     }
-  }, [user, estabelecimentoId]);
+  }, [user, estabelecimentoId, role]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+    // Limpar cache para forçar atualização
+    const cacheKey = `dashboard_${estabelecimentoId}_${role || 'all'}`;
+    await CacheManager.remove(CacheNamespaces.RELATORIOS, cacheKey);
+    const cacheKeyEstoque = `baixo_estoque_${estabelecimentoId}`;
+    await CacheManager.remove(CacheNamespaces.ESTOQUE, cacheKeyEstoque);
+    
     await Promise.all([carregarDados(), carregarProdutosBaixoEstoque()]);
     setRefreshing(false);
-  }, [carregarDados, carregarProdutosBaixoEstoque]);
+  }, [carregarDados, carregarProdutosBaixoEstoque, estabelecimentoId, role]);
 
   useEffect(() => {
     carregarDados();
@@ -278,21 +640,21 @@ export default function HomeScreen() {
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          colors={["theme.colors.primary"]}
-          tintColor="theme.colors.primary"
+          colors={[colors.primary]}
+          tintColor={colors.primary}
           title="Atualizando..."
-          titleColor="#6B7280"
+          titleColor={colors.textSecondary}
         />
       }
     >
       <View style={styles.grid}>
         {role !== 'profissional' && (
           <TouchableOpacity
-            style={[styles.card, styles.cardPrimary, { width: cardWidth }]}
+            style={[styles.card, styles.cardPrimary, { width: cardWidth, borderLeftColor: colors.primary }]}
             onPress={() => router.push('/agenda')}
           >
             <View style={styles.cardIconContainer}>
-              <FontAwesome5 name="calendar-check" size={24} color="theme.colors.primary" />
+              <FontAwesome5 name="calendar-check" size={24} color={colors.primary} />
             </View>
             <Text style={styles.cardTitle}>Agendamentos Hoje</Text>
             <Text style={styles.cardValue}>{agendamentosHoje}</Text>
@@ -350,7 +712,7 @@ export default function HomeScreen() {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Próximos Agendamentos</Text>
           <TouchableOpacity onPress={() => router.push('/agenda')}>
-            <Text style={styles.sectionAction}>Ver todos</Text>
+            <Text style={[styles.sectionAction, { color: colors.primary }]}>Ver todos</Text>
           </TouchableOpacity>
         </View>
         {proximosAgendamentos.length > 0 ? (
@@ -374,7 +736,7 @@ export default function HomeScreen() {
                     />
                   ) : (
                     <View style={styles.agendamentoFotoPlaceholder}>
-                      <FontAwesome5 name="user" size={20} color="theme.colors.primary" />
+                      <FontAwesome5 name="user" size={20} color={colors.primary} />
                     </View>
                   )}
                 </View>
@@ -389,8 +751,8 @@ export default function HomeScreen() {
                   </Text>
                   {agendamento.usuario_nome && (
                     <View style={styles.agendamentoProfissionalContainer}>
-                      <FontAwesome5 name="user" size={10} color="theme.colors.primary" style={{ marginRight: 4 }} />
-                      <Text style={styles.agendamentoProfissional} numberOfLines={1}>
+                      <FontAwesome5 name="user" size={10} color={colors.primary} style={{ marginRight: 4 }} />
+                      <Text style={[styles.agendamentoProfissional, { color: colors.primary }]} numberOfLines={1}>
                         {agendamento.usuario_nome}
                       </Text>
                     </View>
@@ -401,8 +763,8 @@ export default function HomeScreen() {
               {/* Footer com horários */}
               <View style={styles.agendamentoFooter}>
                 <View style={styles.agendamentoHorarioContainer}>
-                  <FontAwesome5 name="clock" size={12} color="theme.colors.primary" />
-                  <Text style={styles.agendamentoHorarioText}>
+                  <FontAwesome5 name="clock" size={12} color={colors.primary} />
+                  <Text style={[styles.agendamentoHorarioText, { color: colors.primary }]}>
                     {agendamento.horario ? format(new Date(agendamento.horario), "HH:mm") : '--:--'}
                     {agendamento.horario_termino && (
                       <Text style={styles.agendamentoHorarioSeparador}> às </Text>
@@ -438,7 +800,7 @@ export default function HomeScreen() {
               logger.debug('Navegando para vendas via Ver todas...');
               router.push('/(app)/vendas');
             }}>
-              <Text style={styles.sectionAction}>Ver todas</Text>
+              <Text style={[styles.sectionAction, { color: colors.primary }]}>Ver todas</Text>
             </TouchableOpacity>
           </View>
           {vendasRecentes.length > 0 ? (
@@ -469,7 +831,7 @@ export default function HomeScreen() {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Produtos com Baixo Estoque</Text>
             <TouchableOpacity onPress={() => router.push('/estoque')}>
-              <Text style={styles.sectionAction}>Ver estoque</Text>
+              <Text style={[styles.sectionAction, { color: colors.primary }]}>Ver estoque</Text>
             </TouchableOpacity>
           </View>
           {produtosBaixoEstoque && produtosBaixoEstoque.length > 0 ? (
@@ -509,317 +871,3 @@ export default function HomeScreen() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F3F4F6',
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 16,
-    gap: 16,
-    justifyContent: 'flex-start',
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    minHeight: 160,
-    marginBottom: 0,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    maxWidth: '48%',
-    flexGrow: 1,
-  },
-  cardIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(124, 58, 237, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  cardTitle: {
-    fontSize: 14,
-    color: '#4B5563',
-    marginBottom: 8,
-    lineHeight: 18,
-  },
-  cardValue: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  cardSubtitle: {
-    fontSize: 13,
-    color: '#6B7280',
-  },
-  cardPrimary: {
-    borderLeftWidth: 4,
-    borderLeftColor: 'theme.colors.primary',
-  },
-  cardSuccess: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#22C55E',
-  },
-  cardInfo: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#0066FF',
-  },
-  cardDanger: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#EF4444',
-  },
-  section: {
-    backgroundColor: '#FFFFFF',
-    marginTop: 16,
-    marginHorizontal: 16,
-    borderRadius: 16,
-    padding: 20,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  sectionAction: {
-    fontSize: 14,
-    color: 'theme.colors.primary',
-    fontWeight: '500',
-  },
-  vendaItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  vendaContent: {
-    flex: 1,
-    marginRight: 16,
-  },
-  vendaCliente: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  vendaData: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  vendaValor: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#22C55E',
-  },
-  produtoItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  produtoContent: {
-    flex: 1,
-    marginRight: 16,
-  },
-  produtoNome: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  produtoInfo: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  produtoQuantidade: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  produtoMinimo: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  produtoStatus: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  agendamentoItem: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
-    minHeight: 110,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  primeiroAgendamento: {
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-  },
-  ultimoAgendamento: {
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
-    marginBottom: 0,
-  },
-  agendamentoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  agendamentoFotoContainer: {
-    marginRight: 12,
-  },
-  agendamentoFoto: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  agendamentoFotoPlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F3E8FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  agendamentoIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F3E8FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  agendamentoHorario: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  agendamentoContent: {
-    flex: 1,
-  },
-  agendamentoCliente: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  agendamentoServico: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 4,
-  },
-  agendamentoProfissional: {
-    fontSize: 12,
-    color: 'theme.colors.primary',
-    fontWeight: '500',
-    flex: 1,
-  },
-  agendamentoProfissionalContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  agendamentoFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
-  agendamentoHorarioContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  agendamentoHorarioText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: 'theme.colors.primary',
-  },
-  agendamentoHorarioSeparador: {
-    fontSize: 14,
-    fontWeight: '400',
-    color: '#6B7280',
-  },
-  agendamentoData: {
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  agendamentoDia: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#4B5563',
-  },
-  emptyAgendamentos: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-  },
-  produtoZerado: {
-    color: '#EF4444',
-    fontWeight: 'bold'
-  },
-  produtoBaixo: {
-    color: '#F59E0B',
-    fontWeight: 'bold'
-  },
-});

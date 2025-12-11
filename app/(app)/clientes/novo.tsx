@@ -15,6 +15,7 @@ import {
   validarTelefone,
   validarDataFormatada
 } from '../../../utils/validators';
+import { offlineInsert, getOfflineFeedback } from '../../../services/offlineSupabase';
 
 export default function NovoClienteScreen() {
   const router = useRouter();
@@ -180,10 +181,10 @@ export default function NovoClienteScreen() {
         }
       }
 
-      // Criar o cliente
-      const { data: clienteData, error: clienteError } = await supabase
-        .from('clientes')
-        .insert({
+      // Criar o cliente COM SUPORTE OFFLINE
+      const { data: clienteData, error: clienteError, fromCache } = await offlineInsert<any>(
+        'clientes',
+        {
           nome: nome.trim(),
           telefone: telefone.trim(),
           email: email.trim() || null,
@@ -191,9 +192,9 @@ export default function NovoClienteScreen() {
           observacoes: observacoes.trim() || null,
           foto_url,
           estabelecimento_id: estabelecimentoId,
-        })
-        .select()
-        .single();
+        },
+        estabelecimentoId!
+      );
 
       if (clienteError) {
         logger.error('Erro ao criar cliente:', clienteError);
@@ -201,48 +202,56 @@ export default function NovoClienteScreen() {
         return;
       }
 
-      // Se houver saldo inicial, criar registro de saldo
+      const clienteId = clienteData?.[0]?.id || `temp_${Date.now()}`;
+
+      // Se houver saldo inicial, criar registro de saldo COM SUPORTE OFFLINE
       if (saldoInicial && parseFloat(saldoInicial) > 0) {
-        const { error: saldoError } = await supabase
-          .from('saldos')
-          .insert({
-            cliente_id: clienteData.id,
+        const { error: saldoError } = await offlineInsert(
+          'saldos',
+          {
+            cliente_id: clienteId,
             valor: parseFloat(saldoInicial),
             tipo: 'credito',
             descricao: 'Saldo inicial',
             estabelecimento_id: estabelecimentoId,
-          });
+          },
+          estabelecimentoId!
+        );
 
         if (saldoError) {
           logger.error('Erro ao criar saldo:', saldoError);
           // Não impede a criação do cliente, apenas mostra um alerta
-          Alert.alert('Atenção', 'Cliente criado, mas houve um erro ao registrar o saldo inicial.');
+          const feedback = getOfflineFeedback(fromCache, 'create');
+          Alert.alert(feedback.title, 'Cliente criado, mas houve um erro ao registrar o saldo inicial.');
           router.back();
           return;
         }
       }
 
-      // Se houver agendamento, criar registro de agendamento
+      // Se houver agendamento, criar registro de agendamento COM SUPORTE OFFLINE
       if (dataAgendamento && horaAgendamento && servicoAgendado) {
         const [dia, mes, ano] = dataAgendamento.split('/');
         const dataHora = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
         const [hora, minuto] = horaAgendamento.split(':');
         dataHora.setHours(parseInt(hora), parseInt(minuto));
         
-        const { error: agendamentoError } = await supabase
-          .from('agendamentos')
-          .insert({
-            cliente_id: clienteData.id,
+        const { error: agendamentoError } = await offlineInsert(
+          'agendamentos',
+          {
+            cliente_id: clienteId,
             data_hora: dataHora.toISOString(),
             servico: servicoAgendado.trim(),
             status: 'agendado',
             estabelecimento_id: estabelecimentoId,
-          });
+          },
+          estabelecimentoId!
+        );
 
         if (agendamentoError) {
           logger.error('Erro ao criar agendamento:', agendamentoError);
           // Não impede a criação do cliente, apenas mostra um alerta
-          Alert.alert('Atenção', 'Cliente criado, mas houve um erro ao registrar o agendamento.');
+          const feedback = getOfflineFeedback(fromCache, 'create');
+          Alert.alert(feedback.title, 'Cliente criado, mas houve um erro ao registrar o agendamento.');
           router.back();
           return;
         }
@@ -250,17 +259,19 @@ export default function NovoClienteScreen() {
 
       // Verificar se precisa emitir evento de cliente cadastrado
       const returnTo = params.returnTo as string;
-      if (returnTo === 'comandas') {
+      if (returnTo === 'comandas' && clienteData?.[0]) {
         DeviceEventEmitter.emit('clienteCadastrado', {
-          clienteId: clienteData.id,
-          clienteNome: clienteData.nome,
+          clienteId: clienteData[0].id,
+          clienteNome: clienteData[0].nome,
           returnTo: 'comandas'
         });
       }
 
+      // Feedback apropriado (online ou offline)
+      const feedback = getOfflineFeedback(fromCache, 'create');
       Alert.alert(
-        'Sucesso',
-        'Cliente criado com sucesso!',
+        feedback.title,
+        feedback.message,
         [{ text: 'OK', onPress: () => router.back() }]
       );
     } catch (error) {

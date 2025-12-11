@@ -1,6 +1,7 @@
 import { supabase } from '@lib/supabase';
 import { logger } from '../../../utils/logger';
 import { Cliente as ClienteBase, Produto as ProdutoBase, Servico as ServicoBase, Pacote as PacoteBase } from '@types';
+import { CacheManager, CacheNamespaces, CacheTTL } from '../../../utils/cacheManager';
 
 export interface Orcamento {
   id: string;
@@ -69,6 +70,18 @@ export async function carregarOrcamentos() {
       logger.error('Usuário não autenticado');
       throw new Error('Usuário não autenticado');
     }
+    
+    // Tentar cache primeiro
+    const cacheKey = `lista_${user.id}`;
+    const cachedData = await CacheManager.get<Orcamento[]>(
+      CacheNamespaces.RELATORIOS,
+      cacheKey
+    );
+    
+    if (cachedData) {
+      logger.debug('📦 Orçamentos carregados do cache');
+      return cachedData;
+    }
 
     logger.debug('Usuário autenticado, carregando orçamentos...');
     const { data, error } = await supabase
@@ -83,6 +96,15 @@ export async function carregarOrcamentos() {
     }
 
     logger.debug('Orçamentos carregados com sucesso:', data?.length);
+    
+    // Salvar no cache com TTL de 5 minutos (reutiliza cacheKey já declarado acima)
+    await CacheManager.set(
+      CacheNamespaces.RELATORIOS,
+      cacheKey,
+      data || [],
+      CacheTTL.FIVE_MINUTES
+    );
+    
     return data;
   } catch (error) {
     logger.error('Erro na função carregarOrcamentos:', error);
@@ -137,6 +159,11 @@ export async function criarOrcamento(orcamento: Omit<Orcamento, 'id' | 'created_
     .single();
 
   if (error) throw error;
+  
+  // Invalidar cache de orçamentos
+  const cacheKey = `lista_${user.id}`;
+  await CacheManager.remove(CacheNamespaces.RELATORIOS, cacheKey);
+  
   return data;
 }
 
@@ -153,6 +180,11 @@ export async function atualizarOrcamento(id: string, orcamento: Partial<Orcament
     .single();
 
   if (error) throw error;
+  
+  // Invalidar cache de orçamentos
+  const cacheKey = `lista_${user.id}`;
+  await CacheManager.remove(CacheNamespaces.RELATORIOS, cacheKey);
+  
   return data;
 }
 
@@ -167,6 +199,10 @@ export async function excluirOrcamento(id: string) {
     .eq('created_by', user.id);
 
   if (error) throw error;
+  
+  // Invalidar cache de orçamentos
+  const cacheKey = `lista_${user.id}`;
+  await CacheManager.remove(CacheNamespaces.RELATORIOS, cacheKey);
 }
 
 export async function adicionarItemOrcamento(item: Omit<OrcamentoItem, 'id' | 'created_by' | 'created_at' | 'updated_at'>) {
@@ -201,6 +237,11 @@ export async function atualizarItemOrcamento(id: string, item: Partial<Orcamento
     .single();
 
   if (error) throw error;
+  
+  // Invalidar cache de orçamentos
+  const cacheKey = `lista_${user.id}`;
+  await CacheManager.remove(CacheNamespaces.RELATORIOS, cacheKey);
+  
   return data;
 }
 
@@ -215,6 +256,10 @@ export async function excluirItemOrcamento(id: string) {
     .eq('created_by', user.id);
 
   if (error) throw error;
+  
+  // Invalidar cache de orçamentos
+  const cacheKey = `lista_${user.id}`;
+  await CacheManager.remove(CacheNamespaces.RELATORIOS, cacheKey);
 }
 
 export function calcularValorTotalOrcamento(itens: OrcamentoItem[]) {

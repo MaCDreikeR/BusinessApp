@@ -11,6 +11,8 @@ import { enviarMensagemWhatsapp, AgendamentoMensagem } from '../../services/what
 import { logger } from '../../utils/logger';
 import { Usuario, Agendamento as AgendamentoBase } from '@types';
 import { theme } from '@utils/theme';
+import { CacheManager, CacheNamespaces, CacheTTL } from '../../utils/cacheManager';
+import { offlineInsert, offlineUpdate, offlineDelete, getOfflineFeedback } from '../../services/offlineSupabase';
 
 // Configuração do idioma para o calendário
 LocaleConfig.locales['pt-br'] = {
@@ -330,15 +332,32 @@ export default function AgendaScreen() {
         return;
       }
       
+      // Filtrar por usuário se selecionado OU se for profissional (sempre filtrado)
+      const usuarioFiltro = selectedUser || (role === 'profissional' ? user?.id : null);
+      
+      // Gerar chave de cache baseada na data e usuário
+      const dataStr = format(selectedDate, 'yyyy-MM-dd');
+      const cacheKey = `dia_${dataStr}_${usuarioFiltro || 'todos'}`;
+      
+      // Tentar buscar do cache primeiro
+      const cachedData = await CacheManager.get<AgendamentoAgenda[]>(
+        CacheNamespaces.AGENDAMENTOS,
+        cacheKey
+      );
+      
+      if (cachedData) {
+        logger.debug('📦 Agendamentos carregados do cache');
+        setAgendamentos(cachedData);
+        setLoading(false);
+        return;
+      }
+      
       let query = supabase
         .from('agendamentos')
         .select('*')
         .eq('estabelecimento_id', estabelecimentoId)
         .gte('data_hora', new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 0, 0, 0).toISOString())
         .lt('data_hora', new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 23, 59, 59).toISOString());
-
-      // Filtrar por usuário se selecionado OU se for profissional (sempre filtrado)
-      const usuarioFiltro = selectedUser || (role === 'profissional' ? user?.id : null);
       
       if (usuarioFiltro) {
         logger.debug(`🔒 Filtrando agendamentos para o usuário: ${usuarioFiltro} (role: ${role})`);
@@ -465,6 +484,15 @@ export default function AgendaScreen() {
       );
       
       logger.debug('Agendamentos processados com dados de clientes:', agendamentosComClientes);
+      
+      // Salvar no cache com TTL de 2 minutos (reutiliza variáveis já declaradas acima)
+      await CacheManager.set(
+        CacheNamespaces.AGENDAMENTOS,
+        cacheKey,
+        agendamentosComClientes,
+        CacheTTL.TWO_MINUTES
+      );
+      
       setAgendamentos(agendamentosComClientes);
     } catch (error) {
       logger.error('Erro ao carregar agendamentos:', error);
@@ -485,6 +513,22 @@ export default function AgendaScreen() {
       const primeiroDiaMes = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
       const ultimoDiaMes = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
       
+      // Gerar chave de cache baseada no mês e usuário
+      const mesStr = format(selectedDate, 'yyyy-MM');
+      const cacheKey = `mes_${mesStr}_${selectedUser || 'todos'}`;
+      
+      // Tentar buscar do cache primeiro
+      const cachedData = await CacheManager.get<AgendamentoAgenda[]>(
+        CacheNamespaces.AGENDAMENTOS,
+        cacheKey
+      );
+      
+      if (cachedData) {
+        logger.debug('📦 Agendamentos do mês carregados do cache');
+        setAgendamentosMes(cachedData);
+        return;
+      }
+      
       let query = supabase
         .from('agendamentos')
         .select('*')
@@ -503,6 +547,15 @@ export default function AgendaScreen() {
       if (error) throw error;
 
       logger.debug('Agendamentos do mês carregados:', data?.length || 0);
+      
+      // Salvar no cache com TTL de 2 minutos
+      await CacheManager.set(
+        CacheNamespaces.AGENDAMENTOS,
+        cacheKey,
+        data || [],
+        CacheTTL.TWO_MINUTES
+      );
+      
       setAgendamentosMes(data || []);
     } catch (error) {
       logger.error('Erro ao carregar agendamentos do mês:', error);
@@ -640,11 +693,13 @@ export default function AgendaScreen() {
       let sucessoDias = false;
       
       if (registrosMap['dias_semana_bloqueados']) {
-        // Atualizar registro existente
-        const { error: updateError } = await supabase
-          .from('configuracoes')
-          .update({ valor: dias })
-          .eq('id', registrosMap['dias_semana_bloqueados']);
+        // Atualizar registro existente COM SUPORTE OFFLINE
+        const { error: updateError } = await offlineUpdate(
+          'configuracoes',
+          registrosMap['dias_semana_bloqueados'],
+          { valor: dias },
+          estabelecimentoId!
+        );
           
         if (updateError) {
           logger.error('Erro ao atualizar dias bloqueados:', updateError);
@@ -652,14 +707,16 @@ export default function AgendaScreen() {
           sucessoDias = true;
         }
       } else {
-        // Criar novo registro
-        const { error: insertError } = await supabase
-          .from('configuracoes')
-          .insert({
+        // Criar novo registro COM SUPORTE OFFLINE
+        const { error: insertError } = await offlineInsert(
+          'configuracoes',
+          {
             chave: 'dias_semana_bloqueados',
             valor: dias,
             estabelecimento_id: estabelecimentoId
-          });
+          },
+          estabelecimentoId!
+        );
           
         if (insertError) {
           logger.error('Erro ao inserir dias bloqueados:', insertError);
@@ -675,11 +732,13 @@ export default function AgendaScreen() {
       let sucessoDatas = false;
       
       if (registrosMap['datas_bloqueadas']) {
-        // Atualizar registro existente
-        const { error: updateError } = await supabase
-          .from('configuracoes')
-          .update({ valor: datas })
-          .eq('id', registrosMap['datas_bloqueadas']);
+        // Atualizar registro existente COM SUPORTE OFFLINE
+        const { error: updateError } = await offlineUpdate(
+          'configuracoes',
+          registrosMap['datas_bloqueadas'],
+          { valor: datas },
+          estabelecimentoId!
+        );
           
         if (updateError) {
           logger.error('Erro ao atualizar datas bloqueadas:', updateError);
@@ -687,14 +746,16 @@ export default function AgendaScreen() {
           sucessoDatas = true;
         }
       } else {
-        // Criar novo registro
-        const { error: insertError } = await supabase
-          .from('configuracoes')
-          .insert({
+        // Criar novo registro COM SUPORTE OFFLINE
+        const { error: insertError } = await offlineInsert(
+          'configuracoes',
+          {
             chave: 'datas_bloqueadas',
             valor: datas,
             estabelecimento_id: estabelecimentoId
-          });
+          },
+          estabelecimentoId!
+        );
           
         if (insertError) {
           logger.error('Erro ao inserir datas bloqueadas:', insertError);
@@ -1019,11 +1080,13 @@ export default function AgendaScreen() {
         const { chave, valor } = config;
         
         if (registrosMap[chave]) {
-          // Atualizar registro existente
-          const { error } = await supabase
-            .from('configuracoes')
-            .update({ valor })
-            .eq('id', registrosMap[chave]);
+          // Atualizar registro existente COM SUPORTE OFFLINE
+          const { error } = await offlineUpdate(
+            'configuracoes',
+            registrosMap[chave],
+            { valor },
+            estabelecimentoId!
+          );
             
           if (error) {
             logger.error(`Erro ao atualizar configuração ${chave}:`, error);
@@ -1031,14 +1094,16 @@ export default function AgendaScreen() {
           }
           return true;
         } else {
-          // Criar novo registro
-          const { error } = await supabase
-            .from('configuracoes')
-            .insert({
+          // Criar novo registro COM SUPORTE OFFLINE
+          const { error } = await offlineInsert(
+            'configuracoes',
+            {
               chave,
               valor,
               estabelecimento_id: estabelecimentoId
-            });
+            },
+            estabelecimentoId!
+          );
             
           if (error) {
             logger.error(`Erro ao inserir configuração ${chave}:`, error);
@@ -1168,11 +1233,12 @@ export default function AgendaScreen() {
     if (!agendamentoParaExcluir) return;
     
     try {
-      // Iniciar exclusão
-      const { error } = await supabase
-        .from('agendamentos')
-        .delete()
-        .eq('id', agendamentoParaExcluir);
+      // Iniciar exclusão COM SUPORTE OFFLINE
+      const { error, fromCache } = await offlineDelete(
+        'agendamentos',
+        agendamentoParaExcluir,
+        estabelecimentoId!
+      );
         
       if (error) throw error;
       
@@ -1187,6 +1253,9 @@ export default function AgendaScreen() {
       if (novosAgendamentosDoHorario.length === 0) {
         setShowAgendamentosModal(false);
       }
+      
+      // Limpar cache de agendamentos
+      await CacheManager.clearNamespace(CacheNamespaces.AGENDAMENTOS);
       
       // Recarregar os agendamentos da tela
       carregarAgendamentos();
@@ -1208,10 +1277,12 @@ export default function AgendaScreen() {
   // Função para atualizar o status do agendamento
   const atualizarStatus = async (agendamentoId: string, novoStatus: string) => {
     try {
-      const { error } = await supabase
-        .from('agendamentos')
-        .update({ status: novoStatus })
-        .eq('id', agendamentoId);
+      const { error, fromCache } = await offlineUpdate(
+        'agendamentos',
+        agendamentoId,
+        { status: novoStatus },
+        estabelecimentoId!
+      );
       
       if (error) throw error;
       
@@ -1220,6 +1291,9 @@ export default function AgendaScreen() {
         ag.id === agendamentoId ? { ...ag, status: novoStatus as AgendamentoAgenda['status'] } : ag
       );
       setAgendamentosDoHorarioSelecionado(agendamentosAtualizados);
+      
+      // Limpar cache de agendamentos
+      await CacheManager.clearNamespace(CacheNamespaces.AGENDAMENTOS);
       
       // Recarregar os agendamentos da tela
       carregarAgendamentos();

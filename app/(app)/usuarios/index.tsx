@@ -180,8 +180,8 @@ export default function ListaUsuariosScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['theme.colors.primary']}
-            tintColor="theme.colors.primary"
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
           />
         }
       >

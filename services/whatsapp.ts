@@ -90,6 +90,48 @@ export async function salvarModeloMensagem(modelo: string, empresaId?: string) {
   if (error) throw error;
 }
 
+// ========== ANIVERSARIANTES ==========
+
+const MODELO_ANIVERSARIANTE_PADRAO = `Olá, {cliente}! 🎉🎂
+
+Hoje é um dia especial! A equipe da {empresa} deseja um Feliz Aniversário! 🎈
+
+Parabéns pelos seus {idade} anos! Que este novo ciclo seja repleto de saúde, felicidade e realizações.
+
+Aproveite para agendar um momento especial de cuidado e bem-estar com a gente! 💆‍♀️✨`;
+
+export async function getModeloAniversariante(empresaId?: string): Promise<string> {
+  let empresa = empresaId;
+  if (!empresa) empresa = await getEmpresaId() as string | undefined;
+  if (!empresa) return MODELO_ANIVERSARIANTE_PADRAO;
+
+  const { data, error } = await supabase
+    .from('configuracoes_mensagens')
+    .select('modelo')
+    .eq('empresa_id', empresa)
+    .eq('tipo', 'aniversariante')
+    .maybeSingle();
+
+  if (error) {
+    logger.error('Erro ao buscar modelo de aniversariante:', error);
+    return MODELO_ANIVERSARIANTE_PADRAO;
+  }
+
+  return data?.modelo || MODELO_ANIVERSARIANTE_PADRAO;
+}
+
+export async function salvarModeloAniversariante(modelo: string, empresaId?: string) {
+  let empresa = empresaId;
+  if (!empresa) empresa = await getEmpresaId() as string | undefined;
+  if (!empresa) throw new Error('Estabelecimento não identificado');
+
+  const { error } = await supabase
+    .from('configuracoes_mensagens')
+    .upsert({ empresa_id: empresa, tipo: 'aniversariante', modelo }, { onConflict: 'empresa_id,tipo' });
+
+  if (error) throw error;
+}
+
 export async function enviarMensagemWhatsapp(
   agendamento: AgendamentoMensagem,
   empresaIdOptional?: string

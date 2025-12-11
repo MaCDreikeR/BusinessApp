@@ -12,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '../../utils/logger';
 import { Servico, CategoriaServico } from '@types';
 import { theme } from '@utils/theme';
+import { CacheManager, CacheNamespaces, CacheTTL } from '../../utils/cacheManager';
 
 interface ServicoComCategoria extends Servico {
   descricaoServico?: string;
@@ -166,17 +167,25 @@ export default function ServicosScreen() {
       logger.debug(`${data?.length || 0} categorias carregadas com sucesso`);
       setCategorias(data || []);
       
-      // Cache dos resultados para uso offline
-      await AsyncStorage.setItem('@BusinessApp:categorias', JSON.stringify(data));
+      // Cache com TTL de 15 minutos
+      await CacheManager.set(
+        CacheNamespaces.SERVICOS,
+        'categorias',
+        data,
+        CacheTTL.FIFTEEN_MINUTES
+      );
     } catch (error) {
       logger.error('Erro ao carregar categorias:', error);
       
       // Tentar carregar do cache em caso de erro
       try {
-        const cachedData = await AsyncStorage.getItem('@BusinessApp:categorias');
+        const cachedData = await CacheManager.get<CategoriaServico[]>(
+          CacheNamespaces.SERVICOS,
+          'categorias'
+        );
+        
         if (cachedData) {
-          const parsedData = JSON.parse(cachedData);
-          setCategorias(parsedData);
+          setCategorias(cachedData);
           Alert.alert('Aviso', 'Usando dados salvos localmente. Alguns dados podem estar desatualizados.');
         } else {
           Alert.alert('Erro', 'Não foi possível carregar as categorias e não há dados salvos.');

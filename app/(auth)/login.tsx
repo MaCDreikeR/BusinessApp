@@ -8,12 +8,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { logger } from '../../utils/logger';
-import { theme } from '@utils/theme';
+import { useTheme } from '../../contexts/ThemeContext';
+import { CacheManager, CacheNamespaces } from '../../utils/cacheManager';
 
 const { width } = Dimensions.get('window');
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -28,12 +30,15 @@ export default function LoginScreen() {
 
   const carregarDadosSalvos = async () => {
     try {
-      const dadosSalvos = await AsyncStorage.getItem('@loginData');
+      const dadosSalvos = await CacheManager.get<{ email: string; senha: string; lembrarMe: boolean }>(
+        CacheNamespaces.USER_PREFS,
+        'login_data'
+      );
+      
       if (dadosSalvos) {
-        const { email: emailSalvo, senha: senhaSalva, lembrarMe: lembrarMeSalvo } = JSON.parse(dadosSalvos);
-        setEmail(emailSalvo);
-        setPassword(senhaSalva || '');
-        setLembrarMe(lembrarMeSalvo);
+        setEmail(dadosSalvos.email);
+        setPassword(dadosSalvos.senha || '');
+        setLembrarMe(dadosSalvos.lembrarMe);
       }
     } catch (error) {
       logger.error('Erro ao carregar dados salvos:', error);
@@ -43,13 +48,14 @@ export default function LoginScreen() {
   const salvarDados = async () => {
     try {
       if (lembrarMe) {
-        await AsyncStorage.setItem('@loginData', JSON.stringify({
-          email,
-          senha: password,
-          lembrarMe
-        }));
+        // Salvar sem TTL (permanente até logout)
+        await CacheManager.set(
+          CacheNamespaces.USER_PREFS,
+          'login_data',
+          { email, senha: password, lembrarMe }
+        );
       } else {
-        await AsyncStorage.removeItem('@loginData');
+        await CacheManager.remove(CacheNamespaces.USER_PREFS, 'login_data');
       }
     } catch (error) {
       logger.error('Erro ao salvar dados:', error);
@@ -99,7 +105,7 @@ export default function LoginScreen() {
       style={styles.container}
     >
       <LinearGradient
-        colors={[theme.colors.primary, theme.colors.primaryDark]}
+        colors={[colors.primary, colors.primaryDark]}
         style={styles.gradient}
       >
         <Animated.View 
@@ -112,12 +118,12 @@ export default function LoginScreen() {
 
         <Animated.View 
           entering={FadeInUp.duration(1000).springify()}
-          style={styles.form}
+          style={[styles.form, { backgroundColor: colors.surface }]}
         >
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>E-mail</Text>
+          <Text style={[styles.label, { color: colors.text }]}>E-mail</Text>
           <TextInput
-            style={[styles.input, errorMessage && styles.inputError]}
+            style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }, errorMessage && styles.inputError]}
             placeholder="Digite seu e-mail"
             value={email}
             onChangeText={(text) => {
@@ -126,15 +132,15 @@ export default function LoginScreen() {
             }}
             autoCapitalize="none"
             keyboardType="email-address"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textTertiary}
           />
         </View>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Senha</Text>
+          <Text style={[styles.label, { color: colors.text }]}>Senha</Text>
           <View style={styles.passwordContainer}>
             <TextInput
-              style={[styles.input, styles.passwordInput, errorMessage && styles.inputError]}
+              style={[styles.input, styles.passwordInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }, errorMessage && styles.inputError]}
               placeholder="Digite sua senha"
               value={password}
               onChangeText={(text) => {
@@ -142,7 +148,7 @@ export default function LoginScreen() {
                 setErrorMessage('');
               }}
               secureTextEntry={!showPassword}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textTertiary}
             />
             <TouchableOpacity 
               style={styles.eyeButton}
@@ -151,7 +157,7 @@ export default function LoginScreen() {
               <Ionicons 
                 name={showPassword ? "eye-outline" : "eye-off-outline"} 
                 size={24} 
-                color="#666"
+                color={colors.textSecondary}
               />
             </TouchableOpacity>
           </View>
@@ -167,20 +173,20 @@ export default function LoginScreen() {
         <View style={styles.rememberContainer}>
           <View style={styles.checkboxContainer}>
               <TouchableOpacity 
-                style={[styles.checkbox, lembrarMe && styles.checkboxChecked]}
+                style={[styles.checkbox, { backgroundColor: colors.background, borderColor: colors.border }, lembrarMe && { backgroundColor: colors.primary, borderColor: colors.primary }]}
                 onPress={() => setLembrarMe(!lembrarMe)}
               >
                 {lembrarMe && <Ionicons name="checkmark" size={16} color="#fff" />}
               </TouchableOpacity>
-            <Text style={styles.rememberText}>Lembrar-me</Text>
+            <Text style={[styles.rememberText, { color: colors.textSecondary }]}>Lembrar-me</Text>
           </View>
           <TouchableOpacity>
-            <Text style={styles.forgotText}>Esqueceu a senha?</Text>
+            <Text style={[styles.forgotText, { color: colors.primary }]}>Esqueceu a senha?</Text>
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity 
-          style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+          style={[styles.loginButton, { backgroundColor: colors.primary, shadowColor: colors.primary }, loading && styles.loginButtonDisabled]}
           onPress={handleLogin}
           disabled={loading}
         >
@@ -192,10 +198,10 @@ export default function LoginScreen() {
         </TouchableOpacity>
 
         <View style={styles.signupContainer}>
-          <Text style={styles.signupText}>Ainda não tem uma conta? </Text>
+          <Text style={[styles.signupText, { color: colors.textSecondary }]}>Ainda não tem uma conta? </Text>
           <Link href="/(auth)/cadastro" asChild>
             <TouchableOpacity>
-              <Text style={styles.signupLink}>Criar conta</Text>
+              <Text style={[styles.signupLink, { color: colors.primary }]}>Criar conta</Text>
             </TouchableOpacity>
           </Link>
         </View>
@@ -209,10 +215,10 @@ export default function LoginScreen() {
           <Text style={styles.supportText}>Falar com o Suporte</Text>
         </TouchableOpacity>
 
-        <Text style={styles.termsText}>
+        <Text style={[styles.termsText, { color: colors.textSecondary }]}>
           Ao realizar login você concorda com nossos{' '}
-          <Text style={styles.termsLink}>termos de uso</Text> e{' '}
-          <Text style={styles.termsLink}>política de privacidade</Text>
+          <Text style={[styles.termsLink, { color: colors.primary }]}>termos de uso</Text> e{' '}
+          <Text style={[styles.termsLink, { color: colors.primary }]}>política de privacidade</Text>
         </Text>
         </Animated.View>
       </LinearGradient>
@@ -246,7 +252,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   form: {
-    backgroundColor: '#fff',
     borderRadius: 16,
     padding: 24,
     marginHorizontal: 20,
@@ -264,17 +269,14 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    color: '#1A1A1A',
     marginBottom: 8,
     fontWeight: '500',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#E5E5E5',
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    backgroundColor: '#F9FAFB',
   },
   passwordContainer: {
     position: 'relative',
@@ -301,33 +303,25 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderWidth: 1,
-    borderColor: '#E5E5E5',
     borderRadius: 4,
     marginRight: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F9FAFB',
   },
   checkboxChecked: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
   },
   rememberText: {
     fontSize: 14,
-    color: '#666',
   },
   forgotText: {
     fontSize: 14,
-    color: theme.colors.primary,
     fontWeight: '500',
   },
   loginButton: {
-    backgroundColor: theme.colors.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
     marginBottom: 16,
-    shadowColor: theme.colors.primary,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -351,11 +345,9 @@ const styles = StyleSheet.create({
   },
   signupText: {
     fontSize: 14,
-    color: '#666',
   },
   signupLink: {
     fontSize: 14,
-    color: theme.colors.primary,
     fontWeight: '500',
   },
   trialButton: {
@@ -380,12 +372,10 @@ const styles = StyleSheet.create({
   },
   termsText: {
     fontSize: 12,
-    color: '#666',
     textAlign: 'center',
     lineHeight: 18,
   },
   termsLink: {
-    color: theme.colors.primary,
     textDecorationLine: 'underline',
   },
   inputError: {

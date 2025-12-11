@@ -2,22 +2,34 @@ import React, { useEffect, useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { salvarModeloMensagem, getModeloMensagem } from '../../services/whatsapp';
+import { 
+  salvarModeloMensagem, 
+  getModeloMensagem,
+  salvarModeloAniversariante,
+  getModeloAniversariante 
+} from '../../services/whatsapp';
 import { logger } from '../../utils/logger';
 import { theme } from '@utils/theme';
 
+type TabType = 'agendamentos' | 'aniversariantes';
+
 export default function AutomacaoScreen() {
   const { estabelecimentoId } = useAuth();
-  const [tab, setTab] = useState<'agendamentos'>('agendamentos');
-  const [modelo, setModelo] = useState('');
+  const [tab, setTab] = useState<TabType>('agendamentos');
+  const [modeloAgendamento, setModeloAgendamento] = useState('');
+  const [modeloAniversariante, setModeloAniversariante] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
-        const atual = await getModeloMensagem(estabelecimentoId || undefined);
-        setModelo(atual);
+        const [agendamento, aniversariante] = await Promise.all([
+          getModeloMensagem(estabelecimentoId || undefined),
+          getModeloAniversariante(estabelecimentoId || undefined)
+        ]);
+        setModeloAgendamento(agendamento);
+        setModeloAniversariante(aniversariante);
       } catch (e) {
         logger.error(e);
       } finally {
@@ -26,10 +38,20 @@ export default function AutomacaoScreen() {
     })();
   }, [estabelecimentoId]);
 
-  const onSalvar = async () => {
+  const onSalvarAgendamento = async () => {
     try {
-      await salvarModeloMensagem(modelo, estabelecimentoId || undefined);
-      Alert.alert('Sucesso', 'Modelo de mensagem salvo.');
+      await salvarModeloMensagem(modeloAgendamento, estabelecimentoId || undefined);
+      Alert.alert('Sucesso', 'Modelo de mensagem de agendamento salvo.');
+    } catch (e) {
+      logger.error(e);
+      Alert.alert('Erro', 'Não foi possível salvar o modelo.');
+    }
+  };
+
+  const onSalvarAniversariante = async () => {
+    try {
+      await salvarModeloAniversariante(modeloAniversariante, estabelecimentoId || undefined);
+      Alert.alert('Sucesso', 'Modelo de mensagem de aniversário salvo.');
     } catch (e) {
       logger.error(e);
       Alert.alert('Erro', 'Não foi possível salvar o modelo.');
@@ -38,10 +60,24 @@ export default function AutomacaoScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Tabs simples - por ora existe apenas Agendamentos */}
+      {/* Tabs */}
       <View style={styles.tabs}>
-        <TouchableOpacity style={[styles.tab, tab === 'agendamentos' && styles.tabActive]} onPress={() => setTab('agendamentos')}>
-          <Text style={[styles.tabText, tab === 'agendamentos' && styles.tabTextActive]}>Agendamentos</Text>
+        <TouchableOpacity 
+          style={[styles.tab, tab === 'agendamentos' && styles.tabActive]} 
+          onPress={() => setTab('agendamentos')}
+        >
+          <Text style={[styles.tabText, tab === 'agendamentos' && styles.tabTextActive]}>
+            Agendamentos
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.tab, tab === 'aniversariantes' && styles.tabActive]} 
+          onPress={() => setTab('aniversariantes')}
+        >
+          <Text style={[styles.tabText, tab === 'aniversariantes' && styles.tabTextActive]}>
+            Aniversariantes
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -54,14 +90,45 @@ export default function AutomacaoScreen() {
           </Text>
           <TextInput
             multiline
-            value={modelo}
-            onChangeText={setModelo}
+            value={modeloAgendamento}
+            onChangeText={setModeloAgendamento}
             placeholder="Digite o modelo da mensagem..."
             style={styles.textarea}
             editable={!loading}
           />
           <View style={styles.actions}>
-            <TouchableOpacity style={[styles.button, styles.buttonPrimary]} onPress={onSalvar} disabled={loading}>
+            <TouchableOpacity 
+              style={[styles.button, styles.buttonPrimary]} 
+              onPress={onSalvarAgendamento} 
+              disabled={loading}
+            >
+              <Text style={styles.buttonPrimaryText}>Salvar</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      )}
+
+      {tab === 'aniversariantes' && (
+        <ScrollView contentContainerStyle={styles.content}>
+          <Text style={styles.title}>Mensagem de aniversário</Text>
+          <Text style={styles.help}>
+            Use os placeholders:
+            {'\n'}• {`{cliente}`} • {`{idade}`} • {`{data_nascimento}`} • {`{empresa}`}
+          </Text>
+          <TextInput
+            multiline
+            value={modeloAniversariante}
+            onChangeText={setModeloAniversariante}
+            placeholder="Digite o modelo da mensagem de aniversário..."
+            style={styles.textarea}
+            editable={!loading}
+          />
+          <View style={styles.actions}>
+            <TouchableOpacity 
+              style={[styles.button, styles.buttonPrimary]} 
+              onPress={onSalvarAniversariante} 
+              disabled={loading}
+            >
               <Text style={styles.buttonPrimaryText}>Salvar</Text>
             </TouchableOpacity>
           </View>

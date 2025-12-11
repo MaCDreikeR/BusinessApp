@@ -31,6 +31,10 @@ Thumbs.db
 .idea/
 
 # IMPORTANTE: NÃO ignorar:
-# - android/ (pasta raiz - já commitada)
-# - assets/ (necessário para prebuild)
+# - android/ (pasta raiz - já commitada, não usamos CNG/Prebuild)
+# - ios/ (pasta raiz - já commitada, não usamos CNG/Prebuild)
+# - assets/ (necessário para builds)
 # - Arquivos de configuração
+
+# NOTA: O aviso do expo-doctor sobre CNG é esperado e pode ser ignorado.
+# Este projeto usa configuração nativa tradicional (não CNG/Prebuild).

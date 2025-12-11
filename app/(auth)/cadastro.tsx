@@ -7,7 +7,7 @@ import { supabase } from '../../lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { logger } from '../../utils/logger';
-import { theme } from '@utils/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { 
   validarCPF, 
   validarCNPJ, 
@@ -27,6 +27,7 @@ const segmentos = [
 ];
 
 export default function CadastroScreen() {
+  const { colors } = useTheme();
   const [nomeEstabelecimento, setNomeEstabelecimento] = useState('');
   const [tipoDocumento, setTipoDocumento] = useState('CPF');
   const [numeroDocumento, setNumeroDocumento] = useState('');
@@ -131,7 +132,7 @@ export default function CadastroScreen() {
       style={styles.container}
     >
       <LinearGradient
-        colors={['theme.colors.primary', 'theme.colors.primaryDark']}
+        colors={[colors.primary, colors.primaryDark]}
         style={styles.gradient}
       >
         <ScrollView 
@@ -149,7 +150,7 @@ export default function CadastroScreen() {
 
           <Animated.View 
             entering={FadeInUp.duration(1000).springify()}
-            style={styles.form}
+            style={[styles.form, { backgroundColor: colors.surface }]}
           >
         <View style={styles.formSection}>
               <Text style={styles.sectionTitle}>Dados do Estabelecimento</Text>
@@ -485,34 +486,26 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderWidth: 1,
-    borderColor: '#E5E5E5',
     borderRadius: 4,
     marginRight: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F9FAFB',
   },
   checkboxChecked: {
-    backgroundColor: 'theme.colors.primary',
-    borderColor: 'theme.colors.primary',
   },
   checkboxLabel: {
     flex: 1,
     fontSize: 14,
-    color: '#666',
     lineHeight: 20,
   },
   link: {
-    color: 'theme.colors.primary',
     textDecorationLine: 'underline',
   },
   createButton: {
-    backgroundColor: 'theme.colors.primary',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
     marginBottom: 16,
-    shadowColor: 'theme.colors.primary',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -536,11 +529,9 @@ const styles = StyleSheet.create({
   },
   loginText: {
     fontSize: 14,
-    color: '#666',
   },
   loginLink: {
     fontSize: 14,
-    color: 'theme.colors.primary',
     fontWeight: '500',
   },
   trialButton: {

@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { logger } from '../../../utils/logger';
 import { Cliente as ClienteBase } from '@types';
 import { theme } from '@utils/theme';
+import { CacheManager, CacheNamespaces, CacheTTL } from '../../../utils/cacheManager';
 
 type ClienteLista = Pick<ClienteBase, 'id' | 'nome' | 'telefone' | 'estabelecimento_id' | 'created_at'> & {
   foto_url?: string;
@@ -43,6 +44,19 @@ export default function ClientesScreen() {
     try {
       if (!estabelecimentoId) {
         Alert.alert('Erro', 'Estabelecimento não identificado');
+        return;
+      }
+
+      // Tentar buscar do cache (TTL de 5 minutos)
+      const cacheKey = `lista_${estabelecimentoId}`;
+      const cachedData = await CacheManager.get<ClienteLista[]>(
+        CacheNamespaces.CLIENTES,
+        cacheKey
+      );
+
+      if (cachedData) {
+        logger.debug('✅ Usando cache para clientes');
+        setClientes(cachedData);
         return;
       }
 
@@ -105,12 +119,12 @@ export default function ClientesScreen() {
           agendamento.cliente === cliente.nome
         ).map(agendamento => ({
           id: agendamento.id,
-          data: agendamento.data_hora,
+          data_hora: agendamento.data_hora,
           status: agendamento.status
         })) || [];
-
+        
         const saldo = saldosPorCliente[cliente.id] || 0;
-
+        
         return {
           ...cliente,
           agendamentos: agendamentosDoCliente,
@@ -121,6 +135,14 @@ export default function ClientesScreen() {
       }) || [];
 
       setClientes(clientesComAgendamentos);
+      
+      // Salvar no cache com TTL de 5 minutos
+      await CacheManager.set(
+        CacheNamespaces.CLIENTES,
+        cacheKey,
+        clientesComAgendamentos,
+        CacheTTL.FIVE_MINUTES
+      );
     } catch (error) {
       logger.error('Erro ao carregar clientes:', error);
       Alert.alert('Erro', 'Não foi possível carregar os clientes');

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -23,10 +23,12 @@ import { supabase } from '../../lib/supabase';
 import { useRouter } from 'expo-router';
 import { format } from 'date-fns';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import * as ImagePicker from 'expo-image-picker';
 import { logger } from '../../utils/logger';
 import { Cliente as ClienteBase, Produto as ProdutoBase, Servico as ServicoBase, Pacote as PacoteBase, Comanda as ComandaBase } from '@types';
 import { theme } from '@utils/theme';
+import { offlineInsert, offlineUpdate, offlineDelete, getOfflineFeedback } from '../../services/offlineSupabase';
 
 // Tipos específicos para comandas
 type ClienteComanda = Pick<ClienteBase, 'id' | 'nome' | 'telefone' | 'email' | 'estabelecimento_id' | 'created_at'> & {
@@ -106,6 +108,8 @@ type RouteParams = {
 };
 
 export default function ComandasScreen() {
+  const { colors } = useTheme();
+  
   // Estados para gerenciar comandas
   const [comandas, setComandas] = useState<ComandaDetalhada[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1119,12 +1123,16 @@ export default function ComandasScreen() {
         try {
           const tipoMov = saldoCrediario && saldoCrediario > 0 ? 'debito' : 'credito';
           const valorMov = saldoCrediario && saldoCrediario > 0 ? -Math.abs(valorAplicadoSaldo) : Math.abs(valorAplicadoSaldo);
-          await supabase.from('crediario_movimentacoes').insert({
-            cliente_id: comandaEmEdicao.cliente_id,
-            valor: valorMov,
-            tipo: tipoMov,
-            descricao: 'Uso de saldo em comanda'
-          });
+          await offlineInsert(
+            'crediario_movimentacoes',
+            {
+              cliente_id: comandaEmEdicao.cliente_id,
+              valor: valorMov,
+              tipo: tipoMov,
+              descricao: 'Uso de saldo em comanda'
+            },
+            estabelecimentoId!
+          );
         } catch (e) {
           logger.warn('Falha ao registrar movimentação de crediário:', e);
         }
@@ -1133,13 +1141,17 @@ export default function ComandasScreen() {
       // Se pagamento foi em Crediário, adicionar valor total como débito
       if (formasPagamentoSelecionadas.includes('crediario') && comandaEmEdicao?.cliente_id) {
         try {
-          await supabase.from('crediario_movimentacoes').insert({
-            cliente_id: comandaEmEdicao.cliente_id,
-            valor: -valorTotalPagamento, // Valor negativo = débito
-            tipo: 'debito',
-            descricao: 'Compra a crediário',
-            data: new Date().toISOString().slice(0, 10)
-          });
+          await offlineInsert(
+            'crediario_movimentacoes',
+            {
+              cliente_id: comandaEmEdicao.cliente_id,
+              valor: -valorTotalPagamento, // Valor negativo = débito
+              tipo: 'debito',
+              descricao: 'Compra a crediário',
+              data: new Date().toISOString().slice(0, 10)
+            },
+            estabelecimentoId!
+          );
         } catch (e) {
           logger.warn('Falha ao registrar compra a crediário:', e);
         }
@@ -1748,13 +1760,17 @@ export default function ComandasScreen() {
         ? 'Troco convertido em crédito' 
         : 'Falta convertida em débito';
       
-      await supabase.from('crediario_movimentacoes').insert({
-        cliente_id: comandaEmEdicao.cliente_id,
-        valor,
-        tipo,
-        descricao,
-        data: new Date().toISOString().slice(0, 10)
-      });
+      await offlineInsert(
+        'crediario_movimentacoes',
+        {
+          cliente_id: comandaEmEdicao.cliente_id,
+          valor,
+          tipo,
+          descricao,
+          data: new Date().toISOString().slice(0, 10)
+        },
+        estabelecimentoId!
+      );
 
       // Atualizar a comanda com informação do troco/falta convertido
       const campoUpdate = tipoTrocoFalta === 'troco' 
@@ -1965,7 +1981,7 @@ export default function ComandasScreen() {
             <RefreshControl
               refreshing={loading}
               onRefresh={carregarComandas}
-              colors={['theme.colors.primary']}
+              colors={[colors.primary]}
             />
           }
           keyExtractor={(item) => item.id}

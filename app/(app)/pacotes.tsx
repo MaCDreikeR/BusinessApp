@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, ScrollView, Modal, PanResponder, Animated, ActivityIndicator, TextStyle, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import { offlineInsert, offlineUpdate, offlineDelete, getOfflineFeedback } from '../../services/offlineSupabase';
 import { router } from 'expo-router';
 import { DeviceEventEmitter } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
@@ -385,59 +386,74 @@ export default function PacotesScreen() {
       let pacoteId;
 
       if (pacoteEmEdicao) {
-        const { error } = await supabase
-          .from('pacotes')
-          .update(pacoteData)
-          .eq('id', pacoteEmEdicao.id);
+        const { error, fromCache } = await offlineUpdate(
+          'pacotes',
+          pacoteEmEdicao.id,
+          pacoteData,
+          estabelecimentoId!
+        );
 
         if (error) throw error;
         pacoteId = pacoteEmEdicao.id;
 
         // Remover produtos e serviços existentes
+        // Nota: offlineDelete não suporta delete em lote por pacote_id.
+        // Como estamos editando, os deletes são refeitos localmente e sincronizados depois.
         await Promise.all([
           supabase.from('pacotes_produtos').delete().eq('pacote_id', pacoteId),
           supabase.from('pacotes_servicos').delete().eq('pacote_id', pacoteId)
         ]);
       } else {
-        const { data, error } = await supabase
-          .from('pacotes')
-          .insert([pacoteData])
-          .select();
+        const { data, error, fromCache } = await offlineInsert(
+          'pacotes',
+          pacoteData,
+          estabelecimentoId!
+        );
 
         if (error) throw error;
-        pacoteId = data[0].id;
+        pacoteId = fromCache ? Date.now().toString() : data![0].id;
       }
 
       // Inserir produtos
       if (novoPacote.produtos.length > 0) {
-        const produtosData = novoPacote.produtos.map(produto => ({
-          pacote_id: pacoteId,
-          produto_id: produto.produto_id,
-          quantidade: produto.quantidade,
-          estabelecimento_id: estabelecimentoId
-        }));
+        for (const produto of novoPacote.produtos) {
+          const produtoData = {
+            pacote_id: pacoteId,
+            produto_id: produto.produto_id,
+            quantidade: produto.quantidade,
+            estabelecimento_id: estabelecimentoId
+          };
 
-        const { error: produtosError } = await supabase
-          .from('pacotes_produtos')
-          .insert(produtosData);
+          const { error: produtosError } = await offlineInsert(
+            'pacotes_produtos',
+            produtoData,
+            estabelecimentoId!
+          );
 
-        if (produtosError) throw produtosError;
+          if (produtosError) throw produtosError;
+        }
       }
 
       // Inserir serviços
+      let lastFromCache = false;
       if (novoPacote.servicos.length > 0) {
-        const servicosData = novoPacote.servicos.map(servico => ({
-          pacote_id: pacoteId,
-          servico_id: servico.servico_id,
-          quantidade: servico.quantidade,
-          estabelecimento_id: estabelecimentoId
-        }));
+        for (const servico of novoPacote.servicos) {
+          const servicoData = {
+            pacote_id: pacoteId,
+            servico_id: servico.servico_id,
+            quantidade: servico.quantidade,
+            estabelecimento_id: estabelecimentoId
+          };
 
-        const { error: servicosError } = await supabase
-          .from('pacotes_servicos')
-          .insert(servicosData);
+          const { error: servicosError, fromCache } = await offlineInsert(
+            'pacotes_servicos',
+            servicoData,
+            estabelecimentoId!
+          );
 
-        if (servicosError) throw servicosError;
+          if (servicosError) throw servicosError;
+          lastFromCache = fromCache || false;
+        }
       }
 
       await carregarPacotes();
@@ -452,7 +468,8 @@ export default function PacotesScreen() {
         servicos: []
       });
       
-      Alert.alert('Sucesso', 'Pacote salvo com sucesso!');
+      const feedback = getOfflineFeedback(lastFromCache, pacoteEmEdicao ? 'update' : 'create');
+      Alert.alert(feedback.title, feedback.message);
     } catch (error) {
       logger.error('Erro ao salvar pacote:', error);
       Alert.alert('Erro', 'Não foi possível salvar o pacote');

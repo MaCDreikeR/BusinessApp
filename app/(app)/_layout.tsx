@@ -19,6 +19,8 @@ import AgendamentoNotificacao from '../../components/AgendamentoNotificacao';
 import { useAgendamentoNotificacao } from '../../hooks/useAgendamentoNotificacao';
 import { logger } from '../../utils/logger';
 import { theme } from '@utils/theme';
+import { useTheme } from '../../contexts/ThemeContext';
+import { SyncIndicator } from '../../components/SyncIndicator';
 
 // Função para calcular largura responsiva do drawer
 const getDrawerWidth = (): number | `${number}%` => {
@@ -61,6 +63,50 @@ export default function AppLayout() {
   const [hasLoadedAvatar, setHasLoadedAvatar] = useState(false); // evita piscadas após primeira carga
   const { permissions } = usePermissions();
   const { role } = useAuth();
+  const { colors, isDark } = useTheme();
+  
+  // Styles dinâmicos baseados no tema
+  const dynamicStyles = useMemo(() => StyleSheet.create({
+    drawerHeader: {
+      padding: 20,
+      backgroundColor: colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+    },
+    placeholderAvatar: {
+      backgroundColor: colors.primary,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    placeholderText: {
+      color: '#fff',
+      fontSize: 24,
+      fontWeight: 'bold' as const,
+    },
+    appName: {
+      fontSize: 16,
+      fontWeight: 'bold' as const,
+      color: colors.text,
+      marginBottom: 2,
+    },
+    subtitle: {
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    drawerFooter: {
+      padding: 8,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      backgroundColor: colors.surface,
+    },
+    footerButtonText: {
+      marginLeft: 12,
+      fontSize: 15,
+      color: colors.textSecondary,
+    },
+  }), [colors]);
   
   // Hook de notificação de agendamento
   const { 
@@ -210,9 +256,9 @@ export default function AppLayout() {
     };
 
     return (
-      <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
         <TouchableOpacity 
-          style={styles.drawerHeader}
+          style={dynamicStyles.drawerHeader}
           onPress={() => {
             props.navigation.closeDrawer();
             router.push('/usuarios');
@@ -249,18 +295,18 @@ export default function AppLayout() {
                 )}
               </View>
             ) : (
-              <View style={[styles.logo, styles.placeholderAvatar]}>
-                <Text style={styles.placeholderText}>
+              <View style={[styles.logo, dynamicStyles.placeholderAvatar]}>
+                <Text style={dynamicStyles.placeholderText}>
                   {usuario?.nome_completo?.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
                 </Text>
               </View>
             )}
           </View>
           <View style={styles.headerTextContainer}>
-            <Text style={styles.appName}>
+            <Text style={dynamicStyles.appName}>
               {estabelecimento?.nome_estabelecimento || 'Carregando...'}
             </Text>
-            <Text style={styles.subtitle}>
+            <Text style={dynamicStyles.subtitle}>
               {usuario?.nome_completo || 'Carregando...'}
             </Text>
           </View>
@@ -274,25 +320,25 @@ export default function AppLayout() {
           <DrawerItemList {...props} />
           </View>
         </DrawerContentScrollView>
-        <View style={styles.drawerFooter}>
+        <View style={dynamicStyles.drawerFooter}>
           {permissions.pode_ver_configuracoes && (
             <TouchableOpacity 
               style={styles.footerButton}
               onPress={() => router.push('/configuracoes')}
             >
               <FontAwesome5 name="cog" size={20} color="#666" />
-              <Text style={styles.footerButtonText}>Configurações</Text>
+              <Text style={dynamicStyles.footerButtonText}>Configurações</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity 
             style={styles.footerButton}
             onPress={() => router.push('/suporte')}
           >
-            <FontAwesome5 name="headset" size={20} color="#666" />
-            <Text style={styles.footerButtonText}>Suporte</Text>
+            <FontAwesome5 name="headset" size={20} color={colors.textSecondary} />
+            <Text style={dynamicStyles.footerButtonText}>Suporte</Text>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.footerButton, { borderTopWidth: 1, borderTopColor: '#E5E7EB', marginTop: 8, paddingTop: 16 }]}
+            style={[styles.footerButton, { borderTopWidth: 1, borderTopColor: colors.border, marginTop: 8, paddingTop: 16 }]}
             onPress={handleLogout}
           >
             <FontAwesome5 name="sign-out-alt" size={20} color="#DC2626" />
@@ -310,11 +356,11 @@ export default function AppLayout() {
     <Drawer
       screenOptions={{
         headerStyle: {
-          backgroundColor: '#fff',
+          backgroundColor: colors.surface,
         },
-        headerTintColor: 'theme.colors.primary',
-        drawerActiveTintColor: 'theme.colors.primary',
-        drawerInactiveTintColor: '#666',
+        headerTintColor: colors.primary,
+        drawerActiveTintColor: colors.primary,
+        drawerInactiveTintColor: colors.textSecondary,
         headerShown: !isEstoque && !isNovoOrcamento && !isPerfil && !isNovoUsuario,
         drawerType: isPermanentDrawer ? 'permanent' : 'slide',
         swipeEnabled: !isPermanentDrawer,
@@ -322,44 +368,47 @@ export default function AppLayout() {
           display: 'none'
         },
         drawerStyle: {
-          backgroundColor: '#F9FAFB',
+          backgroundColor: colors.background,
           width: drawerWidth,
           borderRightWidth: isPermanentDrawer ? 1 : 0,
-          borderRightColor: isPermanentDrawer ? '#E5E7EB' : 'transparent',
+          borderRightColor: isPermanentDrawer ? colors.border : 'transparent',
         },
         drawerContentStyle: {
-          backgroundColor: '#F9FAFB',
+          backgroundColor: colors.background,
         },
         drawerLabelStyle: {
           marginLeft: 12,
           fontSize: 16,
           fontWeight: '500',
         },
-        drawerActiveBackgroundColor: '#F3E8FF',
+        drawerActiveBackgroundColor: isDark ? colors.primaryDark : '#F3E8FF',
         drawerInactiveBackgroundColor: 'transparent',
         // Removido drawerItemContainerStyle inválido
         headerRight: () => {
           if (isOrcamentos) {
             return (
-              <TouchableOpacity 
-                onPress={() => {
-                  router.push('/orcamentos/novo');
-                }}
-                style={{ marginRight: 16 }}
-              >
-                <Ionicons name="add" size={24} color="theme.colors.primary" />
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', marginRight: 16, gap: 12, alignItems: 'center' }}>
+                <SyncIndicator />
+                <TouchableOpacity 
+                  onPress={() => {
+                    router.push('/orcamentos/novo');
+                  }}
+                >
+                  <Ionicons name="add" size={24} color={colors.primary} />
+                </TouchableOpacity>
+              </View>
             );
           }
           if (isServicos) {
             return (
-              <View style={{ flexDirection: 'row', marginRight: 16, gap: 16 }}>
+              <View style={{ flexDirection: 'row', marginRight: 16, gap: 12, alignItems: 'center' }}>
+                <SyncIndicator />
                 <TouchableOpacity 
                   onPress={() => {
                     DeviceEventEmitter.emit('abrirModalCategorias');
                   }}
                 >
-                  <Ionicons name="list" size={24} color="theme.colors.primary" />
+                  <Ionicons name="list" size={24} color={colors.primary} />
                 </TouchableOpacity>
                 <TouchableOpacity 
                   onPress={() => {
@@ -373,14 +422,15 @@ export default function AppLayout() {
                     }
                   }}
                 >
-                  <Ionicons name="add" size={24} color="theme.colors.primary" />
+                  <Ionicons name="add" size={24} color={colors.primary} />
                 </TouchableOpacity>
               </View>
             );
           }
           if (pathname === '/agenda') {
             return (
-              <View style={{ marginRight: 16 }}>
+              <View style={{ flexDirection: 'row', marginRight: 16, gap: 12, alignItems: 'center' }}>
+                <SyncIndicator />
                 <TouchableOpacity 
                   onPress={() => {
                     if (pathname === '/agenda') {
@@ -409,6 +459,13 @@ export default function AppLayout() {
               </View>
             );
           }
+          
+          // Header padrão com SyncIndicator
+          return (
+            <View style={{ marginRight: 16 }}>
+              <SyncIndicator />
+            </View>
+          );
         }
       }}
       drawerContent={(props) => <CustomDrawerContent {...props} />}

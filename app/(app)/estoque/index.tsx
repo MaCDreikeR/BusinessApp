@@ -8,6 +8,7 @@ import { DeviceEventEmitter } from 'react-native';
 import { logger } from '../../../utils/logger';
 import { Produto as ProdutoBase, Fornecedor as FornecedorBase } from '@types';
 import { theme } from '@utils/theme';
+import { CacheManager, CacheNamespaces, CacheTTL } from '../../../utils/cacheManager';
 
 type ProdutoEstoque = Pick<ProdutoBase, 'id' | 'nome' | 'descricao' | 'quantidade' | 'preco' | 'categoria_id' | 'fornecedor_id' | 'quantidade_minima'> & {
   codigo: string;
@@ -228,6 +229,22 @@ export default function EstoqueScreen() {
         return;
       }
 
+      // Gerar chave de cache baseada nos filtros
+      const cacheKey = `produtos_${estabelecimentoId}_${filtroAtivo}_${categoriaSelecionada || 'all'}_${fornecedorSelecionado || 'all'}_${marcaSelecionada || 'all'}`;
+      
+      // Tentar buscar do cache (TTL de 5 minutos)
+      const cachedData = await CacheManager.get<ProdutoEstoque[]>(
+        CacheNamespaces.ESTOQUE,
+        cacheKey
+      );
+
+      if (cachedData) {
+        logger.debug('✅ Usando cache para produtos');
+        setProdutos(cachedData);
+        setLoading(false);
+        return;
+      }
+
       let query = supabase
         .from('produtos')
         .select(`
@@ -277,6 +294,14 @@ export default function EstoqueScreen() {
       ) : [];
 
       setProdutos(produtosFiltrados);
+      
+      // Salvar no cache com TTL de 5 minutos
+      await CacheManager.set(
+        CacheNamespaces.ESTOQUE,
+        cacheKey,
+        produtosFiltrados,
+        CacheTTL.FIVE_MINUTES
+      );
     } catch (error) {
       logger.error('Erro ao carregar produtos:', error);
       Alert.alert('Erro', 'Não foi possível carregar os produtos');

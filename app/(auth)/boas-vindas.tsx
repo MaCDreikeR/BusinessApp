@@ -40,7 +40,7 @@ export default function BoasVindas() {
       <StatusBar style="light" />
       
       <LinearGradient
-        colors={['theme.colors.primary', 'theme.colors.primaryDark']}
+        colors={[theme.colors.primary, theme.colors.primaryDark]}
         style={styles.gradient}
       >
         <ScrollView 
@@ -234,14 +234,14 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   button: {
-    backgroundColor: 'theme.colors.primary',
+    backgroundColor: '#7C3AED',
     paddingVertical: 16,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    shadowColor: 'theme.colors.primary',
+    shadowColor: '#7C3AED',
     shadowOffset: {
       width: 0,
       height: 4,

@@ -10,18 +10,25 @@ export default function AdminLayout() {
 
   useEffect(() => {
     // Se o carregamento terminou e o usuário não é super_admin, expulsa ele da rota
-    if (!loading && role !== 'super_admin') {
+    // MAS só redireciona se role estiver definido (não null)
+    if (!loading && role && role !== 'super_admin') {
       router.replace('/(app)'); 
     }
   }, [role, loading, router]);
 
   // Tela de loading enquanto verifica a permissão
-  if (loading) {
+  // Mostra loading se ainda está carregando OU se role ainda não foi definido
+  if (loading || !role) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#111827' }}>
         <ActivityIndicator size="large" color="#fff" />
       </View>
     );
+  }
+
+  // Se não for super_admin, retorna null (o useEffect vai redirecionar)
+  if (role !== 'super_admin') {
+    return null;
   }
 
   // Se for super_admin, mostra a navegação com abas
@@ -56,11 +63,34 @@ export default function AdminLayout() {
         }}
       />
       <Tabs.Screen
+        name="planos"
+        options={{
+          title: 'Planos',
+          headerTitle: 'Gerenciar Planos',
+          tabBarIcon: ({ color }) => <FontAwesome5 name="tags" size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="logs"
+        options={{
+          title: 'Logs',
+          headerTitle: 'Logs de Atividades',
+          tabBarIcon: ({ color }) => <FontAwesome5 name="history" size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: 'Ajustes',
           headerTitle: 'Configurações Globais',
           tabBarIcon: ({ color }) => <FontAwesome5 name="cog" size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="assinaturas"
+        options={{
+          href: null, // Oculta do tab navigator
+          headerShown: false,
         }}
       />
       <Tabs.Screen

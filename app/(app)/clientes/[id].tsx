@@ -11,6 +11,7 @@ import { logger } from '../../../utils/logger';
 import { Cliente as ClienteBase } from '@types';
 import { formatarTelefoneInput, formatarDataInput, somenteNumeros } from '../../../utils/validators';
 import { theme } from '@utils/theme';
+import { offlineUpdate, offlineDelete, getOfflineFeedback } from '../../../services/offlineSupabase';
 
 type ClienteDetalhes = Pick<ClienteBase, 'id' | 'nome' | 'telefone' | 'email' | 'observacoes' | 'estabelecimento_id'> & {
   foto_url: string | null;
@@ -162,11 +163,11 @@ export default function EditarClienteScreen() {
                 return;
               }
 
-              const { error } = await supabase
-                .from('clientes')
-                .delete()
-                .eq('id', id)
-                .eq('estabelecimento_id', estabelecimentoId);
+              const { error, fromCache } = await offlineDelete(
+                'clientes',
+                id as string,
+                estabelecimentoId!
+              );
 
               if (error) {
                 logger.error('Erro ao excluir cliente:', error);
@@ -174,7 +175,8 @@ export default function EditarClienteScreen() {
                 return;
               }
 
-              Alert.alert('Sucesso', 'Cliente excluído com sucesso');
+              const feedback = getOfflineFeedback(fromCache, 'delete');
+              Alert.alert(feedback.title, feedback.message);
               router.back();
             } catch (error) {
               logger.error('Erro ao excluir cliente:', error);
@@ -244,18 +246,19 @@ export default function EditarClienteScreen() {
         }
       }
 
-      const { error } = await supabase
-        .from('clientes')
-        .update({
+      const { error, fromCache } = await offlineUpdate(
+        'clientes',
+        id as string,
+        {
           nome: nome.trim(),
           telefone: telefoneFormatado,
           email: email.trim() || null,
           observacoes: observacoes.trim() || null,
           foto_url: nova_foto_url,
           data_nascimento: dataFormatada,
-        })
-        .eq('id', id)
-        .eq('estabelecimento_id', estabelecimentoId);
+        },
+        estabelecimentoId!
+      );
 
       if (error) {
         logger.error('Erro ao atualizar cliente:', error);
@@ -263,9 +266,10 @@ export default function EditarClienteScreen() {
         return;
       }
 
+      const feedback = getOfflineFeedback(fromCache, 'update');
       Alert.alert(
-        'Sucesso',
-        'Cliente atualizado com sucesso!',
+        feedback.title,
+        feedback.message,
         [{ text: 'OK', onPress: () => router.back() }]
       );
     } catch (error) {

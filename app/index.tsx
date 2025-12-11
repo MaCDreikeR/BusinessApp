@@ -1,6 +1,19 @@
-import { Redirect } from 'expo-router';
+import { useEffect } from 'react';
+import { useRouter } from 'expo-router';
+import { View, ActivityIndicator } from 'react-native';
 
 export default function Index() {
-  // Redireciona para tela de boas-vindas (fluxo de primeira execução)
-  return <Redirect href="/(auth)/boas-vindas" />;
+  const router = useRouter();
+
+  useEffect(() => {
+    // Deixa o guardião do _layout.tsx decidir para onde ir
+    // Não redireciona aqui para evitar conflito
+  }, []);
+
+  // Mostra loading enquanto o guardião decide
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+      <ActivityIndicator size="large" color="#7C3AED" />
+    </View>
+  );
 }

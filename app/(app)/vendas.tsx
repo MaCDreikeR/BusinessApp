@@ -9,7 +9,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { logger } from '../../utils/logger';
 import { Cliente as ClienteBase, Comanda as ComandaBase } from '@types';
-import { theme } from '@utils/theme';
+import { useTheme } from '../../contexts/ThemeContext';
+import { CacheManager, CacheNamespaces, CacheTTL } from '../../utils/cacheManager';
 
 // Tipos específicos da tela de vendas
 type VendaItem = {
@@ -56,6 +57,7 @@ type ResumoVendas = {
 
 const VendasScreen = () => {
   const { estabelecimentoId } = useAuth();
+  const { colors } = useTheme();
   const [vendas, setVendas] = useState<ResumoVendas>({
     totalVendas: 0,
     quantidadeItens: 0,
@@ -118,16 +120,27 @@ const VendasScreen = () => {
       }
       
       setLoading(true);
-      const cacheKey = `vendas_${JSON.stringify(debouncedFiltros)}_${pagina}`;
-      const cachedData = await AsyncStorage.getItem(cacheKey);
+      const cacheKey = `filtro_${JSON.stringify(debouncedFiltros)}_page_${pagina}`;
+      
+      // Tentar buscar do cache (TTL de 5 minutos)
+      const cachedData = await CacheManager.get<ResumoVendas & { hasMore: boolean }>(
+        CacheNamespaces.VENDAS,
+        cacheKey
+      );
       
       if (cachedData && !refresh) {
-        const parsedData = JSON.parse(cachedData);
-        setVendas(prev => refresh ? parsedData : {
-          ...prev,
-          ...parsedData
+        logger.debug(`✅ Usando cache para vendas (${cacheKey})`);
+        setVendas(prev => refresh ? cachedData : {
+          totalVendas: prev.totalVendas + cachedData.totalVendas,
+          quantidadeItens: prev.quantidadeItens + cachedData.quantidadeItens,
+          valorTotal: prev.valorTotal + cachedData.valorTotal,
+          produtos: refresh ? cachedData.produtos : [...prev.produtos, ...cachedData.produtos],
+          servicos: refresh ? cachedData.servicos : [...prev.servicos, ...cachedData.servicos],
+          pacotes: refresh ? cachedData.pacotes : [...prev.pacotes, ...cachedData.pacotes],
+          pagamentos: refresh ? cachedData.pagamentos : [...prev.pagamentos, ...cachedData.pagamentos],
         });
-        setHasMore(parsedData.hasMore);
+        setHasMore(cachedData.hasMore);
+        setLoading(false);
         return;
       }
 
@@ -231,7 +244,13 @@ const VendasScreen = () => {
         pagamentos
       };
 
-      await AsyncStorage.setItem(cacheKey, JSON.stringify({ ...newData, hasMore: data.length === 20 }));
+      // Salvar no cache com TTL de 5 minutos
+      await CacheManager.set(
+        CacheNamespaces.VENDAS,
+        cacheKey,
+        { ...newData, hasMore: data.length === 20 },
+        CacheTTL.FIVE_MINUTES
+      );
 
       setVendas(prev => refresh ? newData : {
         totalVendas: prev.totalVendas + totalVendas,
@@ -476,10 +495,10 @@ const VendasScreen = () => {
     if (!loading) return null;
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="theme.colors.link" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
-  }, [loading]);
+  }, [loading, colors.primary]);
 
   const handleDateSelect = (date: any, isInicio: boolean) => {
     const [year, month, day] = date.dateString.split('-').map(Number);
@@ -520,7 +539,7 @@ const VendasScreen = () => {
             {loadingDetalhes ? '...' : `R$ ${vendas.valorTotal.toFixed(2)}`}
           </Text>
           {!loadingDetalhes && (
-            <Ionicons name="information-circle-outline" size={20} color="theme.colors.primary" style={{ position: 'absolute', top: 8, right: 8 }} />
+            <Ionicons name="information-circle-outline" size={20} color={colors.primary} style={{ position: 'absolute', top: 8, right: 8 }} />
           )}
         </TouchableOpacity>
       </View>
@@ -576,6 +595,7 @@ const VendasScreen = () => {
                 {contador > 0 && (
                   <View style={[
                     styles.contadorBadge,
+                    { backgroundColor: colors.primary },
                     filtros.tipo === tipo && styles.contadorBadgeAtivo
                   ]}>
                     <Text style={[
@@ -696,12 +716,12 @@ const VendasScreen = () => {
               </View>
 
               {loadingDetalhes ? (
-                <ActivityIndicator size="large" color="theme.colors.primary" style={{ marginVertical: 20 }} />
+                <ActivityIndicator size="large" color={colors.primary} style={{ marginVertical: 20 }} />
               ) : detalhesMovimentacao ? (
                 <ScrollView style={styles.detalhesContent}>
                   {/* Dinheiro */}
                   {detalhesMovimentacao.dinheiro.quantidade > 0 && (
-                    <View style={styles.detalhesSecao}>
+                    <View style={[styles.detalhesSecao, { borderLeftColor: colors.primary }]}>
                       <View style={styles.detalhesSecaoHeader}>
                         <Ionicons name="cash-outline" size={20} color="#10B981" />
                         <Text style={styles.detalhesSecaoTitulo}>Dinheiro</Text>
@@ -750,7 +770,7 @@ const VendasScreen = () => {
 
                   {/* Cartão de Crédito */}
                   {detalhesMovimentacao.cartao_credito.quantidade > 0 && (
-                    <View style={styles.detalhesSecao}>
+                    <View style={[styles.detalhesSecao, { borderLeftColor: colors.primary }]}>
                       <View style={styles.detalhesSecaoHeader}>
                         <Ionicons name="card-outline" size={20} color="#3B82F6" />
                         <Text style={styles.detalhesSecaoTitulo}>Cartão de Crédito</Text>
@@ -799,7 +819,7 @@ const VendasScreen = () => {
 
                   {/* Cartão de Débito */}
                   {detalhesMovimentacao.cartao_debito.quantidade > 0 && (
-                    <View style={styles.detalhesSecao}>
+                    <View style={[styles.detalhesSecao, { borderLeftColor: colors.primary }]}>
                       <View style={styles.detalhesSecaoHeader}>
                         <Ionicons name="card" size={20} color="#8B5CF6" />
                         <Text style={styles.detalhesSecaoTitulo}>Cartão de Débito</Text>
@@ -845,7 +865,7 @@ const VendasScreen = () => {
 
                   {/* PIX */}
                   {detalhesMovimentacao.pix.quantidade > 0 && (
-                    <View style={styles.detalhesSecao}>
+                    <View style={[styles.detalhesSecao, { borderLeftColor: colors.primary }]}>
                       <View style={styles.detalhesSecaoHeader}>
                         <Ionicons name="qr-code-outline" size={20} color="#059669" />
                         <Text style={styles.detalhesSecaoTitulo}>PIX</Text>
@@ -891,7 +911,7 @@ const VendasScreen = () => {
 
                   {/* Crediário */}
                   {detalhesMovimentacao.crediario.quantidade > 0 && (
-                    <View style={styles.detalhesSecao}>
+                    <View style={[styles.detalhesSecao, { borderLeftColor: colors.primary }]}>
                       <View style={styles.detalhesSecaoHeader}>
                         <Ionicons name="document-text-outline" size={20} color="#F59E0B" />
                         <Text style={styles.detalhesSecaoTitulo}>Crediário</Text>
@@ -915,7 +935,7 @@ const VendasScreen = () => {
               )}
 
               <TouchableOpacity
-                style={styles.detalhesFecharButton}
+                style={[styles.detalhesFecharButton, { backgroundColor: colors.primary }]}
                 onPress={() => setModalDetalhesVisible(false)}
               >
                 <Text style={styles.detalhesFecharText}>Fechar</Text>
@@ -937,8 +957,8 @@ const VendasScreen = () => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['theme.colors.link']}
-            tintColor="theme.colors.link"
+            colors={[colors.primary]}
+            tintColor={colors.primary}
           />
         }
         onMomentumScrollEnd={() => {
@@ -1056,7 +1076,6 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   contadorBadge: {
-    backgroundColor: 'theme.colors.primary',
     borderRadius: 10,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -1200,7 +1219,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
     borderRadius: 8,
     borderLeftWidth: 3,
-    borderLeftColor: 'theme.colors.primary',
   },
   detalhesSecaoHeader: {
     flexDirection: 'row',
@@ -1241,7 +1259,6 @@ const styles = StyleSheet.create({
   detalhesFecharButton: {
     margin: 16,
     padding: 12,
-    backgroundColor: 'theme.colors.primary',
     borderRadius: 8,
     alignItems: 'center',
   },
