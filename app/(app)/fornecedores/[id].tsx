@@ -229,7 +229,7 @@ export default function EditarFornecedorScreen() {
   if (loading && !formData.nome) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="theme.colors.primary" />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
         <Text style={styles.loadingText}>Carregando...</Text>
       </View>
     );
@@ -251,7 +251,7 @@ export default function EditarFornecedorScreen() {
                 setErrors({ ...errors, nome: '' });
               }}
               placeholder="Nome do fornecedor"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textTertiary}
               maxLength={100}
             />
             {renderError('nome')}
@@ -267,7 +267,7 @@ export default function EditarFornecedorScreen() {
                 setErrors({ ...errors, cnpj: '' });
               }}
               placeholder="00.000.000/0000-00"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textTertiary}
               keyboardType="numeric"
               returnKeyType="next"
               mask={Masks.BRL_CNPJ}
@@ -289,7 +289,7 @@ export default function EditarFornecedorScreen() {
                 setErrors({ ...errors, telefone: '' });
               }}
               placeholder="(00) 00000-0000"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textTertiary}
               keyboardType="phone-pad"
               returnKeyType="next"
               mask={Masks.BRL_PHONE}
@@ -307,7 +307,7 @@ export default function EditarFornecedorScreen() {
                 setErrors({ ...errors, email: '' });
               }}
               placeholder="email@exemplo.com"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textTertiary}
               keyboardType="email-address"
               autoCapitalize="none"
               maxLength={100}
@@ -337,7 +337,7 @@ export default function EditarFornecedorScreen() {
                   }
                 }}
                 placeholder="00000-000"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textTertiary}
                 keyboardType="numeric"
                 returnKeyType="next"
                 mask={[/\d/, /\d/, /\d/, /\d/, /\d/, '-', /\d/, /\d/, /\d/]}
@@ -345,7 +345,7 @@ export default function EditarFornecedorScreen() {
               {loadingCep && (
                 <ActivityIndicator 
                   size="small" 
-                  color="theme.colors.primary" 
+                  color={theme.colors.primary} 
                   style={styles.cepLoader} 
                 />
               )}
@@ -360,7 +360,7 @@ export default function EditarFornecedorScreen() {
               value={formData.endereco}
               onChangeText={(text) => setFormData({ ...formData, endereco: text })}
               placeholder="Rua, número, complemento"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textTertiary}
               maxLength={200}
               editable={!loadingCep}
             />
@@ -374,7 +374,7 @@ export default function EditarFornecedorScreen() {
                 value={formData.cidade}
                 onChangeText={(text) => setFormData({ ...formData, cidade: text })}
                 placeholder="Cidade"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textTertiary}
                 maxLength={100}
                 editable={!loadingCep}
               />
@@ -390,7 +390,7 @@ export default function EditarFornecedorScreen() {
                   setErrors({ ...errors, estado: '' });
                 }}
                 placeholder="UF"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textTertiary}
                 maxLength={2}
                 autoCapitalize="characters"
                 editable={!loadingCep}
@@ -408,7 +408,7 @@ export default function EditarFornecedorScreen() {
               value={formData.observacoes}
               onChangeText={(text) => setFormData({ ...formData, observacoes: text })}
               placeholder="Adicione observações sobre o fornecedor..."
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textTertiary}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -478,10 +478,11 @@ export default function EditarFornecedorScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// Função auxiliar para criar estilos dinâmicos
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
   },
   formContainer: {
     flex: 1,
@@ -489,7 +490,7 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     shadowColor: '#000',
@@ -513,15 +514,15 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#374151',
+    color: colors.text,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     fontSize: 16,
   },
   inputError: {
@@ -545,7 +546,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   saveButton: {
-    backgroundColor: 'theme.colors.primary',
+    backgroundColor: theme.colors.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -573,12 +574,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#374151',
+    color: colors.text,
   },
   cepContainer: {
     flexDirection: 'row',

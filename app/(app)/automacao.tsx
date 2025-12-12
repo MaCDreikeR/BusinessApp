@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState , useMemo} from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { 
   salvarModeloMensagem, 
   getModeloMensagem,
@@ -15,6 +16,10 @@ type TabType = 'agendamentos' | 'aniversariantes';
 
 export default function AutomacaoScreen() {
   const { estabelecimentoId } = useAuth();
+  const { colors } = useTheme();
+  
+  // Estilos dinâmicos baseados no tema
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [tab, setTab] = useState<TabType>('agendamentos');
   const [modeloAgendamento, setModeloAgendamento] = useState('');
   const [modeloAniversariante, setModeloAniversariante] = useState('');
@@ -138,17 +143,18 @@ export default function AutomacaoScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+// Função auxiliar para criar estilos dinâmicos
+const createStyles = (colors: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.surface },
   tabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#eee' },
   tab: { paddingVertical: 12, paddingHorizontal: 16 },
-  tabActive: { borderBottomWidth: 2, borderBottomColor: 'theme.colors.primary' },
-  tabText: { color: '#6B7280', fontWeight: '600' },
-  tabTextActive: { color: 'theme.colors.primary' },
+  tabActive: { borderBottomWidth: 2, borderBottomColor: theme.colors.primary },
+  tabText: { color: colors.textSecondary, fontWeight: '600' },
+  tabTextActive: { color: theme.colors.primary },
   content: { padding: 16 },
   title: { fontSize: 18, fontWeight: '700', marginBottom: 12 },
-  help: { color: '#6B7280', marginBottom: 12, lineHeight: 20 },
-  textarea: { minHeight: 160, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, padding: 12, textAlignVertical: 'top', fontSize: 16 },
+  help: { color: colors.textSecondary, marginBottom: 12, lineHeight: 20 },
+  textarea: { minHeight: 160, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, textAlignVertical: 'top', fontSize: 16 },
   actions: { marginTop: 12, flexDirection: 'row', gap: 10 },
   button: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   buttonPrimary: { backgroundColor: '#D1FAE5', borderWidth: 1, borderColor: '#10B981' },

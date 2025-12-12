@@ -671,7 +671,7 @@ export default function HomeScreen() {
             }}
           >
             <View style={styles.cardIconContainer}>
-              <FontAwesome5 name="dollar-sign" size={24} color="#22C55E" />
+              <FontAwesome5 name="dollar-sign" size={24} color={colors.success} />
             </View>
             <Text style={styles.cardTitle}>Vendas Hoje</Text>
             <Text style={styles.cardValue}>R$ {vendasHoje.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</Text>
@@ -699,7 +699,7 @@ export default function HomeScreen() {
             onPress={() => router.push('/estoque')}
           >
             <View style={styles.cardIconContainer}>
-              <FontAwesome5 name="exclamation-triangle" size={24} color="#EF4444" />
+              <FontAwesome5 name="exclamation-triangle" size={24} color={colors.error} />
             </View>
             <Text style={styles.cardTitle}>Produtos Baixo Estoque</Text>
             <Text style={styles.cardValue}>{produtosBaixoEstoque?.length || 0}</Text>
@@ -776,7 +776,7 @@ export default function HomeScreen() {
                 </View>
                 
                 <View style={styles.agendamentoData}>
-                  <FontAwesome5 name="calendar" size={12} color="#9CA3AF" />
+                  <FontAwesome5 name="calendar" size={12} color={colors.textTertiary} />
                   <Text style={styles.agendamentoDia}>
                     {agendamento.horario ? format(new Date(agendamento.horario), "dd/MM") : '--/--'}
                   </Text>
@@ -786,7 +786,7 @@ export default function HomeScreen() {
           ))
         ) : (
           <View style={styles.emptyAgendamentos}>
-            <FontAwesome5 name="calendar-times" size={24} color="#9CA3AF" />
+            <FontAwesome5 name="calendar-times" size={24} color={colors.textTertiary} />
             <Text style={styles.emptyText}>Nenhum agendamento próximo</Text>
           </View>
         )}
@@ -819,7 +819,7 @@ export default function HomeScreen() {
             ))
           ) : (
             <View style={styles.emptyState}>
-              <FontAwesome5 name="receipt" size={24} color="#9CA3AF" />
+              <FontAwesome5 name="receipt" size={24} color={colors.textTertiary} />
               <Text style={styles.emptyText}>Nenhuma venda recente</Text>
             </View>
           )}
@@ -862,7 +862,7 @@ export default function HomeScreen() {
             ))
           ) : (
             <View style={styles.emptyState}>
-              <FontAwesome5 name="check-circle" size={24} color="#9CA3AF" />
+              <FontAwesome5 name="check-circle" size={24} color={colors.textTertiary} />
               <Text style={styles.emptyText}>Nenhum produto com estoque baixo</Text>
             </View>
           )}

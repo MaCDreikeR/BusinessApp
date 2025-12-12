@@ -173,10 +173,6 @@ export default function LogsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Logs de Atividades</Text>
-      </View>
-
       {/* Barra de Busca */}
       <View style={styles.searchContainer}>
         <FontAwesome5 name="search" size={16} color="#9CA3AF" style={styles.searchIcon} />

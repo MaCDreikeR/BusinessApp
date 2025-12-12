@@ -70,7 +70,7 @@ export default function BoasVindas() {
 
             <View style={styles.cardsContainer}>
               <View style={styles.card}>
-                <Ionicons name="calendar-outline" size={24} color="theme.colors.primary" />
+                <Ionicons name="calendar-outline" size={24} color={theme.colors.primary} />
                 <View style={styles.cardTextContainer}>
                   <Text style={styles.cardTitle}>Agenda Inteligente</Text>
                   <Text style={styles.cardText}>
@@ -80,7 +80,7 @@ export default function BoasVindas() {
               </View>
 
               <View style={styles.card}>
-                <Ionicons name="people-outline" size={24} color="theme.colors.primary" />
+                <Ionicons name="people-outline" size={24} color={theme.colors.primary} />
                 <View style={styles.cardTextContainer}>
                   <Text style={styles.cardTitle}>Gestão de Clientes</Text>
                   <Text style={styles.cardText}>
@@ -90,7 +90,7 @@ export default function BoasVindas() {
               </View>
 
               <View style={styles.card}>
-                <Ionicons name="cash-outline" size={24} color="theme.colors.primary" />
+                <Ionicons name="cash-outline" size={24} color={theme.colors.primary} />
                 <View style={styles.cardTextContainer}>
                   <Text style={styles.cardTitle}>Controle Financeiro</Text>
                   <Text style={styles.cardText}>

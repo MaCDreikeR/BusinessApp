@@ -1,12 +1,27 @@
 import React, { useEffect } from 'react';
 import { Tabs, useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 
 export default function AdminLayout() {
-  const { role, loading } = useAuth();
+  const { role, loading, signOut } = useAuth();
   const router = useRouter();
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Sair da conta',
+      'Tem certeza que deseja sair?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Sair', 
+          style: 'destructive',
+          onPress: () => signOut()
+        }
+      ]
+    );
+  };
 
   useEffect(() => {
     // Se o carregamento terminou e o usuário não é super_admin, expulsa ele da rota
@@ -44,6 +59,14 @@ export default function AdminLayout() {
           backgroundColor: '#111827',
         },
         headerTintColor: '#fff',
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={handleLogout}
+            style={{ marginRight: 16, padding: 8 }}
+          >
+            <FontAwesome5 name="sign-out-alt" size={20} color="#ff0000ff" />
+          </TouchableOpacity>
+        ),
       }}
     >
       <Tabs.Screen

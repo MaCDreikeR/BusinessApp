@@ -70,6 +70,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     background: themeConfig.colors.dark.background,
     backgroundSecondary: themeConfig.colors.dark.backgroundSecondary,
     surface: themeConfig.colors.dark.surface,
+    surfaceHighlight: themeConfig.colors.dark.surfaceHighlight,
     text: themeConfig.colors.dark.text,
     textSecondary: themeConfig.colors.dark.textSecondary,
     textTertiary: themeConfig.colors.dark.textTertiary,

@@ -1,13 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
-import { View, ActivityIndicator, Dimensions, PixelRatio, Text, TouchableOpacity } from 'react-native';
+import { View, ActivityIndicator, Dimensions, PixelRatio, Text, TouchableOpacity, Image } from 'react-native';
 import { useFonts } from 'expo-font';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '../utils/logger';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { useCacheCleanup } from '../hooks/useCacheCleanup';
+import * as SplashScreen from 'expo-splash-screen';
+
+// Previne a splash screen de esconder automaticamente
+SplashScreen.preventAutoHideAsync();
 
 // Componente "Porteiro" que contém a lógica de redirecionamento
 const MainLayout = () => {
@@ -98,9 +102,12 @@ const MainLayout = () => {
       // Se está na raiz ou não está em boas-vindas, redireciona
       if (inRoot || currentPage !== 'boas-vindas') {
         safeReplace('/(auth)/boas-vindas');
+        // Marca como renderizado para esconder splash
+        if (!hasBootRendered) setHasBootRendered(true);
         return;
       }
-      // Se já está em boas-vindas, não faz nada
+      // Se já está em boas-vindas, marca como renderizado
+      if (!hasBootRendered) setHasBootRendered(true);
       return;
     }
 
@@ -108,6 +115,7 @@ const MainLayout = () => {
     if (inRoot) {
       if (!user) {
         safeReplace('/(auth)/login');
+        if (!hasBootRendered) setHasBootRendered(true);
         return;
       }
       // Aguarda role ser carregado antes de redirecionar
@@ -169,35 +177,115 @@ const MainLayout = () => {
     if (!hasBootRendered) setHasBootRendered(true);
   }, [user, role, authLoading, isFirstTime, isCheckingFirstTime, segments, router]);
 
-  // Enquanto carrega, mostra uma tela de loading (SEM renderizar Stack)
+  // Esconde a splash screen quando não estiver mais carregando
+  useEffect(() => {
+    if (!authLoading && !isCheckingFirstTime && hasBootRendered) {
+      SplashScreen.hideAsync();
+    }
+  }, [authLoading, isCheckingFirstTime, hasBootRendered]);
+
+  // Enquanto carrega, mantém a splash nativa e não renderiza nada
   if ((authLoading && !hasBootRendered) || isCheckingFirstTime) {
+    // Mantém a splash screen nativa visível
+    return null;
+  }
+
+  // Tela de erro de timeout de conexão
+  if (loadingTimeout) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', padding: 20 }}>
-        <ActivityIndicator size="large" color="#7C3AED" />
-        {loadingTimeout && (
-          <View style={{ marginTop: 24, alignItems: 'center', maxWidth: 300 }}>
-            <Text style={{ fontSize: 16, fontWeight: '600', color: '#EF4444', textAlign: 'center', marginBottom: 8 }}>
-              ⚠️ Problema de Conexão
-            </Text>
-            <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 20 }}>
-              Não foi possível conectar ao servidor. Verifique sua conexão com a internet e tente novamente.
-            </Text>
+      <View style={{ 
+        flex: 1, 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        backgroundColor: '#ffffff',
+        padding: 20 
+      }}>
+        {/* Logo do app */}
+        <View style={{
+          width: 180,
+          height: 180,
+          borderRadius: 40,
+          overflow: 'hidden',
+          marginBottom: 24,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.15,
+          shadowRadius: 12,
+          elevation: 8,
+          backgroundColor: '#fff',
+        }}>
+          <Image 
+            source={require('../assets/images/icon.png')}
+            style={{ 
+              width: '100%', 
+              height: '100%', 
+              resizeMode: 'contain'
+            }}
+          />
+        </View>
+
+        {/* Nome do app */}
+        <Text style={{ 
+          fontSize: 28, 
+          fontWeight: '600', 
+          color: '#000', 
+          marginBottom: 48
+        }}>
+          BusinessApp
+        </Text>
+
+        {/* Mensagem de erro */}
+        <View style={{ marginTop: 32, alignItems: 'center', maxWidth: 320 }}>
+          <View style={{
+              backgroundColor: '#FEF2F2',
+              paddingHorizontal: 24,
+              paddingVertical: 20,
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: '#FEE2E2',
+            }}>
+              <Text style={{ 
+                fontSize: 16, 
+                fontWeight: '600', 
+                color: '#DC2626', 
+                textAlign: 'center', 
+                marginBottom: 8 
+              }}>
+                ⚠️ Problema de Conexão
+              </Text>
+              <Text style={{ 
+                fontSize: 14, 
+                color: '#6B7280', 
+                textAlign: 'center', 
+                lineHeight: 20 
+              }}>
+                Não foi possível conectar ao servidor. Verifique sua conexão com a internet.
+              </Text>
+            </View>
             <TouchableOpacity 
               onPress={() => router.replace('/(auth)/login' as any)}
               style={{ 
-                marginTop: 16, 
+                marginTop: 24, 
                 backgroundColor: '#7C3AED', 
-                paddingHorizontal: 24, 
-                paddingVertical: 12, 
-                borderRadius: 8 
+                paddingHorizontal: 32, 
+                paddingVertical: 16, 
+                borderRadius: 12,
+                shadowColor: '#7C3AED',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 8,
               }}
             >
-              <Text style={{ color: '#fff', fontWeight: '600' }}>
+              <Text style={{ 
+                color: '#fff', 
+                fontWeight: '600',
+                fontSize: 15
+              }}>
                 Tentar Novamente
               </Text>
             </TouchableOpacity>
-          </View>
-        )}
+        </View>
       </View>
     );
   }

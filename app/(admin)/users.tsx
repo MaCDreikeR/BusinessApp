@@ -268,13 +268,6 @@ export default function UsersScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.titleRow}>
-          <Text style={styles.headerTitle}>Contas</Text>
-          <View style={styles.countBadge}>
-            <Text style={styles.countText}>{filtered.length}</Text>
-          </View>
-        </View>
-        
         <View style={styles.searchBox}>
           <FontAwesome5 name="search" size={16} color="#9CA3AF" style={{ marginRight: 8 }} />
           <TextInput

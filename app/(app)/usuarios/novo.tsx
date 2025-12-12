@@ -224,7 +224,7 @@ export default function NovoUsuarioScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="theme.colors.primary" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
         </TouchableOpacity>
         <Text style={styles.title}>Novo Usuário</Text>
       </View>
@@ -238,7 +238,7 @@ export default function NovoUsuarioScreen() {
               <Image source={{ uri: avatarUrl }} style={styles.avatar} />
             ) : (
               <View style={styles.avatarPlaceholder}>
-                <Ionicons name="camera" size={32} color="theme.colors.primary" />
+                <Ionicons name="camera" size={32} color={theme.colors.primary} />
                 <Text style={styles.avatarText}>Adicionar Foto</Text>
               </View>
             )}
@@ -257,7 +257,7 @@ export default function NovoUsuarioScreen() {
             value={nomeCompleto}
             onChangeText={setNomeCompleto}
             placeholder="Digite o nome completo"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.textTertiary}
           />
         </View>
 
@@ -268,7 +268,7 @@ export default function NovoUsuarioScreen() {
             value={email}
             onChangeText={setEmail}
             placeholder="email@exemplo.com"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.textTertiary}
             keyboardType="email-address"
             autoCapitalize="none"
           />
@@ -281,7 +281,7 @@ export default function NovoUsuarioScreen() {
             value={telefone}
             onChangeText={(text) => setTelefone(formatarCelular(text))}
             placeholder="(11) 99999-9999"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.textTertiary}
             keyboardType="numeric"
             maxLength={15}
           />
@@ -300,7 +300,7 @@ export default function NovoUsuarioScreen() {
               value={senha}
               onChangeText={setSenha}
               placeholder="Mínimo 6 caracteres"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textTertiary}
               secureTextEntry={!showSenha}
             />
             <TouchableOpacity
@@ -310,7 +310,7 @@ export default function NovoUsuarioScreen() {
               <Ionicons 
                 name={showSenha ? "eye-off" : "eye"} 
                 size={20} 
-                color="theme.colors.primary" 
+                color={theme.colors.primary} 
               />
             </TouchableOpacity>
           </View>
@@ -324,7 +324,7 @@ export default function NovoUsuarioScreen() {
               value={confirmarSenha}
               onChangeText={setConfirmarSenha}
               placeholder="Digite a senha novamente"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textTertiary}
               secureTextEntry={!showConfirmarSenha}
             />
             <TouchableOpacity
@@ -334,7 +334,7 @@ export default function NovoUsuarioScreen() {
               <Ionicons 
                 name={showConfirmarSenha ? "eye-off" : "eye"} 
                 size={20} 
-                color="theme.colors.primary" 
+                color={theme.colors.primary} 
               />
             </TouchableOpacity>
           </View>
@@ -399,7 +399,7 @@ export default function NovoUsuarioScreen() {
             fazAtendimento && styles.checkboxActive
           ]}>
             {fazAtendimento && (
-              <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+              <Ionicons name="checkmark" size={16} color={colors.white} />
             )}
           </View>
           <Text style={styles.checkboxLabel}>
@@ -436,10 +436,11 @@ export default function NovoUsuarioScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// Função auxiliar para criar estilos dinâmicos
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
   },
   contentContainer: {
     padding: 20,
@@ -460,7 +461,7 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   section: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 20,
     marginBottom: 16,
@@ -491,16 +492,16 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: 'theme.colors.primary',
+    borderColor: theme.colors.primary,
     borderStyle: 'dashed',
   },
   avatarText: {
     fontSize: 12,
-    color: 'theme.colors.primary',
+    color: theme.colors.primary,
     fontWeight: '500',
     marginTop: 4,
   },
@@ -510,7 +511,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#374151',
+    color: colors.text,
     marginBottom: 8,
   },
   input: {
@@ -521,7 +522,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     color: '#111827',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
   },
   passwordContainer: {
     flexDirection: 'row',
@@ -529,7 +530,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#D1D5DB',
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
   },
   passwordInput: {
     flex: 1,
@@ -550,11 +551,11 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   radioButtonActive: {
-    borderColor: 'theme.colors.primary',
+    borderColor: theme.colors.primary,
     backgroundColor: '#F3E8FF',
   },
   radioCircle: {
@@ -568,20 +569,20 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   radioCircleActive: {
-    borderColor: 'theme.colors.primary',
+    borderColor: theme.colors.primary,
   },
   radioDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: 'theme.colors.primary',
+    backgroundColor: theme.colors.primary,
   },
   radioLabel: {
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   radioLabelActive: {
-    color: 'theme.colors.primary',
+    color: theme.colors.primary,
     fontWeight: '500',
   },
   checkboxContainer: {
@@ -589,7 +590,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 16,
     padding: 12,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
     borderRadius: 8,
   },
   checkbox: {
@@ -603,12 +604,12 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   checkboxActive: {
-    backgroundColor: 'theme.colors.primary',
-    borderColor: 'theme.colors.primary',
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
   },
   checkboxLabel: {
     fontSize: 14,
-    color: '#374151',
+    color: colors.text,
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -617,7 +618,7 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     borderRadius: 8,
     paddingVertical: 16,
     alignItems: 'center',
@@ -625,11 +626,11 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   saveButton: {
     flex: 1,
-    backgroundColor: 'theme.colors.primary',
+    backgroundColor: theme.colors.primary,
     borderRadius: 8,
     paddingVertical: 16,
     alignItems: 'center',

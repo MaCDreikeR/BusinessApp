@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState , useMemo} from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '../../../components/ThemedText';
 import { Card } from '../../../components/Card';
 import { supabase } from '../../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../../contexts/ThemeContext';
 import { logger } from '../../../utils/logger';
 import { Usuario as UsuarioBase } from '@types';
 import { theme } from '@utils/theme';
@@ -15,6 +16,10 @@ type UsuarioLista = Pick<UsuarioBase, 'id' | 'nome_completo' | 'email' | 'telefo
 
 export default function ListaUsuariosScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
+  
+  // Estilos dinâmicos baseados no tema
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [usuarios, setUsuarios] = useState<UsuarioLista[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -136,7 +141,7 @@ export default function ListaUsuariosScreen() {
   if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="theme.colors.primary" />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
         <ThemedText style={styles.loadingText}>Carregando usuários...</ThemedText>
       </View>
     );
@@ -145,7 +150,7 @@ export default function ListaUsuariosScreen() {
   if (error) {
     return (
       <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
+        <Ionicons name="alert-circle-outline" size={48} color={colors.error} />
         <ThemedText style={styles.errorText}>{error}</ThemedText>
         <TouchableOpacity 
           style={styles.retryButton}
@@ -167,7 +172,7 @@ export default function ListaUsuariosScreen() {
             style={styles.addButton}
             onPress={() => router.push('/usuarios/novo')}
           >
-            <Ionicons name="add" size={20} color="#FFFFFF" />
+            <Ionicons name="add" size={20} color={colors.white} />
             <ThemedText style={styles.addButtonText}>Novo Usuário</ThemedText>
           </TouchableOpacity>
         </View>
@@ -241,10 +246,11 @@ export default function ListaUsuariosScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// Função auxiliar para criar estilos dinâmicos
+const createStyles = (colors: any) => StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.background,
   },
   container: {
     flex: 1,
@@ -256,7 +262,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.background,
   },
   loadingText: {
     marginTop: 16,
@@ -302,7 +308,7 @@ const styles = StyleSheet.create({
   userInitials: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: 'theme.colors.primary',
+    color: theme.colors.primary,
   },
   userInfo: {
     flex: 1,
@@ -335,7 +341,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   principalBadge: {
-    backgroundColor: 'theme.colors.primary',
+    backgroundColor: theme.colors.primary,
   },
   badgeText: {
     color: '#FFFFFF',
@@ -347,7 +353,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.background,
   },
   errorText: {
     marginTop: 16,
@@ -358,7 +364,7 @@ const styles = StyleSheet.create({
   retryButton: {
     marginTop: 16,
     padding: 12,
-    backgroundColor: 'theme.colors.primary',
+    backgroundColor: theme.colors.primary,
     borderRadius: 8,
   },
   retryButtonText: {
@@ -367,14 +373,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     paddingHorizontal: 16,
     paddingVertical: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
   },
   headerTitle: {
     fontSize: 20,
@@ -382,7 +388,7 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   addButton: {
-    backgroundColor: 'theme.colors.primary',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import { useTheme } from '../../../contexts/ThemeContext';
 import { logger } from '../../../utils/logger';
 import { theme } from '@utils/theme';
 import { 
@@ -28,6 +29,10 @@ type ItemOrcamento = {
 
 export default function DetalhesOrcamentoScreen() {
   const { id } = useLocalSearchParams();
+  const { colors } = useTheme();
+  
+  // Estilos dinâmicos baseados no tema
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [orcamento, setOrcamento] = useState<Orcamento | null>(null);
   const [itens, setItens] = useState<ItemOrcamento[]>([]);
   const [loading, setLoading] = useState(true);
@@ -321,7 +326,7 @@ export default function DetalhesOrcamentoScreen() {
               setStatusModalVisible(false);
             }}
           >
-            <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
+            <Ionicons name="checkmark-circle" size={24} color={colors.white} />
             <Text style={styles.statusButtonText}>Aprovar</Text>
           </TouchableOpacity>
 
@@ -332,7 +337,7 @@ export default function DetalhesOrcamentoScreen() {
               setStatusModalVisible(false);
             }}
           >
-            <Ionicons name="close-circle" size={24} color="#FFFFFF" />
+            <Ionicons name="close-circle" size={24} color={colors.white} />
             <Text style={styles.statusButtonText}>Rejeitar</Text>
           </TouchableOpacity>
 
@@ -343,7 +348,7 @@ export default function DetalhesOrcamentoScreen() {
               setStatusModalVisible(false);
             }}
           >
-            <Ionicons name="time" size={24} color="#FFFFFF" />
+            <Ionicons name="time" size={24} color={colors.white} />
             <Text style={styles.statusButtonText}>Pendente</Text>
           </TouchableOpacity>
 
@@ -362,7 +367,7 @@ export default function DetalhesOrcamentoScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="theme.colors.primary" />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
@@ -383,7 +388,7 @@ export default function DetalhesOrcamentoScreen() {
             style={styles.backButton}
             onPress={() => router.replace('/(app)/orcamentos')}
           >
-            <Ionicons name="arrow-back" size={24} color="theme.colors.primary" />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
           </TouchableOpacity>
           <View style={styles.clienteContainer}>
             <Text style={styles.cliente}>{orcamento?.cliente}</Text>
@@ -397,36 +402,36 @@ export default function DetalhesOrcamentoScreen() {
             style={styles.iconButton}
             onPress={() => setStatusModalVisible(true)}
           >
-            <Ionicons name="ellipsis-vertical" size={24} color="theme.colors.primary" />
+            <Ionicons name="ellipsis-vertical" size={24} color={theme.colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.iconButton}
             onPress={handleImprimir}
           >
-            <Ionicons name="print-outline" size={24} color="theme.colors.primary" />
+            <Ionicons name="print-outline" size={24} color={theme.colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.iconButton}
             onPress={handleExcluir}
           >
-            <Ionicons name="trash-outline" size={24} color="#EF4444" />
+            <Ionicons name="trash-outline" size={24} color={colors.error} />
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={styles.card}>
         <View style={styles.infoRow}>
-          <Ionicons name="calendar-outline" size={20} color="theme.colors.primary" />
+          <Ionicons name="calendar-outline" size={20} color={theme.colors.primary} />
           <Text style={styles.infoText}>{formatarData(new Date(orcamento.data))}</Text>
         </View>
 
         <View style={styles.infoRow}>
-          <Ionicons name="cash-outline" size={20} color="theme.colors.primary" />
+          <Ionicons name="cash-outline" size={20} color={theme.colors.primary} />
           <Text style={styles.valor}>{formatarValor(orcamento.valor_total)}</Text>
         </View>
 
         <View style={styles.infoRow}>
-          <Ionicons name="card-outline" size={20} color="theme.colors.primary" />
+          <Ionicons name="card-outline" size={20} color={theme.colors.primary} />
           <Text style={styles.infoText}>
             {orcamento.forma_pagamento.charAt(0).toUpperCase() + orcamento.forma_pagamento.slice(1)}
             {orcamento.parcelas > 1 ? ` - ${orcamento.parcelas}x` : ''}
@@ -435,7 +440,7 @@ export default function DetalhesOrcamentoScreen() {
 
         {orcamento.desconto > 0 && (
           <View style={styles.infoRow}>
-            <Ionicons name="pricetag-outline" size={20} color="theme.colors.primary" />
+            <Ionicons name="pricetag-outline" size={20} color={theme.colors.primary} />
             <Text style={styles.infoText}>Desconto: {orcamento.desconto}%</Text>
           </View>
         )}
@@ -457,7 +462,7 @@ export default function DetalhesOrcamentoScreen() {
                       'layers-outline'
                     } 
                     size={16} 
-                    color="theme.colors.primary" 
+                    color={theme.colors.primary} 
                   />
                   {' '}
                   {item.tipo.charAt(0).toUpperCase() + item.tipo.slice(1)}
@@ -494,22 +499,23 @@ export default function DetalhesOrcamentoScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// Função auxiliar para criar estilos dinâmicos
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
   },
   errorText: {
     fontSize: 16,
@@ -520,9 +526,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
   },
   headerLeft: {
     flex: 1,
@@ -559,7 +565,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     margin: 16,
     padding: 16,
     borderRadius: 12,
@@ -571,7 +577,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   section: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     margin: 16,
     padding: 16,
     borderRadius: 12,
@@ -589,7 +595,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.textSecondary,
     textAlign: 'center',
     fontStyle: 'italic',
   },
@@ -600,7 +606,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   valor: {
     fontSize: 18,
@@ -608,11 +614,11 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   itemCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     padding: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     marginBottom: 12,
   },
   itemHeader: {
@@ -623,7 +629,7 @@ const styles = StyleSheet.create({
   },
   itemTipo: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
     textTransform: 'capitalize',
   },
   itemDescricao: {
@@ -642,11 +648,11 @@ const styles = StyleSheet.create({
   },
   itemQuantidade: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   itemValorUnitario: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   itemTotal: {
     alignItems: 'flex-end',
@@ -654,7 +660,7 @@ const styles = StyleSheet.create({
   itemTotalValor: {
     fontSize: 16,
     fontWeight: '600',
-    color: 'theme.colors.primary',
+    color: theme.colors.primary,
   },
   observacoesText: {
     fontSize: 16,
@@ -675,7 +681,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalView: {
-    backgroundColor: 'white',
+    backgroundColor: colors.surface,
     borderRadius: 20,
     padding: 20,
     width: '80%',

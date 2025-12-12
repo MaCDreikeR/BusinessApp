@@ -321,12 +321,6 @@ export default function SettingsScreen() {
       contentContainerStyle={styles.contentContainer}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />}
     >
-      <View style={styles.header}>
-        <FontAwesome5 name="cog" size={32} color="#a78bfa" />
-        <Text style={styles.headerTitle}>Configurações Globais</Text>
-        <Text style={styles.headerSubtitle}>Gerenciar configurações da plataforma</Text>
-      </View>
-
       {sections.map((section) => (
         <View key={section.categoria} style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -359,13 +353,6 @@ export default function SettingsScreen() {
         )}
       </TouchableOpacity>
 
-      <TouchableOpacity 
-        style={styles.logoutButton} 
-        onPress={handleLogout}
-      >
-        <FontAwesome5 name="sign-out-alt" size={18} color="#ef4444" style={{ marginRight: 8 }} />
-        <Text style={styles.logoutButtonText}>Sair da Conta</Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 }

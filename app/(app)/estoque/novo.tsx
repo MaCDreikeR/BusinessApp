@@ -220,7 +220,7 @@ export default function NovoProdutoScreen() {
             value={formData.nome}
             onChangeText={(text) => setFormData({ ...formData, nome: text })}
             placeholder="Digite o nome do produto"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textTertiary}
           />
         </View>
 
@@ -231,7 +231,7 @@ export default function NovoProdutoScreen() {
             value={formData.codigo}
             onChangeText={(text) => setFormData({ ...formData, codigo: text })}
             placeholder="Digite o código do produto"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textTertiary}
           />
         </View>
 
@@ -244,7 +244,7 @@ export default function NovoProdutoScreen() {
               <Text style={categoriaSelecionada ? styles.pickerButtonText : styles.pickerButtonPlaceholder}>
               {categoriaSelecionada ? categoriaSelecionada.nome : 'Selecione uma categoria'}
             </Text>
-            <Ionicons name="chevron-down" size={20} color="#6B7280" />
+            <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
@@ -257,7 +257,7 @@ export default function NovoProdutoScreen() {
               <Text style={fornecedorSelecionado ? styles.pickerButtonText : styles.pickerButtonPlaceholder}>
                 {fornecedorSelecionado ? fornecedorSelecionado.nome : 'Selecione um fornecedor'}
               </Text>
-              <Ionicons name="chevron-down" size={20} color="#6B7280" />
+              <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -270,7 +270,7 @@ export default function NovoProdutoScreen() {
               <Text style={marcaSelecionada ? styles.pickerButtonText : styles.pickerButtonPlaceholder}>
                 {marcaSelecionada ? marcaSelecionada.nome : 'Selecione uma marca'}
               </Text>
-              <Ionicons name="chevron-down" size={20} color="#6B7280" />
+              <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -285,7 +285,7 @@ export default function NovoProdutoScreen() {
               value={formData.observacoes}
               onChangeText={(text) => setFormData({ ...formData, observacoes: text })}
               placeholder="Digite observações adicionais"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textTertiary}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -300,7 +300,7 @@ export default function NovoProdutoScreen() {
                 value={formData.quantidade}
                 onChangeText={(text) => setFormData({ ...formData, quantidade: text })}
                 placeholder="0"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textTertiary}
                 keyboardType="numeric"
               />
             </View>
@@ -312,7 +312,7 @@ export default function NovoProdutoScreen() {
                 value={formData.quantidade_minima}
                 onChangeText={(text) => setFormData({ ...formData, quantidade_minima: text })}
                 placeholder="0"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textTertiary}
                 keyboardType="numeric"
               />
             </View>
@@ -327,7 +327,7 @@ export default function NovoProdutoScreen() {
                 onChangeText={handlePrecoChange}
                 keyboardType="numeric"
                 placeholder="R$ 0,00"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textTertiary}
               />
             </View>
           </View>
@@ -364,7 +364,7 @@ export default function NovoProdutoScreen() {
                   onPress={() => setMostrarCategorias(false)}
                   style={styles.modalCloseButton}
                 >
-                  <Ionicons name="close" size={24} color="#374151" />
+                  <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
               </View>
               <ScrollView style={styles.modalList}>
@@ -403,7 +403,7 @@ export default function NovoProdutoScreen() {
                   onPress={() => setMostrarFornecedores(false)}
                   style={styles.modalCloseButton}
                 >
-                  <Ionicons name="close" size={24} color="#374151" />
+                  <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
               </View>
               <ScrollView style={styles.modalList}>
@@ -442,7 +442,7 @@ export default function NovoProdutoScreen() {
                   onPress={() => setMostrarMarcas(false)}
                   style={styles.modalCloseButton}
                 >
-                  <Ionicons name="close" size={24} color="#374151" />
+                  <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
               </View>
               <ScrollView style={styles.modalList}>
@@ -464,10 +464,11 @@ export default function NovoProdutoScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// Função auxiliar para criar estilos dinâmicos
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
   },
   formContainer: {
     flex: 1,
@@ -475,7 +476,7 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     shadowColor: '#000',
@@ -499,15 +500,15 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#374151',
+    color: colors.text,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     fontSize: 16,
     color: '#111827',
   },
@@ -520,11 +521,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   pickerButton: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -535,10 +536,10 @@ const styles = StyleSheet.create({
   },
   pickerButtonPlaceholder: {
     fontSize: 16,
-    color: '#9CA3AF',
+    color: colors.textTertiary,
   },
   saveButton: {
-    backgroundColor: 'theme.colors.primary',
+    backgroundColor: theme.colors.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -558,7 +559,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     maxHeight: '80%',
@@ -587,10 +588,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
   },
   modalItemText: {
     fontSize: 16,
-    color: '#374151',
+    color: colors.text,
   },
 }); 

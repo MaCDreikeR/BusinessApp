@@ -70,7 +70,8 @@ export default function DetalhesUsuarioScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// Função auxiliar para criar estilos dinâmicos
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
@@ -88,7 +89,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   badge: {
-    backgroundColor: 'theme.colors.primary',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,

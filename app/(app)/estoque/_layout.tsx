@@ -10,15 +10,15 @@ export default function EstoqueLayout() {
     <Stack
       screenOptions={{
         headerStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: colors.surface,
         },
-        headerTintColor: 'theme.colors.primary',
+        headerTintColor: theme.colors.primary,
         headerTitleStyle: {
           fontWeight: '600',
-          color: 'theme.colors.primary'
+          color: theme.colors.primary
         },
         headerShadowVisible: false,
-        headerLeft: () => <DrawerToggleButton tintColor="theme.colors.primary" />,
+        headerLeft: () => <DrawerToggleButton tintColor={theme.colors.primary} />,
       }}
     >
       <Stack.Screen
@@ -32,12 +32,12 @@ export default function EstoqueLayout() {
                   DeviceEventEmitter.emit('addCategoriaProduto');
                 }}
               >
-                <Ionicons name="list" size={24} color="theme.colors.primary" />
+                <Ionicons name="list" size={24} color={theme.colors.primary} />
               </TouchableOpacity>
               <TouchableOpacity 
                 onPress={() => router.push('/estoque/novo')}
               >
-                <Ionicons name="add" size={24} color="theme.colors.primary" />
+                <Ionicons name="add" size={24} color={theme.colors.primary} />
               </TouchableOpacity>
             </View>
           ),
@@ -56,7 +56,7 @@ export default function EstoqueLayout() {
                 marginRight: 8
               }}
             >
-              <Ionicons name="arrow-back" size={24} color="theme.colors.primary" />
+              <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
             </TouchableOpacity>
           ),
         }}

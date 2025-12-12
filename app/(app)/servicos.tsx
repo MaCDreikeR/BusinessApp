@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect , useMemo} from 'react';
 import { StyleSheet, View, FlatList, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator, DeviceEventEmitter, ScrollView, Animated, PanResponder, Text } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { ThemedText } from '../../components/ThemedText';
@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '../../utils/logger';
 import { Servico, CategoriaServico } from '@types';
@@ -23,6 +24,10 @@ interface ServicoComCategoria extends Servico {
 
 export default function ServicosScreen() {
   const { estabelecimentoId } = useAuth();
+  const { colors } = useTheme();
+  
+  // Estilos dinâmicos baseados no tema
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [servicos, setServicos] = useState<ServicoComCategoria[]>([]);
   const [categorias, setCategorias] = useState<CategoriaServico[]>([]);
   const [loading, setLoading] = useState(true);
@@ -526,7 +531,7 @@ export default function ServicosScreen() {
   if (loading) {
     return (
       <ThemedView style={styles.container}>
-        <ActivityIndicator size="large" color="theme.colors.link" />
+        <ActivityIndicator size="large" color={theme.colors.link} />
       </ThemedView>
     );
   }
@@ -535,7 +540,7 @@ export default function ServicosScreen() {
     <View style={[styles.container, { backgroundColor }]}>
       <View style={styles.header}>
         <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#6B7280" style={styles.searchIcon} />
+          <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar serviços..."
@@ -749,7 +754,7 @@ export default function ServicosScreen() {
                           setNomeCategoria(item.nome);
                         }}
                             >
-                              <Ionicons name="pencil" size={20} color="theme.colors.primary" />
+                              <Ionicons name="pencil" size={20} color={theme.colors.primary} />
                             </TouchableOpacity>
                             <TouchableOpacity 
                         style={styles.categoriaActionButton}
@@ -769,10 +774,11 @@ export default function ServicosScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// Função auxiliar para criar estilos dinâmicos
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
   },
   list: {
     padding: 16,
@@ -789,7 +795,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
   },
   servicoInfo: {
     flex: 1,
@@ -802,22 +808,22 @@ const styles = StyleSheet.create({
   },
   servicoDescricao: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginBottom: 4,
   },
   servicoPreco: {
     fontSize: 16,
     fontWeight: '600',
-    color: 'theme.colors.primary',
+    color: theme.colors.primary,
     marginBottom: 4,
   },
   servicoCategoria: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   servicoObservacoes: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginTop: 4,
     fontStyle: 'italic',
   },
@@ -841,7 +847,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 20,
     width: '90%',
@@ -863,11 +869,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     fontSize: 16,
   },
   modalButtons: {
@@ -884,10 +890,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
   },
   saveButton: {
-    backgroundColor: 'theme.colors.primary',
+    backgroundColor: theme.colors.primary,
   },
   modalButtonText: {
     fontSize: 16,
@@ -904,10 +910,10 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   pickerContainer: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     overflow: 'hidden',
   },
   picker: {
@@ -915,9 +921,9 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -926,7 +932,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     borderRadius: 8,
     paddingHorizontal: 12,
   },
@@ -940,7 +946,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
   filtrosScroll: {
     paddingHorizontal: 16,
@@ -955,8 +961,8 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
   },
   filtroButtonSelected: {
-    backgroundColor: 'theme.colors.primary',
-    borderColor: 'theme.colors.primary',
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
   },
   filtroButtonText: {
     fontSize: 14,
@@ -985,7 +991,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 12,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     borderRadius: 8,
     marginBottom: 8,
   },
@@ -999,7 +1005,7 @@ const styles = StyleSheet.create({
   },
   categoriaDescricao: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   categoriaActions: {
@@ -1012,10 +1018,10 @@ const styles = StyleSheet.create({
   precoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
   },
   precoSimbolo: {
     paddingHorizontal: 12,

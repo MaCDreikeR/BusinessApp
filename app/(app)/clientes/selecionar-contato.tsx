@@ -93,7 +93,7 @@ export default function SelecionarContatoScreen() {
   if (loading) {
     return (
       <View style={styles.centeredContainer}>
-        <ActivityIndicator size="large" color="theme.colors.primary" />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
@@ -117,13 +117,13 @@ export default function SelecionarContatoScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
+        <Ionicons name="search" size={20} color={colors.textTertiary} style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
           placeholder="Buscar contato..."
           value={termoBusca}
           onChangeText={handleBusca}
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={colors.textTertiary}
         />
       </View>
       <FlatList
@@ -140,27 +140,28 @@ export default function SelecionarContatoScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// Função auxiliar para criar estilos dinâmicos
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
   },
   centeredContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     paddingHorizontal: 16,
     margin: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
   },
   searchIcon: {
     marginRight: 8,
@@ -175,7 +176,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
   },
   avatar: {
     width: 48,
@@ -201,12 +202,12 @@ const styles = StyleSheet.create({
   },
   telefone: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   emptyText: {
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   permissaoTitulo: {
     fontSize: 20,
@@ -218,12 +219,12 @@ const styles = StyleSheet.create({
   },
   permissaoTexto: {
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
   },
   botaoPermissao: {
-    backgroundColor: 'theme.colors.primary',
+    backgroundColor: theme.colors.primary,
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: 8,

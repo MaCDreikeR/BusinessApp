@@ -16,6 +16,7 @@ import {
   validarDataFormatada
 } from '../../../utils/validators';
 import { offlineInsert, getOfflineFeedback } from '../../../services/offlineSupabase';
+import { CacheManager, CacheNamespaces } from '../../../utils/cacheManager';
 
 export default function NovoClienteScreen() {
   const router = useRouter();
@@ -257,6 +258,12 @@ export default function NovoClienteScreen() {
         }
       }
 
+      // Limpar cache da lista de clientes para forçar atualização
+      if (estabelecimentoId) {
+        const cacheKey = `lista_${estabelecimentoId}`;
+        await CacheManager.remove(CacheNamespaces.CLIENTES, cacheKey);
+      }
+
       // Verificar se precisa emitir evento de cliente cadastrado
       const returnTo = params.returnTo as string;
       if (returnTo === 'comandas' && clienteData?.[0]) {
@@ -298,7 +305,7 @@ export default function NovoClienteScreen() {
                 />
               ) : (
                 <View style={styles.fotoPlaceholder}>
-                  <FontAwesome5 name="camera" size={24} color="#9CA3AF" />
+                  <FontAwesome5 name="camera" size={24} color={colors.textTertiary} />
                 </View>
               )}
             </TouchableOpacity>
@@ -306,13 +313,13 @@ export default function NovoClienteScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Nome</Text>
               <View style={styles.inputContainer}>
-                <FontAwesome5 name="user" size={16} color="#9CA3AF" style={styles.inputIcon} />
+                <FontAwesome5 name="user" size={16} color={colors.textTertiary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   value={nome}
                   onChangeText={setNome}
                   placeholder="Digite o nome do cliente"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textTertiary}
                 />
               </View>
             </View>
@@ -320,13 +327,13 @@ export default function NovoClienteScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Telefone</Text>
               <View style={styles.inputContainer}>
-                <FontAwesome5 name="phone" size={16} color="#9CA3AF" style={styles.inputIcon} />
+                <FontAwesome5 name="phone" size={16} color={colors.textTertiary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   value={telefone}
                   onChangeText={(valor) => setTelefone(formatarTelefoneInput(valor))}
                   placeholder="(00) 00000-0000"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textTertiary}
                   keyboardType="phone-pad"
                   maxLength={15}
                 />
@@ -336,13 +343,13 @@ export default function NovoClienteScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>E-mail</Text>
               <View style={styles.inputContainer}>
-                <MaterialIcons name="mail-outline" size={18} color="#9CA3AF" style={styles.inputIcon} />
+                <MaterialIcons name="mail-outline" size={18} color={colors.textTertiary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   value={email}
                   onChangeText={setEmail}
                   placeholder="Digite o e-mail"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textTertiary}
                   keyboardType="email-address"
                   autoCapitalize="none"
                 />
@@ -352,13 +359,13 @@ export default function NovoClienteScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Data de Nascimento</Text>
               <View style={styles.inputContainer}>
-                <FontAwesome5 name="calendar" size={16} color="#9CA3AF" style={styles.inputIcon} />
+                <FontAwesome5 name="calendar" size={16} color={colors.textTertiary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   value={dataNascimento}
                   onChangeText={(valor) => setDataNascimento(formatarDataInput(valor))}
                   placeholder="DD/MM/AAAA"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textTertiary}
                   keyboardType="numeric"
                   maxLength={10}
                 />
@@ -372,7 +379,7 @@ export default function NovoClienteScreen() {
                 value={observacoes}
                 onChangeText={setObservacoes}
                 placeholder="Digite observações sobre o cliente"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textTertiary}
                 multiline
                 numberOfLines={4}
               />
@@ -386,13 +393,13 @@ export default function NovoClienteScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Saldo Inicial</Text>
               <View style={styles.inputContainer}>
-                <FontAwesome5 name="dollar-sign" size={16} color="#9CA3AF" style={styles.inputIcon} />
+                <FontAwesome5 name="dollar-sign" size={16} color={colors.textTertiary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   value={saldoInicial}
                   onChangeText={(valor) => setSaldoInicial(formatarMoedaInput(valor))}
                   placeholder="R$ 0,00"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textTertiary}
                   keyboardType="numeric"
                 />
               </View>
@@ -409,13 +416,13 @@ export default function NovoClienteScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Data do Agendamento</Text>
               <View style={styles.inputContainer}>
-                <FontAwesome5 name="calendar-alt" size={16} color="#9CA3AF" style={styles.inputIcon} />
+                <FontAwesome5 name="calendar-alt" size={16} color={colors.textTertiary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   value={dataAgendamento}
                   onChangeText={handleDataChange}
                   placeholder="DD/MM/AAAA"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textTertiary}
                   keyboardType="numeric"
                   maxLength={10}
                 />
@@ -425,13 +432,13 @@ export default function NovoClienteScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Hora</Text>
               <View style={styles.inputContainer}>
-                <FontAwesome5 name="clock" size={16} color="#9CA3AF" style={styles.inputIcon} />
+                <FontAwesome5 name="clock" size={16} color={colors.textTertiary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   value={horaAgendamento}
                   onChangeText={handleHoraChange}
                   placeholder="HH:MM"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textTertiary}
                   keyboardType="numeric"
                   maxLength={5}
                 />
@@ -441,13 +448,13 @@ export default function NovoClienteScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Serviço</Text>
               <View style={styles.inputContainer}>
-                <FontAwesome5 name="cut" size={16} color="#9CA3AF" style={styles.inputIcon} />
+                <FontAwesome5 name="cut" size={16} color={colors.textTertiary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   value={servicoAgendado}
                   onChangeText={setServicoAgendado}
                   placeholder="Digite o serviço agendado"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textTertiary}
                 />
               </View>
             </View>
@@ -458,7 +465,7 @@ export default function NovoClienteScreen() {
         return (
           <View style={styles.tabContent}>
             <View style={styles.emptyState}>
-              <FontAwesome5 name="history" size={48} color="#9CA3AF" />
+              <FontAwesome5 name="history" size={48} color={colors.textTertiary} />
               <Text style={styles.emptyStateText}>
                 O histórico estará disponível após criar o cliente
               </Text>
@@ -470,7 +477,7 @@ export default function NovoClienteScreen() {
         return (
           <View style={styles.tabContent}>
             <View style={styles.emptyState}>
-              <FontAwesome5 name="box" size={48} color="#9CA3AF" />
+              <FontAwesome5 name="box" size={48} color={colors.textTertiary} />
               <Text style={styles.emptyStateText}>
                 Os pacotes estarão disponíveis após criar o cliente
               </Text>
@@ -482,7 +489,7 @@ export default function NovoClienteScreen() {
         return (
           <View style={styles.tabContent}>
             <View style={styles.emptyState}>
-              <FontAwesome5 name="receipt" size={48} color="#9CA3AF" />
+              <FontAwesome5 name="receipt" size={48} color={colors.textTertiary} />
               <Text style={styles.emptyStateText}>
                 As comandas estarão disponíveis após criar o cliente
               </Text>
@@ -494,7 +501,7 @@ export default function NovoClienteScreen() {
         return (
           <View style={styles.tabContent}>
             <View style={styles.emptyState}>
-              <FontAwesome5 name="images" size={48} color="#9CA3AF" />
+              <FontAwesome5 name="images" size={48} color={colors.textTertiary} />
               <Text style={styles.emptyStateText}>
                 A galeria de fotos estará disponível após criar o cliente
               </Text>
@@ -525,7 +532,7 @@ export default function NovoClienteScreen() {
             style={[styles.headerButton, styles.headerButtonImport]}
             onPress={() => router.back()}
           >
-            <FontAwesome5 name="arrow-left" size={20} color="theme.colors.primary" />
+            <FontAwesome5 name="arrow-left" size={20} color={theme.colors.primary} />
           </TouchableOpacity>
           <Text style={styles.title}>Novo Cliente</Text>
           <View style={[styles.headerButton, { opacity: 0 }]} />
@@ -550,7 +557,7 @@ export default function NovoClienteScreen() {
                 <FontAwesome5
                   name={tab.icon}
                   size={16}
-                  color={activeTab === tab.id ? "theme.colors.primary" : "#666"}
+                  color={activeTab === tab.id ? theme.colors.primary : "#666"}
                 />
                 <Text 
                   style={[
@@ -594,19 +601,20 @@ export default function NovoClienteScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// Função auxiliar para criar estilos dinâmicos
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
   },
   headerButton: {
     width: 40,
@@ -622,14 +630,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: 'theme.colors.primary',
+    color: theme.colors.primary,
     flex: 1,
     textAlign: 'center',
   },
   tabsContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
     maxHeight: 72,
   },
   tabsContentContainer: {
@@ -649,13 +657,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
     borderRadius: 8,
     minWidth: 80,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
     height: 56,
   },
   tabActive: {
     backgroundColor: '#EDE9FE',
     borderBottomWidth: 2,
-    borderBottomColor: 'theme.colors.primary',
+    borderBottomColor: theme.colors.primary,
   },
   tabText: {
     fontSize: 12,
@@ -664,7 +672,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   tabTextActive: {
-    color: 'theme.colors.primary',
+    color: theme.colors.primary,
     fontWeight: '500',
   },
   form: {
@@ -684,11 +692,11 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     borderStyle: 'dashed',
   },
   inputGroup: {
@@ -696,16 +704,16 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    color: '#374151',
+    color: colors.text,
     marginBottom: 8,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
   },
   inputIcon: {
     padding: 12,
@@ -719,10 +727,10 @@ const styles = StyleSheet.create({
   textArea: {
     height: 100,
     textAlignVertical: 'top',
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
   },
   row: {
     flexDirection: 'row',
@@ -731,16 +739,16 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: colors.border,
   },
   footerButton: {
     flex: 1,
     paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     marginHorizontal: 4,
     borderRadius: 8,
   },
@@ -750,7 +758,7 @@ const styles = StyleSheet.create({
   footerButtonText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#374151',
+    color: colors.text,
   },
   footerButtonTextSalvar: {
     color: '#10B981',
@@ -760,7 +768,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginTop: 8,
     fontStyle: 'italic',
   },
@@ -772,7 +780,7 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 16,
   },

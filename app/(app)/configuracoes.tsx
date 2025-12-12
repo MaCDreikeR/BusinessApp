@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect , useMemo} from 'react';
 import { StyleSheet, View, ScrollView, TouchableOpacity, Text, Switch, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -45,6 +45,9 @@ interface EmpresaStats {
 
 export default function ConfiguracoesScreen() {
   const { colors, spacing, isDark } = useTheme();
+  
+  // Estilos dinâmicos baseados no tema
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { role, estabelecimentoId, signOut } = useAuth();
   const router = useRouter();
   const [tab, setTab] = useState<TabType>('aparencia');
@@ -362,7 +365,7 @@ export default function ConfiguracoesScreen() {
                       ]}
                     >
                       {selectedAccentColor === item.id && (
-                        <Ionicons name="checkmark" size={20} color="#FFF" />
+                        <Ionicons name="checkmark" size={20} color={colors.white} />
                       )}
                     </View>
                     <Text style={[styles.colorName, { color: colors.text }]}>{item.name}</Text>
@@ -595,7 +598,8 @@ export default function ConfiguracoesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// Função auxiliar para criar estilos dinâmicos
+const createStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1 },
   tabs: { flexDirection: 'row', borderBottomWidth: 1 },
   tab: { paddingVertical: 14, paddingHorizontal: 16, flex: 1, alignItems: 'center' },
@@ -628,7 +632,7 @@ const styles = StyleSheet.create({
   },
   colorCircleSelected: { borderWidth: 3, borderColor: '#000' },
   colorName: { fontSize: 12, textAlign: 'center' },
-  infoRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
+  infoRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
   infoLabel: { fontSize: 12, marginBottom: 4 },
   infoValue: { fontSize: 15, fontWeight: '500' },
   statsRow: { flexDirection: 'row', justifyContent: 'space-around' },

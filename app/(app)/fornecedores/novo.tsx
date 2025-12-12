@@ -202,7 +202,7 @@ export default function NovoFornecedorScreen() {
                 setErrors({ ...errors, nome: '' });
               }}
               placeholder="Nome do fornecedor"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textTertiary}
               maxLength={100}
             />
             {renderError('nome')}
@@ -218,7 +218,7 @@ export default function NovoFornecedorScreen() {
                 setErrors({ ...errors, cnpj: '' });
               }}
               placeholder="00.000.000/0000-00"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textTertiary}
               keyboardType="numeric"
               returnKeyType="next"
               mask={Masks.BRL_CNPJ}
@@ -240,7 +240,7 @@ export default function NovoFornecedorScreen() {
                 setErrors({ ...errors, telefone: '' });
               }}
               placeholder="(00) 00000-0000"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textTertiary}
               keyboardType="phone-pad"
               returnKeyType="next"
               mask={Masks.BRL_PHONE}
@@ -258,7 +258,7 @@ export default function NovoFornecedorScreen() {
                 setErrors({ ...errors, email: '' });
               }}
               placeholder="email@exemplo.com"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textTertiary}
               keyboardType="email-address"
               autoCapitalize="none"
               maxLength={100}
@@ -288,7 +288,7 @@ export default function NovoFornecedorScreen() {
                   }
                 }}
                 placeholder="00000-000"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textTertiary}
                 keyboardType="numeric"
                 returnKeyType="next"
                 mask={[/\d/, /\d/, /\d/, /\d/, /\d/, '-', /\d/, /\d/, /\d/]}
@@ -296,7 +296,7 @@ export default function NovoFornecedorScreen() {
               {loadingCep && (
                 <ActivityIndicator 
                   size="small" 
-                  color="theme.colors.primary" 
+                  color={theme.colors.primary} 
                   style={styles.cepLoader} 
                 />
               )}
@@ -311,7 +311,7 @@ export default function NovoFornecedorScreen() {
               value={formData.endereco}
               onChangeText={(text) => setFormData({ ...formData, endereco: text })}
               placeholder="Rua, número, complemento"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textTertiary}
               maxLength={200}
               editable={!loadingCep}
             />
@@ -325,7 +325,7 @@ export default function NovoFornecedorScreen() {
                 value={formData.cidade}
                 onChangeText={(text) => setFormData({ ...formData, cidade: text })}
                 placeholder="Cidade"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textTertiary}
                 maxLength={100}
                 editable={!loadingCep}
               />
@@ -341,7 +341,7 @@ export default function NovoFornecedorScreen() {
                   setErrors({ ...errors, estado: '' });
                 }}
                 placeholder="UF"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textTertiary}
                 maxLength={2}
                 autoCapitalize="characters"
                 editable={!loadingCep}
@@ -359,7 +359,7 @@ export default function NovoFornecedorScreen() {
               value={formData.observacoes}
               onChangeText={(text) => setFormData({ ...formData, observacoes: text })}
               placeholder="Adicione observações sobre o fornecedor..."
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textTertiary}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -382,10 +382,11 @@ export default function NovoFornecedorScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// Função auxiliar para criar estilos dinâmicos
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
   },
   formContainer: {
     flex: 1,
@@ -393,7 +394,7 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     shadowColor: '#000',
@@ -417,15 +418,15 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#374151',
+    color: colors.text,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     fontSize: 16,
   },
   inputError: {
@@ -445,7 +446,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   saveButton: {
-    backgroundColor: 'theme.colors.primary',
+    backgroundColor: theme.colors.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',

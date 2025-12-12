@@ -61,18 +61,19 @@ export const colors = {
   
   // Cores Neutras (Tema Escuro)
   dark: {
-    background: '#000000',
-    backgroundSecondary: '#1C1C1E',
-    surface: '#2C2C2E',
+    background: '#0A0A0A',        // Fundo principal (quase preto)
+    backgroundSecondary: '#1C1C1E', // Cards e seções
+    surface: '#2C2C2E',            // Inputs, modais (mais claro)
+    surfaceHighlight: '#3A3A3C',   // Hover, selecionado
     
-    text: '#FFFFFF',
-    textSecondary: '#EBEBF5',
-    textTertiary: '#8E8E93',
-    textDisabled: '#545458',
+    text: '#FFFFFF',               // Texto principal (branco puro)
+    textSecondary: '#E5E5E7',      // Texto secundário (mais legível)
+    textTertiary: '#A1A1A6',       // Texto terciário (mais claro)
+    textDisabled: '#636366',       // Desabilitado (mais visível)
     
-    border: '#38383A',
-    borderLight: '#48484A',
-    separator: '#545458',
+    border: '#48484A',             // Bordas principais (mais claras)
+    borderLight: '#38383A',        // Bordas sutis
+    separator: '#48484A',          // Separadores
   },
   
   // Cores de Status

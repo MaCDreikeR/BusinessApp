@@ -65,6 +65,9 @@ export default function AppLayout() {
   const { role } = useAuth();
   const { colors, isDark } = useTheme();
   
+  // Estilos dinâmicos baseados no tema
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  
   // Styles dinâmicos baseados no tema
   const dynamicStyles = useMemo(() => StyleSheet.create({
     drawerHeader: {
@@ -289,7 +292,7 @@ export default function AppLayout() {
                 {loadingAvatar && (
                   <ActivityIndicator 
                     size="small" 
-                    color="theme.colors.primary" 
+                    color={theme.colors.primary} 
                     style={styles.loadingIndicator}
                   />
                 )}
@@ -310,7 +313,7 @@ export default function AppLayout() {
               {usuario?.nome_completo || 'Carregando...'}
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color="#9CA3AF" style={{ marginLeft: 'auto' }} />
+          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} style={{ marginLeft: 'auto' }} />
         </TouchableOpacity>
         <DrawerContentScrollView 
           {...props}
@@ -341,7 +344,7 @@ export default function AppLayout() {
             style={[styles.footerButton, { borderTopWidth: 1, borderTopColor: colors.border, marginTop: 8, paddingTop: 16 }]}
             onPress={handleLogout}
           >
-            <FontAwesome5 name="sign-out-alt" size={20} color="#DC2626" />
+            <FontAwesome5 name="sign-out-alt" size={20} color={colors.error} />
             <Text style={[styles.footerButtonText, { color: '#DC2626' }]}>Sair</Text>
           </TouchableOpacity>
         </View>
@@ -358,8 +361,8 @@ export default function AppLayout() {
         headerStyle: {
           backgroundColor: colors.surface,
         },
-        headerTintColor: colors.primary,
-        drawerActiveTintColor: colors.primary,
+        headerTintColor: theme.colors.primary,
+        drawerActiveTintColor: theme.colors.primary,
         drawerInactiveTintColor: colors.textSecondary,
         headerShown: !isEstoque && !isNovoOrcamento && !isPerfil && !isNovoUsuario,
         drawerType: isPermanentDrawer ? 'permanent' : 'slide',
@@ -451,10 +454,10 @@ export default function AppLayout() {
                     paddingVertical: 6,
                     borderRadius: 8,
                     borderWidth: 1,
-                    borderColor: 'theme.colors.primary'
+                    borderColor: theme.colors.primary
                   }}
                 >
-                  <FontAwesome5 name="calendar-alt" size={16} color="theme.colors.primary" />
+                  <FontAwesome5 name="calendar-alt" size={16} color={theme.colors.primary} />
                 </TouchableOpacity>
               </View>
             );
@@ -501,10 +504,10 @@ export default function AppLayout() {
                     paddingVertical: 6,
                     borderRadius: 8,
                     borderWidth: 1,
-                    borderColor: 'theme.colors.primary'
+                    borderColor: theme.colors.primary
                   }}
                 >
-                  <FontAwesome5 name="receipt" size={16} color="theme.colors.primary" />
+                  <FontAwesome5 name="receipt" size={16} color={theme.colors.primary} />
                 </TouchableOpacity>
               )}
               <TouchableOpacity
@@ -527,10 +530,10 @@ export default function AppLayout() {
                   paddingVertical: 6,
                   borderRadius: 8,
                   borderWidth: 1,
-                  borderColor: 'theme.colors.primary'
+                  borderColor: theme.colors.primary
                 }}
               >
-                <FontAwesome5 name="calendar-alt" size={16} color="theme.colors.primary" />
+                <FontAwesome5 name="calendar-alt" size={16} color={theme.colors.primary} />
               </TouchableOpacity>
             </View>
           ),
@@ -554,7 +557,7 @@ export default function AppLayout() {
                   DeviceEventEmitter.emit('togglePresencaUsuarios');
                 }}
               >
-                <Ionicons name="people-outline" size={24} color="theme.colors.primary" />
+                <Ionicons name="people-outline" size={24} color={theme.colors.primary} />
               </TouchableOpacity>
               
               {/* Gerenciar bloqueios - apenas para admins */}
@@ -565,7 +568,7 @@ export default function AppLayout() {
                     DeviceEventEmitter.emit('toggleBloqueioModal');
                   }}
                 >
-                  <Ionicons name="sunny-outline" size={24} color="theme.colors.primary" />
+                  <Ionicons name="sunny-outline" size={24} color={theme.colors.primary} />
                 </TouchableOpacity>
               )}
               
@@ -577,7 +580,7 @@ export default function AppLayout() {
                     DeviceEventEmitter.emit('toggleHorariosModal');
                   }}
                 >
-                  <Ionicons name="settings-outline" size={24} color="theme.colors.primary" />
+                  <Ionicons name="settings-outline" size={24} color={theme.colors.primary} />
                 </TouchableOpacity>
               )}
               
@@ -585,7 +588,7 @@ export default function AppLayout() {
               <TouchableOpacity 
                 onPress={() => router.push('/agenda/novo')}
               >
-                <Ionicons name="add" size={24} color="theme.colors.primary" />
+                <Ionicons name="add" size={24} color={theme.colors.primary} />
               </TouchableOpacity>
             </View>
           ),
@@ -614,7 +617,7 @@ export default function AppLayout() {
               }}
               style={{ marginRight: 16 }}
             >
-              <Ionicons name="add" size={24} color="theme.colors.primary" />
+              <Ionicons name="add" size={24} color={theme.colors.primary} />
             </TouchableOpacity>
           ),
         }}
@@ -658,7 +661,7 @@ export default function AppLayout() {
                 }}
                 style={{ padding: 8 }}
               >
-                <Ionicons name="list" size={24} color="theme.colors.primary" />
+                <Ionicons name="list" size={24} color={theme.colors.primary} />
               </TouchableOpacity>
               <TouchableOpacity 
                 onPress={() => {
@@ -673,7 +676,7 @@ export default function AppLayout() {
                 }}
                 style={{ padding: 8 }}
               >
-                <Ionicons name="add" size={24} color="theme.colors.primary" />
+                <Ionicons name="add" size={24} color={theme.colors.primary} />
               </TouchableOpacity>
             </View>
           ),
@@ -702,7 +705,7 @@ export default function AppLayout() {
                 }
               }}
             >
-              <Ionicons name="add" size={24} color="theme.colors.primary" />
+              <Ionicons name="add" size={24} color={theme.colors.primary} />
             </TouchableOpacity>
           ),
         }}
@@ -875,7 +878,7 @@ export default function AppLayout() {
               onPress={() => router.push('/agenda')}
               style={{ marginLeft: 8 }}
             >
-              <Ionicons name="arrow-back" size={24} color="theme.colors.primary" />
+              <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
             </TouchableOpacity>
           )
         }}
@@ -901,12 +904,13 @@ export default function AppLayout() {
   );
 }
 
-const styles = StyleSheet.create({
+// Função auxiliar para criar estilos dinâmicos
+const createStyles = (colors: any) => StyleSheet.create({
   drawerHeader: {
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -919,7 +923,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
   },
   placeholderAvatar: {
-    backgroundColor: 'theme.colors.primary',
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -939,7 +943,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 13,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   drawerSection: {
     marginTop: 8,
@@ -947,8 +951,8 @@ const styles = StyleSheet.create({
   drawerFooter: {
     padding: 8,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    backgroundColor: '#fff',
+    borderTopColor: colors.border,
+    backgroundColor: colors.surface,
   },
   footerButton: {
     flexDirection: 'row',

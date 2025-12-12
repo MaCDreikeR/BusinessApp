@@ -303,7 +303,7 @@ export default function EditarProdutoScreen() {
           headerTitle: 'Editar Produto',
           headerLeft: () => (
             <TouchableOpacity onPress={() => router.back()}>
-              <Ionicons name="arrow-back" size={24} color="theme.colors.primary" />
+              <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
             </TouchableOpacity>
           ),
         }} 
@@ -320,7 +320,7 @@ export default function EditarProdutoScreen() {
               value={formData.nome}
               onChangeText={(text) => setFormData({ ...formData, nome: text })}
               placeholder="Digite o nome do produto"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textTertiary}
             />
           </View>
 
@@ -331,7 +331,7 @@ export default function EditarProdutoScreen() {
               value={formData.codigo}
               onChangeText={(text) => setFormData({ ...formData, codigo: text })}
               placeholder="Digite o código do produto"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textTertiary}
             />
           </View>
 
@@ -344,7 +344,7 @@ export default function EditarProdutoScreen() {
               <Text style={categoriaSelecionada ? styles.pickerButtonText : styles.pickerButtonPlaceholder}>
                 {categoriaSelecionada ? categoriaSelecionada.nome : 'Selecione uma categoria'}
               </Text>
-              <Ionicons name="chevron-down" size={20} color="#6B7280" />
+              <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -357,7 +357,7 @@ export default function EditarProdutoScreen() {
               <Text style={fornecedorSelecionado ? styles.pickerButtonText : styles.pickerButtonPlaceholder}>
                 {fornecedorSelecionado ? fornecedorSelecionado.nome : 'Selecione um fornecedor'}
               </Text>
-              <Ionicons name="chevron-down" size={20} color="#6B7280" />
+              <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -370,7 +370,7 @@ export default function EditarProdutoScreen() {
               <Text style={marcaSelecionada ? styles.pickerButtonText : styles.pickerButtonPlaceholder}>
                 {marcaSelecionada ? marcaSelecionada.nome : 'Selecione uma marca'}
               </Text>
-              <Ionicons name="chevron-down" size={20} color="#6B7280" />
+              <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -385,7 +385,7 @@ export default function EditarProdutoScreen() {
               value={formData.observacoes}
               onChangeText={(text) => setFormData({ ...formData, observacoes: text })}
               placeholder="Digite observações adicionais"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textTertiary}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -400,7 +400,7 @@ export default function EditarProdutoScreen() {
                 value={formData.quantidade}
                 onChangeText={(text) => setFormData({ ...formData, quantidade: text })}
                 placeholder="0"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textTertiary}
                 keyboardType="numeric"
               />
             </View>
@@ -412,7 +412,7 @@ export default function EditarProdutoScreen() {
                 value={formData.quantidade_minima}
                 onChangeText={(text) => setFormData({ ...formData, quantidade_minima: text })}
                 placeholder="0"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textTertiary}
                 keyboardType="numeric"
               />
             </View>
@@ -428,7 +428,7 @@ export default function EditarProdutoScreen() {
                 mask={PRECO_MASK}
                 keyboardType="numeric"
                 placeholder="R$ 0,00"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textTertiary}
               />
             </View>
           </View>
@@ -476,7 +476,7 @@ export default function EditarProdutoScreen() {
                   onPress={() => setMostrarCategorias(false)}
                   style={styles.modalCloseButton}
                 >
-                  <Ionicons name="close" size={24} color="#374151" />
+                  <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
               </View>
               <ScrollView style={styles.modalList}>
@@ -515,7 +515,7 @@ export default function EditarProdutoScreen() {
                   onPress={() => setMostrarFornecedores(false)}
                   style={styles.modalCloseButton}
                 >
-                  <Ionicons name="close" size={24} color="#374151" />
+                  <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
               </View>
               <ScrollView style={styles.modalList}>
@@ -554,7 +554,7 @@ export default function EditarProdutoScreen() {
                   onPress={() => setMostrarMarcas(false)}
                   style={styles.modalCloseButton}
                 >
-                  <Ionicons name="close" size={24} color="#374151" />
+                  <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
               </View>
               <ScrollView style={styles.modalList}>
@@ -576,16 +576,17 @@ export default function EditarProdutoScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// Função auxiliar para criar estilos dinâmicos
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
   },
   formContainer: {
     flex: 1,
@@ -606,15 +607,15 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#374151',
+    color: colors.text,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     fontSize: 16,
   },
   textArea: {
@@ -626,7 +627,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   saveButton: {
-    backgroundColor: 'theme.colors.primary',
+    backgroundColor: theme.colors.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -658,11 +659,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
   },
   pickerButtonText: {
     fontSize: 16,
@@ -670,7 +671,7 @@ const styles = StyleSheet.create({
   },
   pickerButtonPlaceholder: {
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   modalOverlay: {
     flex: 1,
@@ -681,7 +682,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
@@ -710,7 +711,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
   },
   modalItemText: {
     fontSize: 16,

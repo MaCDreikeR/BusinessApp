@@ -9,14 +9,14 @@ export default function UsuariosLayout() {
     <Stack
       screenOptions={{
         headerStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: colors.surface,
         },
-        headerTintColor: 'theme.colors.primary',
+        headerTintColor: theme.colors.primary,
         headerTitleStyle: {
           fontWeight: 'bold',
         },
         headerShadowVisible: false,
-        headerLeft: () => <DrawerToggleButton tintColor="theme.colors.primary" />,
+        headerLeft: () => <DrawerToggleButton tintColor={theme.colors.primary} />,
         headerTitleAlign: 'center',
       }}
     >

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect , useMemo} from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, ScrollView, Modal, PanResponder, Animated, ActivityIndicator, TextStyle, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
@@ -6,6 +6,7 @@ import { offlineInsert, offlineUpdate, offlineDelete, getOfflineFeedback } from 
 import { router } from 'expo-router';
 import { DeviceEventEmitter } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { logger } from '../../utils/logger';
 import { Produto as ProdutoBase, Servico as ServicoBase, Pacote as PacoteBase } from '@types';
 import { theme } from '@utils/theme';
@@ -63,6 +64,11 @@ type ServicoPacoteData = {
 
 export default function PacotesScreen() {
   const { estabelecimentoId } = useAuth();
+  const { colors } = useTheme();
+  
+  // Estilos dinâmicos baseados no tema
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  
   const [pacotes, setPacotes] = useState<PacoteDetalhado[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -708,7 +714,7 @@ export default function PacotesScreen() {
           style={styles.excluirButton}
           onPress={() => handleExcluirPacote(item)}
         >
-          <Ionicons name="trash-outline" size={20} color="#DC2626" />
+          <Ionicons name="trash-outline" size={20} color={colors.error} />
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -717,13 +723,13 @@ export default function PacotesScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#6B7280" style={styles.searchIcon} />
+        <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholder="Buscar pacotes..."
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={colors.textTertiary}
         />
       </View>
 
@@ -740,7 +746,7 @@ export default function PacotesScreen() {
         ListEmptyComponent={
           loading ? (
             <View style={styles.emptyContainer}>
-              <ActivityIndicator size="large" color="theme.colors.primary" />
+              <ActivityIndicator size="large" color={theme.colors.primary} />
             </View>
           ) : (
             <View style={styles.emptyContainer}>
@@ -811,7 +817,7 @@ export default function PacotesScreen() {
                       value={novoPacote.nome}
                       onChangeText={(text) => setNovoPacote({ ...novoPacote, nome: text })}
                       placeholder="Digite o nome do pacote"
-                      placeholderTextColor="#9CA3AF"
+                      placeholderTextColor={colors.textTertiary}
                     />
                   </View>
 
@@ -822,7 +828,7 @@ export default function PacotesScreen() {
                       value={novoPacote.descricao}
                       onChangeText={(text) => setNovoPacote({ ...novoPacote, descricao: text })}
                       placeholder="Digite a descrição do pacote"
-                      placeholderTextColor="#9CA3AF"
+                      placeholderTextColor={colors.textTertiary}
                       multiline
                       numberOfLines={4}
                     />
@@ -834,7 +840,7 @@ export default function PacotesScreen() {
                       style={styles.addButton}
                       onPress={handleMostrarModalProdutos}
                     >
-                      <Ionicons name="add-circle-outline" size={24} color="theme.colors.primary" />
+                      <Ionicons name="add-circle-outline" size={24} color={theme.colors.primary} />
                       <Text style={styles.addButtonText}>Adicionar Produtos</Text>
                     </TouchableOpacity>
                     {novoPacote.produtos.map((produto, index) => (
@@ -853,7 +859,7 @@ export default function PacotesScreen() {
                           style={styles.removeButton}
                           onPress={() => handleRemoverProduto(index)}
                         >
-                          <Ionicons name="trash-outline" size={20} color="#DC2626" />
+                          <Ionicons name="trash-outline" size={20} color={colors.error} />
                         </TouchableOpacity>
                       </View>
                     ))}
@@ -865,7 +871,7 @@ export default function PacotesScreen() {
                       style={styles.addButton}
                       onPress={handleMostrarModalServicos}
                     >
-                      <Ionicons name="add-circle-outline" size={24} color="theme.colors.primary" />
+                      <Ionicons name="add-circle-outline" size={24} color={theme.colors.primary} />
                       <Text style={styles.addButtonText}>Adicionar Serviços</Text>
                     </TouchableOpacity>
                     {novoPacote.servicos.map((servico, index) => (
@@ -884,7 +890,7 @@ export default function PacotesScreen() {
                           style={styles.removeButton}
                           onPress={() => handleRemoverServico(index)}
                         >
-                          <Ionicons name="trash-outline" size={20} color="#DC2626" />
+                          <Ionicons name="trash-outline" size={20} color={colors.error} />
                         </TouchableOpacity>
                       </View>
                     ))}
@@ -900,7 +906,7 @@ export default function PacotesScreen() {
                           currency: 'BRL'
                         })}
                         placeholder="R$ 0,00"
-                        placeholderTextColor="#9CA3AF"
+                        placeholderTextColor={colors.textTertiary}
                         editable={false}
                       />
                     </TouchableWithoutFeedback>
@@ -921,7 +927,7 @@ export default function PacotesScreen() {
                           setNovoPacote({ ...novoPacote, desconto: valor });
                         }}
                         placeholder="R$ 0,00"
-                        placeholderTextColor="#9CA3AF"
+                        placeholderTextColor={colors.textTertiary}
                         keyboardType="numeric"
                       />
                     </TouchableWithoutFeedback>
@@ -997,18 +1003,18 @@ export default function PacotesScreen() {
                   }}
                   style={styles.modalCloseButton}
                 >
-                  <Ionicons name="close" size={24} color="#374151" />
+                  <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
               </View>
 
               <View style={styles.searchModalContainer}>
-                <Ionicons name="search" size={20} color="#6B7280" style={styles.searchIcon} />
+                <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
                 <TextInput
                   style={styles.searchModalInput}
                   value={buscaProduto}
                   onChangeText={setBuscaProduto}
                   placeholder="Buscar produtos..."
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textTertiary}
                 />
               </View>
 
@@ -1036,7 +1042,7 @@ export default function PacotesScreen() {
                           <Ionicons 
                             name={produtosSelecionados.some(p => p.id === produto.id) ? "checkbox" : "square-outline"} 
                             size={24} 
-                            color="theme.colors.primary" 
+                            color={theme.colors.primary} 
                           />
                         </View>
                         <Text style={styles.modalItemText}>{produto.nome}</Text>
@@ -1060,7 +1066,7 @@ export default function PacotesScreen() {
                                 }
                               }}
                             >
-                              <Ionicons name="remove" size={20} color="theme.colors.primary" />
+                              <Ionicons name="remove" size={20} color={theme.colors.primary} />
                             </TouchableOpacity>
                             <TextInput
                               style={styles.quantidadeInput}
@@ -1082,7 +1088,7 @@ export default function PacotesScreen() {
                                 }
                               }}
                             >
-                              <Ionicons name="add" size={20} color="theme.colors.primary" />
+                              <Ionicons name="add" size={20} color={theme.colors.primary} />
                             </TouchableOpacity>
                           </View>
                         </View>
@@ -1143,18 +1149,18 @@ export default function PacotesScreen() {
                   }}
                   style={styles.modalCloseButton}
                 >
-                  <Ionicons name="close" size={24} color="#374151" />
+                  <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
               </View>
 
               <View style={styles.searchModalContainer}>
-                <Ionicons name="search" size={20} color="#6B7280" style={styles.searchIcon} />
+                <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
                 <TextInput
                   style={styles.searchModalInput}
                   value={buscaServico}
                   onChangeText={setBuscaServico}
                   placeholder="Buscar serviços..."
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textTertiary}
                 />
               </View>
 
@@ -1178,7 +1184,7 @@ export default function PacotesScreen() {
                           <Ionicons 
                             name={servicosSelecionados.some(s => s.id === servico.id) ? "checkbox" : "square-outline"} 
                             size={24} 
-                            color="theme.colors.primary" 
+                            color={theme.colors.primary} 
                           />
                         </View>
                         <Text style={styles.modalItemText}>{servico.nome}</Text>
@@ -1202,7 +1208,7 @@ export default function PacotesScreen() {
                                 }
                               }}
                             >
-                              <Ionicons name="remove" size={20} color="theme.colors.primary" />
+                              <Ionicons name="remove" size={20} color={theme.colors.primary} />
                             </TouchableOpacity>
                             <TextInput
                               style={styles.quantidadeInput}
@@ -1224,7 +1230,7 @@ export default function PacotesScreen() {
                                 }
                               }}
                             >
-                              <Ionicons name="add" size={20} color="theme.colors.primary" />
+                              <Ionicons name="add" size={20} color={theme.colors.primary} />
                             </TouchableOpacity>
                           </View>
                         </View>
@@ -1253,19 +1259,20 @@ export default function PacotesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// Função auxiliar para criar estilos dinâmicos
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
   },
   searchIcon: {
     marginRight: 8,
@@ -1273,7 +1280,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     height: 40,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     borderRadius: 8,
     paddingHorizontal: 12,
     fontSize: 16,
@@ -1283,7 +1290,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   pacoteCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 8,
     padding: 16,
     marginBottom: 12,
@@ -1320,21 +1327,21 @@ const styles = StyleSheet.create({
   valorOriginalText: {
     fontSize: 14,
     fontWeight: '600',
-    color: 'theme.colors.primary',
+    color: theme.colors.primary,
   },
   descontoText: {
     fontSize: 14,
     fontWeight: '600',
-    color: 'theme.colors.primary',
+    color: theme.colors.primary,
   },
   valorFinalText: {
     fontSize: 14,
     fontWeight: '600',
-    color: 'theme.colors.primary',
+    color: theme.colors.primary,
   },
   pacoteDescricao: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginBottom: 12,
   },
   pacoteFooter: {
@@ -1351,7 +1358,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   modalContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     minHeight: '50%',
@@ -1376,34 +1383,34 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
     zIndex: 10,
     paddingHorizontal: 20,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
   },
   input: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     height: 44,
-    color: '#374151',
+    color: colors.text,
   } as TextStyle,
   valorInput: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     borderRadius: 8,
     padding: 12,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.text,
     textAlign: 'right',
     height: 44,
   } as TextStyle,
   valorBox: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     borderRadius: 8,
     padding: 12,
     minHeight: 44,
@@ -1427,9 +1434,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: colors.border,
     gap: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     position: 'absolute',
     bottom: 0,
     left: 0,
@@ -1440,10 +1447,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     padding: 12,
-    backgroundColor: 'theme.colors.primary',
+    backgroundColor: theme.colors.primary,
   },
   cancelButton: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
   },
   buttonText: {
     fontSize: 16,
@@ -1451,7 +1458,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   cancelButtonText: {
-    color: '#374151',
+    color: colors.text,
   },
   emptyContainer: {
     flex: 1,
@@ -1460,7 +1467,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   emptyText: {
-    color: 'theme.colors.primary',
+    color: theme.colors.primary,
     fontSize: 16,
     fontWeight: '500',
     textAlign: 'center',
@@ -1471,13 +1478,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     borderRadius: 8,
   },
   addButtonText: {
     fontSize: 16,
     fontWeight: '500',
-    color: 'theme.colors.primary',
+    color: theme.colors.primary,
     marginLeft: 8,
   },
   itemLista: {
@@ -1485,7 +1492,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
   },
   itemInfo: {
     flex: 1,
@@ -1498,12 +1505,12 @@ const styles = StyleSheet.create({
   },
   itemQuantidade: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   itemPreco: {
     fontSize: 14,
     fontWeight: '600',
-    color: 'theme.colors.primary',
+    color: theme.colors.primary,
   },
   removeButton: {
     padding: 8,
@@ -1517,7 +1524,7 @@ const styles = StyleSheet.create({
   modalItem: {
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
   },
   modalItemSelecionado: {
     backgroundColor: '#EDE9FE',
@@ -1539,12 +1546,12 @@ const styles = StyleSheet.create({
   modalItemPreco: {
     fontSize: 14,
     fontWeight: '600',
-    color: 'theme.colors.primary',
+    color: theme.colors.primary,
   },
   quantidadeInputContainer: {
     marginTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: colors.border,
     paddingTop: 8,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1552,13 +1559,13 @@ const styles = StyleSheet.create({
   },
   quantidadeLabel: {
     fontSize: 14,
-    color: '#374151',
+    color: colors.text,
     marginRight: 8,
   },
   quantidadeControls: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     borderRadius: 8,
     padding: 2,
     width: 120,
@@ -1585,7 +1592,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E7EB',
   },
   buttonTextDisabled: {
-    color: '#9CA3AF',
+    color: colors.textTertiary,
   },
   modalOverlayTouchable: {
     flex: 1,
@@ -1606,7 +1613,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#374151',
+    color: colors.text,
     marginBottom: 8,
   },
   textArea: {
@@ -1618,14 +1625,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
   },
   searchModalInput: {
     flex: 1,
     height: 40,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     borderRadius: 8,
     paddingHorizontal: 12,
     fontSize: 16,
@@ -1635,22 +1642,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
   },
   modalSubtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   secaoLista: {
     marginTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: colors.border,
     paddingTop: 8,
   },
   secaoTitulo: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.text,
     marginBottom: 4,
   },
   itemListaCompacto: {
@@ -1661,13 +1668,13 @@ const styles = StyleSheet.create({
   },
   itemNomeCompacto: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
     flex: 1,
   },
   itemPrecoCompacto: {
     fontSize: 14,
     fontWeight: '500',
-    color: 'theme.colors.primary',
+    color: theme.colors.primary,
     marginLeft: 8,
   },
   modalItemCheckbox: {

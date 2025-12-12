@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, ScrollView, Alert, Linking, Modal } from 'react-native';
+import React, { useState, useEffect, useCallback , useMemo} from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, ScrollView, Alert, Linking, Modal, RefreshControl } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useTheme } from '../../../contexts/ThemeContext';
 import * as Contacts from 'expo-contacts';
 import { useFocusEffect, useNavigation, DrawerActions } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,10 +27,15 @@ type ClienteLista = Pick<ClienteBase, 'id' | 'nome' | 'telefone' | 'estabelecime
 
 export default function ClientesScreen() {
   const { estabelecimentoId } = useAuth();
+  const { colors } = useTheme();
+  
+  // Estilos dinâmicos baseados no tema
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [clientes, setClientes] = useState<ClienteLista[]>([]);
   const [filtro, setFiltro] = useState('todos');
   const [pesquisa, setPesquisa] = useState('');
   const [menuAberto, setMenuAberto] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -39,6 +45,22 @@ export default function ClientesScreen() {
       carregarClientes();
     }, [])
   );
+
+  const onRefresh = async () => {
+    try {
+      setRefreshing(true);
+      // Limpar cache antes de recarregar
+      if (estabelecimentoId) {
+        const cacheKey = `lista_${estabelecimentoId}`;
+        await CacheManager.remove(CacheNamespaces.CLIENTES, cacheKey);
+      }
+      await carregarClientes();
+    } catch (error) {
+      logger.error('Erro ao atualizar clientes:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const carregarClientes = async () => {
     try {
@@ -289,7 +311,7 @@ export default function ClientesScreen() {
             style={styles.headerButton}
             onPress={abrirDrawer}
           >
-            <FontAwesome5 name="bars" size={20} color="theme.colors.primary" />
+            <FontAwesome5 name="bars" size={20} color={theme.colors.primary} />
           </TouchableOpacity>
           <Text style={styles.title}>Clientes</Text>
         </View>
@@ -298,7 +320,7 @@ export default function ClientesScreen() {
           style={styles.headerButton}
           onPress={abrirMenu}
         >
-          <FontAwesome5 name="plus" size={20} color="theme.colors.primary" />
+          <FontAwesome5 name="plus" size={20} color={theme.colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -314,7 +336,7 @@ export default function ClientesScreen() {
             onPress={() => setFiltro('todos')}
           >
             <View style={[styles.filtroIcone, filtro === 'todos' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="users" size={16} color={filtro === 'todos' ? 'theme.colors.primary' : '#666'} />
+              <FontAwesome5 name="users" size={16} color={filtro === 'todos' ? theme.colors.primary : '#666'} />
             </View>
             <Text style={[styles.filtroTexto, filtro === 'todos' && styles.filtroTextoAtivo]}>Todos</Text>
           </TouchableOpacity>
@@ -324,7 +346,7 @@ export default function ClientesScreen() {
             onPress={() => setFiltro('agendados')}
           >
             <View style={[styles.filtroIcone, filtro === 'agendados' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="calendar" size={16} color={filtro === 'agendados' ? 'theme.colors.primary' : '#666'} />
+              <FontAwesome5 name="calendar" size={16} color={filtro === 'agendados' ? theme.colors.primary : '#666'} />
             </View>
             <Text style={[styles.filtroTexto, filtro === 'agendados' && styles.filtroTextoAtivo]}>Agendados</Text>
           </TouchableOpacity>
@@ -334,7 +356,7 @@ export default function ClientesScreen() {
             onPress={() => setFiltro('com_credito')}
           >
             <View style={[styles.filtroIcone, filtro === 'com_credito' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="user" size={16} color={filtro === 'com_credito' ? 'theme.colors.primary' : '#666'} />
+              <FontAwesome5 name="user" size={16} color={filtro === 'com_credito' ? theme.colors.primary : '#666'} />
             </View>
             <Text style={[styles.filtroTexto, filtro === 'com_credito' && styles.filtroTextoAtivo]}>Com crédito</Text>
           </TouchableOpacity>
@@ -344,7 +366,7 @@ export default function ClientesScreen() {
             onPress={() => setFiltro('com_debito')}
           >
             <View style={[styles.filtroIcone, filtro === 'com_debito' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="exclamation-circle" size={16} color={filtro === 'com_debito' ? 'theme.colors.primary' : '#666'} />
+              <FontAwesome5 name="exclamation-circle" size={16} color={filtro === 'com_debito' ? theme.colors.primary : '#666'} />
             </View>
             <Text style={[styles.filtroTexto, filtro === 'com_debito' && styles.filtroTextoAtivo]}>Com Débito</Text>
           </TouchableOpacity>
@@ -352,13 +374,13 @@ export default function ClientesScreen() {
       </View>
 
       <View style={styles.pesquisaContainer}>
-        <FontAwesome5 name="search" size={16} color="#9CA3AF" style={styles.pesquisaIcone} />
+        <FontAwesome5 name="search" size={16} color={colors.textTertiary} style={styles.pesquisaIcone} />
         <TextInput
           style={styles.pesquisaInput}
           placeholder="Pesquisar por nome..."
           value={pesquisa}
           onChangeText={setPesquisa}
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={colors.textTertiary}
         />
       </View>
 
@@ -369,6 +391,14 @@ export default function ClientesScreen() {
       <ScrollView 
         style={styles.listaClientes}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#7C3AED']}
+            tintColor="#7C3AED"
+          />
+        }
       >
         {filtrarClientes().map(cliente => (
           <TouchableOpacity 
@@ -384,7 +414,7 @@ export default function ClientesScreen() {
                 />
               ) : (
                 <View style={styles.clienteFotoPlaceholder}>
-                  <FontAwesome5 name="user" size={24} color="#9CA3AF" />
+                  <FontAwesome5 name="user" size={24} color={colors.textTertiary} />
                 </View>
               )}
             </View>
@@ -441,7 +471,7 @@ export default function ClientesScreen() {
               style={styles.menuItem}
               onPress={novoCliente}
             >
-              <FontAwesome5 name="user-plus" size={20} color="theme.colors.primary" />
+              <FontAwesome5 name="user-plus" size={20} color={theme.colors.primary} />
               <Text style={styles.menuItemTexto}>Novo Cliente</Text>
             </TouchableOpacity>
 
@@ -449,7 +479,7 @@ export default function ClientesScreen() {
               style={styles.menuItem}
               onPress={importarContato}
             >
-              <FontAwesome5 name="address-book" size={20} color="theme.colors.primary" />
+              <FontAwesome5 name="address-book" size={20} color={theme.colors.primary} />
               <Text style={styles.menuItemTexto}>Importar contatos</Text>
             </TouchableOpacity>
           </View>
@@ -460,17 +490,18 @@ export default function ClientesScreen() {
 }
 
 // --- STYLESHEET COM AS MUDANÇAS ---
-const styles = StyleSheet.create({
+// Função auxiliar para criar estilos dinâmicos
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between', // Mantém os grupos da esquerda e direita separados
     paddingHorizontal: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
@@ -487,11 +518,11 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    color: 'theme.colors.primary',
+    color: theme.colors.primary,
     marginLeft: 10, // Espaçamento entre o ícone de menu e o título
   },
   filtrosWrapper: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
@@ -502,7 +533,7 @@ const styles = StyleSheet.create({
   filtroItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
@@ -516,26 +547,26 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 6,
   },
   filtroIconeAtivo: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
   filtroTexto: {
     fontSize: 14,
     color: '#666',
   },
   filtroTextoAtivo: {
-    color: 'theme.colors.primary',
+    color: theme.colors.primary,
     fontWeight: '500',
   },
   pesquisaContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
     margin: 16,
     paddingHorizontal: 16,
     borderRadius: 8,
@@ -551,7 +582,7 @@ const styles = StyleSheet.create({
   },
   totalClientes: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginHorizontal: 16,
     marginBottom: 8,
   },
@@ -566,7 +597,7 @@ const styles = StyleSheet.create({
   clienteCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     padding: 16,
     borderRadius: 8,
     marginBottom: 8,
@@ -585,7 +616,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -600,7 +631,7 @@ const styles = StyleSheet.create({
   },
   clienteTelefone: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   clienteSaldo: {
     fontSize: 16,
@@ -627,7 +658,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   menuContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderRadius: 8,
     padding: 8,
     width: '80%',

@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState , useMemo} from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../contexts/ThemeContext';
 import { getHistoricoNotificacoes } from '../../services/notifications';
 import { logger } from '../../utils/logger';
 import { theme } from '@utils/theme';
@@ -25,6 +26,10 @@ function formatarData(dataString: string) {
 }
 
 export default function NotificacoesScreen() {
+  const { colors } = useTheme();
+  
+  // Estilos dinâmicos baseados no tema
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -53,7 +58,7 @@ export default function NotificacoesScreen() {
                 item.tipo === 'aniversario' ? 'gift' : 
                 'notifications'} 
           size={24} 
-          color="theme.colors.primary" 
+          color={theme.colors.primary} 
         />
       </View>
       <View style={styles.notificacaoConteudo}>
@@ -74,7 +79,7 @@ export default function NotificacoesScreen() {
         </View>
       ) : notificacoes.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="notifications-off" size={48} color="#9CA3AF" />
+          <Ionicons name="notifications-off" size={48} color={colors.textTertiary} />
           <Text style={styles.emptyText}>Nenhuma notificação encontrada</Text>
         </View>
       ) : (
@@ -88,7 +93,7 @@ export default function NotificacoesScreen() {
               style={styles.refreshButton}
               onPress={carregarNotificacoes}
             >
-              <Ionicons name="refresh" size={24} color="theme.colors.primary" />
+              <Ionicons name="refresh" size={24} color={theme.colors.primary} />
             </TouchableOpacity>
           }
         />
@@ -97,10 +102,11 @@ export default function NotificacoesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// Função auxiliar para criar estilos dinâmicos
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
   },
   listContainer: {
     padding: 16,
@@ -112,7 +118,7 @@ const styles = StyleSheet.create({
   },
   notificacaoItem: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -129,7 +135,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -150,7 +156,7 @@ const styles = StyleSheet.create({
   },
   notificacaoData: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   loadingContainer: {
     flex: 1,
@@ -165,7 +171,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginTop: 8,
   },
 }); 

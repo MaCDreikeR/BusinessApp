@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef , useMemo} from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, RefreshControl, ActivityIndicator, Animated, Modal, ScrollView } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -58,6 +58,9 @@ type ResumoVendas = {
 const VendasScreen = () => {
   const { estabelecimentoId } = useAuth();
   const { colors } = useTheme();
+  
+  // Estilos dinâmicos baseados no tema
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [vendas, setVendas] = useState<ResumoVendas>({
     totalVendas: 0,
     quantidadeItens: 0,
@@ -723,7 +726,7 @@ const VendasScreen = () => {
                   {detalhesMovimentacao.dinheiro.quantidade > 0 && (
                     <View style={[styles.detalhesSecao, { borderLeftColor: colors.primary }]}>
                       <View style={styles.detalhesSecaoHeader}>
-                        <Ionicons name="cash-outline" size={20} color="#10B981" />
+                        <Ionicons name="cash-outline" size={20} color={colors.success} />
                         <Text style={styles.detalhesSecaoTitulo}>Dinheiro</Text>
                       </View>
                       <Text style={styles.detalhesInfo}>
@@ -738,7 +741,7 @@ const VendasScreen = () => {
                       
                       {/* Trocos adicionados ao crediário */}
                       {detalhesMovimentacao.dinheiro.trocos_adicionados.length > 0 && (
-                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
                           <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 4 }}>
                             💰 Trocos adicionados ao crediário (incluído no total acima):
                           </Text>
@@ -753,7 +756,7 @@ const VendasScreen = () => {
                       
                       {/* Faltas adicionadas ao crediário */}
                       {detalhesMovimentacao.dinheiro.faltas_adicionadas.length > 0 && (
-                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
                           <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '600', marginBottom: 4 }}>
                             ⚠️ Faltas adicionadas ao crediário (subtraído do total acima):
                           </Text>
@@ -789,7 +792,7 @@ const VendasScreen = () => {
                       
                       {/* Trocos/Faltas adicionados */}
                       {detalhesMovimentacao.cartao_credito.trocos_adicionados.length > 0 && (
-                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
                           <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 4 }}>
                             💰 Trocos adicionados ao crediário (incluído no total acima):
                           </Text>
@@ -802,7 +805,7 @@ const VendasScreen = () => {
                         </View>
                       )}
                       {detalhesMovimentacao.cartao_credito.faltas_adicionadas.length > 0 && (
-                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
                           <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '600', marginBottom: 4 }}>
                             ⚠️ Faltas adicionadas ao crediário (subtraído do total acima):
                           </Text>
@@ -835,7 +838,7 @@ const VendasScreen = () => {
                       ))}
                       
                       {detalhesMovimentacao.cartao_debito.trocos_adicionados.length > 0 && (
-                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
                           <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 4 }}>
                             💰 Trocos adicionados ao crediário (incluído no total acima):
                           </Text>
@@ -848,7 +851,7 @@ const VendasScreen = () => {
                         </View>
                       )}
                       {detalhesMovimentacao.cartao_debito.faltas_adicionadas.length > 0 && (
-                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
                           <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '600', marginBottom: 4 }}>
                             ⚠️ Faltas adicionadas ao crediário (subtraído do total acima):
                           </Text>
@@ -881,7 +884,7 @@ const VendasScreen = () => {
                       ))}
                       
                       {detalhesMovimentacao.pix.trocos_adicionados.length > 0 && (
-                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
                           <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 4 }}>
                             💰 Trocos adicionados ao crediário (incluído no total acima):
                           </Text>
@@ -894,7 +897,7 @@ const VendasScreen = () => {
                         </View>
                       )}
                       {detalhesMovimentacao.pix.faltas_adicionadas.length > 0 && (
-                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
                           <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '600', marginBottom: 4 }}>
                             ⚠️ Faltas adicionadas ao crediário (subtraído do total acima):
                           </Text>
@@ -913,7 +916,7 @@ const VendasScreen = () => {
                   {detalhesMovimentacao.crediario.quantidade > 0 && (
                     <View style={[styles.detalhesSecao, { borderLeftColor: colors.primary }]}>
                       <View style={styles.detalhesSecaoHeader}>
-                        <Ionicons name="document-text-outline" size={20} color="#F59E0B" />
+                        <Ionicons name="document-text-outline" size={20} color={colors.warning} />
                         <Text style={styles.detalhesSecaoTitulo}>Crediário</Text>
                       </View>
                       <Text style={styles.detalhesInfo}>
@@ -929,7 +932,7 @@ const VendasScreen = () => {
                   )}
                 </ScrollView>
               ) : (
-                <Text style={{ textAlign: 'center', padding: 20, color: '#6B7280' }}>
+                <Text style={{ textAlign: 'center', padding: 20, color: colors.textSecondary }}>
                   Nenhuma movimentação encontrada no período
                 </Text>
               )}
@@ -977,16 +980,17 @@ const VendasScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+// Função auxiliar para criar estilos dinâmicos
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.background,
   },
   header: {
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: colors.border,
   },
   title: {
     fontSize: 24,
@@ -1022,9 +1026,9 @@ const styles = StyleSheet.create({
   },
   filtersContainer: {
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: colors.border,
   },
   filtroRow: {
     flexDirection: 'row',
@@ -1084,7 +1088,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   contadorBadgeAtivo: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
   contadorText: {
     color: '#fff',
@@ -1105,7 +1109,7 @@ const styles = StyleSheet.create({
     color: '#333333',
   },
   itemContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 8,
     padding: 16,
     marginBottom: 12,
@@ -1172,7 +1176,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   calendarContainer: {
-    backgroundColor: 'white',
+    backgroundColor: colors.surface,
     borderRadius: 10,
     padding: 20,
     width: '90%',
@@ -1190,7 +1194,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   detalhesContainer: {
-    backgroundColor: 'white',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     width: '90%',
     maxWidth: 500,
@@ -1202,7 +1206,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
   },
   detalhesTitle: {
     fontSize: 18,
@@ -1216,7 +1220,7 @@ const styles = StyleSheet.create({
   detalhesSecao: {
     marginBottom: 16,
     padding: 12,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
     borderRadius: 8,
     borderLeftWidth: 3,
   },
@@ -1233,7 +1237,7 @@ const styles = StyleSheet.create({
   },
   detalhesInfo: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginBottom: 8,
   },
   comandaDetalhe: {
@@ -1242,7 +1246,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 4,
     paddingHorizontal: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 4,
     marginVertical: 2,
   },

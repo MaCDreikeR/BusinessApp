@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect , useMemo} from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
 import { router, usePathname } from 'expo-router';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useTheme } from '../../../contexts/ThemeContext';
 import { logger } from '../../../utils/logger';
 import { Fornecedor as FornecedorBase } from '@types';
 
@@ -19,6 +20,10 @@ type FornecedorLista = Pick<FornecedorBase, 'id' | 'nome'> & {
 };
 
 export default function FornecedoresScreen() {
+  const { colors } = useTheme();
+  
+  // Estilos dinâmicos baseados no tema
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [fornecedores, setFornecedores] = useState<FornecedorLista[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -118,17 +123,17 @@ export default function FornecedoresScreen() {
             style={styles.deleteButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="trash" size={20} color="#DC2626" />
+            <Ionicons name="trash" size={20} color={colors.error} />
           </TouchableOpacity>
         </View>
         
         <View style={styles.fornecedorContato}>
           <View style={styles.contatoItem}>
-            <Ionicons name="call" size={16} color="#6B7280" />
+            <Ionicons name="call" size={16} color={colors.textSecondary} />
             <Text style={styles.contatoText}>{item.telefone}</Text>
           </View>
           <View style={styles.contatoItem}>
-            <Ionicons name="mail" size={16} color="#6B7280" />
+            <Ionicons name="mail" size={16} color={colors.textSecondary} />
             <Text style={styles.contatoText}>{item.email}</Text>
           </View>
         </View>
@@ -153,13 +158,13 @@ export default function FornecedoresScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#6B7280" style={styles.searchIcon} />
+          <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar fornecedores..."
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.textTertiary}
           />
         </View>
       </View>
@@ -170,7 +175,7 @@ export default function FornecedoresScreen() {
         </View>
       ) : fornecedoresFiltrados.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="business-outline" size={48} color="#9CA3AF" />
+          <Ionicons name="business-outline" size={48} color={colors.textTertiary} />
           <Text style={styles.emptyText}>Nenhum fornecedor encontrado</Text>
         </View>
       ) : (
@@ -185,16 +190,17 @@ export default function FornecedoresScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// Função auxiliar para criar estilos dinâmicos
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
   },
   header: {
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -203,7 +209,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     borderRadius: 8,
     paddingHorizontal: 12,
   },
@@ -219,7 +225,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   fornecedorCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 8,
     padding: 16,
     marginBottom: 12,
@@ -249,7 +255,7 @@ const styles = StyleSheet.create({
   },
   fornecedorCNPJ: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   deleteButton: {
     padding: 8,
@@ -266,16 +272,16 @@ const styles = StyleSheet.create({
   },
   contatoText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   fornecedorEndereco: {
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: colors.border,
     paddingTop: 12,
   },
   enderecoText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   loadingContainer: {
     flex: 1,
@@ -290,7 +296,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginTop: 8,
   }
 }); 

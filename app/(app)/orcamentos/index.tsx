@@ -125,11 +125,11 @@ export default function OrcamentosScreen() {
       </View>
       <View style={styles.cardContent}>
         <View style={styles.infoRow}>
-          <Ionicons name="calendar-outline" size={16} color="#6B7280" />
+          <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
           <Text style={styles.infoText}>{formatarData(item.data)}</Text>
         </View>
         <View style={styles.infoRow}>
-          <Ionicons name="cash-outline" size={16} color="#6B7280" />
+          <Ionicons name="cash-outline" size={16} color={colors.textSecondary} />
           <Text style={styles.valor}>{formatarValor(item.valor_total)}</Text>
         </View>
       </View>
@@ -139,7 +139,7 @@ export default function OrcamentosScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="theme.colors.primary" />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
@@ -162,17 +162,17 @@ export default function OrcamentosScreen() {
       </View>
       <View style={styles.header}>
         <View style={styles.searchContainer}>
-          <Ionicons name="search-outline" size={20} color="#6B7280" />
+          <Ionicons name="search-outline" size={20} color={colors.textSecondary} />
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar por cliente..."
             value={busca}
             onChangeText={setBusca}
-            placeholderTextColor="#6B7280"
+            placeholderTextColor={colors.textSecondary}
           />
           {busca.length > 0 && (
             <TouchableOpacity onPress={() => setBusca('')}>
-              <Ionicons name="close-circle" size={20} color="#6B7280" />
+              <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
@@ -197,7 +197,8 @@ export default function OrcamentosScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// Função auxiliar para criar estilos dinâmicos
+const createStyles = (colors: any) => StyleSheet.create({
   list: {
     padding: 16,
   },
@@ -211,7 +212,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   filtroButton: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 18,
@@ -221,10 +222,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   filtroButtonSelected: {
-    backgroundColor: 'theme.colors.primary',
+    backgroundColor: theme.colors.primary,
   },
   filtroButtonText: {
-    color: '#6B7280',
+    color: colors.textSecondary,
     fontWeight: '500',
     fontSize: 15,
   },
@@ -234,24 +235,24 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
   },
   header: {
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -267,7 +268,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -307,11 +308,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   infoText: {
-    color: '#6B7280',
+    color: colors.textSecondary,
     fontSize: 14,
   },
   valor: {
-    color: '#6B7280',
+    color: colors.textSecondary,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -321,7 +322,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   skeleton: {

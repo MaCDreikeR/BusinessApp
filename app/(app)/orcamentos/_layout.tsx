@@ -17,9 +17,9 @@ export default function OrcamentosLayout() {
           headerShown: true,
           headerBackTitle: 'Voltar',
           headerStyle: {
-            backgroundColor: '#fff'
+            backgroundColor: colors.surface
           },
-          headerTintColor: 'theme.colors.primary'
+          headerTintColor: theme.colors.primary
         }}
       />
       <Stack.Screen

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect , useMemo} from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { logger } from '../../utils/logger';
 import { Usuario as UsuarioBase } from '@types';
 
@@ -39,6 +40,10 @@ type ComissoesUsuario = {
 
 export default function ComissoesScreen() {
   const { estabelecimentoId, user } = useAuth();
+  const { colors } = useTheme();
+  
+  // Estilos dinâmicos baseados no tema
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [usuarios, setUsuarios] = useState<UsuarioComissao[]>([]);
@@ -464,7 +469,7 @@ export default function ComissoesScreen() {
                 onPress={() => setModalDetalhesVisible(false)}
                 style={styles.modalCloseButton}
               >
-                <Ionicons name="close" size={24} color="#6B7280" />
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -508,10 +513,11 @@ export default function ComissoesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// Função auxiliar para criar estilos dinâmicos
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
@@ -519,10 +525,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
   },
   headerTitle: {
     fontSize: 24,
@@ -533,7 +539,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -570,17 +576,17 @@ const styles = StyleSheet.create({
   },
   usuarioEmail: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   comissaoAPagarContainer: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     padding: 12,
     borderRadius: 8,
     marginBottom: 12,
   },
   comissaoAPagarLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginBottom: 4,
   },
   comissaoAPagarValor: {
@@ -622,13 +628,13 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginBottom: 6,
   },
   valorInput: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
@@ -654,9 +660,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   descricaoInput: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
@@ -683,7 +689,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#9CA3AF',
+    color: colors.textTertiary,
     marginTop: 16,
   },
   modalOverlay: {
@@ -692,7 +698,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '80%',
@@ -704,7 +710,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
   },
   modalTitle: {
     fontSize: 18,
@@ -721,13 +727,13 @@ const styles = StyleSheet.create({
   },
   resumoItem: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
     padding: 16,
     borderRadius: 12,
   },
   resumoLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginBottom: 4,
   },
   resumoValor: {
@@ -751,7 +757,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   registroCard: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
@@ -771,7 +777,7 @@ const styles = StyleSheet.create({
   },
   registroData: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
     flexShrink: 0,
   },
   registroBody: {
@@ -802,6 +808,6 @@ const styles = StyleSheet.create({
   },
   emptyListText: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: colors.textTertiary,
   },
 });

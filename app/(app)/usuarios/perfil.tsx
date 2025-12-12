@@ -107,12 +107,12 @@ export default function PerfilScreen() {
       headerTitle: editandoOutroUsuario ? 'Editar Usuário' : 'Editar Perfil',
       headerLeft: () => (
         <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 16 }}>
-          <Ionicons name="arrow-back" size={24} color="theme.colors.primary" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
         </TouchableOpacity>
       ),
       headerRight: () => (
         <TouchableOpacity onPress={handleOpenPermissionsModal} style={{ marginRight: 16 }}>
-          <Ionicons name="shield-checkmark" size={24} color="theme.colors.primary" />
+          <Ionicons name="shield-checkmark" size={24} color={theme.colors.primary} />
         </TouchableOpacity>
       ),
     });
@@ -489,7 +489,7 @@ export default function PerfilScreen() {
         <Ionicons 
           name={item.icon as any} 
           size={24} 
-          color="theme.colors.primary" 
+          color={theme.colors.primary} 
           style={styles.permissionIcon} 
         />
         <Text style={styles.permissionLabel}>{item.label}</Text>
@@ -498,7 +498,7 @@ export default function PerfilScreen() {
         <Ionicons
           name={permissoes[item.key] ? "checkbox" : "square-outline"}
           size={24}
-          color={permissoes[item.key] ? "theme.colors.primary" : "#9CA3AF"}
+          color={permissoes[item.key] ? theme.colors.primary : "#9CA3AF"}
         />
       </View>
     </TouchableOpacity>
@@ -507,7 +507,7 @@ export default function PerfilScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="theme.colors.primary" />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
@@ -522,15 +522,15 @@ export default function PerfilScreen() {
                 <Image source={{ uri: avatarUrl }} style={styles.avatar} />
               ) : (
                 <View style={styles.avatarPlaceholder}>
-                  <Ionicons name="person" size={40} color="theme.colors.primary" />
+                  <Ionicons name="person" size={40} color={theme.colors.primary} />
                 </View>
               )}
               <TouchableOpacity style={styles.editAvatarButton} onPress={handleUploadAvatar} disabled={saving}>
-                {saving ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name="camera" size={20} color="#FFFFFF" />}
+                {saving ? <ActivityIndicator size="small" color={colors.white} /> : <Ionicons name="camera" size={20} color={colors.white} />}
               </TouchableOpacity>
               {avatarUrl && (
                 <TouchableOpacity style={styles.deleteAvatarButton} onPress={handleDeleteAvatar} disabled={saving}>
-                  <Ionicons name="trash" size={20} color="#FFFFFF" />
+                  <Ionicons name="trash" size={20} color={colors.white} />
                 </TouchableOpacity>
               )}
             </View>
@@ -553,7 +553,7 @@ export default function PerfilScreen() {
             </View>
             <View style={styles.switchContainer}>
                 <Text style={styles.label}>Este usuário faz atendimentos/agendamentos</Text>
-                <Switch trackColor={{ false: "#767577", true: "#81b0ff" }} thumbColor={fazAtendimento ? "theme.colors.primary" : "#f4f3f4"} value={fazAtendimento} onValueChange={setFazAtendimento} />
+                <Switch trackColor={{ false: "#767577", true: "#81b0ff" }} thumbColor={fazAtendimento ? theme.colors.primary : "#f4f3f4"} value={fazAtendimento} onValueChange={setFazAtendimento} />
             </View>
           </View>
           
@@ -604,7 +604,7 @@ export default function PerfilScreen() {
           </View>
 
           <TouchableOpacity style={[styles.saveButton, styles.mainSaveButton]} onPress={handleSalvar} disabled={saving}>
-              {saving ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.saveButtonText}>Salvar Alterações</Text>}
+              {saving ? <ActivityIndicator color={colors.white} /> : <Text style={styles.saveButtonText}>Salvar Alterações</Text>}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -624,13 +624,13 @@ export default function PerfilScreen() {
               onPress={() => setModalPermissionsVisible(false)}
               style={styles.modalCloseButton}
             >
-              <Ionicons name="close" size={24} color="#6B7280" />
+              <Ionicons name="close" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
           {loadingPermissions ? (
             <View style={styles.modalLoadingContainer}>
-              <ActivityIndicator size="large" color="theme.colors.primary" />
+              <ActivityIndicator size="large" color={theme.colors.primary} />
               <Text style={styles.loadingText}>Carregando permissões...</Text>
             </View>
           ) : (
@@ -665,10 +665,11 @@ export default function PerfilScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// Função auxiliar para criar estilos dinâmicos
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
   },
   scrollView: {
     flex: 1,
@@ -706,7 +707,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
     bottom: 0,
-    backgroundColor: 'theme.colors.primary',
+    backgroundColor: theme.colors.primary,
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -730,7 +731,7 @@ const styles = StyleSheet.create({
   },
   avatarLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   section: {
@@ -742,7 +743,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
     paddingBottom: 8,
   },
   inputContainer: {
@@ -750,12 +751,12 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    color: '#374151',
+    color: colors.text,
     marginBottom: 8,
     fontWeight: '500',
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: '#D1D5DB',
     borderRadius: 8,
@@ -764,14 +765,14 @@ const styles = StyleSheet.create({
     color: '#1F2937',
   },
   inputDisabled: {
-    backgroundColor: '#F3F4F6',
-    color: '#6B7280',
+    backgroundColor: colors.background,
+    color: colors.textSecondary,
   },
   pickerContainer: {
     borderWidth: 1,
     borderColor: '#D1D5DB',
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     justifyContent: 'center',
   },
   switchContainer: {
@@ -787,7 +788,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   mainSaveButton: {
-    backgroundColor: 'theme.colors.primary',
+    backgroundColor: theme.colors.primary,
     padding: 16,
     marginTop: 16,
   },
@@ -799,7 +800,7 @@ const styles = StyleSheet.create({
   // Estilos do Modal de Permissões
   modalContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -807,7 +808,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
   },
   modalTitle: {
     fontSize: 20,
@@ -825,7 +826,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   permissionsList: {
     flex: 1,
@@ -856,7 +857,7 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     marginHorizontal: 4,
   },
   modalFooter: {
@@ -864,12 +865,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: colors.border,
     gap: 12,
   },
   modalCancelButton: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -877,11 +878,11 @@ const styles = StyleSheet.create({
   modalCancelText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   modalSaveButton: {
     flex: 1,
-    backgroundColor: 'theme.colors.primary',
+    backgroundColor: theme.colors.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',

@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect , useMemo} from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, ScrollView, Modal, PanResponder, Animated, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
 import { router } from 'expo-router';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useTheme } from '../../../contexts/ThemeContext';
 import { DeviceEventEmitter } from 'react-native';
 import { logger } from '../../../utils/logger';
 import { Produto as ProdutoBase, Fornecedor as FornecedorBase } from '@types';
@@ -41,6 +42,10 @@ type FiltroTab = 'estoque' | 'categorias' | 'fornecedores' | 'marcas';
 
 export default function EstoqueScreen() {
   const { estabelecimentoId } = useAuth();
+  const { colors } = useTheme();
+  
+  // Estilos dinâmicos baseados no tema
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [produtos, setProdutos] = useState<ProdutoEstoque[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -347,13 +352,13 @@ export default function EstoqueScreen() {
     return (
       <View style={styles.filtrosContainer}>
         <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#6B7280" style={styles.searchIcon} />
+          <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholder="Buscar produtos..."
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.textTertiary}
           />
           {temFiltroAtivo && (
             <TouchableOpacity 
@@ -804,7 +809,7 @@ export default function EstoqueScreen() {
         ListEmptyComponent={
           loading ? (
             <View style={styles.emptyContainer}>
-              <ActivityIndicator size="large" color="theme.colors.primary" />
+              <ActivityIndicator size="large" color={theme.colors.primary} />
             </View>
           ) : (
             <View style={styles.emptyContainer}>
@@ -879,7 +884,7 @@ export default function EstoqueScreen() {
                         placeholder="Nome da categoria"
                         value={novaCategoria}
                         onChangeText={setNovaCategoria}
-                        placeholderTextColor="#9CA3AF"
+                        placeholderTextColor={colors.textTertiary}
                       />
                       <TouchableOpacity 
                         style={styles.button}
@@ -912,14 +917,14 @@ export default function EstoqueScreen() {
                                   style={styles.actionButton}
                                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                                 >
-                                  <Ionicons name="pencil" size={20} color="theme.colors.primary" />
+                                  <Ionicons name="pencil" size={20} color={theme.colors.primary} />
                                 </TouchableOpacity>
                                 <TouchableOpacity 
                                   onPress={() => handleExcluirCategoria(item)}
                                   style={styles.actionButton}
                                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                                 >
-                                  <Ionicons name="trash" size={20} color="#DC2626" />
+                                  <Ionicons name="trash" size={20} color={colors.error} />
                                 </TouchableOpacity>
                               </View>
                             </TouchableOpacity>
@@ -938,7 +943,7 @@ export default function EstoqueScreen() {
                         placeholder="Nome da marca"
                         value={novaMarca}
                         onChangeText={setNovaMarca}
-                        placeholderTextColor="#9CA3AF"
+                        placeholderTextColor={colors.textTertiary}
                       />
                       <TouchableOpacity 
                         style={styles.button}
@@ -971,14 +976,14 @@ export default function EstoqueScreen() {
                                   style={styles.actionButton}
                                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                                 >
-                                  <Ionicons name="pencil" size={20} color="theme.colors.primary" />
+                                  <Ionicons name="pencil" size={20} color={theme.colors.primary} />
                                 </TouchableOpacity>
                                 <TouchableOpacity 
                                   onPress={() => handleExcluirMarca(item)}
                                   style={styles.actionButton}
                                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                                 >
-                                  <Ionicons name="trash" size={20} color="#DC2626" />
+                                  <Ionicons name="trash" size={20} color={colors.error} />
                                 </TouchableOpacity>
                               </View>
                             </TouchableOpacity>
@@ -999,24 +1004,25 @@ export default function EstoqueScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// Função auxiliar para criar estilos dinâmicos
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
   },
   filtrosContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     paddingTop: 16,
     paddingBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     marginBottom: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
   },
   searchIcon: {
     marginRight: 8,
@@ -1024,7 +1030,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     height: 40,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     borderRadius: 8,
     paddingHorizontal: 12,
     fontSize: 16,
@@ -1039,7 +1045,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   limparFiltrosTexto: {
-    color: 'theme.colors.primary',
+    color: theme.colors.primary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -1053,15 +1059,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginRight: 8,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
   },
   tabAtiva: {
-    backgroundColor: 'theme.colors.primary',
+    backgroundColor: theme.colors.primary,
   },
   tabText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   tabTextAtivo: {
     color: '#FFFFFF',
@@ -1077,21 +1083,21 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 16,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
   },
   filtroChipAtivo: {
     backgroundColor: '#EDE9FE',
-    borderColor: 'theme.colors.primary',
+    borderColor: theme.colors.primary,
   },
   filtroChipText: {
     fontSize: 14,
-    color: '#374151',
+    color: colors.text,
   },
   filtroChipTextAtivo: {
-    color: 'theme.colors.primary',
+    color: theme.colors.primary,
   },
   listContent: {
     padding: 16,
@@ -1100,7 +1106,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 20,
     right: 20,
-    backgroundColor: 'theme.colors.primary',
+    backgroundColor: theme.colors.primary,
     borderRadius: 24,
     width: 48,
     height: 48,
@@ -1108,7 +1114,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   produtoCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 8,
     padding: 16,
     marginBottom: 12,
@@ -1138,11 +1144,11 @@ const styles = StyleSheet.create({
   },
   produtoCodigo: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   produtoCategoria: {
     fontSize: 14,
-    color: 'theme.colors.primary',
+    color: theme.colors.primary,
     marginTop: 4,
   },
   statusContainer: {
@@ -1156,7 +1162,7 @@ const styles = StyleSheet.create({
   },
   produtoDescricao: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginBottom: 12,
   },
   produtoFooter: {
@@ -1184,7 +1190,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   modalContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     minHeight: '50%',
@@ -1199,8 +1205,8 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
     zIndex: 10,
     paddingHorizontal: 20,
     width: '100%',
@@ -1222,7 +1228,7 @@ const styles = StyleSheet.create({
   modalTabs: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
     marginBottom: 16,
     paddingHorizontal: 20,
   },
@@ -1233,15 +1239,15 @@ const styles = StyleSheet.create({
   },
   modalTabAtiva: {
     borderBottomWidth: 2,
-    borderBottomColor: 'theme.colors.primary',
+    borderBottomColor: theme.colors.primary,
   },
   modalTabText: {
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.textSecondary,
     fontWeight: '500',
   },
   modalTabTextAtiva: {
-    color: 'theme.colors.primary',
+    color: theme.colors.primary,
     fontWeight: '600',
   },
   categoriaForm: {
@@ -1253,19 +1259,19 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.background,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     height: 44,
   },
   button: {
     borderRadius: 8,
     alignItems: 'center',
     minWidth: 100,
-    backgroundColor: 'theme.colors.primary',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 16,
     height: 44,
     justifyContent: 'center',
@@ -1282,7 +1288,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.text,
     marginBottom: 12,
   },
   categoriasList: {
@@ -1298,7 +1304,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
   },
   categoriaNome: {
     fontSize: 16,
@@ -1312,7 +1318,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   emptyText: {
-    color: 'theme.colors.primary',
+    color: theme.colors.primary,
     fontSize: 16,
     fontWeight: '500',
     textAlign: 'center',

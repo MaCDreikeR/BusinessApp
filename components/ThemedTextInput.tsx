@@ -1,12 +1,36 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, TextInput, TextInputProps, View } from 'react-native';
 import { ThemedText } from './ThemedText';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface ThemedTextInputProps extends TextInputProps {
   label?: string;
 }
 
 export function ThemedTextInput({ label, style, ...props }: ThemedTextInputProps) {
+  const { colors, isDark } = useTheme();
+  
+  const styles = useMemo(() => StyleSheet.create({
+    container: {
+      marginBottom: 16,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: colors.textSecondary,
+      marginBottom: 8,
+    },
+    input: {
+      backgroundColor: isDark ? colors.surface : colors.backgroundSecondary,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 16,
+      color: colors.text,
+    },
+  }), [colors, isDark]);
+  
   return (
     <View style={styles.container}>
       {label && (
@@ -14,30 +38,9 @@ export function ThemedTextInput({ label, style, ...props }: ThemedTextInputProps
       )}
       <TextInput
         style={[styles.input, style]}
-        placeholderTextColor="#9CA3AF"
+        placeholderTextColor={colors.textTertiary}
         {...props}
       />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#4B5563',
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: '#111827',
-  },
-}); 

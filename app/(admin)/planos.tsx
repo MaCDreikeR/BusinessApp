@@ -176,7 +176,6 @@ export default function PlanosScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />}
     >
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Planos & Assinaturas</Text>
         <TouchableOpacity 
           style={styles.viewSubscriptionsButton}
           onPress={() => router.push('/(admin)/assinaturas')}

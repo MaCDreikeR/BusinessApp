@@ -1,21 +1,24 @@
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useMemo } from 'react';
+import { StyleSheet } from 'react-native';
+import { useTheme } from '../../contexts/ThemeContext';
 import { ThemedText } from '../../components/ThemedText';
 import { ThemedView } from '../../components/ThemedView';
 
 export default function RelatoriosScreen() {
+  const { colors } = useTheme();
+  
+  const styles = useMemo(() => StyleSheet.create({
+    container: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 20,
+    },
+  }), [colors]);
+
   return (
     <ThemedView style={styles.container}>
       <ThemedText type="title">Relatórios</ThemedText>
     </ThemedView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-}); 
