@@ -12,7 +12,6 @@ import { useTheme } from '../../contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '../../utils/logger';
 import { Servico, CategoriaServico } from '@types';
-import { theme } from '@utils/theme';
 import { CacheManager, CacheNamespaces, CacheTTL } from '../../utils/cacheManager';
 
 interface ServicoComCategoria extends Servico {
@@ -56,6 +55,7 @@ export default function ServicosScreen() {
   const [categoriaServico, setCategoriaServico] = useState('');
   const [nomeCategoria, setNomeCategoria] = useState('');
   const [descricaoServico, setDescricaoServico] = useState('');
+  const [duracaoServico, setDuracaoServico] = useState(''); // Duração opcional (vazio por padrão)
   const [loadingCategorias, setLoadingCategorias] = useState(false);
 
   useEffect(() => {
@@ -132,6 +132,8 @@ export default function ServicosScreen() {
       setNomeServico('');
       setPrecoServico('');
       setCategoriaServico('');
+      setDescricaoServico('');
+      setDuracaoServico('');
       setModalVisible(true);
     });
 
@@ -269,10 +271,15 @@ export default function ServicosScreen() {
         preco: precoServico,
         categoria_id: categoriaServico,
         descricao: descricaoServico,
+        duracao: duracaoServico,
            estabelecimento_id: estabelecimentoId
       });
 
       const precoNumerico = parseFloat(precoServico) / 100;
+      // Duração é opcional: converter para número ou null se vazio
+      const duracaoNumerica = duracaoServico && duracaoServico.trim() !== '' 
+        ? parseInt(duracaoServico) 
+        : null;
 
       if (servicoEditando) {
         logger.debug('Atualizando serviço existente:', servicoEditando.id);
@@ -283,6 +290,7 @@ export default function ServicosScreen() {
             preco: precoNumerico,
             categoria_id: categoriaServico,
             descricao: descricaoServico,
+            duracao: duracaoNumerica,
                estabelecimento_id: estabelecimentoId,
             updated_at: new Date().toISOString()
           })
@@ -302,6 +310,7 @@ export default function ServicosScreen() {
             preco: precoNumerico,
             categoria_id: categoriaServico,
             descricao: descricaoServico,
+            duracao: duracaoNumerica,
                estabelecimento_id: estabelecimentoId,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
@@ -481,16 +490,26 @@ export default function ServicosScreen() {
         setPrecoServico((item.preco * 100).toString());
         setCategoriaServico(item.categoria_id || '');
         setDescricaoServico(item.descricao || '');
+        setDuracaoServico(item.duracao ? item.duracao.toString() : '');
         setModalVisible(true);
       }}>
         <ThemedText style={styles.servicoNome}>{item.nome}</ThemedText>
         <ThemedText style={styles.servicoDescricao}>{item.descricao}</ThemedText>
-        <ThemedText style={styles.servicoPreco}>
-          R$ {item.preco.toLocaleString('pt-BR', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-          })}
-        </ThemedText>
+        
+        <View style={styles.servicoInfoRow}>
+          <ThemedText style={styles.servicoPreco}>
+            R$ {item.preco.toLocaleString('pt-BR', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            })}
+          </ThemedText>
+          {item.duracao && (
+            <Text style={styles.servicoDuracao}>
+              ⏱️ {item.duracao} min
+            </Text>
+          )}
+        </View>
+        
         {item.categoria && (
           <ThemedText style={styles.servicoCategoria}>{item.categoria.nome}</ThemedText>
         )}
@@ -531,7 +550,7 @@ export default function ServicosScreen() {
   if (loading) {
     return (
       <ThemedView style={styles.container}>
-        <ActivityIndicator size="large" color={theme.colors.link} />
+        <ActivityIndicator size="large" color={colors.link} />
       </ThemedView>
     );
   }
@@ -637,6 +656,20 @@ export default function ServicosScreen() {
             </View>
 
             <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Duração (minutos)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="30"
+                value={duracaoServico}
+                onChangeText={setDuracaoServico}
+                keyboardType="numeric"
+              />
+              <Text style={styles.inputHelper}>
+                Tempo estimado para realizar o serviço (opcional)
+              </Text>
+            </View>
+
+            <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Categoria *</Text>
               <View style={styles.pickerContainer}>
                 <Picker
@@ -678,6 +711,7 @@ export default function ServicosScreen() {
                   setPrecoServico('');
                   setCategoriaServico('');
                   setDescricaoServico('');
+                  setDuracaoServico('');
                 }}
               >
                 <Text style={styles.modalButtonText}>Cancelar</Text>
@@ -754,7 +788,7 @@ export default function ServicosScreen() {
                           setNomeCategoria(item.nome);
                         }}
                             >
-                              <Ionicons name="pencil" size={20} color={theme.colors.primary} />
+                              <Ionicons name="pencil" size={20} color={colors.primary} />
                             </TouchableOpacity>
                             <TouchableOpacity 
                         style={styles.categoriaActionButton}
@@ -814,8 +848,20 @@ const createStyles = (colors: any) => StyleSheet.create({
   servicoPreco: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: colors.primary,
     marginBottom: 4,
+  },
+  servicoInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 4,
+  },
+  servicoDuracao: {
+    fontSize: 13,
+    color: colors.textTertiary,
+    fontStyle: 'italic',
+    fontWeight: '500',
   },
   servicoCategoria: {
     fontSize: 14,
@@ -868,6 +914,12 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: '#1F2937',
     marginBottom: 8,
   },
+  inputHelper: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
   input: {
     backgroundColor: colors.background,
     borderRadius: 8,
@@ -893,7 +945,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.background,
   },
   saveButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
   },
   modalButtonText: {
     fontSize: 16,
@@ -961,8 +1013,8 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderColor: '#ddd',
   },
   filtroButtonSelected: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   filtroButtonText: {
     fontSize: 14,
@@ -1034,4 +1086,4 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderWidth: 0,
     marginBottom: 0,
   },
-}); 
+});

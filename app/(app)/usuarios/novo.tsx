@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ScrollView, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,7 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { logger } from '../../../utils/logger';
-import { theme } from '@utils/theme';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 const formatarCelular = (valor: string) => {
   const celular = valor.replace(/\D/g, '');
@@ -18,6 +18,8 @@ const formatarCelular = (valor: string) => {
 export default function NovoUsuarioScreen() {
   const router = useRouter();
   const { session, estabelecimentoId } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [loading, setLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   
@@ -224,7 +226,7 @@ export default function NovoUsuarioScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
+          <Ionicons name="arrow-back" size={24} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.title}>Novo Usuário</Text>
       </View>
@@ -238,7 +240,7 @@ export default function NovoUsuarioScreen() {
               <Image source={{ uri: avatarUrl }} style={styles.avatar} />
             ) : (
               <View style={styles.avatarPlaceholder}>
-                <Ionicons name="camera" size={32} color={theme.colors.primary} />
+                <Ionicons name="camera" size={32} color={colors.primary} />
                 <Text style={styles.avatarText}>Adicionar Foto</Text>
               </View>
             )}
@@ -310,7 +312,7 @@ export default function NovoUsuarioScreen() {
               <Ionicons 
                 name={showSenha ? "eye-off" : "eye"} 
                 size={20} 
-                color={theme.colors.primary} 
+                color={colors.primary} 
               />
             </TouchableOpacity>
           </View>
@@ -334,7 +336,7 @@ export default function NovoUsuarioScreen() {
               <Ionicons 
                 name={showConfirmarSenha ? "eye-off" : "eye"} 
                 size={20} 
-                color={theme.colors.primary} 
+                color={colors.primary} 
               />
             </TouchableOpacity>
           </View>
@@ -496,12 +498,12 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: theme.colors.primary,
+    borderColor: colors.primary,
     borderStyle: 'dashed',
   },
   avatarText: {
     fontSize: 12,
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: '500',
     marginTop: 4,
   },
@@ -555,7 +557,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.surface,
   },
   radioButtonActive: {
-    borderColor: theme.colors.primary,
+    borderColor: colors.primary,
     backgroundColor: '#F3E8FF',
   },
   radioCircle: {
@@ -569,20 +571,20 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginRight: 12,
   },
   radioCircleActive: {
-    borderColor: theme.colors.primary,
+    borderColor: colors.primary,
   },
   radioDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
   },
   radioLabel: {
     fontSize: 16,
     color: colors.textSecondary,
   },
   radioLabelActive: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: '500',
   },
   checkboxContainer: {
@@ -604,8 +606,8 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginRight: 12,
   },
   checkboxActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   checkboxLabel: {
     fontSize: 14,
@@ -630,7 +632,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   saveButton: {
     flex: 1,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: 8,
     paddingVertical: 16,
     alignItems: 'center',

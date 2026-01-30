@@ -1,0 +1,21 @@
+// Script para adicionar limpeza de cache ao iniciar a tela de agenda
+console.log('🧹 INSTRUÇÕES PARA LIMPAR CACHE DE AGENDAMENTOS');
+console.log('================================================');
+console.log('');
+console.log('OPÇÃO 1 - No código (temporário para debug):');
+console.log('Adicione no useEffect inicial da agenda:');
+console.log('');
+console.log('useEffect(() => {');
+console.log('  if (estabelecimentoId) {');
+console.log('    CacheManager.clearNamespace(CacheNamespaces.AGENDAMENTOS);');
+console.log('    carregarAgendamentosMes();');
+console.log('  }');
+console.log('}, [estabelecimentoId]);');
+console.log('');
+console.log('OPÇÃO 2 - Forçar reload no app:');
+console.log('1. Sacuda o celular');
+console.log('2. Clique em "Reload"');
+console.log('');
+console.log('OPÇÃO 3 - Limpar dados do app:');
+console.log('Configurações > Apps > BusinessApp > Limpar dados');
+console.log('');

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import MaskInput, { Masks } from 'react-native-mask-input';
 import { logger } from '../../../utils/logger';
 import { theme } from '@utils/theme';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 type ValidationErrors = {
   [key: string]: string;
@@ -13,6 +14,8 @@ type ValidationErrors = {
 
 export default function NovoFornecedorScreen() {
   const { estabelecimentoId } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [loading, setLoading] = useState(false);
   const [loadingCep, setLoadingCep] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -296,7 +299,7 @@ export default function NovoFornecedorScreen() {
               {loadingCep && (
                 <ActivityIndicator 
                   size="small" 
-                  color={theme.colors.primary} 
+                  color={colors.primary} 
                   style={styles.cepLoader} 
                 />
               )}
@@ -446,7 +449,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginBottom: 16,
   },
   saveButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -468,4 +471,4 @@ const createStyles = (colors: any) => StyleSheet.create({
   cepLoader: {
     marginLeft: 8,
   },
-}); 
+});

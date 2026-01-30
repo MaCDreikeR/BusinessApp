@@ -220,8 +220,55 @@ export default function ClientesScreen() {
     return clientesFiltrados;
   };
 
-  const abrirWhatsApp = (telefone: string) => {
+  const abrirWhatsApp = (telefone: string | null | undefined, clienteId?: string, clienteNome?: string) => {
+    // Validar se o telefone existe
+    if (!telefone || telefone.trim() === '') {
+      Alert.alert(
+        'Telefone não cadastrado',
+        'Este cliente não possui telefone cadastrado. Deseja cadastrar agora?',
+        [
+          {
+            text: 'Cancelar',
+            style: 'cancel'
+          },
+          {
+            text: 'Cadastrar',
+            onPress: () => {
+              if (clienteId) {
+                router.push(`/(app)/clientes/editar?id=${clienteId}`);
+              }
+            }
+          }
+        ]
+      );
+      return;
+    }
+
     const numeroLimpo = telefone.replace(/\D/g, '');
+    
+    // Validar se o número tem pelo menos 10 dígitos (DDD + número)
+    if (numeroLimpo.length < 10) {
+      Alert.alert(
+        'Telefone inválido',
+        'O telefone cadastrado é inválido. Deseja corrigir?',
+        [
+          {
+            text: 'Cancelar',
+            style: 'cancel'
+          },
+          {
+            text: 'Corrigir',
+            onPress: () => {
+              if (clienteId) {
+                router.push(`/(app)/clientes/editar?id=${clienteId}`);
+              }
+            }
+          }
+        ]
+      );
+      return;
+    }
+
     const url = `whatsapp://send?phone=55${numeroLimpo}`;
     
     Linking.canOpenURL(url)
@@ -447,7 +494,7 @@ export default function ClientesScreen() {
             </View>
             <TouchableOpacity 
               style={styles.whatsappButton}
-              onPress={() => abrirWhatsApp(cliente.telefone)}
+              onPress={() => abrirWhatsApp(cliente.telefone, cliente.id, cliente.nome)}
             >
               <FontAwesome5 name="whatsapp" size={20} color="#25D366" />
             </TouchableOpacity>

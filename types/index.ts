@@ -330,6 +330,7 @@ export interface Pacote {
   descricao?: string;
   valor: number;
   desconto: number;
+  duracao_total?: number; // duração total calculada em minutos
   validade_dias?: number;
   ativo?: boolean;
   estabelecimento_id: string;
@@ -351,6 +352,7 @@ export interface ServicoPacote {
   pacote_id: string;
   servico_id: string;
   servico_nome?: string;
+  servico_duracao?: number; // duração do serviço em minutos
   quantidade: number;
   created_at?: string;
 }

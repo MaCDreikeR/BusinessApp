@@ -8,7 +8,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { logger } from '../../../utils/logger';
 import { Usuario as UsuarioBase } from '@types';
-import { theme } from '@utils/theme';
 
 type UsuarioLista = Pick<UsuarioBase, 'id' | 'nome_completo' | 'email' | 'telefone' | 'is_principal' | 'created_at'> & {
   avatar_url?: string;
@@ -141,7 +140,7 @@ export default function ListaUsuariosScreen() {
   if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
         <ThemedText style={styles.loadingText}>Carregando usuários...</ThemedText>
       </View>
     );
@@ -185,14 +184,14 @@ export default function ListaUsuariosScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={[theme.colors.primary]}
-            tintColor={theme.colors.primary}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
           />
         }
       >
         {usuarios.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="people-outline" size={48} color="#666" />
+            <Ionicons name="people-outline" size={48} color={colors.textTertiary} />
             <ThemedText style={styles.emptyText}>Nenhum usuário encontrado</ThemedText>
           </View>
         ) : (
@@ -267,7 +266,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#666',
+    color: colors.textTertiary,
   },
   emptyContainer: {
     flex: 1,
@@ -278,7 +277,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#666',
+    color: colors.textTertiary,
     marginTop: 16,
   },
   cardContainer: {
@@ -296,7 +295,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#F3E8FF',
+    backgroundColor: colors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
@@ -308,7 +307,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   userInitials: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   userInfo: {
     flex: 1,
@@ -317,12 +316,12 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 4,
-    color: '#1A1A1A',
+    color: colors.text,
   },
   info: {
     fontSize: 14,
     marginBottom: 2,
-    color: '#666',
+    color: colors.textSecondary,
   },
   data: {
     fontSize: 12,
@@ -341,7 +340,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignSelf: 'flex-start',
   },
   principalBadge: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
   },
   badgeText: {
     color: '#FFFFFF',
@@ -358,13 +357,13 @@ const createStyles = (colors: any) => StyleSheet.create({
   errorText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#EF4444',
+    color: colors.error,
     textAlign: 'center',
   },
   retryButton: {
     marginTop: 16,
     padding: 12,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: 8,
   },
   retryButtonText: {
@@ -385,10 +384,10 @@ const createStyles = (colors: any) => StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#111827',
+    color: colors.text,
   },
   addButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -401,4 +400,4 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-}); 
+});

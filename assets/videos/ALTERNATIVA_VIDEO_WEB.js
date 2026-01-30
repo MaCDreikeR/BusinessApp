@@ -7,6 +7,7 @@
 import { WebView } from 'react-native-webview';
 
 // No lugar do componente Video, use:
+/*
 <View style={styles.videoContainer}>
   <WebView
     source={{ uri: 'https://www.youtube.com/embed/SEU_VIDEO_ID' }}
@@ -23,6 +24,7 @@ import { WebView } from 'react-native-webview';
   resizeMode={ResizeMode.CONTAIN}
   isLooping
   shouldPlay
+*/
   isMuted={false}
 />
 

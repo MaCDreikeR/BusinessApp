@@ -10,6 +10,7 @@ import { supabase } from '../lib/supabase';
 import { logger } from '../utils/logger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CacheManager } from '../utils/cacheManager';
+import { addMinutesLocal } from '../lib/timezone';
 
 const LAST_SYNC_KEY = '@last_sync';
 
@@ -144,7 +145,7 @@ class SyncService {
             .from('agendamentos')
             .select('*')
             .eq('estabelecimento_id', estabelecimentoId)
-            .gte('data_hora', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+            .gte('data_hora', addMinutesLocal(new Date(), -30 * 24 * 60))
             .limit(100),
 
           supabase

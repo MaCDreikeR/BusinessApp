@@ -1,10 +1,9 @@
 import React, { useState, useEffect , useMemo} from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, ScrollView, Modal, PanResponder, Animated, ActivityIndicator, TextStyle, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, ScrollView, Modal, PanResponder, Animated, ActivityIndicator, TextStyle, TouchableWithoutFeedback , DeviceEventEmitter } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { offlineInsert, offlineUpdate, offlineDelete, getOfflineFeedback } from '../../services/offlineSupabase';
 import { router } from 'expo-router';
-import { DeviceEventEmitter } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { logger } from '../../utils/logger';
@@ -30,11 +29,13 @@ type ServicoPacote = {
   servico?: {
     nome: string;
     preco: number;
+    duracao?: number; // em minutos
   };
 };
 
 type PacoteDetalhado = Pick<PacoteBase, 'id' | 'nome' | 'descricao' | 'valor' | 'estabelecimento_id'> & {
   desconto: number;
+  duracao_total?: number; // duração total calculada em minutos
   data_cadastro: string;
   produtos?: ProdutoPacote[];
   servicos?: ServicoPacote[];
@@ -42,7 +43,9 @@ type PacoteDetalhado = Pick<PacoteBase, 'id' | 'nome' | 'descricao' | 'valor' | 
 
 type ProdutoPacotes = Pick<ProdutoBase, 'id' | 'nome' | 'preco'>;
 
-type ServicoPacotes = Pick<ServicoBase, 'id' | 'nome' | 'preco'>;
+type ServicoPacotes = Pick<ServicoBase, 'id' | 'nome' | 'preco'> & {
+  duracao?: number; // em minutos
+};
 
 type ProdutoPacoteData = {
   produto: {
@@ -222,7 +225,8 @@ export default function PacotesScreen() {
             servico:servicos(
               id,
               nome,
-              preco
+              preco,
+              duracao
             )
           )
         `)
@@ -231,24 +235,46 @@ export default function PacotesScreen() {
 
       if (error) throw error;
 
+      // Função para calcular duração total do pacote
+      const calcularDuracaoTotal = (servicos: any[]): number | undefined => {
+        if (!servicos || servicos.length === 0) return undefined;
+        
+        let duracaoTotal = 0;
+        let temDuracao = false;
+        
+        for (const s of servicos) {
+          if (s.servico?.duracao) {
+            duracaoTotal += s.servico.duracao * (s.quantidade || 1);
+            temDuracao = true;
+          }
+        }
+        
+        return temDuracao ? duracaoTotal : undefined;
+      };
+
       // Formatar os dados dos pacotes
-      const pacotesFormatados = pacotes?.map(pacote => ({
-        ...pacote,
-        produtos: pacote.produtos?.map((p: ProdutoPacoteData) => ({
-          id: Math.random().toString(),
-          pacote_id: pacote.id,
-          produto_id: p.produto.id,
-          quantidade: p.quantidade,
-          produto: p.produto
-        })) || [],
-        servicos: pacote.servicos?.map((s: ServicoPacoteData) => ({
+      const pacotesFormatados = pacotes?.map(pacote => {
+        const servicosFormatados = pacote.servicos?.map((s: ServicoPacoteData) => ({
           id: Math.random().toString(),
           pacote_id: pacote.id,
           servico_id: s.servico.id,
           quantidade: s.quantidade,
           servico: s.servico
-        })) || []
-      }));
+        })) || [];
+
+        return {
+          ...pacote,
+          duracao_total: calcularDuracaoTotal(pacote.servicos || []),
+          produtos: pacote.produtos?.map((p: ProdutoPacoteData) => ({
+            id: Math.random().toString(),
+            pacote_id: pacote.id,
+            produto_id: p.produto.id,
+            quantidade: p.quantidade,
+            produto: p.produto
+          })) || [],
+          servicos: servicosFormatados
+        };
+      });
 
       setPacotes(pacotesFormatados || []);
     } catch (error) {
@@ -290,7 +316,7 @@ export default function PacotesScreen() {
 
       const { data, error } = await supabase
         .from('servicos')
-        .select('id, nome, preco')
+        .select('id, nome, preco, duracao')
         .eq('estabelecimento_id', estabelecimentoId)
         .order('nome');
 
@@ -318,10 +344,22 @@ export default function PacotesScreen() {
 
   const handleEditarPacote = (pacote: PacoteDetalhado) => {
     setPacoteEmEdicao(pacote);
+    
+    // Recalcular a soma dos serviços e produtos (sem desconto)
+    const somaProdutos = (pacote.produtos || []).reduce((total, item) => {
+      return total + (item.produto?.preco || 0) * item.quantidade;
+    }, 0);
+    
+    const somaServicos = (pacote.servicos || []).reduce((total, item) => {
+      return total + (item.servico?.preco || 0) * item.quantidade;
+    }, 0);
+    
+    const somaTotal = somaProdutos + somaServicos;
+    
     setNovoPacote({
       nome: pacote.nome,
       descricao: pacote.descricao,
-      valor: pacote.valor.toString(),
+      valor: somaTotal.toString(), // Soma SEM desconto (para funcionar com adicionar/remover)
       desconto: pacote.desconto.toString(),
       produtos: pacote.produtos || [],
       servicos: pacote.servicos || []
@@ -379,12 +417,19 @@ export default function PacotesScreen() {
         return;
       }
 
-      const valorNum = Number(novoPacote.valor.replace(',', '.'));
+      // Calcular soma dos serviços e produtos
+      const somaServicos = Number(novoPacote.valor.replace(',', '.'));
       const descontoNum = Number(novoPacote.desconto.replace(',', '.'));
+      
+      // IMPORTANTE: O campo "valor" no banco deve ser o VALOR FINAL (com desconto aplicado)
+      // novoPacote.valor contém a SOMA dos serviços/produtos
+      // Então: valor_final = soma_servicos - desconto
+      const valorFinal = somaServicos - descontoNum;
+      
       const pacoteData = {
         nome: novoPacote.nome.trim(),
         descricao: novoPacote.descricao.trim(),
-        valor: isNaN(valorNum) ? 0 : valorNum,
+        valor: isNaN(valorFinal) ? 0 : Math.max(0, valorFinal), // Garantir que não seja negativo
         desconto: isNaN(descontoNum) ? 0 : descontoNum,
         estabelecimento_id: estabelecimentoId,
       };
@@ -632,7 +677,20 @@ export default function PacotesScreen() {
     setMostrarModalServicos(true);
   };
 
-  const renderItem = ({ item }: { item: PacoteDetalhado }) => (
+  const renderItem = ({ item }: { item: PacoteDetalhado }) => {
+    // Calcular soma dos serviços e produtos
+    const somaProdutos = (item.produtos || []).reduce((total, prod) => {
+      return total + (prod.produto?.preco || 0) * prod.quantidade;
+    }, 0);
+    
+    const somaServicos = (item.servicos || []).reduce((total, serv) => {
+      return total + (serv.servico?.preco || 0) * serv.quantidade;
+    }, 0);
+    
+    const valorSemDesconto = somaProdutos + somaServicos;
+    const valorComDesconto = item.valor; // Agora item.valor JÁ É o valor final
+    
+    return (
     <TouchableOpacity 
       style={styles.pacoteCard}
       onPress={() => handleEditarPacote(item)}
@@ -642,27 +700,34 @@ export default function PacotesScreen() {
           <Text style={styles.pacoteNome}>{item.nome}</Text>
         </View>
         <View style={styles.pacoteValores}>
-          <Text style={styles.valorOriginalText}>
-            {item.valor.toLocaleString('pt-BR', {
-              style: 'currency',
-              currency: 'BRL'
-            })}
-          </Text>
-          {item.desconto > 0 && (
+          {item.desconto > 0 ? (
             <>
+              <Text style={styles.valorOriginalText}>
+                De: {valorSemDesconto.toLocaleString('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL'
+                })}
+              </Text>
               <Text style={styles.descontoText}>
-                - {item.desconto.toLocaleString('pt-BR', {
+                Desconto: {item.desconto.toLocaleString('pt-BR', {
                   style: 'currency',
                   currency: 'BRL'
                 })}
               </Text>
               <Text style={styles.valorFinalText}>
-                = {(item.valor - item.desconto).toLocaleString('pt-BR', {
+                Por: {valorComDesconto.toLocaleString('pt-BR', {
                   style: 'currency',
                   currency: 'BRL'
                 })}
               </Text>
             </>
+          ) : (
+            <Text style={styles.valorFinalText}>
+              {valorComDesconto.toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+              })}
+            </Text>
           )}
         </View>
       </View>
@@ -695,9 +760,16 @@ export default function PacotesScreen() {
           <Text style={styles.secaoTitulo}>Serviços:</Text>
           {item.servicos.map((servico) => (
             <View key={servico.id} style={styles.itemListaCompacto}>
-              <Text style={styles.itemNomeCompacto}>
-                {servico.servico?.nome} (x{servico.quantidade})
-              </Text>
+              <View style={styles.itemInfoCompacto}>
+                <Text style={styles.itemNomeCompacto}>
+                  {servico.servico?.nome} (x{servico.quantidade})
+                </Text>
+                {servico.servico?.duracao && (
+                  <Text style={styles.itemDuracaoCompacto}>
+                    ⏱️ {servico.servico.duracao * servico.quantidade} min
+                  </Text>
+                )}
+              </View>
               <Text style={styles.itemPrecoCompacto}>
                 R$ {((servico.servico?.preco || 0) * servico.quantidade).toLocaleString('pt-BR', {
                   minimumFractionDigits: 2,
@@ -706,6 +778,13 @@ export default function PacotesScreen() {
               </Text>
             </View>
           ))}
+          {item.duracao_total && (
+            <View style={styles.duracaoTotalContainer}>
+              <Text style={styles.duracaoTotalText}>
+                ⏱️ Duração total: {item.duracao_total} minutos
+              </Text>
+            </View>
+          )}
         </View>
       )}
       
@@ -718,7 +797,8 @@ export default function PacotesScreen() {
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -879,6 +959,11 @@ export default function PacotesScreen() {
                         <View style={styles.itemInfo}>
                           <Text style={styles.itemNome}>{servico.servico?.nome}</Text>
                           <Text style={styles.itemQuantidade}>Qtd: {servico.quantidade}</Text>
+                          {servico.servico?.duracao && (
+                            <Text style={styles.itemDuracao}>
+                              ⏱️ {servico.servico.duracao * servico.quantidade} min
+                            </Text>
+                          )}
                           <Text style={styles.itemPreco}>
                             R$ {((servico.servico?.preco || 0) * servico.quantidade).toLocaleString('pt-BR', {
                               minimumFractionDigits: 2,
@@ -1666,16 +1751,45 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 4,
   },
+  itemInfoCompacto: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   itemNomeCompacto: {
     fontSize: 14,
     color: colors.textSecondary,
     flex: 1,
+  },
+  itemDuracaoCompacto: {
+    fontSize: 12,
+    color: colors.textTertiary,
+    fontStyle: 'italic',
   },
   itemPrecoCompacto: {
     fontSize: 14,
     fontWeight: '500',
     color: theme.colors.primary,
     marginLeft: 8,
+  },
+  itemDuracao: {
+    fontSize: 12,
+    color: colors.textTertiary,
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
+  duracaoTotalContainer: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    alignItems: 'flex-end',
+  },
+  duracaoTotalText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.colors.primary,
   },
   modalItemCheckbox: {
     marginRight: 12,

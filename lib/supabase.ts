@@ -103,11 +103,30 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    // 🔥 NOVO: Configurações de refresh e timeout
+    flowType: 'pkce', // Mais seguro para mobile
+    debug: __DEV__, // Logs detalhados em desenvolvimento
   },
   global: {
     headers: {
       'x-application-name': 'business-app',
       'x-environment': isDevelopment && process.env.EXPO_PUBLIC_SUPABASE_URL_LOCAL ? 'local' : 'production',
+    },
+    // 🔥 NOVO: Timeout global para requisições
+    fetch: (url, options = {}) => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      
+      return fetch(url, {
+        ...options,
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeoutId));
+    },
+  },
+  // 🔥 NOVO: Opções do realtime (se usado)
+  realtime: {
+    params: {
+      eventsPerSecond: 2,
     },
   },
 });

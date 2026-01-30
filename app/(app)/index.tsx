@@ -11,6 +11,7 @@ import { logger } from '../../utils/logger';
 import { Agendamento as AgendamentoBase, Produto as ProdutoBase } from '@types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { CacheManager, CacheNamespaces, CacheTTL } from '../../utils/cacheManager';
+import { getStartOfDayLocal, getEndOfDayLocal, toISOStringWithTimezone, parseISOStringLocal } from '../../lib/timezone';
 
 // Tipos estendidos para o dashboard
 type AgendamentoDashboard = Pick<AgendamentoBase, 'id' | 'status'> & {
@@ -419,10 +420,10 @@ export default function HomeScreen() {
       }
       
       logger.debug('Buscando dados para o estabelecimento:', estabelecimentoId);
-      const hoje = new Date();
-      hoje.setHours(hoje.getHours() - 3);
-      const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 0, 0, 0);
-      const fimHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 23, 59, 59);
+      
+      // 🔧 CORREÇÃO: Usar timezone local para queries
+      const inicioHoje = getStartOfDayLocal();
+      const fimHoje = getEndOfDayLocal();
 
       const [
         { data: agendamentos, error: agendamentosError },
@@ -432,9 +433,9 @@ export default function HomeScreen() {
         { data: vendasRecentesData, error: vendasRecentesError },
       ] = await Promise.all([
         // Carregar agendamentos de hoje
-        supabase.from('agendamentos').select('*', { count: 'exact' }).eq('estabelecimento_id', estabelecimentoId).gte('data_hora', inicioHoje.toISOString()).lte('data_hora', fimHoje.toISOString()),
+        supabase.from('agendamentos').select('*', { count: 'exact' }).eq('estabelecimento_id', estabelecimentoId).gte('data_hora', inicioHoje).lte('data_hora', fimHoje),
         // Carregar vendas de hoje - SOMENTE COMANDAS FECHADAS HOJE
-        supabase.from('comandas_itens').select(`preco_total, comandas!inner(status, estabelecimento_id, finalized_at)`).eq('comandas.estabelecimento_id', estabelecimentoId).eq('comandas.status', 'fechada').gte('comandas.finalized_at', inicioHoje.toISOString()).lte('comandas.finalized_at', fimHoje.toISOString()),
+        supabase.from('comandas_itens').select(`preco_total, comandas!inner(status, estabelecimento_id, finalized_at)`).eq('comandas.estabelecimento_id', estabelecimentoId).eq('comandas.status', 'fechada').gte('comandas.finalized_at', inicioHoje).lte('comandas.finalized_at', fimHoje),
         // Carregar clientes ativos
         supabase.from('clientes').select('*', { count: 'exact', head: true }).eq('estabelecimento_id', estabelecimentoId),
         // Carregar próximos agendamentos - profissionais veem apenas os seus
@@ -442,7 +443,7 @@ export default function HomeScreen() {
           let query = supabase.from('agendamentos')
             .select('id, cliente, data_hora, horario_termino, servicos, usuario_id, status')
             .eq('estabelecimento_id', estabelecimentoId)
-            .gte('data_hora', new Date().toISOString())
+            .gte('data_hora', toISOStringWithTimezone(new Date()))
             .order('data_hora', { ascending: true })
             .limit(5);
           
@@ -508,7 +509,7 @@ export default function HomeScreen() {
               id: ag.id,
               cliente_nome: ag.cliente || 'Cliente não informado',
               cliente_foto: clienteFoto,
-              servico: ag.servicos?.[0]?.nome || 'Serviço não especificado',
+              servico: ag.servicos?.[0]?.nome || ag.servicos?.[0]?.servico?.nome || 'Serviço não especificado',
               horario: ag.data_hora,
               horario_termino: ag.horario_termino,
               usuario_nome: usuarioNome,
@@ -765,7 +766,14 @@ export default function HomeScreen() {
                 <View style={styles.agendamentoHorarioContainer}>
                   <FontAwesome5 name="clock" size={12} color={colors.primary} />
                   <Text style={[styles.agendamentoHorarioText, { color: colors.primary }]}>
-                    {agendamento.horario ? format(new Date(agendamento.horario), "HH:mm") : '--:--'}
+                    {agendamento.horario ? (() => {
+                      try {
+                        const dataLocal = parseISOStringLocal(agendamento.horario);
+                        return format(dataLocal, "HH:mm");
+                      } catch {
+                        return '--:--';
+                      }
+                    })() : '--:--'}
                     {agendamento.horario_termino && (
                       <Text style={styles.agendamentoHorarioSeparador}> às </Text>
                     )}
@@ -778,7 +786,14 @@ export default function HomeScreen() {
                 <View style={styles.agendamentoData}>
                   <FontAwesome5 name="calendar" size={12} color={colors.textTertiary} />
                   <Text style={styles.agendamentoDia}>
-                    {agendamento.horario ? format(new Date(agendamento.horario), "dd/MM") : '--/--'}
+                    {agendamento.horario ? (() => {
+                      try {
+                        const dataLocal = parseISOStringLocal(agendamento.horario);
+                        return format(dataLocal, "dd/MM");
+                      } catch {
+                        return '--/--';
+                      }
+                    })() : '--/--'}
                   </Text>
                 </View>
               </View>

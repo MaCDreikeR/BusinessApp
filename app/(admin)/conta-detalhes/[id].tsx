@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from '../../../contexts/AuthContext';
+import { getStartOfDayLocal, getEndOfDayLocal, addMinutesLocal } from '../../../lib/timezone';
 
 interface ContaMetrics {
   totalUsuarios: number;
@@ -25,8 +26,8 @@ interface ContaMetrics {
   agendamentosHoje: number;
   ultimoAcesso: string | null;
   usuariosOnline: number;
-  usuariosOnlineDetalhes: Array<{ id: string; nome_completo: string; email: string; last_sign_in_at: string }>;
-  dispositivos: Array<{ dispositivo: string; ultimo_acesso: string }>;
+  usuariosOnlineDetalhes: { id: string; nome_completo: string; email: string; last_sign_in_at: string }[];
+  dispositivos: { dispositivo: string; ultimo_acesso: string }[];
 }
 
 // Segmentos igual tela de cadastro
@@ -104,11 +105,15 @@ export default function ContaDetalhes() {
             supabase.from('fornecedores').select('id', { count: 'exact', head: true }).eq('estabelecimento_id', id),
             supabase.from('comandas').select('valor_total').eq('estabelecimento_id', id).eq('status', 'fechada'),
             supabase.from('comandas').select('valor_total').eq('estabelecimento_id', id).eq('status', 'fechada')
-              .gte('data_fechamento', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+              .gte('data_fechamento', (() => {
+                const primeiroDia = new Date();
+                primeiroDia.setDate(1);
+                return getStartOfDayLocal(primeiroDia);
+              })()),
             supabase.from('comandas').select('id', { count: 'exact', head: true }).eq('estabelecimento_id', id).eq('status', 'aberta'),
             supabase.from('agendamentos').select('id', { count: 'exact', head: true }).eq('estabelecimento_id', id)
-              .gte('data_hora', new Date(new Date().setHours(0,0,0,0)).toISOString())
-              .lte('data_hora', new Date(new Date().setHours(23,59,59,999)).toISOString()),
+              .gte('data_hora', getStartOfDayLocal())
+              .lte('data_hora', getEndOfDayLocal()),
             supabase.from('usuarios').select('last_activity_at, dispositivo').eq('estabelecimento_id', id).order('last_activity_at', { ascending: false }).limit(1),
           ]);
 
@@ -118,7 +123,7 @@ export default function ContaDetalhes() {
 
           // Buscar usuários online (últimos 3 minutos - heartbeat atualiza a cada 1min)
           // Se não atualizou nos últimos 3min, provavelmente desconectou
-          const tresMinutosAtras = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+          const tresMinutosAtras = addMinutesLocal(new Date(), -3);
           const { data: usuariosAtivos } = await supabase
             .from('usuarios')
             .select('id, nome_completo, email, last_activity_at, dispositivo')

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
@@ -8,6 +8,7 @@ import MaskInput from 'react-native-mask-input';
 import { logger } from '../../../utils/logger';
 import { Fornecedor as FornecedorBase } from '@types';
 import { theme } from '@utils/theme';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 type CategoriaEstoque = {
   id: string;
@@ -37,6 +38,8 @@ const PRECO_MASK = [
 ];
 
 export default function NovoProdutoScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { estabelecimentoId } = useAuth();
   const [loading, setLoading] = useState(false);
   const [categorias, setCategorias] = useState<CategoriaEstoque[]>([]);
@@ -465,133 +468,135 @@ export default function NovoProdutoScreen() {
 }
 
 // Função auxiliar para criar estilos dinâmicos
-const createStyles = (colors: any) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  formContainer: {
-    flex: 1,
-    padding: 16,
-  },
-  section: {
-    marginBottom: 24,
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
+function createStyles(colors: any) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 16,
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: colors.background,
-    borderRadius: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    fontSize: 16,
-    color: '#111827',
-  },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  row: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  pickerButton: {
-    backgroundColor: colors.background,
-    borderRadius: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  pickerButtonText: {
-    fontSize: 16,
-    color: '#111827',
-  },
-  pickerButtonPlaceholder: {
-    fontSize: 16,
-    color: colors.textTertiary,
-  },
-  saveButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  saveButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContainer: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    maxHeight: '80%',
-  },
-  modalContent: {
-    padding: 16,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  modalCloseButton: {
-    padding: 4,
-  },
-  modalList: {
-    maxHeight: 300,
-  },
-  modalItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  modalItemText: {
-    fontSize: 16,
-    color: colors.text,
-  },
-}); 
+    formContainer: {
+      flex: 1,
+      padding: 16,
+    },
+    section: {
+      marginBottom: 24,
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: 16,
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 1,
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#111827',
+      marginBottom: 16,
+    },
+    inputGroup: {
+      marginBottom: 16,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: colors.text,
+      marginBottom: 8,
+    },
+    input: {
+      backgroundColor: colors.background,
+      borderRadius: 8,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      fontSize: 16,
+      color: '#111827',
+    },
+    textArea: {
+      height: 100,
+      textAlignVertical: 'top',
+    },
+    row: {
+      flexDirection: 'row',
+      marginBottom: 16,
+    },
+    pickerButton: {
+      backgroundColor: colors.background,
+      borderRadius: 8,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    pickerButtonText: {
+      fontSize: 16,
+      color: '#111827',
+    },
+    pickerButtonPlaceholder: {
+      fontSize: 16,
+      color: colors.textTertiary,
+    },
+    saveButton: {
+      backgroundColor: colors.primary,
+      borderRadius: 8,
+      padding: 16,
+      alignItems: 'center',
+      marginBottom: 32,
+    },
+    buttonDisabled: {
+      opacity: 0.7,
+    },
+    saveButtonText: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'flex-end',
+    },
+    modalContainer: {
+      backgroundColor: colors.surface,
+      borderTopLeftRadius: 16,
+      borderTopRightRadius: 16,
+      maxHeight: '80%',
+    },
+    modalContent: {
+      padding: 16,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: '#111827',
+    },
+    modalCloseButton: {
+      padding: 4,
+    },
+    modalList: {
+      maxHeight: 300,
+    },
+    modalItem: {
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    modalItemText: {
+      fontSize: 16,
+      color: colors.text,
+    },
+  });
+}

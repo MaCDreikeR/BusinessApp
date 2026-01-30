@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, DeviceEventEmitter, Modal, TextInput, ActivityIndicator, FlatList, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, DeviceEventEmitter, Modal, TextInput, ActivityIndicator, FlatList, SectionList, Alert } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { format, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -14,6 +14,7 @@ import { Usuario, Agendamento as AgendamentoBase } from '@types';
 import { theme } from '@utils/theme';
 import { CacheManager, CacheNamespaces, CacheTTL } from '../../utils/cacheManager';
 import { offlineInsert, offlineUpdate, offlineDelete, getOfflineFeedback } from '../../services/offlineSupabase';
+import { getStartOfDayLocal, getEndOfDayLocal, getStartOfMonthLocal, getEndOfMonthLocal } from '../../lib/timezone';
 
 // Configuração do idioma para o calendário
 LocaleConfig.locales['pt-br'] = {
@@ -42,12 +43,14 @@ type UsuarioAgenda = Pick<Usuario, 'id' | 'nome_completo' | 'email' | 'foto_url'
 };
 
 // Estender o tipo Agendamento para incluir campos específicos da tela
-type AgendamentoAgenda = Omit<AgendamentoBase, 'cliente_id' | 'horario' | 'status'> & {
+type AgendamentoAgenda = Omit<AgendamentoBase, 'horario' | 'status'> & {
   data_hora: string;
   horario_termino?: string;
   cliente: string;
+  cliente_id?: string | null;
   cliente_telefone?: string | null;
   cliente_saldo?: number | null;
+  cliente_foto?: string | null;
   servicos: any[];
   estabelecimento_id: string;
   status?: 'pendente' | 'confirmado' | 'concluido' | 'cancelado' | 'agendado' | 'em_atendimento' | 'falta';
@@ -79,6 +82,9 @@ export default function AgendaScreen() {
   // Estado para mensagem de sucesso
   const [successMessage, setSuccessMessage] = useState('');
   
+  // Modo de exibição: 'grid' (grade) ou 'list' (lista seccionada)
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  
   // Novos estados para configuração de horários
   const [showHorariosModal, setShowHorariosModal] = useState(false);
   const [horarioInicio, setHorarioInicio] = useState('08:00');
@@ -101,6 +107,76 @@ export default function AgendaScreen() {
   const [agendamentoParaExcluir, setAgendamentoParaExcluir] = useState<string | null>(null);
 
   const router = useRouter();
+
+  // 🔧 FUNÇÃO HELPER: Converter string ISO local para Date
+  const parseDataHoraLocal = (dataHoraISO: string): Date => {
+    try {
+      // Validar entrada
+      if (!dataHoraISO || typeof dataHoraISO !== 'string') {
+        logger.warn('⚠️ parseDataHoraLocal: entrada inválida', dataHoraISO);
+        return new Date(); // Retorna data atual como fallback
+      }
+
+      // ✅ NOVO: Se vier com offset timezone (±HH:MM ou Z), usar new Date() que faz conversão automática
+      // Isso converte UTC → horário local automaticamente
+      if (dataHoraISO.includes('+') || dataHoraISO.includes('Z') || 
+          (dataHoraISO.includes('-') && dataHoraISO.indexOf('-') > 10)) { // - depois de "YYYY-MM-DD"
+        try {
+          const dataConverted = new Date(dataHoraISO);
+          if (!isNaN(dataConverted.getTime())) {
+            return dataConverted; // ✅ Conversão automática de UTC→local!
+          }
+        } catch (e) {
+          logger.warn('⚠️ parseDataHoraLocal: erro ao converter com timezone', dataHoraISO);
+          // Continuar com parse manual
+        }
+      }
+
+      // Extrair partes da string ISO (formato: "YYYY-MM-DDTHH:MM:SS" ou "YYYY-MM-DDTHH:MM:SS-03:00")
+      const [datePart, timePartRaw] = dataHoraISO.split('T');
+      
+      if (!datePart || !timePartRaw) {
+        logger.warn('⚠️ parseDataHoraLocal: formato inválido', dataHoraISO);
+        return new Date();
+      }
+
+      const [ano, mes, dia] = datePart.split('-').map(Number);
+      
+      // 🔧 CORREÇÃO: Remover APENAS o timezone (tudo após + ou - no final da hora)
+      // Não usar split('-')[0] que destroi a hora!
+      let timeClean = timePartRaw;
+      const plusIndex = timePartRaw.indexOf('+');
+      const minusIndex = timePartRaw.lastIndexOf('-'); // Último - (timezone está no final)
+      
+      if (plusIndex > 0) {
+        timeClean = timePartRaw.substring(0, plusIndex); // Tudo até o +
+      } else if (minusIndex > 5) { // Timezone - está depois de "HH:MM:SS" (>5 caracteres)
+        timeClean = timePartRaw.substring(0, minusIndex);
+      }
+      
+      const [hora, min, seg = 0] = timeClean.split(':').map(Number);
+      
+      // Validar valores extraídos
+      if (isNaN(ano) || isNaN(mes) || isNaN(dia) || isNaN(hora) || isNaN(min)) {
+        logger.warn('⚠️ parseDataHoraLocal: valores NaN', { ano, mes, dia, hora, min });
+        return new Date();
+      }
+      
+      // Criar Date como horário LOCAL
+      const date = new Date(ano, mes - 1, dia, hora, min, seg);
+      
+      // Validar resultado
+      if (isNaN(date.getTime())) {
+        logger.warn('⚠️ parseDataHoraLocal: Date inválida resultante', dataHoraISO);
+        return new Date();
+      }
+      
+      return date;
+    } catch (error) {
+      logger.error('❌ parseDataHoraLocal: erro ao fazer parse', error, dataHoraISO);
+      return new Date(); // Retorna data atual como fallback
+    }
+  };
 
   // Estilos dinâmicos baseados no tema
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -166,32 +242,66 @@ export default function AgendaScreen() {
 
   useEffect(() => {
     carregarAgendamentosMes();
-  }, [selectedDate]);
+  }, [selectedDate, selectedUser]);
+
+  // Carregar agendamentos do mês quando estabelecimentoId estiver disponível
+  useEffect(() => {
+    if (estabelecimentoId) {
+      carregarAgendamentosMes();
+    }
+  }, [estabelecimentoId]); // Executar quando estabelecimentoId estiver disponível
 
   useEffect(() => {
     const marked: {[key: string]: any} = {};
+    
+    // 🔧 Filtrar agendamentos válidos antes de processar
+    const agendamentosValidos = agendamentosMes.filter(ag => {
+      if (!ag || !ag.data_hora) {
+        logger.warn('⚠️ Agendamento sem data_hora ignorado:', ag?.id);
+        return false;
+      }
+      return true;
+    });
+    
+    logger.debug('📅 [CALENDÁRIO] Atualizando marcações:', {
+      totalAgendamentosMes: agendamentosValidos.length,
+      datasComAgendamento: agendamentosValidos.map(ag => {
+        try {
+          return format(parseDataHoraLocal(ag.data_hora), 'dd/MM/yyyy');
+        } catch (e) {
+          logger.error('❌ Erro ao formatar data:', ag.id, ag.data_hora, e);
+          return 'data_invalida';
+        }
+      })
+    });
     
     // Marcar a data selecionada
     const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
     marked[selectedDateStr] = { selected: true, selectedColor: theme.colors.primary };
     
     // Marcar datas com agendamentos
-    agendamentosMes.forEach(ag => {
-      const dataAg = new Date(ag.data_hora);
-      const dataStr = format(dataAg, 'yyyy-MM-dd');
+    agendamentosValidos.forEach(ag => {
+      try {
+        const dataAg = parseDataHoraLocal(ag.data_hora);
+        const dataStr = format(dataAg, 'yyyy-MM-dd');
       
-      if (dataStr === selectedDateStr) {
-        marked[dataStr] = { 
-          ...marked[dataStr],
-          marked: true, 
-          dotColor: theme.colors.primary
-        };
-      } else {
-        marked[dataStr] = { 
-          ...marked[dataStr],
-          marked: true, 
-          dotColor: theme.colors.primary
-        };
+        logger.debug('📍 Marcando data:', dataStr);
+        
+        if (dataStr === selectedDateStr) {
+          marked[dataStr] = { 
+            ...marked[dataStr],
+            marked: true, 
+            dotColor: theme.colors.primary
+          };
+        } else {
+          marked[dataStr] = { 
+            ...marked[dataStr],
+            marked: true, 
+            dotColor: theme.colors.primary
+          };
+        }
+      } catch (e) {
+        logger.error('❌ Erro ao marcar data no calendário:', ag.id, e);
       }
     });
     
@@ -357,12 +467,25 @@ export default function AgendaScreen() {
         return;
       }
       
+      // 🔧 CORREÇÃO: Usar funções de timezone para garantir comparação correta
+      const ano = selectedDate.getFullYear();
+      const mes = selectedDate.getMonth() + 1; // +1 porque mês começa em 0
+      const dia = selectedDate.getDate();
+      
+      const dataInicioLocal = getStartOfDayLocal(selectedDate);
+      const dataFimLocal = getEndOfDayLocal(selectedDate);
+      
+      logger.debug(`📅 Buscando agendamentos do dia:`);
+      logger.debug(`   Data: ${dia}/${mes}/${ano}`);
+      logger.debug(`   Início: ${dataInicioLocal}`);
+      logger.debug(`   Fim: ${dataFimLocal}`);
+      
       let query = supabase
         .from('agendamentos')
         .select('*')
         .eq('estabelecimento_id', estabelecimentoId)
-        .gte('data_hora', new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 0, 0, 0).toISOString())
-        .lt('data_hora', new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 23, 59, 59).toISOString());
+        .gte('data_hora', dataInicioLocal)
+        .lte('data_hora', dataFimLocal); // 🔧 Mudado de .lt() para .lte() para incluir 23:59:59
       
       if (usuarioFiltro) {
         logger.debug(`🔒 Filtrando agendamentos para o usuário: ${usuarioFiltro} (role: ${role})`);
@@ -399,12 +522,18 @@ export default function AgendaScreen() {
               .single();
             
             if (clienteError) {
-              logger.debug('❌ Erro ao buscar dados do cliente por ID:', clienteError);
+              logger.error('❌ Erro ao buscar dados do cliente por ID:', clienteError);
             }
             
             if (clienteData) {
               clienteFoto = clienteData.foto_url;
               clienteTelefone = clienteData.telefone;
+              
+              logger.debug('📞 TELEFONE ENCONTRADO:', { 
+                cliente_id: ag.cliente_id, 
+                telefone: clienteTelefone,
+                telefone_raw: clienteData.telefone
+              });
               
               // Buscar saldo do crediário
               const { data: movimentacoes } = await supabase
@@ -479,6 +608,13 @@ export default function AgendaScreen() {
             logger.debug('⚠️ Agendamento sem cliente_id e sem nome:', ag.id);
           }
           
+          logger.debug('🔚 Resultado final do agendamento:', {
+            agendamento_id: ag.id,
+            cliente: ag.cliente,
+            telefone_final: clienteTelefone,
+            tem_telefone: !!clienteTelefone
+          });
+          
           return {
             ...ag,
             cliente_foto: clienteFoto,
@@ -488,7 +624,14 @@ export default function AgendaScreen() {
         })
       );
       
-      logger.debug('Agendamentos processados com dados de clientes:', agendamentosComClientes);
+      logger.debug('🎯 [DIA] Agendamentos processados - RESULTADO FINAL:', agendamentosComClientes.map(ag => ({
+        id: ag.id,
+        cliente: ag.cliente,
+        cliente_id: ag.cliente_id,
+        telefone: ag.cliente_telefone,
+        tem_cliente_id: !!ag.cliente_id,
+        tem_telefone: !!ag.cliente_telefone
+      })));
       
       // Salvar no cache com TTL de 2 minutos (reutiliza variáveis já declaradas acima)
       await CacheManager.set(
@@ -515,8 +658,16 @@ export default function AgendaScreen() {
       }
       
       // Determinar o primeiro e último dia do mês
-      const primeiroDiaMes = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
-      const ultimoDiaMes = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
+      const ano = selectedDate.getFullYear();
+      const mes = selectedDate.getMonth() + 1;
+      
+      // 🔧 CORREÇÃO: Usar funções de timezone
+      const dataInicioMesLocal = getStartOfMonthLocal(ano, mes);
+      const dataFimMesLocal = getEndOfMonthLocal(ano, mes);
+      
+      logger.debug(`📅 Buscando agendamentos do mês ${mes}/${ano}:`);
+      logger.debug(`   Início: ${dataInicioMesLocal}`);
+      logger.debug(`   Fim: ${dataFimMesLocal}`);
       
       // Gerar chave de cache baseada no mês e usuário
       const mesStr = format(selectedDate, 'yyyy-MM');
@@ -538,8 +689,8 @@ export default function AgendaScreen() {
         .from('agendamentos')
         .select('*')
         .eq('estabelecimento_id', estabelecimentoId)
-        .gte('data_hora', primeiroDiaMes.toISOString())
-        .lte('data_hora', ultimoDiaMes.toISOString());
+        .gte('data_hora', dataInicioMesLocal)
+        .lte('data_hora', dataFimMesLocal);
 
       // Filtrar por usuário se selecionado
       if (selectedUser) {
@@ -553,15 +704,135 @@ export default function AgendaScreen() {
 
       logger.debug('Agendamentos do mês carregados:', data?.length || 0);
       
+      // Buscar dados dos clientes separadamente (igual ao carregarAgendamentos)
+      const agendamentosComClientes = await Promise.all(
+        (data || []).map(async (ag: any) => {
+          let clienteFoto = null;
+          let clienteTelefone = null;
+          let clienteSaldo = null;
+          let clienteIdFinal = ag.cliente_id;
+          
+          logger.debug('🔍 [MÊS] Processando agendamento:', { 
+            id: ag.id, 
+            cliente: ag.cliente, 
+            cliente_id_original: ag.cliente_id,
+            tem_cliente_id: !!ag.cliente_id
+          });
+          
+          if (ag.cliente_id) {
+            // Buscar por ID (relacionamento direto)
+            const { data: clienteData, error: clienteError } = await supabase
+              .from('clientes')
+              .select('foto_url, telefone')
+              .eq('id', ag.cliente_id)
+              .single();
+            
+            if (clienteError) {
+              logger.error('❌ [MÊS] Erro ao buscar dados do cliente por ID:', clienteError);
+            }
+            
+            if (clienteData) {
+              clienteFoto = clienteData.foto_url;
+              clienteTelefone = clienteData.telefone;
+              
+              logger.debug('📞 [MÊS] TELEFONE ENCONTRADO:', { 
+                cliente_id: ag.cliente_id, 
+                telefone: clienteTelefone,
+                telefone_raw: clienteData.telefone
+              });
+              
+              // Buscar saldo do crediário
+              const { data: movimentacoes } = await supabase
+                .from('crediario_movimentacoes')
+                .select('valor')
+                .eq('cliente_id', ag.cliente_id);
+              
+              if (movimentacoes && movimentacoes.length > 0) {
+                clienteSaldo = movimentacoes.reduce((total, mov) => {
+                  const valorNumerico = typeof mov.valor === 'string' 
+                    ? parseFloat(mov.valor.replace(',', '.')) 
+                    : mov.valor;
+                  return total + (valorNumerico || 0);
+                }, 0);
+              } else {
+                clienteSaldo = 0;
+              }
+            }
+          } else if (ag.cliente) {
+            // FALLBACK: Buscar por nome quando não há cliente_id
+            logger.debug('🔎 [MÊS] Tentando buscar cliente por nome:', ag.cliente);
+            const { data: clienteData, error: clienteError } = await supabase
+              .from('clientes')
+              .select('id, foto_url, telefone')
+              .eq('estabelecimento_id', estabelecimentoId)
+              .ilike('nome', ag.cliente)
+              .limit(1)
+              .maybeSingle();
+            
+            if (clienteError) {
+              logger.debug('❌ [MÊS] Erro ao buscar dados do cliente por nome:', clienteError);
+            }
+            
+            if (clienteData) {
+              clienteIdFinal = clienteData.id; // Atualizar o cliente_id
+              clienteFoto = clienteData.foto_url;
+              clienteTelefone = clienteData.telefone;
+              
+              logger.debug('✅ [MÊS] Cliente encontrado por nome:', {
+                cliente_id: clienteData.id,
+                telefone: clienteTelefone
+              });
+              
+              // Buscar saldo do crediário
+              const { data: movimentacoes } = await supabase
+                .from('crediario_movimentacoes')
+                .select('valor')
+                .eq('cliente_id', clienteData.id);
+              
+              if (movimentacoes && movimentacoes.length > 0) {
+                clienteSaldo = movimentacoes.reduce((total, mov) => {
+                  const valorNumerico = typeof mov.valor === 'string' 
+                    ? parseFloat(mov.valor.replace(',', '.')) 
+                    : mov.valor;
+                  return total + (valorNumerico || 0);
+                }, 0);
+              } else {
+                clienteSaldo = 0;
+              }
+            } else {
+              logger.debug('⚠️ [MÊS] Cliente não encontrado no banco com nome:', ag.cliente);
+            }
+          } else {
+            logger.debug('⚠️ [MÊS] Agendamento sem cliente_id e sem nome:', ag.id);
+          }
+          
+          logger.debug('🔚 [MÊS] Resultado final do agendamento:', {
+            agendamento_id: ag.id,
+            cliente: ag.cliente,
+            cliente_id_final: clienteIdFinal,
+            telefone_final: clienteTelefone,
+            tem_telefone: !!clienteTelefone
+          });
+          
+          return {
+            ...ag,
+            cliente_id: clienteIdFinal, // Garantir que o cliente_id está presente
+            cliente_foto: clienteFoto,
+            cliente_telefone: clienteTelefone,
+            cliente_saldo: clienteSaldo,
+          };
+        })
+      );
+      
       // Salvar no cache com TTL de 2 minutos
       await CacheManager.set(
         CacheNamespaces.AGENDAMENTOS,
         cacheKey,
-        data || [],
+        agendamentosComClientes,
         CacheTTL.TWO_MINUTES
       );
       
-      setAgendamentosMes(data || []);
+      setAgendamentosMes(agendamentosComClientes);
     } catch (error) {
       logger.error('Erro ao carregar agendamentos do mês:', error);
     }
@@ -1222,9 +1493,91 @@ export default function AgendaScreen() {
   };
 
   // Nova função para abrir modal de detalhes de agendamentos
-  const abrirModalAgendamentos = (horario: string, agendamentosDoHorario: AgendamentoAgenda[]) => {
+  const abrirModalAgendamentos = async (horario: string, agendamentosDoHorario: AgendamentoAgenda[]) => {
+    // LOG CRÍTICO: Verificar dados ANTES de abrir o modal
+    logger.debug('🚨 [MODAL] Abrindo modal com agendamentos:', {
+      horario,
+      total: agendamentosDoHorario.length,
+      agendamentos: agendamentosDoHorario.map(ag => ({
+        id: ag.id,
+        cliente: ag.cliente,
+        cliente_id: ag.cliente_id,
+        telefone: ag.cliente_telefone,
+        tem_cliente_id: !!ag.cliente_id,
+        tem_telefone: !!ag.cliente_telefone
+      }))
+    });
+    
+    // 🔥 CORREÇÃO CRÍTICA: Buscar cliente_id e telefone se estiverem faltando
+    const agendamentosCorrigidos = await Promise.all(
+      agendamentosDoHorario.map(async (ag) => {
+        // Se já tem cliente_id E telefone, não precisa buscar
+        if (ag.cliente_id && ag.cliente_telefone) {
+          logger.debug('✅ [MODAL] Agendamento OK:', ag.id, ag.cliente);
+          return ag;
+        }
+        
+        logger.warn('⚠️ [MODAL] Agendamento sem dados completos, buscando...', {
+          id: ag.id,
+          cliente: ag.cliente,
+          tem_cliente_id: !!ag.cliente_id,
+          tem_telefone: !!ag.cliente_telefone
+        });
+        
+        // Buscar pelo cliente_id se tiver
+        if (ag.cliente_id) {
+          const { data: clienteData } = await supabase
+            .from('clientes')
+            .select('id, telefone, foto_url')
+            .eq('id', ag.cliente_id)
+            .single();
+          
+          if (clienteData) {
+            logger.debug('✅ [MODAL] Cliente encontrado por ID:', clienteData);
+            return {
+              ...ag,
+              cliente_id: clienteData.id,
+              cliente_telefone: clienteData.telefone,
+              cliente_foto: clienteData.foto_url
+            };
+          }
+        }
+        
+        // Fallback: buscar pelo nome
+        if (ag.cliente && estabelecimentoId) {
+          const { data: clienteData } = await supabase
+            .from('clientes')
+            .select('id, telefone, foto_url')
+            .eq('estabelecimento_id', estabelecimentoId)
+            .ilike('nome', ag.cliente)
+            .limit(1)
+            .maybeSingle();
+          
+          if (clienteData) {
+            logger.debug('✅ [MODAL] Cliente encontrado por nome:', clienteData);
+            return {
+              ...ag,
+              cliente_id: clienteData.id,
+              cliente_telefone: clienteData.telefone,
+              cliente_foto: clienteData.foto_url
+            };
+          }
+        }
+        
+        logger.error('❌ [MODAL] Cliente não encontrado para:', ag.cliente);
+        return ag;
+      })
+    );
+    
+    logger.debug('🎯 [MODAL] Agendamentos corrigidos:', agendamentosCorrigidos.map(ag => ({
+      id: ag.id,
+      cliente: ag.cliente,
+      cliente_id: ag.cliente_id,
+      telefone: ag.cliente_telefone
+    })));
+    
     setHorarioSelecionado(horario);
-    setAgendamentosDoHorarioSelecionado(agendamentosDoHorario);
+    setAgendamentosDoHorarioSelecionado(agendamentosCorrigidos);
     setShowAgendamentosModal(true);
   };
 
@@ -1238,33 +1591,52 @@ export default function AgendaScreen() {
     if (!agendamentoParaExcluir) return;
     
     try {
-      // Iniciar exclusão COM SUPORTE OFFLINE
-      const { error, fromCache } = await offlineDelete(
+      logger.debug(`🗑️ Iniciando exclusão do agendamento: ${agendamentoParaExcluir}`);
+      
+      // 1️⃣ Remover IMEDIATAMENTE do estado ANTES de chamar API
+      const novosAgendamentos = agendamentos.filter(
+        ag => ag.id !== agendamentoParaExcluir
+      );
+      setAgendamentos(novosAgendamentos);
+      
+      const novosAgendamentosMes = agendamentosMes.filter(
+        ag => ag.id !== agendamentoParaExcluir
+      );
+      setAgendamentosMes(novosAgendamentosMes);
+      
+      const novosAgendamentosDoHorario = agendamentosDoHorarioSelecionado.filter(
+        ag => ag.id !== agendamentoParaExcluir
+      );
+      setAgendamentosDoHorarioSelecionado(novosAgendamentosDoHorario);
+      
+      logger.debug(`✅ Estados atualizados localmente`);
+      
+      // 2️⃣ Limpar cache ANTES de deletar
+      await CacheManager.clearNamespace(CacheNamespaces.AGENDAMENTOS);
+      logger.debug(`🧹 Cache limpo`);
+      
+      // 3️⃣ Deletar do banco
+      const { error } = await offlineDelete(
         'agendamentos',
         agendamentoParaExcluir,
         estabelecimentoId!
       );
         
-      if (error) throw error;
+      if (error) {
+        logger.error('❌ Erro ao excluir do banco:', error);
+        // Reverter estado em caso de erro
+        setAgendamentos(agendamentos);
+        setAgendamentosMes(agendamentosMes);
+        setAgendamentosDoHorarioSelecionado(agendamentosDoHorarioSelecionado);
+        throw error;
+      }
       
-      // Remover o agendamento da lista local
-      const novosAgendamentosDoHorario = agendamentosDoHorarioSelecionado.filter(
-        ag => ag.id !== agendamentoParaExcluir
-      );
-      
-      setAgendamentosDoHorarioSelecionado(novosAgendamentosDoHorario);
+      logger.success(`✅ Agendamento ${agendamentoParaExcluir} deletado do banco`);
       
       // Se não há mais agendamentos no horário, fechar o modal
       if (novosAgendamentosDoHorario.length === 0) {
         setShowAgendamentosModal(false);
       }
-      
-      // Limpar cache de agendamentos
-      await CacheManager.clearNamespace(CacheNamespaces.AGENDAMENTOS);
-      
-      // Recarregar os agendamentos da tela
-      carregarAgendamentos();
-      carregarAgendamentosMes();
       
       // Mostrar mensagem de sucesso
       setSuccessMessage('Agendamento excluído com sucesso!');
@@ -1291,17 +1663,33 @@ export default function AgendaScreen() {
       
       if (error) throw error;
       
-      // Atualizar localmente
-      const agendamentosAtualizados = agendamentosDoHorarioSelecionado.map(ag =>
+      // 1️⃣ Atualizar IMEDIATAMENTE no estado principal
+      const agendamentosAtualizados = agendamentos.map(ag =>
         ag.id === agendamentoId ? { ...ag, status: novoStatus as AgendamentoAgenda['status'] } : ag
       );
-      setAgendamentosDoHorarioSelecionado(agendamentosAtualizados);
+      setAgendamentos(agendamentosAtualizados);
       
-      // Limpar cache de agendamentos
+      // 2️⃣ Atualizar no estado mensal
+      const agendamentosMesAtualizados = agendamentosMes.map(ag =>
+        ag.id === agendamentoId ? { ...ag, status: novoStatus as AgendamentoAgenda['status'] } : ag
+      );
+      setAgendamentosMes(agendamentosMesAtualizados);
+      
+      // 3️⃣ Atualizar localmente no modal
+      const agendamentosHorarioAtualizados = agendamentosDoHorarioSelecionado.map(ag =>
+        ag.id === agendamentoId ? { ...ag, status: novoStatus as AgendamentoAgenda['status'] } : ag
+      );
+      setAgendamentosDoHorarioSelecionado(agendamentosHorarioAtualizados);
+      
+      // 4️⃣ Limpar cache de agendamentos
       await CacheManager.clearNamespace(CacheNamespaces.AGENDAMENTOS);
       
-      // Recarregar os agendamentos da tela
-      carregarAgendamentos();
+      logger.success(`✅ Status atualizado para ${novoStatus}`);
+      
+      // 5️⃣ Recarregar os agendamentos da tela (garante sincronização com servidor)
+      setTimeout(() => {
+        carregarAgendamentos();
+      }, 300);
       
       // Mostrar mensagem de sucesso
       setSuccessMessage(`Status atualizado para ${novoStatus}!`);
@@ -1318,9 +1706,56 @@ export default function AgendaScreen() {
     setAgendamentoParaExcluir(null);
   };
 
+  // Agrupa agendamentos do mês por data (dd/MM/yyyy) para uso na SectionList
+  const listSections = useMemo(() => {
+    const map: Record<string, AgendamentoAgenda[]> = {};
+    (agendamentosMes || []).forEach((ag) => {
+      try {
+        // Validar data_hora
+        if (!ag || !ag.data_hora) {
+          logger.warn('⚠️ Agendamento sem data_hora ignorado na lista:', ag?.id);
+          return;
+        }
+        
+        const d = parseDataHoraLocal(ag.data_hora);
+        const key = format(d, 'dd/MM/yyyy');
+        if (!map[key]) map[key] = [];
+        map[key].push(ag);
+      } catch (e) {
+        logger.error('❌ Erro ao agrupar agendamento:', ag?.id, e);
+        // ignorar entradas inválidas
+      }
+    });
+
+    const sections = Object.keys(map)
+      .sort((a, b) => {
+        const [da, ma, aa] = a.split('/').map(Number);
+        const [db, mb, ab] = b.split('/').map(Number);
+        const daDate = new Date(aa, ma - 1, da).getTime();
+        const dbDate = new Date(ab, mb - 1, db).getTime();
+        // INVERTIDO: ordem decrescente (mais recentes primeiro)
+        return dbDate - daDate;
+      })
+      .map(title => ({ title, data: map[title] }));
+
+    return sections;
+  }, [agendamentosMes]);
+
+  // Função utilitária para obter cor por status (reutilizável na lista)
+  const getStatusColorGlobal = (status?: string) => {
+    switch (status) {
+      case 'confirmado': return '#10B981';
+      case 'em_atendimento': return '#F59E0B';
+      case 'concluido': return '#6B7280';
+      case 'cancelado': return '#EF4444';
+      case 'falta': return '#DC2626';
+      default: return (colors && (colors.primary as any)) || theme.colors.primary || '#2563EB';
+    }
+  };
+
   return (
     <View style={styles.container}>
-      {/* Seletor de data */}
+      {/* Seletor de data com botão para alternar visualização */}
       <View style={styles.dateSelector}>
         <TouchableOpacity onPress={() => navegarData('anterior')}>
           <Ionicons name="chevron-back" size={24} color="#000" />
@@ -1335,6 +1770,15 @@ export default function AgendaScreen() {
           </Text>
           <Ionicons name={showCalendar ? "chevron-up" : "chevron-down"} size={20} color="#000" />
         </TouchableOpacity>
+
+        {/* Botão que alterna entre grade e lista */}
+        <TouchableOpacity
+          style={{ marginRight: 8, padding: 6 }}
+          onPress={() => setViewMode(prev => prev === 'grid' ? 'list' : 'grid')}
+        >
+          <Ionicons name={viewMode === 'grid' ? 'list' : 'grid'} size={20} color="#000" />
+        </TouchableOpacity>
+
         <TouchableOpacity onPress={() => navegarData('proximo')}>
           <Ionicons name="chevron-forward" size={24} color="#000" />
         </TouchableOpacity>
@@ -1353,6 +1797,13 @@ export default function AgendaScreen() {
             <Calendar
               current={formatSelectedDateString()}
               onDayPress={handleDateSelect}
+              onMonthChange={(month) => {
+                // Quando o usuário navega para outro mês (setas), carregar agendamentos desse mês
+                console.log('[Calendar] onMonthChange disparado:', month);
+                const newDate = new Date(month.year, month.month - 1, month.day);
+                setSelectedDate(newDate);
+                // carregarAgendamentosMes() será chamado automaticamente pelo useEffect que observa selectedDate
+              }}
               markedDates={markedDates}
               theme={{
                 selectedDayBackgroundColor: theme.colors.primary,
@@ -1404,10 +1855,10 @@ export default function AgendaScreen() {
         </View>
       )}
 
-      {/* Grade de horários com scroll horizontal para cards */}
+      {/* Grade de horários com scroll horizontal para cards (renderizar apenas no modo 'grid') */}
       <ScrollView 
         horizontal 
-        style={{ flex: 1 }}
+        style={{ flex: 1, display: viewMode === 'grid' ? 'flex' : 'none' }}
         contentContainerStyle={{ minWidth: 1000 }} // Largura para até 5 colunas de cards
         showsHorizontalScrollIndicator={true}
       >
@@ -1426,26 +1877,63 @@ export default function AgendaScreen() {
                 <Text style={styles.loadingText}>Carregando horários...</Text>
               </View>
             ) : (() => {
-            // Função para converter TIME (HH:MM:SS) para minutos totais
+            // Função para converter TIME (HH:MM:SS ou HH:MM) para minutos totais
             const timeParaMinutos = (timeStr: string) => {
-              const [h, m] = timeStr.split(':').map(Number);
-              return h * 60 + m;
+              if (!timeStr) return 0;
+              
+              // Log para debug
+              logger.debug(`⏱️ timeParaMinutos recebeu: "${timeStr}" (tipo: ${typeof timeStr})`);
+              
+              // Remove qualquer espaço e pega apenas HH:MM (ignora segundos se houver)
+              const partes = String(timeStr).trim().split(':');
+              const h = parseInt(partes[0] || '0', 10);
+              const m = parseInt(partes[1] || '0', 10);
+              
+              const resultado = h * 60 + m;
+              logger.debug(`   ➜ Convertido para: ${resultado} minutos (${h}h ${m}m)`);
+              
+              return resultado;
             };
 
             // Calcular altura do card com base na duração (30min por slot = 40px)
             const calcularAlturaCard = (ag: AgendamentoAgenda) => {
               if (!ag.horario_termino) {
-                logger.debug('⚠️ Agendamento sem horário de término:', ag.cliente);
+                logger.warn(`⚠️ Agendamento "${ag.cliente}" SEM horário de término!`);
                 return 60;
               }
               
-              const dataInicio = new Date(ag.data_hora);
-              const minutosInicio = dataInicio.getHours() * 60 + dataInicio.getMinutes();
-              const minutosTermino = timeParaMinutos(ag.horario_termino);
-              const duracaoMinutos = minutosTermino - minutosInicio;
-              const alturaCalculada = Math.max(60, (duracaoMinutos / 30) * 40);
+              logger.debug(`\n📏 Calculando altura para "${ag.cliente}":`);
+              logger.debug(`   🕐 data_hora: ${ag.data_hora}`);
+              logger.debug(`   🕑 horario_termino: ${ag.horario_termino} (tipo: ${typeof ag.horario_termino})`);
               
-              logger.debug(`📏 Card "${ag.cliente}": ${minutosInicio}min → ${minutosTermino}min = ${duracaoMinutos}min = ${alturaCalculada}px`);
+              // 🔧 CORREÇÃO: Usar parseDataHoraLocal para converter UTC → BRT
+              const dataParsada = parseDataHoraLocal(ag.data_hora);
+              const hora = dataParsada.getHours();
+              const min = dataParsada.getMinutes();
+              const minutosInicio = hora * 60 + min;
+              const minutosTermino = timeParaMinutos(ag.horario_termino);
+              
+              // 🔧 CORREÇÃO: Se horário de término for menor que início, é do próximo dia
+              let duracaoMinutos = minutosTermino - minutosInicio;
+              
+              // Se duração negativa, o término é no dia seguinte (ex: 22:45 até 00:30)
+              if (duracaoMinutos < 0) {
+                duracaoMinutos = (24 * 60 - minutosInicio) + minutosTermino;
+                logger.warn(`⚠️ Horário atravessa meia-noite: ${duracaoMinutos} min`);
+              }
+              
+              // 🎯 FÓRMULA MODULAR: Altura proporcional à duração - Cada 15min = 40px
+              const alturaCalculada = (duracaoMinutos / 15) * 40;
+              
+              logger.debug(`   📊 minutosInicio: ${minutosInicio} (${hora}:${min})`);
+              logger.debug(`   📊 minutosTermino: ${minutosTermino}`);
+              logger.debug(`   ⏱️  Duração: ${duracaoMinutos} minutos`);
+              logger.debug(`   📐 Altura calculada: ${alturaCalculada}px`);
+              
+              if (duracaoMinutos <= 0) {
+                logger.error(`❌ ERRO: Duração inválida (${duracaoMinutos} min) para "${ag.cliente}"!`);
+                return 60;
+              }
               
               return alturaCalculada;
             };
@@ -1456,8 +1944,13 @@ export default function AgendaScreen() {
 
             // Alocar coluna para cada agendamento
             const agendamentosComColuna = agendamentos.map(ag => {
-              const dataInicio = new Date(ag.data_hora);
-              const minutosInicio = dataInicio.getHours() * 60 + dataInicio.getMinutes();
+              // 🔧 CORREÇÃO: Tratar data_hora como horário LOCAL, não UTC
+              // Extrair partes manualmente ao invés de usar new Date()
+              const dataHoraParts = ag.data_hora.split('T');
+              const [ano, mes, dia] = dataHoraParts[0].split('-').map(Number);
+              const [hora, min] = dataHoraParts[1].split(':').map(Number);
+              const minutosInicio = hora * 60 + min;
+              
               const minutosTermino = ag.horario_termino 
                 ? timeParaMinutos(ag.horario_termino) 
                 : minutosInicio + 30;
@@ -1478,8 +1971,12 @@ export default function AgendaScreen() {
 
             // Formatar horário com início e término
             const formatarHorarioAgendamento = (ag: AgendamentoAgenda) => {
-              const dataInicio = new Date(ag.data_hora);
-              const horaInicio = dataInicio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+              // 🔧 CORREÇÃO: Usar parseDataHoraLocal para converter de UTC para BRT
+              const dataParsada = parseDataHoraLocal(ag.data_hora);
+              const horaInicio = dataParsada.toLocaleTimeString('pt-BR', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              });
               
               if (ag.horario_termino) {
                 const [h, m] = ag.horario_termino.split(':');
@@ -1506,9 +2003,10 @@ export default function AgendaScreen() {
 
               // Buscar agendamentos que INICIAM neste horário
               const agendamentosQueIniciam = agendamentosComColuna.filter(ag => {
-                const dataInicio = new Date(ag.data_hora);
-                const horaInicio = dataInicio.getHours();
-                const minutoInicio = dataInicio.getMinutes();
+                // 🔧 CORREÇÃO: Usar parseDataHoraLocal para converter UTC → BRT
+                const dataParsada = parseDataHoraLocal(ag.data_hora);
+                const horaInicio = dataParsada.getHours();
+                const minutoInicio = dataParsada.getMinutes();
                 return horasSlot === horaInicio && Math.abs(minutosSlot - minutoInicio) < 15;
               });
 
@@ -1577,6 +2075,47 @@ export default function AgendaScreen() {
           </ScrollView>
         </View>
       </ScrollView>
+
+      {/* SectionList: lista seccionada por data/mês (visível no modo 'list') */}
+      <SectionList
+        sections={listSections}
+        style={{ flex: 1, display: viewMode === 'list' ? 'flex' : 'none' }}
+        keyExtractor={(item) => item.id}
+        renderSectionHeader={({ section }) => (
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionHeaderText}>{section.title}</Text>
+          </View>
+        )}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.listItem}
+            onPress={() => {
+              setAgendamentosDoHorarioSelecionado([item]);
+              setShowAgendamentosModal(true);
+            }}
+          >
+            <View style={styles.listItemLeft}>
+              <Text style={styles.listItemTime}>{format(parseDataHoraLocal(item.data_hora), 'HH:mm')}</Text>
+            </View>
+            <View style={styles.listItemContent}>
+              <Text style={styles.listItemClient}>{item.cliente}</Text>
+              <Text style={styles.listItemServices} numberOfLines={1}>
+                {JSON.stringify(item.servicos)?.includes('nome')
+                  ? item.servicos.map((s:any) => s.nome).join(', ')
+                  : 'Serviço não especificado'}
+              </Text>
+            </View>
+            <View style={styles.listItemStatus}>
+              <View style={[styles.statusDot, { backgroundColor: getStatusColorGlobal(item.status) }]} />
+            </View>
+          </TouchableOpacity>
+        )}
+        ListEmptyComponent={() => (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Nenhum agendamento encontrado</Text>
+          </View>
+        )}
+      />
 
       <Modal
         visible={showPresencaModal}
@@ -1840,7 +2379,7 @@ export default function AgendaScreen() {
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>Intervalo entre Agendamentos</Text>
                 <View style={styles.selectContainer}>
-                  {['15', '30', '60', '120'].map((valor) => (
+                  {['5', '10', '15', '30', '60', '120'].map((valor) => (
                     <TouchableOpacity
                       key={valor}
                       style={[
@@ -1960,7 +2499,8 @@ export default function AgendaScreen() {
                 };
 
                 const statusInfo = getStatusInfo(item.status);
-                const dataInicio = new Date(item.data_hora);
+                // 🔧 CORREÇÃO: Usar parseDataHoraLocal ao invés de new Date()
+                const dataInicio = parseDataHoraLocal(item.data_hora);
                 const horaInicio = dataInicio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                 let horarioCompleto = horaInicio;
                 
@@ -2034,21 +2574,96 @@ export default function AgendaScreen() {
                       style={styles.whatsappButton}
                       onPress={async () => {
                         try {
-                          const d = new Date(item.data_hora);
+                          logger.debug('🔍 INÍCIO - Verificando dados do agendamento:', {
+                            tem_telefone: !!item.cliente_telefone,
+                            telefone_value: item.cliente_telefone,
+                            cliente: item.cliente,
+                            cliente_id: item.cliente_id,
+                            agendamento_id: item.id
+                          });
+                          
+                          // 1. Validar se o cliente_id existe
+                          if (!item.cliente_id) {
+                            logger.error('❌ CLIENTE_ID NÃO ENCONTRADO no agendamento');
+                            Alert.alert(
+                              'Cliente não vinculado', 
+                              `O agendamento de "${item.cliente}" não está vinculado a um cadastro. Isso pode acontecer com agendamentos antigos. Tente recarregar a tela ou entre em contato com o suporte.`,
+                              [
+                                { text: 'OK', style: 'cancel' }
+                              ]
+                            );
+                            return;
+                          }
+                          
+                          // 2. Validar se há telefone antes de prosseguir
+                          if (!item.cliente_telefone) {
+                            logger.error('❌ TELEFONE NÃO ENCONTRADO no objeto item');
+                            Alert.alert(
+                              'Telefone não cadastrado', 
+                              `O cliente "${item.cliente}" não possui telefone cadastrado. Deseja cadastrar agora?`,
+                              [
+                                { text: 'Agora não', style: 'cancel' },
+                                { 
+                                  text: 'Cadastrar', 
+                                  onPress: () => {
+                                    router.push(`/(app)/clientes/${item.cliente_id}`);
+                                    setShowAgendamentosModal(false);
+                                  }
+                                }
+                              ]
+                            );
+                            return;
+                          }
+                          
+                          // 3. Validar formato do telefone
+                          const numeroLimpo = item.cliente_telefone.replace(/\D/g, '');
+                          logger.debug('📞 Telefone limpo:', numeroLimpo, 'Tamanho:', numeroLimpo.length);
+                          
+                          if (numeroLimpo.length < 10) {
+                            logger.error('❌ TELEFONE INVÁLIDO - menos de 10 dígitos');
+                            Alert.alert(
+                              'Telefone inválido', 
+                              `O telefone cadastrado para "${item.cliente}" está incompleto. Deseja corrigir?`,
+                              [
+                                { text: 'Agora não', style: 'cancel' },
+                                { 
+                                  text: 'Corrigir', 
+                                  onPress: () => {
+                                    router.push(`/(app)/clientes/${item.cliente_id}`);
+                                    setShowAgendamentosModal(false);
+                                  }
+                                }
+                              ]
+                            );
+                            return;
+                          }
+                          
+                          // 🔧 CORREÇÃO: Usar parseDataHoraLocal ao invés de new Date()
+                          const d = parseDataHoraLocal(item.data_hora);
                           const yyyy = d.getFullYear();
                           const mm = String(d.getMonth() + 1).padStart(2, '0');
                           const dd = String(d.getDate()).padStart(2, '0');
                           const dataISO = `${yyyy}-${mm}-${dd}`;
+                          const horaExtrair = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                           const servico = JSON.stringify(item.servicos)?.includes('nome')
                             ? item.servicos.map((s: any) => s.nome).join(', ')
                             : 'Serviço';
                           const payload: AgendamentoMensagem = {
                             cliente_nome: item.cliente,
-                            cliente_telefone: item.cliente_telefone || '',
+                            cliente_telefone: item.cliente_telefone,
                             data: dataISO,
-                            hora: horaInicio,
+                            hora: horaExtrair,
                             servico,
                           };
+                          
+                          logger.debug('📱 Tentando abrir WhatsApp:', {
+                            cliente: payload.cliente_nome,
+                            telefone: payload.cliente_telefone,
+                            telefone_limpo: numeroLimpo,
+                            data: payload.data,
+                            hora: payload.hora
+                          });
+                          
                           await enviarMensagemWhatsapp(payload);
                         } catch (err) {
                           logger.error('Erro ao preparar WhatsApp:', err);
@@ -3358,4 +3973,56 @@ const createStyles = (colors: any) => StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 12,
   },
-}); 
+  // Estilos para visualização em lista
+  sectionHeader: {
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  sectionHeaderText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  listItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  listItemLeft: {
+    width: 72,
+    alignItems: 'flex-start',
+  },
+  listItemTime: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  listItemContent: {
+    flex: 1,
+    paddingLeft: 8,
+  },
+  listItemClient: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  listItemServices: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  listItemStatus: {
+    width: 40,
+    alignItems: 'center',
+  },
+  statusDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+});

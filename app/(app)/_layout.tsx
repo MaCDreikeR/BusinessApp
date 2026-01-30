@@ -1,20 +1,13 @@
-import React from 'react';
+import React, { useEffect, useState , useMemo } from 'react';
 import { Drawer } from 'expo-router/drawer';
 import { useFocusEffect } from '@react-navigation/native';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
-import { usePathname } from 'expo-router';
-import { TouchableOpacity, View, Text, StyleSheet, Image, Alert, ActivityIndicator, Dimensions, Platform } from 'react-native';
-import { router } from 'expo-router';
-import { DeviceEventEmitter } from 'react-native';
-import { Stack } from 'expo-router';
-import { useRouter } from 'expo-router';
-import { DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
-import { DrawerContentComponentProps } from '@react-navigation/drawer';
-import { useEffect, useState } from 'react';
+import { usePathname , router , Stack , useRouter } from 'expo-router';
+import { TouchableOpacity, View, Text, StyleSheet, Image, Alert, ActivityIndicator, Dimensions, Platform , DeviceEventEmitter } from 'react-native';
+import { DrawerContentScrollView, DrawerItemList , DrawerContentComponentProps } from '@react-navigation/drawer';
 import { supabase } from '../../lib/supabase';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useAuth } from '../../contexts/AuthContext';
-import { useMemo } from 'react';
 import AgendamentoNotificacao from '../../components/AgendamentoNotificacao';
 import { useAgendamentoNotificacao } from '../../hooks/useAgendamentoNotificacao';
 import { logger } from '../../utils/logger';
@@ -730,7 +723,8 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="chart-bar" size={20} color={color} />
           ),
-          drawerItemStyle: { display: 'none' }, // Oculto - tela não implementada
+          headerShown: false,
+          drawerItemStyle: { display: permissions.pode_ver_relatorios ? 'flex' : 'none' },
         }}
       />  
       <Drawer.Screen
@@ -810,6 +804,16 @@ export default function AppLayout() {
             <FontAwesome5 name="percentage" size={20} color={color} />
           ),
           drawerItemStyle: permissions.pode_ver_comissoes ? undefined : { display: 'none' },
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => {
+                DeviceEventEmitter.emit('abrirConfigComissoes');
+              }}
+              style={{ marginRight: 16 }}
+            >
+              <Ionicons name="settings-outline" size={24} color={colors.primary} />
+            </TouchableOpacity>
+          ),
         }}
       />
 

@@ -1,24 +1,25 @@
-import { Stack } from 'expo-router';
+import { Stack , router } from 'expo-router';
 import { TouchableOpacity, View, Alert, DeviceEventEmitter } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import { DrawerToggleButton } from '@react-navigation/drawer';
-import { theme } from '@utils/theme';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 export default function EstoqueLayout() {
+  const { colors } = useTheme();
+
   return (
     <Stack
       screenOptions={{
         headerStyle: {
           backgroundColor: colors.surface,
         },
-        headerTintColor: theme.colors.primary,
+        headerTintColor: colors.primary,
         headerTitleStyle: {
           fontWeight: '600',
-          color: theme.colors.primary
+          color: colors.primary
         },
         headerShadowVisible: false,
-        headerLeft: () => <DrawerToggleButton tintColor={theme.colors.primary} />,
+        headerLeft: () => <DrawerToggleButton tintColor={colors.primary} />,
       }}
     >
       <Stack.Screen
@@ -32,12 +33,12 @@ export default function EstoqueLayout() {
                   DeviceEventEmitter.emit('addCategoriaProduto');
                 }}
               >
-                <Ionicons name="list" size={24} color={theme.colors.primary} />
+                <Ionicons name="list" size={24} color={colors.primary} />
               </TouchableOpacity>
               <TouchableOpacity 
                 onPress={() => router.push('/estoque/novo')}
               >
-                <Ionicons name="add" size={24} color={theme.colors.primary} />
+                <Ionicons name="add" size={24} color={colors.primary} />
               </TouchableOpacity>
             </View>
           ),
@@ -56,7 +57,7 @@ export default function EstoqueLayout() {
                 marginRight: 8
               }}
             >
-              <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
+              <Ionicons name="arrow-back" size={24} color={colors.primary} />
             </TouchableOpacity>
           ),
         }}
@@ -69,4 +70,4 @@ export default function EstoqueLayout() {
       />
     </Stack>
   );
-} 
+}

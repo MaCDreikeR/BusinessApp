@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
@@ -7,7 +7,7 @@ import { router, useLocalSearchParams, Stack } from 'expo-router';
 import MaskInput from 'react-native-mask-input';
 import { logger } from '../../../utils/logger';
 import { Produto as ProdutoBase, Fornecedor as FornecedorBase } from '@types';
-import { theme } from '@utils/theme';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 type ProdutoDetalhes = Pick<ProdutoBase, 'id' | 'nome' | 'quantidade' | 'preco' | 'categoria_id' | 'fornecedor_id' | 'quantidade_minima'> & {
   codigo: string;
@@ -52,6 +52,8 @@ const PRECO_MASK = [
 ];
 
 export default function EditarProdutoScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { estabelecimentoId } = useAuth();
   const { id } = useLocalSearchParams();
   const [loading, setLoading] = useState(false);
@@ -303,7 +305,7 @@ export default function EditarProdutoScreen() {
           headerTitle: 'Editar Produto',
           headerLeft: () => (
             <TouchableOpacity onPress={() => router.back()}>
-              <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
+              <Ionicons name="arrow-back" size={24} color={colors.primary} />
             </TouchableOpacity>
           ),
         }} 
@@ -598,7 +600,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
     marginBottom: 8,
   },
   inputGroup: {
@@ -627,7 +629,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginBottom: 32,
   },
   saveButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -721,4 +723,4 @@ const createStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 16,
   },
-}); 
+});

@@ -8,7 +8,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { Picker } from '@react-native-picker/picker';
 import { logger } from '../../../utils/logger';
 import { formatarCPF, formatarCNPJ, formatarTelefone as formatarCelular } from '../../../utils/validators';
-import { theme } from '@utils/theme';
+import { theme, colors } from '../../../utils/theme';
 
 const SEGMENTOS = [
   { label: 'Selecione um segmento', value: '' },
@@ -503,6 +503,15 @@ export default function PerfilScreen() {
       </View>
     </TouchableOpacity>
   );
+
+  // Criar estilos com as cores do tema
+  const styles = createStyles({
+    background: colors.background,
+    surface: colors.surface,
+    text: colors.text,
+    textSecondary: colors.textSecondary,
+    border: colors.border
+  });
 
   if (loading) {
     return (

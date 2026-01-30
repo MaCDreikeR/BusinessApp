@@ -1,7 +1,9 @@
 import { Stack } from 'expo-router';
-import { theme } from '@utils/theme';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 export default function OrcamentosLayout() {
+  const { colors } = useTheme();
+
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen
@@ -19,7 +21,7 @@ export default function OrcamentosLayout() {
           headerStyle: {
             backgroundColor: colors.surface
           },
-          headerTintColor: theme.colors.primary
+          headerTintColor: colors.primary
         }}
       />
       <Stack.Screen
@@ -30,4 +32,4 @@ export default function OrcamentosLayout() {
       />
     </Stack>
   );
-} 
+}

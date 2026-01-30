@@ -6,17 +6,18 @@ import { useRouter, useNavigation, useFocusEffect } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import MaskInput from 'react-native-mask-input';
-// [CACHE-BUSTER-2025-11-05-14:30] Import condicional: DateTimePicker só é importado no mobile
-let DateTimePicker: any = null;
-if (Platform.OS !== 'web') {
-  DateTimePicker = require('@react-native-community/datetimepicker').default;
-}
+import { toISOStringWithTimezone, createLocalISOString, parseISOStringLocal } from '../../../lib/timezone';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { logger } from '../../../utils/logger';
 import { formatarDataInput, formatarTelefoneInput } from '@utils/validators';
 import { theme } from '@utils/theme';
 import { CacheManager, CacheNamespaces } from '../../../utils/cacheManager';
+// [CACHE-BUSTER-2025-11-05-14:30] Import condicional: DateTimePicker só é importado no mobile
+let DateTimePicker: any = null;
+if (Platform.OS !== 'web') {
+  DateTimePicker = require('@react-native-community/datetimepicker').default;
+}
 
 interface Cliente {
   id: string;
@@ -39,6 +40,35 @@ interface Servico {
 }
 
 interface ServicoSelecionado extends Servico {
+  quantidade: number;
+}
+
+interface Pacote {
+  id: string;
+  nome: string;
+  descricao?: string;
+  valor: number;
+  duracao_total?: number;
+  servicos?: {
+    servico: {
+      id: string;
+      nome: string;
+      preco: number;
+      duracao?: number;
+    };
+    quantidade: number;
+  }[];
+  produtos?: {
+    produto: {
+      id: string;
+      nome: string;
+      preco: number;
+    };
+    quantidade: number;
+  }[];
+}
+
+interface PacoteSelecionado extends Pacote {
   quantidade: number;
 }
 
@@ -90,31 +120,69 @@ export default function NovoAgendamentoScreen() {
 
   const [servicosSelecionados, setServicosSelecionados] = useState<ServicoSelecionado[]>([]);
 
-  // Novo estado para animação do modal
-  const translateY = useRef(new Animated.Value(500)).current;
+  // Estados para pacotes
+  const [todosPacotes, setTodosPacotes] = useState<Pacote[]>([]);
+  const [pacotesSelecionados, setPacotesSelecionados] = useState<PacoteSelecionado[]>([]);
+  const [modalPacotesVisible, setModalPacotesVisible] = useState(false);
+  const [pesquisaPacote, setPesquisaPacote] = useState('');
+  const [buscandoPacotes, setBuscandoPacotes] = useState(false);
+
+  // Animações separadas para cada modal
+  const translateYServicos = useRef(new Animated.Value(500)).current;
+  const translateYPacotes = useRef(new Animated.Value(500)).current;
   
-  // Configuração do PanResponder para o cabeçalho do modal
-  const panResponder = useRef(
+  // PanResponder para o modal de serviços
+  const panResponderServicos = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy > 0) { // Só permite arrastar para baixo
-          translateY.setValue(gestureState.dy);
+        if (gestureState.dy > 0) {
+          translateYServicos.setValue(gestureState.dy);
         }
       },
       onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > 100) { // Se arrastar mais que 100px, fecha o modal
-          Animated.timing(translateY, {
+        if (gestureState.dy > 100) {
+          Animated.timing(translateYServicos, {
             toValue: 500,
             duration: 200,
             useNativeDriver: true,
           }).start(() => {
             setModalVisible(false);
-            translateY.setValue(500);
+            translateYServicos.setValue(500);
           });
         } else {
-          // Se não arrastar o suficiente, volta para a posição inicial
-          Animated.spring(translateY, {
+          Animated.spring(translateYServicos, {
+            toValue: 0,
+            tension: 40,
+            friction: 8,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
+
+  // PanResponder para o modal de pacotes
+  const panResponderPacotes = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          translateYPacotes.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 100) {
+          Animated.timing(translateYPacotes, {
+            toValue: 500,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => {
+            setModalPacotesVisible(false);
+            translateYPacotes.setValue(500);
+          });
+        } else {
+          Animated.spring(translateYPacotes, {
             toValue: 0,
             tension: 40,
             friction: 8,
@@ -156,6 +224,110 @@ export default function NovoAgendamentoScreen() {
   const [temIntervalo, setTemIntervalo] = useState(false);
   const [horarioIntervaloInicio, setHorarioIntervaloInicio] = useState('12:00');
   const [horarioIntervaloFim, setHorarioIntervaloFim] = useState('13:00');
+
+  // Função para calcular a duração total dos serviços selecionados
+  const calcularDuracaoTotal = useCallback((): number | null => {
+    if (servicosSelecionados.length === 0) return null;
+    
+    let duracaoTotal = 0;
+    let temDuracao = false;
+    
+    for (const servico of servicosSelecionados) {
+      if (servico.duracao) {
+        duracaoTotal += servico.duracao * (servico.quantidade || 1);
+        temDuracao = true;
+      }
+    }
+    
+    return temDuracao ? duracaoTotal : null;
+  }, [servicosSelecionados]);
+
+  // Função para calcular horário de término baseado no horário de início e duração
+  const calcularHorarioTermino = useCallback((horarioInicio: string, duracaoMinutos: number): string => {
+    const [horas, minutos] = horarioInicio.split(':').map(Number);
+    
+    // Converte tudo para minutos
+    const minutosInicio = horas * 60 + minutos;
+    const minutosFim = minutosInicio + duracaoMinutos;
+    
+    // Converte de volta para horas e minutos
+    const horasFim = Math.floor(minutosFim / 60);
+    const minutosFim2 = minutosFim % 60;
+    
+    // Formata com zero à esquerda
+    const horaFormatada = String(horasFim).padStart(2, '0');
+    const minutoFormatado = String(minutosFim2).padStart(2, '0');
+    
+    return `${horaFormatada}:${minutoFormatado}`;
+  }, []);
+
+  // Calcular duração total considerando serviços e pacotes
+  const calcularDuracaoTotalCompleta = useCallback((): number | null => {
+    let duracaoTotal = 0;
+    let temDuracao = false;
+    
+    // Duração dos serviços
+    for (const servico of servicosSelecionados) {
+      if (servico.duracao) {
+        const duracaoServico = servico.duracao * (servico.quantidade || 1);
+        duracaoTotal += duracaoServico;
+        temDuracao = true;
+        logger.debug(`🔧 Serviço "${servico.nome}": ${servico.duracao} min x ${servico.quantidade} = ${duracaoServico} min`);
+      }
+    }
+    
+    // Duração dos pacotes
+    for (const pacote of pacotesSelecionados) {
+      if (pacote.duracao_total) {
+        const duracaoPacote = pacote.duracao_total * (pacote.quantidade || 1);
+        duracaoTotal += duracaoPacote;
+        temDuracao = true;
+        logger.debug(`📦 Pacote "${pacote.nome}": ${pacote.duracao_total} min x ${pacote.quantidade} = ${duracaoPacote} min`);
+      } else {
+        logger.warn(`⚠️ Pacote "${pacote.nome}" NÃO tem duracao_total definida!`);
+      }
+    }
+    
+    logger.debug(`⏱️ TOTAL calculado: ${duracaoTotal} min (temDuracao: ${temDuracao})`);
+    return temDuracao ? duracaoTotal : null;
+  }, [servicosSelecionados, pacotesSelecionados]);
+
+  // Effect para atualizar horário de término automaticamente quando hora de início ou serviços/pacotes mudam
+  useEffect(() => {
+    logger.debug('───────────────────────────────────────────────────────');
+    logger.debug('🔄 useEffect DISPARADO - Verificando cálculo de término');
+    logger.debug(`📅 Hora início: ${hora}`);
+    logger.debug(`🔧 Serviços selecionados: ${servicosSelecionados.length}`);
+    logger.debug(`📦 Pacotes selecionados: ${pacotesSelecionados.length}`);
+    
+    if (hora && (servicosSelecionados.length > 0 || pacotesSelecionados.length > 0)) {
+      logger.debug('✅ Condições atendidas - calculando duração...');
+      
+      const duracaoTotal = calcularDuracaoTotalCompleta();
+      
+      logger.debug(`⏱️  Duração total calculada: ${duracaoTotal} min`);
+      
+      if (duracaoTotal) {
+        const horarioTerminoCalculado = calcularHorarioTermino(hora, duracaoTotal);
+        logger.debug(`🎯 Horário de término calculado: ${horarioTerminoCalculado}`);
+        logger.debug(`📝 Atualizando estado horaTermino para: ${horarioTerminoCalculado}`);
+        setHoraTermino(horarioTerminoCalculado);
+        logger.debug(`✅ Estado horaTermino atualizado!`);
+      } else {
+        logger.warn('⚠️  duracaoTotal retornou NULL - sem duração definida');
+        if (horaTermino) {
+          logger.debug('⚠️ Mantendo horário de término manual');
+        }
+      }
+    } else {
+      logger.warn('❌ Condições NÃO atendidas:');
+      if (!hora) logger.warn('  - Hora de início não definida');
+      if (servicosSelecionados.length === 0 && pacotesSelecionados.length === 0) {
+        logger.warn('  - Nenhum serviço ou pacote selecionado');
+      }
+    }
+    logger.debug('───────────────────────────────────────────────────────');
+  }, [hora, servicosSelecionados, pacotesSelecionados, calcularDuracaoTotalCompleta, calcularHorarioTermino]);
 
   // Sincronização com o estado de presença da tela de agenda
   useEffect(() => {
@@ -335,6 +507,95 @@ export default function NovoAgendamentoScreen() {
     }
   };
 
+  const carregarPacotes = async () => {
+    try {
+      logger.debug('Iniciando carregamento de pacotes...', { estabelecimentoId });
+      
+      if (!estabelecimentoId) {
+        logger.warn('estabelecimentoId não disponível para carregar pacotes');
+        return;
+      }
+      
+      setBuscandoPacotes(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        logger.warn('Usuário não autenticado');
+        return;
+      }
+
+      logger.debug('Executando query de pacotes...');
+      const { data, error } = await supabase
+        .from('pacotes')
+        .select(`
+          *,
+          servicos:pacotes_servicos(
+            quantidade,
+            servico:servicos(
+              id,
+              nome,
+              preco,
+              duracao
+            )
+          ),
+          produtos:pacotes_produtos(
+            quantidade,
+            produto:produtos(
+              id,
+              nome,
+              preco
+            )
+          )
+        `)
+        .eq('estabelecimento_id', estabelecimentoId)
+        .order('nome');
+
+      if (error) {
+        logger.error('Erro na query de pacotes:', error);
+        throw error;
+      }
+      
+      // Calcular duracao_total para cada pacote se não existir
+      const pacotesComDuracao = (data || []).map(pacote => {
+        logger.debug(`\n🔍 Processando pacote: "${pacote.nome}"`);
+        logger.debug(`   duracao_total do banco: ${pacote.duracao_total}`);
+        logger.debug(`   Tem servicos? ${!!pacote.servicos} (${pacote.servicos?.length || 0} itens)`);
+        
+        if (!pacote.duracao_total && pacote.servicos) {
+          // Calcular duração total somando os serviços
+          const duracaoCalculada = pacote.servicos.reduce((total: number, item: any) => {
+            const duracao = item.servico?.duracao || 0;
+            const quantidade = item.quantidade || 1;
+            const subtotal = duracao * quantidade;
+            logger.debug(`   - Serviço "${item.servico?.nome}": ${duracao} min x ${quantidade} = ${subtotal} min`);
+            return total + subtotal;
+          }, 0);
+          
+          logger.debug(`   ✅ Duração CALCULADA: ${duracaoCalculada} min`);
+          
+          return {
+            ...pacote,
+            duracao_total: duracaoCalculada > 0 ? duracaoCalculada : undefined
+          };
+        }
+        
+        logger.debug(`   ℹ️  Usando duracao_total do banco: ${pacote.duracao_total} min`);
+        return pacote;
+      });
+      
+      logger.debug('Pacotes carregados com sucesso:', { 
+        quantidade: pacotesComDuracao.length,
+        pacotes: pacotesComDuracao 
+      });
+      
+      setTodosPacotes(pacotesComDuracao);
+    } catch (error) {
+      logger.error('Erro ao carregar pacotes:', error);
+      Alert.alert('Erro', 'Não foi possível carregar os pacotes');
+    } finally {
+      setBuscandoPacotes(false);
+    }
+  };
+
   const carregarBloqueios = async () => {
     try {
       // Carregar dias da semana bloqueados
@@ -477,35 +738,36 @@ export default function NovoAgendamentoScreen() {
 
       const [dia, mes, ano] = data.split('/');
       const [hora_agendamento, minuto] = hora.split(':');
-      const dataHoraAgendamento = new Date(
-        parseInt(ano),
-        parseInt(mes) - 1,
-        parseInt(dia),
-        parseInt(hora_agendamento),
-        parseInt(minuto)
-      );
-
-      // Verificar se o horário já atingiu o limite de agendamentos simultâneos
-      const horaInicio = dataHoraAgendamento.toISOString();
       
-      // Buscar agendamentos para o mesmo horário
+      // 🔧 CORREÇÃO: Criar data/hora SEM conversão de timezone
+      // Usar formato ISO local ao invés de UTC
+      const anoInt = parseInt(ano);
+      const mesInt = parseInt(mes) - 1; // JavaScript: mês começa em 0
+      const diaInt = parseInt(dia);
+      const horaInt = parseInt(hora_agendamento);
+      const minInt = parseInt(minuto);
+      
+      logger.debug(`📅 Criando agendamento:`);
+      logger.debug(`   Data: ${diaInt}/${mesInt + 1}/${anoInt}`);
+      logger.debug(`   Hora: ${horaInt}:${minInt}`);
+      
+      // 🔧 CORREÇÃO: Criar string ISO com offset de timezone local usando função utilitária
+      const dataHoraLocal = createLocalISOString(anoInt, mesInt + 1, diaInt, horaInt, minInt);
+      
+      logger.debug(`   ISO Local com offset: ${dataHoraLocal}`);
+      
+      // Criar objeto Date para comparações
+      const dataHoraAgendamento = new Date(anoInt, mesInt, diaInt, horaInt, minInt);
+
+      // Buscar agendamentos para o mesmo horário usando timezone local
+      const dataInicio = new Date(anoInt, mesInt, diaInt, horaInt, minInt - 15);
+      const dataFim = new Date(anoInt, mesInt, diaInt, horaInt, minInt + 15);
+      
       const { data: agendamentosExistentes, error: erroConsulta } = await supabase
         .from('agendamentos')
         .select('id, data_hora, cliente')
-        .gte('data_hora', new Date(
-          parseInt(ano),
-          parseInt(mes) - 1,
-          parseInt(dia),
-          parseInt(hora_agendamento),
-          parseInt(minuto) - 15
-        ).toISOString())
-        .lte('data_hora', new Date(
-          parseInt(ano),
-          parseInt(mes) - 1,
-          parseInt(dia),
-          parseInt(hora_agendamento),
-          parseInt(minuto) + 15
-        ).toISOString());
+        .gte('data_hora', toISOStringWithTimezone(dataInicio))
+        .lte('data_hora', toISOStringWithTimezone(dataFim));
         
       if (erroConsulta) throw erroConsulta;
 
@@ -524,33 +786,56 @@ export default function NovoAgendamentoScreen() {
         return;
       }
 
-      // Preparar os detalhes dos serviços (pode estar vazio)
-      const detalhesServicos = servicosSelecionados.map(s => ({
+      // Preparar os detalhes dos serviços (incluir serviços avulsos + serviços dos pacotes)
+      let detalhesServicos = servicosSelecionados.map(s => ({
         nome: s.nome,
         quantidade: s.quantidade,
         preco: s.preco,
         servico_id: s.id
       }));
 
+      // Adicionar serviços dos pacotes selecionados
+      pacotesSelecionados.forEach(pacote => {
+        if (pacote.servicos && Array.isArray(pacote.servicos)) {
+          pacote.servicos.forEach((servicoPacote: any) => {
+            detalhesServicos.push({
+              nome: servicoPacote.servico?.nome || servicoPacote.nome || 'Serviço do pacote',
+              quantidade: 1,
+              preco: 0, // Preço já está no valor do pacote
+              servico_id: servicoPacote.servico_id
+            });
+          });
+        }
+      });
+
       const valorTotalAgendamento = servicosSelecionados.length > 0 
         ? servicosSelecionados.reduce((total, s) => total + (s.preco * s.quantidade), 0)
         : 0;
+      
+      const valorTotalPacotes = pacotesSelecionados.reduce((total, p) => total + (p.valor || 0), 0);
+      const valorTotalFinal = valorTotalAgendamento + valorTotalPacotes;
 
       // Preparar horário de término no formato TIME (HH:MM:SS)
       let horarioTerminoFormatado = null;
       if (horaTermino) {
         horarioTerminoFormatado = `${horaTermino}:00`; // Adiciona segundos ao formato HH:MM
+        logger.debug(`   Horário Término: ${horarioTerminoFormatado}`);
       }
+
+      logger.debug(`\n💾 ========== SALVANDO NO BANCO [CÓDIGO NOVO v2.0] ==========`);
+      logger.debug(`   ✅ data_hora COM TIMEZONE: ${dataHoraLocal}`);
+      logger.debug(`   ✅ horario_termino: ${horarioTerminoFormatado}`);
+      logger.debug(`   🔧 Usando createLocalISOString() - CÓDIGO ATUALIZADO!`);
 
       const { error } = await supabase
         .from('agendamentos')
         .insert({
           cliente,
           telefone: telefone.replace(/\D/g, ''),
-          data_hora: dataHoraAgendamento.toISOString(),
+          data_hora: dataHoraLocal, // 🔧 Usar string ISO local ao invés de toISOString()
           horario_termino: horarioTerminoFormatado,
           servicos: detalhesServicos,
-          valor_total: valorTotalAgendamento,
+          valor_total: valorTotalFinal, // Valor total incluindo serviços + pacotes
           observacoes: observacoes.trim() || null,
           estabelecimento_id: estabelecimentoId,
           status: 'agendado',
@@ -606,6 +891,7 @@ export default function NovoAgendamentoScreen() {
     // Limpar seleções
     setClienteSelecionado(null);
     setServicosSelecionados([]);
+    setPacotesSelecionados([]);
     setUsuarioSelecionado(null);
     
     // Resetar flags
@@ -621,10 +907,12 @@ export default function NovoAgendamentoScreen() {
     setMostrarSeletorHorario(false);
     setMostrarSeletorHorarioTermino(false);
     setModalVisible(false);
+    setModalPacotesVisible(false);
     
     // Resetar listas de resultados
     setClientesEncontrados([]);
     setPesquisaServico('');
+    setPesquisaPacote('');
     
     // Resetar data
     setDateValue(new Date());
@@ -735,28 +1023,81 @@ export default function NovoAgendamentoScreen() {
   };
 
   const atualizarServicosSelecionados = () => {
-    if (servicosSelecionados.length > 0) {
-      const servicosTexto = servicosSelecionados
-        .map(s => `${s.nome} (${s.quantidade}x)`)
-        .join(', ');
-      
-      const total = servicosSelecionados.reduce(
-        (sum, s) => sum + (s.preco * s.quantidade), 
-        0
-      );
-
-      setServico(servicosTexto);
-      setValorTotal(total);
+    // Calcula valor total combinando serviços e pacotes
+    const totalServicos = servicosSelecionados.reduce(
+      (sum, s) => sum + (s.preco * s.quantidade), 
+      0
+    );
+    
+    const totalPacotes = pacotesSelecionados.reduce(
+      (sum, p) => sum + (p.valor * p.quantidade), 
+      0
+    );
+    
+    const total = totalServicos + totalPacotes;
+    setValorTotal(total);
+    
+    // Limpa erro de serviço se houver algo selecionado
+    if (servicosSelecionados.length > 0 || pacotesSelecionados.length > 0) {
       setErrors(prev => ({ ...prev, servico: '' }));
-    } else {
-      setServico('');
-      setValorTotal(0);
     }
+  };
+
+  // Funções para manipulação de pacotes
+  const buscarPacotes = (nome: string) => {
+    setPesquisaPacote(nome);
+  };
+
+  const handleSelecionarPacote = (pacote: Pacote) => {
+    const jaExiste = pacotesSelecionados.find(p => p.id === pacote.id);
+    
+    if (!jaExiste) {
+      logger.debug('═══════════════════════════════════════════════════════');
+      logger.debug(`📦 PACOTE SELECIONADO: "${pacote.nome}"`);
+      logger.debug(`📊 Dados do pacote:`, JSON.stringify(pacote, null, 2));
+      logger.debug(`⏱️  duracao_total: ${pacote.duracao_total} min`);
+      logger.debug(`🔢 Quantidade: 1`);
+      logger.debug(`🕐 Horário de início atual: ${hora}`);
+      logger.debug('═══════════════════════════════════════════════════════');
+      
+      setPacotesSelecionados([...pacotesSelecionados, { ...pacote, quantidade: 1 }]);
+    }
+  };
+
+  const handleQuantidadePacote = (pacoteId: string, acao: 'aumentar' | 'diminuir') => {
+    setPacotesSelecionados(prevPacotes => 
+      prevPacotes.map(pacote => {
+        if (pacote.id === pacoteId) {
+          const novaQuantidade = acao === 'aumentar' 
+            ? pacote.quantidade + 1 
+            : Math.max(1, pacote.quantidade - 1);
+          return { ...pacote, quantidade: novaQuantidade };
+        }
+        return pacote;
+      })
+    );
+  };
+
+  const handleRemoverPacote = (pacoteId: string) => {
+    setPacotesSelecionados(prevPacotes => 
+      prevPacotes.filter(pacote => pacote.id !== pacoteId)
+    );
+  };
+
+  const atualizarPacotesSelecionados = () => {
+    // Esta função agora apenas dispara a atualização
+    // O cálculo real é feito em atualizarServicosSelecionados
+    atualizarServicosSelecionados();
   };
 
   useEffect(() => {
     atualizarServicosSelecionados();
   }, [servicosSelecionados]);
+
+  useEffect(() => {
+    atualizarPacotesSelecionados();
+    logger.debug(`🔄 pacotesSelecionados mudou (${pacotesSelecionados.length} itens)`);
+  }, [pacotesSelecionados]);
 
   useEffect(() => {
     if (modalVisible) {
@@ -765,10 +1106,22 @@ export default function NovoAgendamentoScreen() {
   }, [modalVisible]);
 
   useEffect(() => {
+    if (modalPacotesVisible) {
+      carregarPacotes();
+    }
+  }, [modalPacotesVisible]);
+
+  useEffect(() => {
     carregarUsuarios();
     carregarServicos();
+    carregarPacotes();
     carregarBloqueios();
   }, []);
+
+  // Debug: Monitorar mudanças no estado horaTermino
+  useEffect(() => {
+    logger.debug(`🎯 [MONITOR] horaTermino mudou para: "${horaTermino}"`);
+  }, [horaTermino]);
 
   // Adicionar função para carregar configurações de horários
   const carregarConfiguracoesHorarios = async () => {
@@ -939,6 +1292,63 @@ export default function NovoAgendamentoScreen() {
     }
   };
 
+  // Função para selecionar horário com validação simples
+  const selecionarHorario = (horarioSelecionado: string) => {
+    try {
+      // 1️⃣ Calcular duração total
+      const duracaoTotal = calcularDuracaoTotalCompleta();
+      
+      if (!duracaoTotal) {
+        // Se não tem duração, apenas selecionar
+        setHora(horarioSelecionado);
+        setMostrarSeletorHorario(false);
+        setErrors({...errors, hora: ''});
+        logger.debug(`✅ Horário ${horarioSelecionado} selecionado (sem duração)`);
+        return;
+      }
+
+      // 2️⃣ Calcular horário de término
+      const horarioTerminoCalculado = calcularHorarioTermino(horarioSelecionado, duracaoTotal);
+      logger.debug(`⏱️ Verificando período: ${horarioSelecionado} até ${horarioTerminoCalculado} (duração: ${duracaoTotal}min)`);
+
+      // 3️⃣ Converter horas para minutos para comparação
+      const [hInicio, mInicio] = horarioSelecionado.split(':').map(Number);
+      const minutosInicio = hInicio * 60 + mInicio;
+
+      const [hFim, mFim] = horarioTerminoCalculado.split(':').map(Number);
+      const minutosFim = hFim * 60 + mFim;
+
+      // 4️⃣ Verificar se algum slot entre início e fim está ocupado
+      const slotsOcupados = horariosDisponiveis.filter(slot => {
+        const [h, m] = slot.horario.split(':').map(Number);
+        const minutosSlot = h * 60 + m;
+        
+        // Verificar se este slot está dentro do intervalo [minutosInicio, minutosFim)
+        return minutosSlot >= minutosInicio && minutosSlot < minutosFim && slot.ocupado;
+      });
+
+      if (slotsOcupados.length > 0) {
+        logger.error(`❌ Horário indisponível! Slots ocupados: ${slotsOcupados.map(s => s.horario).join(', ')}`);
+        Alert.alert(
+          'Horário Indisponível',
+          `Não é possível agendar de ${horarioSelecionado} até ${horarioTerminoCalculado} (${duracaoTotal} minutos).\n\nOs horários ${slotsOcupados.map(s => s.horario).join(', ')} já estão ocupados.\n\nEscolha outro horário ou serviço com duração menor.`
+        );
+        return;
+      }
+
+      // 5️⃣ Se passou na validação, selecionar o horário
+      setHora(horarioSelecionado);
+      setHoraTermino(horarioTerminoCalculado);
+      setMostrarSeletorHorario(false);
+      setErrors({...errors, hora: ''});
+      
+      logger.success(`✅ Horário ${horarioSelecionado}-${horarioTerminoCalculado} selecionado com sucesso!`);
+    } catch (error) {
+      logger.error('Erro ao selecionar horário:', error);
+      Alert.alert('Erro', 'Ocorreu um erro ao validar o horário. Tente novamente.');
+    }
+  };
+
   // Função para verificar disponibilidade de horários para a data selecionada
   const verificarDisponibilidadeHorarios = async (horarios: string[]) => {
     try {
@@ -954,24 +1364,14 @@ export default function NovoAgendamentoScreen() {
         parseInt(dia)
       );
       
-      const inicioDia = new Date(
-        parseInt(ano),
-        parseInt(mes) - 1,
-        parseInt(dia),
-        0, 0, 0
-      ).toISOString();
-      
-      const fimDia = new Date(
-        parseInt(ano),
-        parseInt(mes) - 1,
-        parseInt(dia),
-        23, 59, 59
-      ).toISOString();
+      // 🔧 CORREÇÃO: Usar timezone local para buscar agendamentos do dia
+      const inicioDia = createLocalISOString(parseInt(ano), parseInt(mes), parseInt(dia), 0, 0, 0);
+      const fimDia = createLocalISOString(parseInt(ano), parseInt(mes), parseInt(dia), 23, 59, 59);
       
       // Buscar agendamentos para o dia selecionado
       const { data: agendamentosDia, error } = await supabase
         .from('agendamentos')
-        .select('id, data_hora, cliente')
+        .select('id, data_hora, cliente, horario_termino')
         .gte('data_hora', inicioDia)
         .lte('data_hora', fimDia);
         
@@ -986,14 +1386,34 @@ export default function NovoAgendamentoScreen() {
       // Verificar disponibilidade de cada horário
       const horariosComStatus = horarios.map(horario => {
         const [horas, minutos] = horario.split(':').map(Number);
+        const minutosDoSlot = horas * 60 + minutos;
         
-        // Contar agendamentos para este horário
+        // Contar agendamentos que OCUPAM este horário
         const agendamentosNoHorario = agendamentosDia?.filter(agendamento => {
-          const dataAgendamento = new Date(agendamento.data_hora);
-          return (
-            dataAgendamento.getHours() === horas &&
-            Math.abs(dataAgendamento.getMinutes() - minutos) < 15
-          );
+          // 🔧 CORREÇÃO: Usar parseISOStringLocal para converter UTC → BRT corretamente
+          const dataParsada = parseISOStringLocal(agendamento.data_hora);
+          const horaInicio = dataParsada.getHours();
+          const minutoInicio = dataParsada.getMinutes();
+          const minutosInicio = horaInicio * 60 + minutoInicio;
+          
+          // Calcular minutos de término
+          let minutosTermino = 0;
+          if (agendamento.horario_termino) {
+            const [hTerm, mTerm] = agendamento.horario_termino.split(':').map(Number);
+            minutosTermino = hTerm * 60 + mTerm;
+          } else {
+            // Se não tem término, assume que ocupa pelo menos o horário atual
+            minutosTermino = minutosInicio + 15;
+          }
+          
+          // Se atravessa meia-noite (ex: 23:00 até 01:00)
+          if (minutosTermino < minutosInicio) {
+            minutosTermino += 24 * 60;
+          }
+          
+          // Verificar se este slot está dentro do intervalo do agendamento
+          // O agendamento ocupa todos os 15min a partir da hora de início até (mas não incluindo) a hora de término
+          return minutosDoSlot >= minutosInicio && minutosDoSlot < minutosTermino;
         });
         
         const quantidade = agendamentosNoHorario?.length || 0;
@@ -1120,7 +1540,17 @@ export default function NovoAgendamentoScreen() {
 
   const abrirModal = () => {
     setModalVisible(true);
-    Animated.spring(translateY, {
+    Animated.spring(translateYServicos, {
+      toValue: 0,
+      tension: 40,
+      friction: 8,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const abrirModalPacotes = () => {
+    setModalPacotesVisible(true);
+    Animated.spring(translateYPacotes, {
       toValue: 0,
       tension: 40,
       friction: 8,
@@ -1129,13 +1559,24 @@ export default function NovoAgendamentoScreen() {
   };
 
   const fecharModalComAnimacao = () => {
-    Animated.timing(translateY, {
+    Animated.timing(translateYServicos, {
       toValue: 500,
       duration: 200,
       useNativeDriver: true,
     }).start(() => {
       setModalVisible(false);
-      translateY.setValue(500);
+      translateYServicos.setValue(500);
+    });
+  };
+
+  const fecharModalPacotesComAnimacao = () => {
+    Animated.timing(translateYPacotes, {
+      toValue: 500,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      setModalPacotesVisible(false);
+      translateYPacotes.setValue(500);
     });
   };
 
@@ -1372,6 +1813,124 @@ export default function NovoAgendamentoScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Detalhes do Agendamento</Text>
 
+          {/* CAMPO DE SERVIÇO/PACOTE - MOVIDO PARA CIMA DA DATA */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Serviços / Pacotes *</Text>
+            <View style={styles.servicoPacoteContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.servicoButton,
+                  styles.servicoButtonMetade,
+                  servicosSelecionados.length > 0 ? styles.servicoButtonSelecionado : null
+                ]}
+                onPress={abrirModal}
+              >
+                <View style={styles.servicoButtonContent}>
+                  <FontAwesome5 
+                    name="cut" 
+                    size={16} 
+                    color={servicosSelecionados.length > 0 ? theme.colors.primary : '#9CA3AF'} 
+                    style={styles.servicoIcon} 
+                  />
+                  <Text 
+                    style={[
+                      styles.servicoButtonText,
+                      servicosSelecionados.length > 0 ? styles.servicoButtonTextSelecionado : null
+                    ]}
+                  >
+                    {servicosSelecionados.length > 0 
+                      ? `Serviços (${servicosSelecionados.length})` 
+                      : 'Serviços'}
+                  </Text>
+                </View>
+                {servicosSelecionados.length > 0 && (
+                  <Text style={styles.servicoPrecoButton}>
+                    R$ {servicosSelecionados.reduce((sum, s) => sum + (s.preco * s.quantidade), 0).toLocaleString('pt-BR', { 
+                      minimumFractionDigits: 2, 
+                      maximumFractionDigits: 2 
+                    })}
+                  </Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.servicoButton,
+                  styles.servicoButtonMetade,
+                  styles.pacoteButton,
+                  pacotesSelecionados.length > 0 && styles.servicoButtonSelecionado
+                ]}
+                onPress={abrirModalPacotes}
+              >
+                <View style={styles.servicoButtonContent}>
+                  <FontAwesome5 
+                    name="box" 
+                    size={16} 
+                    color={pacotesSelecionados.length > 0 ? colors.primary : '#9CA3AF'} 
+                    style={styles.servicoIcon} 
+                  />
+                  <Text style={[
+                    styles.servicoButtonText,
+                    pacotesSelecionados.length > 0 ? styles.servicoButtonTextSelecionado : null
+                  ]}>
+                    {pacotesSelecionados.length > 0 
+                      ? `Pacotes (${pacotesSelecionados.length})` 
+                      : 'Pacotes'}
+                  </Text>
+                </View>
+                {pacotesSelecionados.length > 0 && (
+                  <Text style={styles.servicoPrecoButton}>
+                    R$ {pacotesSelecionados.reduce((sum, p) => sum + (p.valor * p.quantidade), 0).toLocaleString('pt-BR', { 
+                      minimumFractionDigits: 2, 
+                      maximumFractionDigits: 2 
+                    })}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+            {renderError('servico')}
+            {servicosSelecionados.length === 0 && pacotesSelecionados.length === 0 && (
+              <Text style={styles.inputHelper}>
+                💡 Selecione um serviço ou pacote antes de escolher a data
+              </Text>
+            )}
+            
+            {/* Mostra os itens selecionados */}
+            {servicosSelecionados.length > 0 && (
+              <View style={styles.itensSelecionadosContainer}>
+                <Text style={styles.itensSelecionadosLabel}>Serviços:</Text>
+                {servicosSelecionados.map(s => (
+                  <Text key={s.id} style={styles.itemSelecionadoTexto}>
+                    • {s.nome} ({s.quantidade}x) - R$ {(s.preco * s.quantidade).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </Text>
+                ))}
+              </View>
+            )}
+            
+            {pacotesSelecionados.length > 0 && (
+              <View style={styles.itensSelecionadosContainer}>
+                <Text style={styles.itensSelecionadosLabel}>Pacotes:</Text>
+                {pacotesSelecionados.map(p => (
+                  <Text key={p.id} style={styles.itemSelecionadoTexto}>
+                    • {p.nome} ({p.quantidade}x) - R$ {(p.valor * p.quantidade).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </Text>
+                ))}
+              </View>
+            )}
+            
+            {(servicosSelecionados.length > 0 || pacotesSelecionados.length > 0) && (
+              <View style={styles.totalContainer}>
+                <Text style={styles.totalLabel}>Valor Total:</Text>
+                <Text style={styles.totalValor}>
+                  R$ {(
+                    servicosSelecionados.reduce((sum, s) => sum + (s.preco * s.quantidade), 0) +
+                    pacotesSelecionados.reduce((sum, p) => sum + (p.valor * p.quantidade), 0)
+                  ).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </Text>
+              </View>
+            )}
+          </View>
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Data *</Text>
             <TouchableOpacity
@@ -1379,22 +1938,31 @@ export default function NovoAgendamentoScreen() {
                 styles.input,
                 errors.data ? styles.inputError : null,
                 data ? styles.inputPreenchido : null,
-                isDataBloqueada(data) ? styles.inputBloqueado : null
+                isDataBloqueada(data) ? styles.inputBloqueado : null,
+                (servicosSelecionados.length === 0 && pacotesSelecionados.length === 0) ? styles.inputDisabled : null
               ]}
-              onPress={abrirSeletorData}
+              onPress={() => {
+                if (servicosSelecionados.length === 0 && pacotesSelecionados.length === 0) {
+                  Alert.alert('Atenção', 'Por favor, selecione um serviço ou pacote antes de escolher a data.');
+                  return;
+                }
+                abrirSeletorData();
+              }}
+              disabled={servicosSelecionados.length === 0 && pacotesSelecionados.length === 0}
             >
               <View style={styles.inputContent}>
                 <FontAwesome5 
                   name="calendar" 
                   size={16} 
-                  color={data ? (isDataBloqueada(data) ? '#FF6B6B' : theme.colors.primary) : '#9CA3AF'} 
+                  color={data ? (isDataBloqueada(data) ? '#FF6B6B' : theme.colors.primary) : ((servicosSelecionados.length === 0 && pacotesSelecionados.length === 0) ? '#D1D5DB' : '#9CA3AF')} 
                   style={styles.inputIcon} 
                 />
                 <Text 
                   style={[
                     styles.inputText,
                     data ? styles.inputTextPreenchido : null,
-                    isDataBloqueada(data) ? styles.inputTextBloqueado : null
+                    isDataBloqueada(data) ? styles.inputTextBloqueado : null,
+                    (servicosSelecionados.length === 0 && pacotesSelecionados.length === 0) ? styles.inputTextDisabled : null
                   ]}
                 >
                   {data || 'Selecionar Data'}
@@ -1405,6 +1973,11 @@ export default function NovoAgendamentoScreen() {
               </View>
             </TouchableOpacity>
             {renderError('data')}
+            {servicosSelecionados.length === 0 && pacotesSelecionados.length === 0 && (
+              <Text style={styles.inputHelper}>
+                ⚠️ Selecione um serviço ou pacote primeiro
+              </Text>
+            )}
             {isDataBloqueada(data) && !errors.data && (
               <Text style={styles.inputAlertText}>Esta data está bloqueada para agendamentos</Text>
             )}
@@ -1468,43 +2041,27 @@ export default function NovoAgendamentoScreen() {
               </Text>
             </TouchableOpacity>
             {renderError('horaTermino')}
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Serviço</Text>
-            <TouchableOpacity
-              style={[
-                styles.servicoButton,
-                servicosSelecionados.length > 0 ? styles.servicoButtonSelecionado : null
-              ]}
-              onPress={abrirModal}
-            >
-              <View style={styles.servicoButtonContent}>
-                <FontAwesome5 
-                  name="cut" 
-                  size={16} 
-                  color={servicosSelecionados.length > 0 ? theme.colors.primary : '#9CA3AF'} 
-                  style={styles.servicoIcon} 
-                />
-                <Text 
-                  style={[
-                    styles.servicoButtonText,
-                    servicosSelecionados.length > 0 ? styles.servicoButtonTextSelecionado : null
-                  ]}
-                >
-                  {servico || 'Selecionar Serviço'}
-                </Text>
-              </View>
-              {valorTotal > 0 && (
-                <Text style={styles.servicoPrecoButton}>
-                  R$ {valorTotal.toLocaleString('pt-BR', { 
-                    minimumFractionDigits: 2, 
-                    maximumFractionDigits: 2 
-                  })}
-                </Text>
-              )}
-            </TouchableOpacity>
-            {renderError('servico')}
+            {(() => {
+              const duracaoTotal = calcularDuracaoTotalCompleta();
+              if (hora && duracaoTotal) {
+                const horas = Math.floor(duracaoTotal / 60);
+                const minutos = duracaoTotal % 60;
+                let textoTempo = '';
+                if (horas > 0 && minutos > 0) {
+                  textoTempo = `${horas}h ${minutos}min`;
+                } else if (horas > 0) {
+                  textoTempo = `${horas}h`;
+                } else {
+                  textoTempo = `${minutos}min`;
+                }
+                return (
+                  <Text style={styles.inputHelper}>
+                    ⏱️ Duração total do atendimento: {textoTempo}
+                  </Text>
+                );
+              }
+              return null;
+            })()}
           </View>
 
           {/* Modal de Seleção de Serviços */}
@@ -1522,7 +2079,7 @@ export default function NovoAgendamentoScreen() {
                 style={[
                   styles.modalContent,
                   {
-                    transform: [{ translateY }]
+                    transform: [{ translateY: translateYServicos }]
                   }
                 ]}
               >
@@ -1530,7 +2087,7 @@ export default function NovoAgendamentoScreen() {
                   activeOpacity={1} 
                   onPress={(e) => e.stopPropagation()}
                 >
-                  <View {...panResponder.panHandlers} style={styles.modalHeader}>
+                  <View {...panResponderServicos.panHandlers} style={styles.modalHeader}>
                     <View style={styles.modalDragIndicator} />
                     <Text style={styles.modalTitle}>Selecionar Serviços</Text>
                   </View>
@@ -1637,6 +2194,198 @@ export default function NovoAgendamentoScreen() {
                     >
                       <Text style={styles.modalAdicionarButtonText}>
                         Adicionar ({servicosSelecionados.length})
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
+            </TouchableOpacity>
+          </Modal>
+
+          {/* Modal de Seleção de Pacotes */}
+          <Modal
+            visible={modalPacotesVisible}
+            transparent={true}
+            onRequestClose={() => setModalPacotesVisible(false)}
+          >
+            <TouchableOpacity 
+              style={styles.modalContainer} 
+              activeOpacity={1} 
+              onPress={() => fecharModalPacotesComAnimacao()}
+            >
+              <Animated.View 
+                style={[
+                  styles.modalContent,
+                  {
+                    transform: [{ translateY: translateYPacotes }]
+                  }
+                ]}
+              >
+                <TouchableOpacity 
+                  activeOpacity={1} 
+                  onPress={(e) => e.stopPropagation()}
+                >
+                  <View {...panResponderPacotes.panHandlers} style={styles.modalHeader}>
+                    <View style={styles.modalDragIndicator} />
+                    <Text style={styles.modalTitle}>Selecionar Pacotes</Text>
+                  </View>
+                  
+                  <TextInput
+                    style={styles.searchInput}
+                    value={pesquisaPacote}
+                    onChangeText={(text) => {
+                      setPesquisaPacote(text);
+                      buscarPacotes(text);
+                    }}
+                    placeholder="Buscar pacotes..."
+                    placeholderTextColor={colors.textSecondary}
+                  />
+
+                  <ScrollView style={styles.modalScrollView}>
+                    {buscandoPacotes ? (
+                      <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color={colors.primary} />
+                        <Text style={styles.loadingText}>Carregando pacotes...</Text>
+                      </View>
+                    ) : todosPacotes.length === 0 ? (
+                      <View style={styles.loadingContainer}>
+                        <Text style={styles.loadingText}>Nenhum pacote cadastrado</Text>
+                      </View>
+                    ) : (
+                      todosPacotes
+                        .filter(pacote => 
+                          pacote.nome.toLowerCase().includes(pesquisaPacote.toLowerCase())
+                        )
+                        .map(pacote => {
+                          const jaSelecionado = pacotesSelecionados.find(p => p.id === pacote.id);
+                          
+                          // Log para debug
+                          logger.debug('Renderizando pacote:', {
+                            nome: pacote.nome,
+                            valor: pacote.valor,
+                            duracao_total: pacote.duracao_total
+                          });
+                          
+                          return (
+                            <TouchableOpacity
+                              key={pacote.id}
+                              style={[
+                                styles.modalServicoItem,
+                                jaSelecionado && styles.modalServicoItemSelecionado
+                              ]}
+                              onPress={() => {
+                                logger.debug('Pacote selecionado:', pacote);
+                                handleSelecionarPacote(pacote);
+                              }}
+                            >
+                              <View style={styles.modalServicoInfo}>
+                                <Text 
+                                  style={styles.modalServicoNome}
+                                  numberOfLines={2}
+                                  ellipsizeMode="tail"
+                                >
+                                  {pacote.nome}
+                                </Text>
+                                {pacote.descricao && (
+                                  <Text 
+                                    style={styles.servicoDescricao}
+                                    numberOfLines={2}
+                                    ellipsizeMode="tail"
+                                  >
+                                    {pacote.descricao}
+                                  </Text>
+                                )}
+                                <View style={styles.pacoteValorContainer}>
+                                  <Text style={styles.modalServicoPreco}>
+                                    R$ {pacote.valor.toLocaleString('pt-BR', { 
+                                      minimumFractionDigits: 2, 
+                                      maximumFractionDigits: 2 
+                                    })}
+                                  </Text>
+                                  {pacote.duracao_total && (
+                                    <Text style={styles.servicoDuracao}>
+                                      ⏱️ {pacote.duracao_total} min
+                                    </Text>
+                                  )}
+                                </View>
+                                {pacote.servicos && pacote.servicos.length > 0 && (
+                                  <Text style={styles.pacoteItens}>
+                                    📦 {pacote.servicos.length} serviço(s) incluído(s)
+                                  </Text>
+                                )}
+                              </View>
+                              {jaSelecionado && (
+                                <View style={styles.modalServicoCheck}>
+                                  <FontAwesome5 name="check-circle" size={24} color={colors.primary} />
+                                </View>
+                              )}
+                            </TouchableOpacity>
+                          );
+                        })
+                    )}
+                  </ScrollView>
+
+                  {pacotesSelecionados.length > 0 && (
+                    <View style={styles.servicosSelecionadosContainer}>
+                      <Text style={styles.servicosSelecionadosTitle}>Pacotes Selecionados:</Text>
+                      {pacotesSelecionados.map(pacote => (
+                        <View key={pacote.id} style={styles.servicoSelecionadoItem}>
+                          <View style={styles.servicoSelecionadoInfo}>
+                            <Text style={styles.servicoSelecionadoNome}>{pacote.nome}</Text>
+                            <Text style={styles.servicoSelecionadoPreco}>
+                              R$ {(pacote.valor * pacote.quantidade).toLocaleString('pt-BR', { 
+                                minimumFractionDigits: 2, 
+                                maximumFractionDigits: 2 
+                              })}
+                            </Text>
+                          </View>
+                          <View style={styles.servicoSelecionadoControles}>
+                            <TouchableOpacity
+                              style={styles.quantidadeButton}
+                              onPress={() => handleQuantidadePacote(pacote.id, 'diminuir')}
+                            >
+                              <Text style={styles.quantidadeButtonText}>-</Text>
+                            </TouchableOpacity>
+
+                            <Text style={styles.quantidadeText}>{pacote.quantidade}</Text>
+
+                            <TouchableOpacity
+                              style={styles.quantidadeButton}
+                              onPress={() => handleQuantidadePacote(pacote.id, 'aumentar')}
+                            >
+                              <Text style={styles.quantidadeButtonText}>+</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                              style={styles.removerButton}
+                              onPress={() => handleRemoverPacote(pacote.id)}
+                            >
+                              <FontAwesome5 name="trash-alt" size={16} color={colors.text} />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  <View style={styles.modalButtons}>
+                    <TouchableOpacity
+                      style={styles.modalCancelarButton}
+                      onPress={() => setModalPacotesVisible(false)}
+                    >
+                      <Text style={styles.modalCancelarButtonText}>Cancelar</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.modalAdicionarButton,
+                        pacotesSelecionados.length === 0 && styles.modalAdicionarButtonDisabled
+                      ]}
+                      onPress={() => setModalPacotesVisible(false)}
+                      disabled={pacotesSelecionados.length === 0}
+                    >
+                      <Text style={styles.modalAdicionarButtonText}>
+                        Adicionar ({pacotesSelecionados.length})
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -1777,9 +2526,7 @@ export default function NovoAgendamentoScreen() {
                   ]}
                   onPress={() => {
                     if (!item.ocupado) {
-                      setHora(item.horario);
-                      setMostrarSeletorHorario(false);
-                      setErrors({...errors, hora: ''});
+                      selecionarHorario(item.horario);
                     }
                   }}
                   disabled={item.ocupado}
@@ -1988,10 +2735,21 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   modalHeader: {
     paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     backgroundColor: colors.surface,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 12,
   },
   modalDragIndicator: {
     width: 40,
@@ -2005,18 +2763,49 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontWeight: '600',
     color: '#111827',
     textAlign: 'center',
+    flex: 1,
   },
-  searchInput: {
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.background,
     borderRadius: 8,
-    height: 44,
-    paddingHorizontal: 16,
-    fontSize: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
+    paddingHorizontal: 12,
     marginHorizontal: 16,
     marginTop: 16,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 16,
+    fontSize: 16,
+    color: colors.text,
+    height: 48,
+  },
+  servicosLista: {
+    maxHeight: 350,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 12,
   },
   modalScrollView: {
     maxHeight: 250,
@@ -2027,19 +2816,27 @@ const createStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 12,
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
+    marginHorizontal: 16,
+    marginBottom: 8,
     borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   modalServicoItemSelecionado: {
     backgroundColor: '#F3E8FF',
+    borderColor: colors.primary,
   },
   modalServicoInfo: {
     flex: 1,
+    marginRight: 12,
   },
   modalServicoNome: {
-    fontSize: 14,
-    color: '#111827',
-    marginBottom: 2,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
   },
   modalServicoPreco: {
     fontSize: 14,
@@ -2154,6 +2951,112 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 8,
     padding: 12,
   },
+  servicoPacoteContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  servicoButtonMetade: {
+    flex: 1,
+  },
+  pacoteButton: {
+    // Estilos específicos para o botão de pacotes, se necessário
+  },
+  pacoteDetalhes: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 4,
+  },
+  pacoteItens: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+  pacoteValorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 4,
+    flexWrap: 'wrap',
+  },
+  servicoItemSelecionado: {
+    backgroundColor: '#F3E8FF',
+    borderColor: colors.primary,
+  },
+  servicoItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  servicoInfo: {
+    flex: 1,
+  },
+  servicoNome: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  servicoDescricao: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  servicoPreco: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '500',
+  },
+  servicoDuracao: {
+    fontSize: 13,
+    color: colors.textTertiary,
+    fontStyle: 'italic',
+  },
+  checkIcon: {
+    marginLeft: 12,
+  },
+  selecionadosContainer: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    marginHorizontal: 16,
+  },
+  selecionadosTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  selecionadoItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  selecionadoInfo: {
+    flex: 1,
+  },
+  selecionadoNome: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  selecionadoPreco: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  quantidadeControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   servicoButtonSelecionado: {
     backgroundColor: '#F3E8FF',
   },
@@ -2191,6 +3094,58 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
+  inputDisabled: {
+    backgroundColor: '#F3F4F6',
+    borderColor: '#E5E7EB',
+    opacity: 0.6,
+  },
+  inputTextDisabled: {
+    color: '#9CA3AF',
+  },
+  inputHelper: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+  itensSelecionadosContainer: {
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  itensSelecionadosLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 6,
+  },
+  itemSelecionadoTexto: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  totalContainer: {
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: '#F3E8FF',
+    borderRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  totalLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  totalValor: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
   infoText: {
     color: colors.textSecondary,
     fontSize: 12,
@@ -2208,7 +3163,7 @@ const createStyles = (colors: any) => StyleSheet.create({
       height: 2,
     },
     shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowRadius: 3,
     elevation: 5,
   },
   horariosList: {
@@ -2260,7 +3215,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   semHorariosText: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textTertiary,
     textAlign: 'center',
     marginTop: 16,
   },
@@ -2442,7 +3397,7 @@ const createStyles = (colors: any) => StyleSheet.create({
       height: 2,
     },
     shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowRadius: 3,
     elevation: 5,
   },
   buttonDisabled: {
@@ -2580,11 +3535,6 @@ const createStyles = (colors: any) => StyleSheet.create({
     position: 'relative',
   },
   modalBackdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   datePickerWebContainer: {
@@ -2621,4 +3571,4 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '500',
   },
-}); 
+});

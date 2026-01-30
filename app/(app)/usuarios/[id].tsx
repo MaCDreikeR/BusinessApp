@@ -6,7 +6,7 @@ import { ThemedText } from '../../../components/ThemedText';
 import { Card } from '../../../components/Card';
 import { logger } from '../../../utils/logger';
 import { Usuario as UsuarioBase } from '@types';
-import { theme } from '@utils/theme';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 type UsuarioDetalhes = Pick<UsuarioBase, 'id' | 'nome_completo' | 'email' | 'telefone' | 'is_principal'>;
 
@@ -14,6 +14,8 @@ export default function DetalhesUsuarioScreen() {
   const { id } = useLocalSearchParams();
   const [usuario, setUsuario] = useState<UsuarioDetalhes | null>(null);
   const [loading, setLoading] = useState(true);
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
 
   useEffect(() => {
     carregarUsuario();
@@ -89,7 +91,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginBottom: 4,
   },
   badge: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
@@ -101,4 +103,4 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
   },
-}); 
+});

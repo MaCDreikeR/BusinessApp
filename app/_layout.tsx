@@ -18,27 +18,52 @@ const MainLayout = () => {
   const { user, role, loading: authLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
-  const [isFirstTime, setIsFirstTime] = useState<boolean>(true); // Assume primeira vez até verificar
-  const [isCheckingFirstTime, setIsCheckingFirstTime] = useState(true); // Flag de carregamento
+  const [isFirstTime, setIsFirstTime] = useState<boolean>(true);
+  const [isCheckingFirstTime, setIsCheckingFirstTime] = useState(true);
   const [hasBootRendered, setHasBootRendered] = useState(false);
   const lastRedirectRef = React.useRef<string | null>(null);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const [shouldForceLogin, setShouldForceLogin] = useState(false);
+  
+  // 🔥 NOVO: Timeout absoluto com fallback garantido
+  const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const ABSOLUTE_TIMEOUT = 20000; // 20 segundos timeout absoluto
   
   // Hook de limpeza automática de cache
   useCacheCleanup();
   
-  // Timeout para mostrar mensagem de erro de conexão
+  // 🔥 Timeout absoluto com fallback garantido para login
   useEffect(() => {
     if (authLoading && !hasBootRendered) {
-      const timer = setTimeout(() => {
-        setLoadingTimeout(true);
-      }, 15000); // 15 segundos
+      logger.warn('⏱️ Iniciando timeout de segurança...');
       
-      return () => clearTimeout(timer);
+      timeoutRef.current = setTimeout(() => {
+        logger.error('❌ Timeout absoluto atingido! Forçando navegação para login...');
+        setLoadingTimeout(true);
+        setShouldForceLogin(true);
+        
+        // 🔥 FALLBACK GARANTIDO: Força navegação após 2 segundos
+        setTimeout(() => {
+          logger.error('🚑 Executando fallback de emergência...');
+          setHasBootRendered(true); // Força renderização
+          router.replace('/(auth)/login' as any);
+        }, 2000);
+      }, ABSOLUTE_TIMEOUT);
+      
+      return () => {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+      };
     } else {
       setLoadingTimeout(false);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
     }
-  }, [authLoading, hasBootRendered]);
+  }, [authLoading, hasBootRendered, router]);
 
   const safeReplace = (path: string) => {
     if (lastRedirectRef.current !== path) {
@@ -83,6 +108,15 @@ const MainLayout = () => {
   }, [segments]);
 
   useEffect(() => {
+    // 🔥 NOVO: Força navegação se timeout for atingido
+    if (shouldForceLogin && !authLoading) {
+      logger.error('🚑 Forçando navegação para login devido a timeout...');
+      setHasBootRendered(true);
+      safeReplace('/(auth)/login');
+      setShouldForceLogin(false);
+      return;
+    }
+    
     // Espera o AuthContext e a verificação de primeira visita terminarem
     if ((authLoading && !hasBootRendered) || isCheckingFirstTime) {
       logger.debug('[MainLayout] Aguardando carregamento...', { authLoading, hasBootRendered, isCheckingFirstTime });

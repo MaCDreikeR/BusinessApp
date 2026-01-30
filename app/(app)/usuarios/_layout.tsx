@@ -2,21 +2,22 @@ import { Stack } from 'expo-router';
 import { TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerToggleButton } from '@react-navigation/drawer';
-import { theme } from '@utils/theme';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 export default function UsuariosLayout() {
+  const { colors } = useTheme();
   return (
     <Stack
       screenOptions={{
         headerStyle: {
           backgroundColor: colors.surface,
         },
-        headerTintColor: theme.colors.primary,
+        headerTintColor: colors.primary,
         headerTitleStyle: {
           fontWeight: 'bold',
         },
         headerShadowVisible: false,
-        headerLeft: () => <DrawerToggleButton tintColor={theme.colors.primary} />,
+        headerLeft: () => <DrawerToggleButton tintColor={colors.primary} />,
         headerTitleAlign: 'center',
       }}
     >
@@ -40,4 +41,4 @@ export default function UsuariosLayout() {
       />
     </Stack>
   );
-} 
+}

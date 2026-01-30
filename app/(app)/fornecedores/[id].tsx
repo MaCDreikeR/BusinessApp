@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
@@ -7,6 +7,7 @@ import MaskInput, { Masks } from 'react-native-mask-input';
 import { logger } from '../../../utils/logger';
 import { Fornecedor as FornecedorBase } from '@types';
 import { theme } from '@utils/theme';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 type ValidationErrors = {
   [key: string]: string;
@@ -25,6 +26,8 @@ type FornecedorDetalhes = Pick<FornecedorBase, 'id' | 'nome'> & {
 
 export default function EditarFornecedorScreen() {
   const { id } = useLocalSearchParams();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [loading, setLoading] = useState(false);
   const [loadingCep, setLoadingCep] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -229,7 +232,7 @@ export default function EditarFornecedorScreen() {
   if (loading && !formData.nome) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Carregando...</Text>
       </View>
     );
@@ -345,7 +348,7 @@ export default function EditarFornecedorScreen() {
               {loadingCep && (
                 <ActivityIndicator 
                   size="small" 
-                  color={theme.colors.primary} 
+                  color={colors.primary} 
                   style={styles.cepLoader} 
                 />
               )}
@@ -546,7 +549,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginBottom: 32,
   },
   saveButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',

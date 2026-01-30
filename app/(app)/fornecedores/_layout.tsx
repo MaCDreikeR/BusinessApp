@@ -1,21 +1,22 @@
-import { Stack } from 'expo-router';
+import { Stack , router } from 'expo-router';
 import { TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import { DrawerToggleButton } from '@react-navigation/drawer';
-import { theme } from '@utils/theme';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 export default function FornecedoresLayout() {
+  const { colors } = useTheme();
+
   return (
     <Stack
       screenOptions={{
         headerStyle: {
           backgroundColor: colors.surface,
         },
-        headerTintColor: theme.colors.primary,
+        headerTintColor: colors.primary,
         headerTitleStyle: {
           fontWeight: '600',
-          color: theme.colors.primary
+          color: colors.primary
         },
         headerShadowVisible: false,
       }}
@@ -24,13 +25,13 @@ export default function FornecedoresLayout() {
         name="index"
         options={{
           title: 'Fornecedores',
-          headerLeft: () => <DrawerToggleButton tintColor={theme.colors.primary} />,
+          headerLeft: () => <DrawerToggleButton tintColor={colors.primary} />,
           headerRight: () => (
             <TouchableOpacity 
               onPress={() => router.push('/fornecedores/novo')}
               style={{ marginRight: 16 }}
             >
-              <Ionicons name="add" size={24} color={theme.colors.primary} />
+              <Ionicons name="add" size={24} color={colors.primary} />
             </TouchableOpacity>
           ),
         }}
@@ -45,7 +46,7 @@ export default function FornecedoresLayout() {
               onPress={() => router.back()}
               style={{ marginLeft: 16 }}
             >
-              <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
+              <Ionicons name="arrow-back" size={24} color={colors.primary} />
             </TouchableOpacity>
           ),
         }}
@@ -59,11 +60,11 @@ export default function FornecedoresLayout() {
               onPress={() => router.back()}
               style={{ marginLeft: 16 }}
             >
-              <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
+              <Ionicons name="arrow-back" size={24} color={colors.primary} />
             </TouchableOpacity>
           ),
         }}
       />
     </Stack>
   );
-} 
+}

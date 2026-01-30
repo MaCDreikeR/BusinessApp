@@ -1,11 +1,10 @@
 import React, { useState, useEffect , useMemo} from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, ScrollView, Modal, PanResponder, Animated, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, ScrollView, Modal, PanResponder, Animated, ActivityIndicator , DeviceEventEmitter } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
 import { router } from 'expo-router';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { DeviceEventEmitter } from 'react-native';
 import { logger } from '../../../utils/logger';
 import { Produto as ProdutoBase, Fornecedor as FornecedorBase } from '@types';
 import { theme } from '@utils/theme';
@@ -809,7 +808,7 @@ export default function EstoqueScreen() {
         ListEmptyComponent={
           loading ? (
             <View style={styles.emptyContainer}>
-              <ActivityIndicator size="large" color={theme.colors.primary} />
+              <ActivityIndicator size="large" color={colors.primary} />
             </View>
           ) : (
             <View style={styles.emptyContainer}>
@@ -917,7 +916,7 @@ export default function EstoqueScreen() {
                                   style={styles.actionButton}
                                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                                 >
-                                  <Ionicons name="pencil" size={20} color={theme.colors.primary} />
+                                  <Ionicons name="pencil" size={20} color={colors.primary} />
                                 </TouchableOpacity>
                                 <TouchableOpacity 
                                   onPress={() => handleExcluirCategoria(item)}
@@ -976,7 +975,7 @@ export default function EstoqueScreen() {
                                   style={styles.actionButton}
                                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                                 >
-                                  <Ionicons name="pencil" size={20} color={theme.colors.primary} />
+                                  <Ionicons name="pencil" size={20} color={colors.primary} />
                                 </TouchableOpacity>
                                 <TouchableOpacity 
                                   onPress={() => handleExcluirMarca(item)}
@@ -1045,7 +1044,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
   },
   limparFiltrosTexto: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -1062,7 +1061,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.background,
   },
   tabAtiva: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
   },
   tabText: {
     fontSize: 14,
@@ -1090,14 +1089,14 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   filtroChipAtivo: {
     backgroundColor: '#EDE9FE',
-    borderColor: theme.colors.primary,
+    borderColor: colors.primary,
   },
   filtroChipText: {
     fontSize: 14,
     color: colors.text,
   },
   filtroChipTextAtivo: {
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   listContent: {
     padding: 16,
@@ -1106,7 +1105,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     position: 'absolute',
     bottom: 20,
     right: 20,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: 24,
     width: 48,
     height: 48,
@@ -1148,7 +1147,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   produtoCategoria: {
     fontSize: 14,
-    color: theme.colors.primary,
+    color: colors.primary,
     marginTop: 4,
   },
   statusContainer: {
@@ -1239,7 +1238,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   modalTabAtiva: {
     borderBottomWidth: 2,
-    borderBottomColor: theme.colors.primary,
+    borderBottomColor: colors.primary,
   },
   modalTabText: {
     fontSize: 16,
@@ -1247,7 +1246,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontWeight: '500',
   },
   modalTabTextAtiva: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: '600',
   },
   categoriaForm: {
@@ -1271,7 +1270,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     minWidth: 100,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     paddingHorizontal: 16,
     height: 44,
     justifyContent: 'center',
@@ -1318,7 +1317,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     padding: 8,
   },
   emptyText: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontSize: 16,
     fontWeight: '500',
     textAlign: 'center',
@@ -1329,4 +1328,4 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-}); 
+});

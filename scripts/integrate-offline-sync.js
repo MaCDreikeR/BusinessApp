@@ -25,6 +25,7 @@ const filesToUpdate = [
 ];
 
 // Import a ser adicionado
+/* eslint-disable no-undef, no-unused-vars */
 const importToAdd = "import { offlineInsert, offlineUpdate, offlineDelete, getOfflineFeedback } from '../../../services/offlineSupabase';";
 
 function addImportIfNeeded(filePath) {
@@ -61,7 +62,7 @@ console.log('🚀 Iniciando integração offline em todos os arquivos...\n');
 
 filesToUpdate.forEach(file => {
   try {
-    addImportIfFound(file);
+    addImportIfNeeded(file);
   } catch (error) {
     console.error(`❌ Erro em ${file}:`, error.message);
   }

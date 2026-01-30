@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
   Alert, ActivityIndicator, TextInput, Linking
@@ -7,7 +7,7 @@ import * as Contacts from 'expo-contacts';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from 'expo-router';
 import { logger } from '../../../utils/logger';
-import { theme } from '@utils/theme';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 // Definindo uma interface para o objeto de contato para melhor tipagem
 interface Contato {
@@ -17,6 +17,9 @@ interface Contato {
 }
 
 export default function SelecionarContatoScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [contatos, setContatos] = useState<Contato[]>([]);
   const [contatosFiltrados, setContatosFiltrados] = useState<Contato[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,7 +96,7 @@ export default function SelecionarContatoScreen() {
   if (loading) {
     return (
       <View style={styles.centeredContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -182,14 +185,14 @@ const createStyles = (colors: any) => StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#E0E7FF',
+    backgroundColor: colors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
   },
   avatarText: {
     fontSize: 20,
-    color: '#4338CA',
+    color: colors.primaryDark,
     fontWeight: 'bold',
   },
   infoContainer: {
@@ -212,7 +215,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   permissaoTitulo: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: colors.text,
     textAlign: 'center',
     marginTop: 16,
     marginBottom: 8,
@@ -224,7 +227,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginBottom: 24,
   },
   botaoPermissao: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: 8,

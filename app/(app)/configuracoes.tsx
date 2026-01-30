@@ -207,11 +207,10 @@ export default function ConfiguracoesScreen() {
           text: 'Sincronizar',
           onPress: async () => {
             try {
-              // Importa syncService dinamicamente
-              const { syncService } = await import('@/services/syncService');
-
-              // Executa sincronização bidirecional
-              const result = await syncService.sync(estabelecimentoId);
+              // TODO: Implementar syncService
+              Alert.alert('Em desenvolvimento', 'Funcionalidade de sincronização será implementada em breve.');
+              return;
+              // const result = await syncService.sync(estabelecimentoId);
 
               if (result.success) {
                 Alert.alert(

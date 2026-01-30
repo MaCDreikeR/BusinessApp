@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
 import * as Notifications from 'expo-notifications';
 import { logger } from '../utils/logger';
+import { addMinutesLocal } from '../lib/timezone';
 
 interface AgendamentoAtivo {
   id: string;
@@ -25,16 +26,16 @@ export function useAgendamentoNotificacao() {
 
     try {
       const agora = new Date();
-      const cincoMinutosAntes = new Date(agora.getTime() - 5 * 60000); // 5 minutos antes
-      const cincoMinutosDepois = new Date(agora.getTime() + 5 * 60000); // 5 minutos depois
+      const cincoMinutosAntes = addMinutesLocal(agora, -5);
+      const cincoMinutosDepois = addMinutesLocal(agora, 5);
 
       // Buscar agendamentos que estão para começar ou acabaram de começar
       const { data: agendamentos, error } = await supabase
         .from('agendamentos')
         .select('id, cliente, data_hora, servicos, status, usuario_id')
         .eq('estabelecimento_id', estabelecimentoId)
-        .gte('data_hora', cincoMinutosAntes.toISOString())
-        .lte('data_hora', cincoMinutosDepois.toISOString())
+        .gte('data_hora', cincoMinutosAntes)
+        .lte('data_hora', cincoMinutosDepois)
         .in('status', ['agendado', 'confirmado'])
         .order('data_hora', { ascending: true });
 
@@ -100,8 +101,7 @@ export function useAgendamentoNotificacao() {
 
           // Criar comanda automaticamente
           // Verificar se já existe uma comanda aberta para este cliente hoje
-          const inicioDoDia = new Date();
-          inicioDoDia.setHours(0, 0, 0, 0);
+          const inicioDoDiaLocal = await import('../lib/timezone').then(m => m.getStartOfDayLocal());
           
           const { data: comandaExistente } = await supabase
             .from('comandas')
@@ -109,7 +109,7 @@ export function useAgendamentoNotificacao() {
             .eq('cliente_nome', agendamentoParaNotificar.cliente)
             .eq('estabelecimento_id', estabelecimentoId)
             .eq('status', 'aberta')
-            .gte('created_at', inicioDoDia.toISOString())
+            .gte('created_at', inicioDoDiaLocal)
             .maybeSingle();
           
           if (!comandaExistente) {
@@ -163,11 +163,48 @@ export function useAgendamentoNotificacao() {
                 if (agendamentoParaNotificar.servicos && agendamentoParaNotificar.servicos.length > 0) {
                   logger.debug('📦 Serviços do agendamento:', JSON.stringify(agendamentoParaNotificar.servicos, null, 2));
                   
-                  const itens = agendamentoParaNotificar.servicos.map((servico: any) => {
-                    // Converter preço para número (pode vir como string do banco)
-                    const precoNumerico = typeof servico.preco === 'string' 
-                      ? parseFloat(servico.preco) 
-                      : (servico.preco || 0);
+                  // Parse servicos se vier como string JSON
+                  let servicosArray = agendamentoParaNotificar.servicos;
+                  if (typeof servicosArray === 'string') {
+                    try {
+                      servicosArray = JSON.parse(servicosArray);
+                    } catch {
+                      servicosArray = [];
+                    }
+                  }
+                  
+                  // Buscar preços dos serviços no banco de dados
+                  const servicoIds = servicosArray
+                    .filter((s: any) => s.servico_id)
+                    .map((s: any) => s.servico_id);
+                  
+                  let precosServicos: {[key: string]: number} = {};
+                  if (servicoIds.length > 0) {
+                    const { data: servicos } = await supabase
+                      .from('servicos')
+                      .select('id, valor')
+                      .in('id', servicoIds);
+                    
+                    if (servicos) {
+                      servicos.forEach(s => {
+                        precosServicos[s.id] = s.valor || 0;
+                      });
+                    }
+                  }
+                  
+                  const itens = servicosArray.map((servico: any) => {
+                    // Tentar usar o preço do agendamento, senão buscar do banco
+                    let precoNumerico = 0;
+                    
+                    if (servico.preco !== undefined && servico.preco !== null && servico.preco > 0) {
+                      // Se tem preço no agendamento, usar esse
+                      precoNumerico = typeof servico.preco === 'string' 
+                        ? parseFloat(servico.preco) 
+                        : servico.preco;
+                    } else if (servico.servico_id && precosServicos[servico.servico_id]) {
+                      // Se não tem preço mas tem servico_id, buscar do banco
+                      precoNumerico = precosServicos[servico.servico_id];
+                    }
                     
                     return {
                       comanda_id: novaComanda.id,
@@ -175,8 +212,8 @@ export function useAgendamentoNotificacao() {
                       nome: servico.nome,
                       preco_unitario: precoNumerico,
                       preco: precoNumerico,
-                      quantidade: 1,
-                      preco_total: precoNumerico,
+                      quantidade: servico.quantidade || 1,
+                      preco_total: precoNumerico * (servico.quantidade || 1),
                       estabelecimento_id: estabelecimentoId,
                     };
                   });

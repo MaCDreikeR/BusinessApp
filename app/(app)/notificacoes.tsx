@@ -4,7 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getHistoricoNotificacoes } from '../../services/notifications';
 import { logger } from '../../utils/logger';
-import { theme } from '@utils/theme';
+
+// removido import estático de theme; usar colors via useTheme
 
 type Notificacao = {
   id: string;
@@ -58,7 +59,7 @@ export default function NotificacoesScreen() {
                 item.tipo === 'aniversario' ? 'gift' : 
                 'notifications'} 
           size={24} 
-          color={theme.colors.primary} 
+          color={colors.primary} 
         />
       </View>
       <View style={styles.notificacaoConteudo}>
@@ -93,7 +94,7 @@ export default function NotificacoesScreen() {
               style={styles.refreshButton}
               onPress={carregarNotificacoes}
             >
-              <Ionicons name="refresh" size={24} color={theme.colors.primary} />
+              <Ionicons name="refresh" size={24} color={colors.primary} />
             </TouchableOpacity>
           }
         />
@@ -146,12 +147,12 @@ const createStyles = (colors: any) => StyleSheet.create({
   notificacaoTitulo: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
     marginBottom: 4,
   },
   notificacaoMensagem: {
     fontSize: 14,
-    color: '#4B5563',
+    color: colors.textSecondary,
     marginBottom: 8,
   },
   notificacaoData: {
@@ -174,4 +175,4 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 8,
   },
-}); 
+});

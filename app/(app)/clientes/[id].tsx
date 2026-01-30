@@ -1,6 +1,5 @@
-import React, { useState, useEffect , useMemo} from 'react';
+import React, { useState, useEffect , useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, Image, Modal, KeyboardAvoidingView, Platform } from 'react-native';
-import { useRef } from 'react';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
@@ -11,7 +10,6 @@ import { decode } from 'base64-arraybuffer';
 import { logger } from '../../../utils/logger';
 import { Cliente as ClienteBase } from '@types';
 import { formatarTelefoneInput, formatarDataInput, somenteNumeros } from '../../../utils/validators';
-import { theme } from '@utils/theme';
 import { offlineUpdate, offlineDelete, getOfflineFeedback } from '../../../services/offlineSupabase';
 import { CacheManager, CacheNamespaces } from '../../../utils/cacheManager';
 
@@ -45,18 +43,18 @@ export default function EditarClienteScreen() {
   const [saldoAtual, setSaldoAtual] = useState('0,00');
   const [modalCreditoVisible, setModalCreditoVisible] = useState(false);
   const [modalExtratoVisible, setModalExtratoVisible] = useState(false);
-  const [extrato, setExtrato] = useState<Array<{ data: string; valor: number; descricao: string; tipo: string }>>([]);
+  const [extrato, setExtrato] = useState<{ data: string; valor: number; descricao: string; tipo: string }[]>([]);
   const [valorCredito, setValorCredito] = useState('');
   const [descricaoCredito, setDescricaoCredito] = useState('');
   const [dataCredito, setDataCredito] = useState<string>('');
   const [salvandoCredito, setSalvandoCredito] = useState(false);
   const [tipoCredito, setTipoCredito] = useState<'credito' | 'debito'>('credito');
   const valorInputRef = useRef<TextInput>(null);
-  const [agendamentos, setAgendamentos] = useState<Array<{ id: string; data: string; hora: string; servico: string; status: string; usuario: string }>>([]);
-  const [historico, setHistorico] = useState<Array<{ id: string; data: string; servico: string; valor: number; profissional: string; status: string }>>([]);
-  const [pacotes, setPacotes] = useState<Array<{ id: string; nome: string; valor: number; sessoes_total: number; sessoes_usadas: number; validade: string; ativo: boolean }>>([]);
-  const [comandas, setComandas] = useState<Array<{ id: string; data: string; valor: number; status: string; itens_count: number }>>([]);
-  const [galeria, setGaleria] = useState<Array<{ id: string; url: string; data: string; descricao: string }>>([]);
+  const [agendamentos, setAgendamentos] = useState<{ id: string; data: string; hora: string; servico: string; status: string; usuario: string }[]>([]);
+  const [historico, setHistorico] = useState<{ id: string; data: string; servico: string; valor: number; profissional: string; status: string }[]>([]);
+  const [pacotes, setPacotes] = useState<{ id: string; nome: string; valor: number; sessoes_total: number; sessoes_usadas: number; validade: string; ativo: boolean }[]>([]);
+  const [comandas, setComandas] = useState<{ id: string; data: string; valor: number; status: string; itens_count: number }[]>([]);
+  const [galeria, setGaleria] = useState<{ id: string; url: string; data: string; descricao: string }[]>([]);
   const [loadingTab, setLoadingTab] = useState(false);
   
   // Estados para estatísticas do cliente
@@ -65,7 +63,7 @@ export default function EditarClienteScreen() {
     total_gasto: 0,
     ticket_medio: 0,
     ultima_visita: '',
-    servicos_favoritos: [] as Array<{ nome: string; quantidade: number }>,
+    servicos_favoritos: [] as { nome: string; quantidade: number }[],
   });
   const [modalInfoVisible, setModalInfoVisible] = useState(false);
   const [loadingModalInfo, setLoadingModalInfo] = useState(false);
@@ -828,7 +826,7 @@ export default function EditarClienteScreen() {
               style={styles.addButton}
               onPress={() => setModalCreditoVisible(true)}
             >
-              <FontAwesome5 name="plus" size={16} color={theme.colors.primary} />
+              <FontAwesome5 name="plus" size={16} color={colors.primary} />
               <Text style={styles.addButtonText}>Adicionar Crédito</Text>
             </TouchableOpacity>
 
@@ -886,7 +884,7 @@ export default function EditarClienteScreen() {
                   </View>
                   <Text style={{ color: colors.textSecondary, marginBottom: 4 }}>Valor</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.background, borderRadius: 8, marginBottom: 12, borderWidth: 1, borderColor: colors.border }}>
-                    <Text style={{ fontSize: 18, color: theme.colors.primary, marginLeft: 12 }}>R$</Text>
+                    <Text style={{ fontSize: 18, color: colors.primary, marginLeft: 12 }}>R$</Text>
                     <TextInput
                       ref={valorInputRef}
                       style={[styles.input, { flex: 1, backgroundColor: 'transparent', borderWidth: 0, fontSize: 18 }]}
@@ -1059,7 +1057,7 @@ export default function EditarClienteScreen() {
                     onPress={() => router.push(`/agenda`)}
                   >
                     <Text style={styles.verDetalhesText}>Ver na Agenda</Text>
-                    <FontAwesome5 name="arrow-right" size={12} color={theme.colors.primary} />
+                    <FontAwesome5 name="arrow-right" size={12} color={colors.primary} />
                   </TouchableOpacity>
                 </View>
               ))
@@ -1074,7 +1072,7 @@ export default function EditarClienteScreen() {
               style={styles.addButton}
               onPress={() => router.push(`/agenda`)}
             >
-              <FontAwesome5 name="plus" size={16} color={theme.colors.primary} />
+              <FontAwesome5 name="plus" size={16} color={colors.primary} />
               <Text style={styles.addButtonText}>Novo Agendamento</Text>
             </TouchableOpacity>
           </View>
@@ -1328,7 +1326,7 @@ export default function EditarClienteScreen() {
                 }
               }}
             >
-              <FontAwesome5 name="camera" size={16} color={theme.colors.primary} />
+              <FontAwesome5 name="camera" size={16} color={colors.primary} />
               <Text style={styles.addButtonText}>Adicionar Foto</Text>
             </TouchableOpacity>
           </View>
@@ -1347,7 +1345,7 @@ export default function EditarClienteScreen() {
             style={[styles.headerButton, styles.headerButtonImport]}
             onPress={() => router.back()}
           >
-            <FontAwesome5 name="arrow-left" size={20} color={theme.colors.primary} />
+            <FontAwesome5 name="arrow-left" size={20} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.title}>Carregando...</Text>
           <View style={[styles.headerButton, { opacity: 0 }]} />
@@ -1364,7 +1362,7 @@ export default function EditarClienteScreen() {
             style={[styles.headerButton, styles.headerButtonImport]}
             onPress={() => router.back()}
           >
-            <FontAwesome5 name="arrow-left" size={20} color={theme.colors.primary} />
+            <FontAwesome5 name="arrow-left" size={20} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.title}>Editar Cliente</Text>
           <View style={styles.headerActions}>
@@ -1402,7 +1400,7 @@ export default function EditarClienteScreen() {
                 <FontAwesome5
                   name={tab.icon}
                   size={16}
-                  color={activeTab === tab.id ? theme.colors.primary : "#666"}
+                  color={activeTab === tab.id ? colors.primary : "#666"}
                 />
                 <Text 
                   style={[
@@ -1618,7 +1616,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
     flex: 1,
     textAlign: 'center',
   },
@@ -1651,7 +1649,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   tabActive: {
     backgroundColor: '#EDE9FE',
     borderBottomWidth: 2,
-    borderBottomColor: theme.colors.primary,
+    borderBottomColor: colors.primary,
   },
   tabText: {
     fontSize: 12,
@@ -1660,7 +1658,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginTop: 4,
   },
   tabTextActive: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: '500',
   },
   form: {
@@ -1782,7 +1780,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginTop: 16,
   },
   addButtonText: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: '500',
     marginLeft: 8,
   },
@@ -1806,7 +1804,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   agendamentoHora: {
     fontSize: 14,
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: '500',
   },
   agendamentoServico: {
@@ -2250,11 +2248,6 @@ const createStyles = (colors: any) => StyleSheet.create({
     padding: 40,
     alignItems: 'center',
   },
-  loadingText: {
-    fontSize: 14,
-    color: colors.textTertiary,
-    marginTop: 8,
-  },
   modalEmpty: {
     padding: 40,
     alignItems: 'center',
@@ -2323,4 +2316,4 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.textTertiary,
     marginTop: 1,
   },
-}); 
+});

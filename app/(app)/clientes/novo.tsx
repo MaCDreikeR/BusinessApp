@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, Image, DeviceEventEmitter } from 'react-native';
 import { useRouter, Stack, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -17,8 +17,11 @@ import {
 } from '../../../utils/validators';
 import { offlineInsert, getOfflineFeedback } from '../../../services/offlineSupabase';
 import { CacheManager, CacheNamespaces } from '../../../utils/cacheManager';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 export default function NovoClienteScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const params = useLocalSearchParams();
   const { estabelecimentoId, user } = useAuth();
@@ -38,9 +41,9 @@ export default function NovoClienteScreen() {
   const [servicoAgendado, setServicoAgendado] = useState('');
 
   // Estados para as novas abas
-  const [pacotes, setPacotes] = useState<Array<{ nome: string; valor: string }>>([]);
-  const [comandas, setComandas] = useState<Array<{ data: string; valor: string }>>([]);
-  const [galeria, setGaleria] = useState<Array<string>>([]);
+  const [pacotes, setPacotes] = useState<{ nome: string; valor: string }[]>([]);
+  const [comandas, setComandas] = useState<{ data: string; valor: string }[]>([]);
+  const [galeria, setGaleria] = useState<string[]>([]);
 
   useEffect(() => {
     // Se recebeu o nome do cliente como parâmetro, preenche o campo
@@ -784,4 +787,4 @@ const createStyles = (colors: any) => StyleSheet.create({
     textAlign: 'center',
     marginTop: 16,
   },
-}); 
+});

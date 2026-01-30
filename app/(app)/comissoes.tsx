@@ -11,6 +11,8 @@ import {
   Modal,
   TextInput,
   ScrollView,
+  Switch,
+  DeviceEventEmitter,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
@@ -22,6 +24,7 @@ import { Usuario as UsuarioBase } from '@types';
 type UsuarioComissao = Pick<UsuarioBase, 'id' | 'nome_completo' | 'email' | 'role'> & {
   avatar_url?: string;
   faz_atendimento?: boolean;
+  recebe_comissao?: boolean;
 };
 
 type RegistroComissao = {
@@ -48,16 +51,26 @@ export default function ComissoesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [usuarios, setUsuarios] = useState<UsuarioComissao[]>([]);
   const [modalDetalhesVisible, setModalDetalhesVisible] = useState(false);
+  const [modalConfigVisible, setModalConfigVisible] = useState(false);
   const [usuarioSelecionado, setUsuarioSelecionado] = useState<UsuarioComissao | null>(null);
   const [registrosComissao, setRegistrosComissao] = useState<RegistroComissao[]>([]);
   const [valoresComissao, setValoresComissao] = useState<{[key: string]: string}>({});
   const [descricoesComissao, setDescricoesComissao] = useState<{[key: string]: string}>({});
   const [comissoesAPagar, setComissoesAPagar] = useState<{[key: string]: number}>({});
+  const [configComissoes, setConfigComissoes] = useState<{[key: string]: boolean}>({});
+  const [todosUsuarios, setTodosUsuarios] = useState<UsuarioComissao[]>([]); // Para o modal de config
 
   useEffect(() => {
     logger.debug('🏢 Estabelecimento ID:', estabelecimentoId);
     logger.debug('👤 Usuário logado:', user?.email);
     carregarDados();
+
+    // Listener para o botão de configuração no header
+    const subscription = DeviceEventEmitter.addListener('abrirConfigComissoes', () => {
+      abrirModalConfig();
+    });
+
+    return () => subscription.remove();
   }, []);
 
   const carregarDados = async () => {
@@ -105,7 +118,7 @@ export default function ComissoesScreen() {
       // MÉTODO 2: Query direta (pode ser bloqueada por RLS)
       const { data, error } = await supabase
         .from('usuarios')
-        .select('id, nome_completo, email, avatar_url, faz_atendimento, role, estabelecimento_id')
+        .select('id, nome_completo, email, avatar_url, faz_atendimento, role, estabelecimento_id, recebe_comissao')
         .eq('estabelecimento_id', estabelecimentoId)
         .neq('role', 'super_admin')
         .order('nome_completo');
@@ -118,12 +131,20 @@ export default function ComissoesScreen() {
         logger.debug('🔄 Última tentativa: buscar todos os usuários...');
         const { data: todosUsuarios, error: errorTodos } = await supabase
           .from('usuarios')
-          .select('id, nome_completo, email, avatar_url, faz_atendimento, role, estabelecimento_id');
+          .select('id, nome_completo, email, avatar_url, faz_atendimento, role, estabelecimento_id, recebe_comissao');
         
         if (!errorTodos && todosUsuarios) {
-          const usuariosFiltrados = todosUsuarios.filter(u => 
-            u.estabelecimento_id === estabelecimentoId && u.role !== 'super_admin'
-          );
+          // Filtrar por estabelecimento e por recebe_comissao
+          const usuariosFiltrados = todosUsuarios.filter(u => {
+            if (u.estabelecimento_id !== estabelecimentoId || u.role === 'super_admin') {
+              return false;
+            }
+            // Se recebe_comissao for null, usar padrão baseado na role
+            const podeReceber = u.recebe_comissao !== null 
+              ? u.recebe_comissao 
+              : (u.role === 'funcionario' || u.role === 'profissional');
+            return podeReceber;
+          });
           logger.debug('✅ Usuários filtrados manualmente:', usuariosFiltrados.length);
           logger.debug('📋 Lista filtrada:', JSON.stringify(usuariosFiltrados, null, 2));
           setUsuarios(usuariosFiltrados);
@@ -136,7 +157,17 @@ export default function ComissoesScreen() {
       logger.debug('✅ Usuários encontrados via query direta:', data?.length);
       logger.debug('📋 Lista de usuários:', JSON.stringify(data, null, 2));
       
-      setUsuarios(data || []);
+      // Filtrar usuários que podem receber comissão
+      const usuariosFiltrados = (data || []).filter(u => {
+        // Se recebe_comissao for null, usar padrão baseado na role
+        const podeReceber = u.recebe_comissao !== null 
+          ? u.recebe_comissao 
+          : (u.role === 'funcionario' || u.role === 'profissional');
+        return podeReceber;
+      });
+      
+      logger.debug('✅ Usuários que podem receber comissão:', usuariosFiltrados.length);
+      setUsuarios(usuariosFiltrados);
     } catch (error) {
       logger.error('💥 Erro ao carregar usuários:', error);
       Alert.alert('Erro', 'Não foi possível carregar os usuários. Verifique as permissões RLS.');
@@ -300,6 +331,72 @@ export default function ComissoesScreen() {
     carregarDados();
   };
 
+  const carregarConfigComissoes = async () => {
+    try {
+      // Buscar configurações salvas E TODOS os usuários para o modal
+      const { data: configs, error } = await supabase
+        .from('usuarios')
+        .select('id, recebe_comissao, role, nome_completo')
+        .eq('estabelecimento_id', estabelecimentoId);
+
+      if (error) throw error;
+
+      const configMap: {[key: string]: boolean} = {};
+      const todosUsersArray: UsuarioComissao[] = [];
+      
+      configs?.forEach(user => {
+        // Se recebe_comissao for null/undefined, usar valor padrão baseado na role
+        if (user.recebe_comissao !== null && user.recebe_comissao !== undefined) {
+          configMap[user.id] = user.recebe_comissao;
+        } else {
+          // Padrão: funcionario e profissional = true, principal = false
+          configMap[user.id] = user.role === 'funcionario' || user.role === 'profissional';
+        }
+        
+        // Adicionar à lista de todos os usuários para o modal
+        todosUsersArray.push({
+          id: user.id,
+          nome: user.nome_completo || 'Sem nome',
+          role: user.role,
+          recebe_comissao: user.recebe_comissao
+        });
+      });
+
+      setConfigComissoes(configMap);
+      setTodosUsuarios(todosUsersArray);
+    } catch (error) {
+      logger.error('Erro ao carregar configurações de comissão:', error);
+    }
+  };
+
+  const alternarComissao = async (usuarioId: string, novoValor: boolean) => {
+    try {
+      // Atualizar no banco
+      const { error } = await supabase
+        .from('usuarios')
+        .update({ recebe_comissao: novoValor })
+        .eq('id', usuarioId);
+
+      if (error) throw error;
+
+      // Atualizar estado local
+      setConfigComissoes(prev => ({ ...prev, [usuarioId]: novoValor }));
+      
+      // Recarregar lista de usuários para refletir mudanças
+      await carregarUsuarios();
+      
+      logger.debug(`✅ Comissão ${novoValor ? 'ativada' : 'desativada'} para usuário ${usuarioId}`);
+    } catch (error) {
+      logger.error('Erro ao alterar configuração de comissão:', error);
+      Alert.alert('Erro', 'Não foi possível atualizar a configuração');
+    }
+  };
+
+  const abrirModalConfig = async () => {
+    await carregarConfigComissoes();
+    setModalConfigVisible(true);
+  };
+
   const renderUsuarioCard = ({ item }: { item: UsuarioComissao }) => {
     const totalAPagar = calcularTotalComissoes(item.id);
     
@@ -429,13 +526,6 @@ export default function ComissoesScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Comissões</Text>
-        <Text style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
-          {usuarios.length} usuário(s) encontrado(s)
-        </Text>
-      </View>
-
       <FlatList
         data={usuarios}
         renderItem={renderUsuarioCard}
@@ -509,6 +599,50 @@ export default function ComissoesScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Modal de Configuração */}
+      <Modal
+        visible={modalConfigVisible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setModalConfigVisible(false)}
+      >
+        <View style={styles.modalOverlayCenter}>
+          <View style={styles.modalConfigCenter}>
+            <View style={styles.modalHeaderCenter}>
+              <Text style={styles.modalTitleCenter}>Quem recebe comissão?</Text>
+              <TouchableOpacity 
+                onPress={() => setModalConfigVisible(false)}
+                style={styles.closeButtonCenter}
+              >
+                <Ionicons name="close" size={20} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.configListCenter} showsVerticalScrollIndicator={false}>
+              {todosUsuarios.map((usuario) => {
+                const isAtivo = configComissoes[usuario.id] ?? 
+                  (usuario.role === 'funcionario' || usuario.role === 'profissional');
+                
+                return (
+                  <View key={usuario.id} style={styles.configItemCenter}>
+                    <View style={styles.configItemInfoCenter}>
+                      <Text style={styles.configItemNomeCenter}>{usuario.nome}</Text>
+                    </View>
+                    <Switch
+                      value={isAtivo}
+                      onValueChange={(valor) => alternarComissao(usuario.id, valor)}
+                      trackColor={{ false: colors.background, true: colors.primary + '80' }}
+                      thumbColor={isAtivo ? colors.primary : '#f4f3f4'}
+                      ios_backgroundColor={colors.background}
+                    />
+                  </View>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -523,17 +657,6 @@ const createStyles = (colors: any) => StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  header: {
-    backgroundColor: colors.surface,
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
   },
   listContent: {
     padding: 16,
@@ -697,6 +820,13 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
+  modalOverlayCenter: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
   modalContent: {
     backgroundColor: colors.surface,
     borderTopLeftRadius: 20,
@@ -712,13 +842,29 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
+  modalHeaderCenter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#111827',
   },
-  modalCloseButton: {
+  modalTitleCenter: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  closeButton: {
     padding: 4,
+  },
+  closeButtonCenter: {
+    padding: 2,
   },
   resumoContainer: {
     flexDirection: 'row',
@@ -809,5 +955,72 @@ const createStyles = (colors: any) => StyleSheet.create({
   emptyListText: {
     fontSize: 14,
     color: colors.textTertiary,
+  },
+  modalConfig: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+    marginTop: 'auto',
+  },
+  modalConfigCenter: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    maxHeight: '50%',
+    width: '60%',
+    paddingTop: 0,
+    overflow: 'hidden',
+  },
+  configListCenter: {
+    maxHeight: 280,
+    paddingHorizontal: 0,
+  },
+  configItemCenter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  configItemInfoCenter: {
+    flex: 1,
+  },
+  configItemNomeCenter: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.text,
+  },
+  configSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+  },
+  configList: {
+    maxHeight: 400,
+  },
+  configItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  configItemInfo: {
+    flex: 1,
+  },
+  configItemNome: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  configItemRole: {
+    fontSize: 13,
+    color: colors.textSecondary,
   },
 });

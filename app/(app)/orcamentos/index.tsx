@@ -1,9 +1,10 @@
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Animated, ActivityIndicator, TextInput, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { logger } from '../../../utils/logger';
 import { theme } from '@utils/theme';
+import { useTheme } from '../../../contexts/ThemeContext';
 import { 
   Orcamento, 
   carregarOrcamentos, 
@@ -21,7 +22,7 @@ const STATUS_FILTROS = [
   { label: 'Rejeitados', value: 'rejeitado' },
 ];
 
-const SkeletonLoader = () => {
+const SkeletonLoader = ({ styles }: { styles: any }) => {
   const fadeAnim = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
@@ -70,6 +71,8 @@ const SkeletonLoader = () => {
 };
 
 export default function OrcamentosScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [orcamentos, setOrcamentos] = useState<Orcamento[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState('');
@@ -139,7 +142,9 @@ export default function OrcamentosScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
+        {/* mostrar skeleton abaixo se quiser */}
+        <SkeletonLoader styles={styles} />
       </View>
     );
   }
@@ -222,7 +227,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   filtroButtonSelected: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
   },
   filtroButtonText: {
     color: colors.textSecondary,
@@ -329,4 +334,4 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: '#E5E7EB',
     borderRadius: 4,
   },
-}); 
+});

@@ -132,6 +132,34 @@ export async function salvarModeloAniversariante(modelo: string, empresaId?: str
   if (error) throw error;
 }
 
+export function normalizePhoneForWhatsapp(raw: string | undefined, defaultCountry = '55'): string | null {
+  if (!raw) return null;
+  // Remove tudo que não for dígito
+  let digits = String(raw).replace(/\D/g, '');
+
+  // Remove prefixos internacionais duplicados como 00
+  if (digits.startsWith('00')) {
+    digits = digits.replace(/^0+/, '');
+  }
+
+  // Se já contém o DDI do Brasil (55), usa como está
+  if (digits.startsWith(defaultCountry)) {
+    return digits;
+  }
+
+  // Números locais esperados no Brasil: 10 (sem 9 inicial) ou 11 dígitos (com 9)
+  if (digits.length === 10 || digits.length === 11) {
+    return defaultCountry + digits;
+  }
+
+  // Se for um número internacional com DDI (ex: 1xxxxxxxxxx), assume válido se >=11
+  if (digits.length >= 11) {
+    return digits;
+  }
+
+  return null;
+}
+
 export async function enviarMensagemWhatsapp(
   agendamento: AgendamentoMensagem,
   empresaIdOptional?: string
@@ -155,17 +183,26 @@ export async function enviarMensagemWhatsapp(
       .replace(/\{valor\}/g, agendamento.valor != null ? agendamento.valor.toFixed(2).replace('.', ',') : '')
       .replace(/\{dia\}/g, obterDiaSemana(agendamento.data));
 
-    const phone = (agendamento.cliente_telefone || '').replace(/\D/g, '');
-    if (phone.length < 10) {
-      Alert.alert('Telefone inválido', 'O número do cliente parece inválido.');
+    // Normaliza o telefone para o formato esperado pelo wa.me (DDI + número, sem sinais)
+    const normalized = normalizePhoneForWhatsapp(agendamento.cliente_telefone);
+    if (!normalized) {
+      Alert.alert('Telefone inválido', 'O número do cliente parece inválido. Verifique o contato e tente novamente.');
       return;
     }
 
-    // Prefere esquema wa.me pois funciona bem em mobile
-    const url = `https://wa.me/55${phone}?text=${encodeURIComponent(mensagemFinal)}`;
+    const url = `https://wa.me/${normalized}?text=${encodeURIComponent(mensagemFinal)}`;
+    const fallback = `whatsapp://send?phone=${normalized}&text=${encodeURIComponent(mensagemFinal)}`;
 
-    // Em alguns dispositivos, o esquema nativo pode ser melhor
-    const fallback = `whatsapp://send?phone=55${phone}&text=${encodeURIComponent(mensagemFinal)}`;
+    // Tenta abrir via esquema nativo primeiro (mais confiável em dispositivos móveis)
+    try {
+      const canNative = await Linking.canOpenURL(fallback);
+      if (canNative) {
+        await Linking.openURL(fallback);
+        return;
+      }
+    } catch (e) {
+      // ignora e tenta https
+    }
 
     try {
       const can = await Linking.canOpenURL(url);
@@ -173,12 +210,8 @@ export async function enviarMensagemWhatsapp(
         await Linking.openURL(url);
         return;
       }
-    } catch {}
-
-    const canNative = await Linking.canOpenURL(fallback);
-    if (canNative) {
-      await Linking.openURL(fallback);
-      return;
+    } catch (e) {
+      // ignora
     }
 
     Alert.alert('WhatsApp indisponível', 'Não foi possível abrir o WhatsApp neste dispositivo.');

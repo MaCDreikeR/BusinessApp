@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { logger } from '../../utils/logger';
 import { Estabelecimento as EstabelecimentoBase } from '@types';
+import { getStartOfDayLocal, getEndOfDayLocal } from '../../lib/timezone';
 
 type EstabelecimentoSlim = Pick<EstabelecimentoBase, 'id' | 'status' | 'created_at'>;
 
@@ -138,10 +139,14 @@ export default function AdminDashboardScreen() {
         supabase.from('servicos').select('id', { count: 'exact', head: true }),
         supabase.from('comandas').select('valor_total').eq('status', 'fechada'),
         supabase.from('comandas').select('valor_total').eq('status', 'fechada')
-          .gte('data_fechamento', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+          .gte('data_fechamento', (() => {
+            const primeiroDia = new Date();
+            primeiroDia.setDate(1);
+            return getStartOfDayLocal(primeiroDia);
+          })()),
         supabase.from('agendamentos').select('id', { count: 'exact', head: true })
-          .gte('data_hora', new Date(new Date().setHours(0,0,0,0)).toISOString())
-          .lte('data_hora', new Date(new Date().setHours(23,59,59,999)).toISOString()),
+          .gte('data_hora', getStartOfDayLocal())
+          .lte('data_hora', getEndOfDayLocal()),
         supabase.from('comandas').select('id', { count: 'exact', head: true }).eq('status', 'aberta'),
       ]);
 
