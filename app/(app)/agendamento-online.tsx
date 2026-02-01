@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Clipboard, Linking, Share, Platform, DeviceEventEmitter } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Clipboard, Linking, Share, Platform, DeviceEventEmitter, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
@@ -16,6 +16,7 @@ export default function AgendamentoOnlineScreen() {
   
   const [agendamentoOnlineAtivo, setAgendamentoOnlineAtivo] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [antecedenciaMinima, setAntecedenciaMinima] = useState(2); // Em horas
   
   // Estado para o slug e URL base
   const [slug, setSlug] = useState<string>('');
@@ -30,6 +31,7 @@ export default function AgendamentoOnlineScreen() {
     carregarConfiguracao();
     carregarSlug();
     carregarUrlBase();
+    carregarAntecedencia();
     
     // Escutar mudanças do toggle no header
     const subscription = DeviceEventEmitter.addListener(
@@ -100,6 +102,49 @@ export default function AgendamentoOnlineScreen() {
       Alert.alert('Erro', 'Não foi possível carregar as configurações');
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const carregarAntecedencia = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('configuracoes')
+        .select('valor')
+        .eq('chave', 'agendamento_online_antecedencia_horas')
+        .eq('estabelecimento_id', estabelecimentoId)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+      
+      if (data?.valor) {
+        setAntecedenciaMinima(parseInt(data.valor));
+      }
+    } catch (error) {
+      logger.error('Erro ao carregar antecedência:', error);
+    }
+  };
+  
+  const salvarAntecedencia = async (novoValor: number) => {
+    try {
+      const { error } = await supabase
+        .from('configuracoes')
+        .upsert({
+          estabelecimento_id: estabelecimentoId,
+          chave: 'agendamento_online_antecedencia_horas',
+          valor: String(novoValor),
+        }, {
+          onConflict: 'estabelecimento_id,chave'
+        });
+      
+      if (error) throw error;
+      
+      setAntecedenciaMinima(novoValor);
+      Alert.alert('Sucesso', 'Antecedência mínima atualizada!');
+    } catch (error) {
+      logger.error('Erro ao salvar antecedência:', error);
+      Alert.alert('Erro', 'Não foi possível salvar a configuração');
     }
   };
   
@@ -199,6 +244,40 @@ export default function AgendamentoOnlineScreen() {
                 <FontAwesome5 name="whatsapp" size={16} color="#fff" />
                 <Text style={styles.actionButtonText}>WhatsApp</Text>
               </TouchableOpacity>
+            </View>
+            
+            {/* Configuração de Antecedência */}
+            <View style={[styles.configSection, { borderTopColor: colors.border }]}>
+              <View style={styles.configHeader}>
+                <FontAwesome5 name="clock" size={16} color={colors.textSecondary} />
+                <Text style={[styles.configTitle, { color: colors.text }]}>Antecedência Mínima</Text>
+              </View>
+              <Text style={[styles.configDescription, { color: colors.textSecondary }]}>
+                Tempo mínimo necessário antes do horário para permitir agendamento online
+              </Text>
+              <View style={styles.antecedenciaContainer}>
+                <TextInput
+                  style={[styles.antecedenciaInput, { 
+                    backgroundColor: colors.background, 
+                    borderColor: colors.border,
+                    color: colors.text 
+                  }]}
+                  value={String(antecedenciaMinima)}
+                  onChangeText={(text) => {
+                    const numero = parseInt(text) || 0;
+                    if (numero >= 0 && numero <= 72) {
+                      setAntecedenciaMinima(numero);
+                    }
+                  }}
+                  onBlur={() => salvarAntecedencia(antecedenciaMinima)}
+                  keyboardType="number-pad"
+                  maxLength={2}
+                />
+                <Text style={[styles.antecedenciaLabel, { color: colors.text }]}>horas</Text>
+              </View>
+              <Text style={[styles.antecedenciaExample, { color: colors.textTertiary }]}>
+                Exemplo: Se agora são 08:00 e você configurou 2h, o próximo horário disponível será às 10:00
+              </Text>
             </View>
           </Animated.View>
         )}
@@ -352,5 +431,49 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 13,
     flex: 1,
+  },
+  configSection: {
+    marginTop: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+  },
+  configHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  configTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  configDescription: {
+    fontSize: 12,
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+  antecedenciaContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 8,
+  },
+  antecedenciaInput: {
+    width: 60,
+    height: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  antecedenciaLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  antecedenciaExample: {
+    fontSize: 11,
+    fontStyle: 'italic',
+    lineHeight: 16,
   },
 });
