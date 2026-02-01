@@ -17,17 +17,19 @@ export default function AgendamentoOnlineScreen() {
   const [agendamentoOnlineAtivo, setAgendamentoOnlineAtivo] = useState(false);
   const [loading, setLoading] = useState(true);
   
-  // Estado para o slug
+  // Estado para o slug e URL base
   const [slug, setSlug] = useState<string>('');
+  const [urlBase, setUrlBase] = useState<string>('https://businessapp-web.vercel.app');
   
-  // Gerar o link de agendamento baseado no slug do estabelecimento
+  // Gerar o link de agendamento baseado no slug do estabelecimento e URL das configurações globais
   const linkAgendamento = slug 
-    ? `https://business.app/agendar/${slug}` 
+    ? `${urlBase}/${slug}` 
     : 'Carregando...';
   
   useEffect(() => {
     carregarConfiguracao();
     carregarSlug();
+    carregarUrlBase();
     
     // Escutar mudanças do toggle no header
     const subscription = DeviceEventEmitter.addListener(
@@ -53,6 +55,27 @@ export default function AgendamentoOnlineScreen() {
       setSlug(data?.slug || '');
     } catch (error) {
       logger.error('Erro ao carregar slug:', error);
+    }
+  };
+  
+  const carregarUrlBase = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('configuracoes_globais')
+        .select('valor')
+        .eq('chave', 'url_agendamento_online')
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+      
+      if (data?.valor) {
+        setUrlBase(data.valor);
+      }
+    } catch (error) {
+      logger.error('Erro ao carregar URL base:', error);
+      // Usa URL padrão se não conseguir carregar
     }
   };
   
