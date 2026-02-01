@@ -1238,9 +1238,40 @@ export default function NovoAgendamentoScreen() {
       
       const horarios: string[] = [];
       
+      // Verificar se a data selecionada é hoje
+      const hoje = new Date();
+      let horaAtualMinutos = -1;
+      
+      if (data && validarData(data)) {
+        const [dia, mes, ano] = data.split('/');
+        const dataSelecionada = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+        
+        // Comparar apenas a data (sem hora)
+        const ehHoje = dataSelecionada.getDate() === hoje.getDate() &&
+                       dataSelecionada.getMonth() === hoje.getMonth() &&
+                       dataSelecionada.getFullYear() === hoje.getFullYear();
+        
+        if (ehHoje) {
+          // Arredondar para o próximo intervalo
+          const horaAtual = hoje.getHours();
+          const minutoAtual = hoje.getMinutes();
+          horaAtualMinutos = horaAtual * 60 + minutoAtual;
+          
+          // Arredondar para o próximo múltiplo do intervalo
+          horaAtualMinutos = Math.ceil(horaAtualMinutos / intervalo) * intervalo;
+          
+          logger.debug(`📅 Data selecionada é HOJE. Hora atual: ${horaAtual}:${minutoAtual} → Próximo horário: ${converterMinutosParaHora(horaAtualMinutos)}`);
+        }
+      }
+      
       for (let i = inicioMinutos; i < fimMinutos; i += intervalo) {
-        // Pular horários durante o intervalo
+        // Pular horários durante o intervalo de almoço
         if (temIntervalo && i >= intervaloInicioMinutos && i < intervaloFimMinutos) {
+          continue;
+        }
+        
+        // Pular horários que já passaram (se for hoje)
+        if (horaAtualMinutos !== -1 && i < horaAtualMinutos) {
           continue;
         }
         

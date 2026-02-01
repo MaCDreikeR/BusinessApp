@@ -1922,8 +1922,10 @@ export default function AgendaScreen() {
                 logger.warn(`⚠️ Horário atravessa meia-noite: ${duracaoMinutos} min`);
               }
               
-              // 🎯 FÓRMULA MODULAR: Altura proporcional à duração - Cada 15min = 40px
-              const alturaCalculada = (duracaoMinutos / 15) * 40;
+              // 🎯 FÓRMULA CORRIGIDA: Cada slot de 5 minutos = 40px de altura
+              // Exemplo: 45 minutos = (45/5) * 40 = 9 * 40 = 360px
+              const intervaloMinutos = 5; // Intervalo de agendamento configurado
+              const alturaCalculada = (duracaoMinutos / intervaloMinutos) * 40;
               
               logger.debug(`   📊 minutosInicio: ${minutosInicio} (${hora}:${min})`);
               logger.debug(`   📊 minutosTermino: ${minutosTermino}`);
@@ -2001,13 +2003,16 @@ export default function AgendaScreen() {
             return horarios.map((horario) => {
               const [horasSlot, minutosSlot] = horario.split(':').map(Number);
 
-              // Buscar agendamentos que INICIAM neste horário
+              // Buscar agendamentos que INICIAM neste horário EXATO
               const agendamentosQueIniciam = agendamentosComColuna.filter(ag => {
                 // 🔧 CORREÇÃO: Usar parseDataHoraLocal para converter UTC → BRT
                 const dataParsada = parseDataHoraLocal(ag.data_hora);
                 const horaInicio = dataParsada.getHours();
                 const minutoInicio = dataParsada.getMinutes();
-                return horasSlot === horaInicio && Math.abs(minutosSlot - minutoInicio) < 15;
+                
+                // 🔧 CORREÇÃO: Comparação EXATA de horário (sem tolerância)
+                // Mostrar o card apenas no slot que corresponde ao horário de início
+                return horasSlot === horaInicio && minutosSlot === minutoInicio;
               });
 
               return (

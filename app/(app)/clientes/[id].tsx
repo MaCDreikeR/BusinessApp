@@ -1,5 +1,5 @@
 import React, { useState, useEffect , useMemo, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, Image, Modal, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, Image, Modal, KeyboardAvoidingView, Platform, Dimensions, Linking } from 'react-native';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
@@ -43,7 +43,7 @@ export default function EditarClienteScreen() {
   const [saldoAtual, setSaldoAtual] = useState('0,00');
   const [modalCreditoVisible, setModalCreditoVisible] = useState(false);
   const [modalExtratoVisible, setModalExtratoVisible] = useState(false);
-  const [extrato, setExtrato] = useState<{ data: string; valor: number; descricao: string; tipo: string }[]>([]);
+  const [extrato, setExtrato] = useState<{ data: string; valor: number; descricao: string; tipo: string; usuario?: string }[]>([]);
   const [valorCredito, setValorCredito] = useState('');
   const [descricaoCredito, setDescricaoCredito] = useState('');
   const [dataCredito, setDataCredito] = useState<string>('');
@@ -67,6 +67,18 @@ export default function EditarClienteScreen() {
   });
   const [modalInfoVisible, setModalInfoVisible] = useState(false);
   const [loadingModalInfo, setLoadingModalInfo] = useState(false);
+
+  // Estado para modal de detalhes do agendamento
+  const [modalAgendamentoVisible, setModalAgendamentoVisible] = useState(false);
+  const [agendamentoSelecionado, setAgendamentoSelecionado] = useState<any>(null);
+
+  // Estado para modal de detalhes do histórico
+  const [modalHistoricoVisible, setModalHistoricoVisible] = useState(false);
+  const [historicoSelecionado, setHistoricoSelecionado] = useState<any>(null);
+
+  // Estado para modal de visualização de foto
+  const [modalFotoVisible, setModalFotoVisible] = useState(false);
+  const [fotoSelecionada, setFotoSelecionada] = useState<any>(null);
 
   const abrirModalInfo = async () => {
     setModalInfoVisible(true);
@@ -404,34 +416,71 @@ export default function EditarClienteScreen() {
     if (!cliente?.id || !estabelecimentoId) return;
 
     try {
-      const { data: agendamentosData } = await supabase
+      console.log('🔍 Buscando agendamentos para:', { 
+        cliente_id: cliente.id, 
+        cliente_nome: cliente.nome,
+        estabelecimento: estabelecimentoId 
+      });
+
+      const { data: agendamentosData, error: agendamentosError } = await supabase
         .from('agendamentos')
         .select(`
           id,
           data_hora,
-          servico,
+          servicos,
           status,
+          observacoes,
           usuario_id,
           usuarios:usuario_id(nome_completo)
         `)
         .eq('estabelecimento_id', estabelecimentoId)
-        .eq('cliente', cliente.nome)
+        .or(`cliente_id.eq.${cliente.id},cliente.eq.${cliente.nome}`)
         .order('data_hora', { ascending: false })
-        .limit(20);
+        .limit(50);
+
+      console.log('📋 Resultado da query:', { 
+        total: agendamentosData?.length || 0,
+        erro: agendamentosError,
+        dados: agendamentosData 
+      });
+
+      if (agendamentosError) {
+        logger.error('Erro ao carregar agendamentos:', agendamentosError);
+        return;
+      }
 
       if (agendamentosData) {
-        const agendamentosFormatados = agendamentosData.map(a => ({
-          id: a.id,
-          data: new Date(a.data_hora).toLocaleDateString('pt-BR'),
-          hora: new Date(a.data_hora).toLocaleTimeString('pt-BR').substr(0, 5),
-          servico: a.servico,
-          status: a.status || 'pendente',
-          usuario: a.usuarios?.nome_completo || 'Não definido',
-        }));
+        const agendamentosFormatados = agendamentosData.map(a => {
+          // Extrair primeiro serviço do array JSON
+          let nomeServico = 'Sem serviço';
+          try {
+            if (typeof a.servicos === 'string') {
+              const servicosArray = JSON.parse(a.servicos);
+              nomeServico = servicosArray[0]?.nome || 'Sem serviço';
+            } else if (Array.isArray(a.servicos) && a.servicos.length > 0) {
+              nomeServico = a.servicos[0]?.nome || 'Sem serviço';
+            }
+          } catch (e) {
+            logger.error('Erro ao parsear servicos:', e);
+          }
+
+          return {
+            id: a.id,
+            data: new Date(a.data_hora).toLocaleDateString('pt-BR'),
+            hora: new Date(a.data_hora).toLocaleTimeString('pt-BR').substr(0, 5),
+            servico: nomeServico,
+            status: a.status || 'pendente',
+            usuario: a.usuarios?.nome_completo || 'Não definido',
+            observacoes: a.observacoes || null,
+          };
+        });
+        
+        console.log('✅ Agendamentos formatados:', agendamentosFormatados);
         setAgendamentos(agendamentosFormatados);
       }
     } catch (error) {
       logger.error('Erro ao carregar agendamentos:', error);
+      console.error('❌ Erro completo:', error);
     }
   };
 
@@ -439,48 +488,82 @@ export default function EditarClienteScreen() {
     if (!cliente?.id) return;
 
     try {
-      // Buscar comandas fechadas com seus itens
-      const { data: comandasData } = await supabase
+      console.log('🔍 [HISTÓRICO] Buscando comandas para cliente:', cliente.id);
+      
+      // Buscar comandas fechadas
+      const { data: comandasData, error: comandasError } = await supabase
         .from('comandas')
-        .select(`
-          id,
-          created_at,
-          valor_total,
-          status,
-          usuario_id,
-          usuarios:usuario_id(nome_completo)
-        `)
+        .select('id, created_at, valor_total, valor_pago, troco, forma_pagamento, formas_pagamento_detalhes, troco_para_credito')
         .eq('cliente_id', cliente.id)
         .eq('status', 'fechada')
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(100);
 
-      if (comandasData) {
-        // Para cada comanda, buscar o primeiro serviço (representativo)
-        const historicoFormatado = await Promise.all(
-          comandasData.map(async (c) => {
-            const { data: itemData } = await supabase
-              .from('comandas_itens')
-              .select('nome, tipo')
-              .eq('comanda_id', c.id)
-              .eq('tipo', 'servico')
-              .limit(1)
-              .single();
+      console.log('📋 [HISTÓRICO] Comandas encontradas:', {
+        total: comandasData?.length || 0,
+        erro: comandasError,
+        comandas: comandasData
+      });
 
+      if (comandasData && comandasData.length > 0) {
+        const comandaIds = comandasData.map(c => c.id);
+        
+        console.log('🔍 [HISTÓRICO] Buscando itens das comandas:', comandaIds);
+        
+        // Buscar TODOS os itens dessas comandas
+        const { data: itensData, error: itensError } = await supabase
+          .from('comandas_itens')
+          .select('*')
+          .in('comanda_id', comandaIds)
+          .order('created_at', { ascending: false });
+
+        console.log('📦 [HISTÓRICO] Itens encontrados:', {
+          total: itensData?.length || 0,
+          erro: itensError,
+          itens: itensData
+        });
+
+        if (itensData && itensData.length > 0) {
+          // Mapear itens com informações da comanda
+          const historicoFormatado = itensData.map(item => {
+            const comanda = comandasData.find(c => c.id === item.comanda_id);
+            
             return {
-              id: c.id,
-              data: new Date(c.created_at).toLocaleDateString('pt-BR'),
-              servico: itemData?.nome || 'Venda geral',
-              valor: c.valor_total || 0,
-              profissional: c.usuarios?.nome_completo || 'Não informado',
-              status: c.status,
+              id: item.id,
+              comanda_id: item.comanda_id,
+              data: new Date(comanda?.created_at || item.created_at).toLocaleDateString('pt-BR'),
+              hora: new Date(comanda?.created_at || item.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+              nome: item.nome,
+              tipo: item.tipo, // servico, produto, pacote
+              valor: item.preco_unitario || 0,
+              quantidade: item.quantidade || 1,
+              profissional: comanda?.usuarios?.nome_completo || 'Não informado',
+              // Dados completos da comanda para o modal
+              comanda: {
+                valor_total: comanda?.valor_total || 0,
+                valor_pago: comanda?.valor_pago || 0,
+                troco: comanda?.troco || 0,
+                troco_para_credito: comanda?.troco_para_credito || 0,
+                forma_pagamento: comanda?.forma_pagamento || 'Não informado',
+                formas_pagamento_detalhes: comanda?.formas_pagamento_detalhes,
+                created_at: comanda?.created_at,
+              },
             };
-          })
-        );
-        setHistorico(historicoFormatado);
+          });
+          
+          console.log('✅ [HISTÓRICO] Histórico formatado:', historicoFormatado);
+          setHistorico(historicoFormatado);
+        } else {
+          console.log('⚠️ [HISTÓRICO] Nenhum item encontrado nas comandas');
+          setHistorico([]);
+        }
+      } else {
+        console.log('⚠️ [HISTÓRICO] Nenhuma comanda fechada encontrada');
+        setHistorico([]);
       }
     } catch (error) {
       logger.error('Erro ao carregar histórico:', error);
+      console.error('❌ [HISTÓRICO] Erro completo:', error);
     }
   };
 
@@ -586,7 +669,6 @@ export default function EditarClienteScreen() {
     { id: 'saldo', icon: 'sync-alt', label: 'Saldo na casa' },
     { id: 'agendamentos', icon: 'calendar-alt', label: 'Agendamentos' },
     { id: 'historico', icon: 'history', label: 'Histórico' },
-    { id: 'pacotes', icon: 'box', label: 'Pacotes' },
     { id: 'comandas', icon: 'receipt', label: 'Comandas' },
     { id: 'fotos', icon: 'images', label: 'Fotos' },
   ];
@@ -604,52 +686,6 @@ export default function EditarClienteScreen() {
       case 'dados':
         return (
           <>
-            {/* Card de Estatísticas */}
-            {estatisticas.total_visitas > 0 && (
-              <View style={styles.estatisticasCard}>
-                <Text style={styles.estatisticasTitle}>📊 Resumo do Cliente</Text>
-                
-                <View style={styles.estatisticasGrid}>
-                  <View style={styles.estatItem}>
-                    <Text style={styles.estatValue}>{estatisticas.total_visitas}</Text>
-                    <Text style={styles.estatLabel}>Visitas</Text>
-                  </View>
-                  <View style={styles.estatItem}>
-                    <Text style={styles.estatValue}>
-                      R$ {estatisticas.total_gasto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </Text>
-                    <Text style={styles.estatLabel}>Total Gasto</Text>
-                  </View>
-                  <View style={styles.estatItem}>
-                    <Text style={styles.estatValue}>
-                      R$ {estatisticas.ticket_medio.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </Text>
-                    <Text style={styles.estatLabel}>Ticket Médio</Text>
-                  </View>
-                  {estatisticas.ultima_visita && (
-                    <View style={styles.estatItem}>
-                      <Text style={styles.estatValue}>
-                        {new Date(estatisticas.ultima_visita).toLocaleDateString('pt-BR')}
-                      </Text>
-                      <Text style={styles.estatLabel}>Última Visita</Text>
-                    </View>
-                  )}
-                </View>
-
-                {estatisticas.servicos_favoritos.length > 0 && (
-                  <View style={styles.servicosFavoritos}>
-                    <Text style={styles.servicosTitle}>⭐ Serviços Mais Realizados</Text>
-                    {estatisticas.servicos_favoritos.map((servico, index) => (
-                      <View key={index} style={styles.servicoItem}>
-                        <Text style={styles.servicoNome}>{servico.nome}</Text>
-                        <Text style={styles.servicoQuantidade}>{servico.quantidade}x</Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
-
             <TouchableOpacity 
               style={styles.fotoContainer}
               onPress={selecionarFoto}
@@ -758,10 +794,23 @@ export default function EditarClienteScreen() {
                 if (!cliente?.id) return;
                 const { data, error } = await supabase
                   .from('crediario_movimentacoes')
-                  .select('data, valor, descricao, tipo')
+                  .select(`
+                    data,
+                    valor,
+                    descricao,
+                    tipo,
+                    usuario_id,
+                    usuarios:usuario_id(nome_completo)
+                  `)
                   .eq('cliente_id', cliente.id)
                   .order('data', { ascending: false });
-                if (!error && data) setExtrato(data);
+                if (!error && data) {
+                  const extratoFormatado = data.map((mov: any) => ({
+                    ...mov,
+                    usuario: mov.usuarios?.nome_completo || 'Sistema'
+                  }));
+                  setExtrato(extratoFormatado);
+                }
                 setModalExtratoVisible(true);
               }}
             >
@@ -792,23 +841,32 @@ export default function EditarClienteScreen() {
                     )}
                     {extrato.map((mov, idx) => (
                       <View key={idx} style={{ borderBottomWidth: 1, borderBottomColor: '#F3F4F6', paddingVertical: 10 }}>
-                        <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                          {(() => {
-                            if (!mov.data) return '';
-                            // Tenta extrair só a parte da data (YYYY-MM-DD)
-                            const match = mov.data.match(/^(\d{4})-(\d{2})-(\d{2})/);
-                            if (match) {
-                              return `${match[3]}/${match[2]}/${match[1]}`;
-                            }
-                            // fallback: mostra como está
-                            return mov.data;
-                          })()}
-                        </Text>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                          <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+                            {(() => {
+                              if (!mov.data) return '';
+                              const date = new Date(mov.data);
+                              return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                            })()}
+                          </Text>
+                          <Text style={{ color: colors.textTertiary, fontSize: 12 }}>
+                            {(() => {
+                              if (!mov.data) return '';
+                              const date = new Date(mov.data);
+                              return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                            })()}
+                          </Text>
+                        </View>
                         <Text style={{ fontWeight: 'bold', color: mov.valor >= 0 ? '#10B981' : '#EF4444', fontSize: 16 }}>
                           {mov.valor >= 0 ? '+' : '-'} R$ {Math.abs(mov.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </Text>
                         {mov.descricao ? (
-                          <Text style={{ color: colors.text, fontSize: 14 }}>{mov.descricao}</Text>
+                          <Text style={{ color: colors.text, fontSize: 14, marginTop: 2 }}>{mov.descricao}</Text>
+                        ) : null}
+                        {mov.usuario ? (
+                          <Text style={{ color: colors.textTertiary, fontSize: 12, marginTop: 4 }}>
+                            <FontAwesome5 name="user" size={10} color={colors.textTertiary} /> {mov.usuario}
+                          </Text>
                         ) : null}
                       </View>
                     ))}
@@ -967,10 +1025,34 @@ export default function EditarClienteScreen() {
                         if (tipoCredito === 'credito' && valor < 0) valor = Math.abs(valor);
                         setSalvandoCredito(true);
                         try {
-                          // Determina data: se não preenchida, usa hoje
-                          let dataMov = dataCredito && dataCredito.length === 10
-                            ? dataCredito.split('/').reverse().join('-')
-                            : new Date().toISOString().slice(0, 10);
+                          // Buscar dados do usuário
+                          const { data: { user: currentUser } } = await supabase.auth.getUser();
+                          
+                          // Determina data: sempre usa horário local sem conversão UTC
+                          let dataMov;
+                          if (dataCredito && dataCredito.length === 10) {
+                            // Se data foi informada, usa ela com hora atual
+                            const [dia, mes, ano] = dataCredito.split('/');
+                            const agora = new Date();
+                            const dataLocal = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia), agora.getHours(), agora.getMinutes(), agora.getSeconds());
+                            // Formata como YYYY-MM-DD HH:MM:SS sem timezone
+                            dataMov = dataLocal.getFullYear() + '-' + 
+                                     String(dataLocal.getMonth() + 1).padStart(2, '0') + '-' + 
+                                     String(dataLocal.getDate()).padStart(2, '0') + ' ' + 
+                                     String(dataLocal.getHours()).padStart(2, '0') + ':' + 
+                                     String(dataLocal.getMinutes()).padStart(2, '0') + ':' + 
+                                     String(dataLocal.getSeconds()).padStart(2, '0');
+                          } else {
+                            // Se não, usa timestamp atual no formato local
+                            const agora = new Date();
+                            dataMov = agora.getFullYear() + '-' + 
+                                     String(agora.getMonth() + 1).padStart(2, '0') + '-' + 
+                                     String(agora.getDate()).padStart(2, '0') + ' ' + 
+                                     String(agora.getHours()).padStart(2, '0') + ':' + 
+                                     String(agora.getMinutes()).padStart(2, '0') + ':' + 
+                                     String(agora.getSeconds()).padStart(2, '0');
+                          }
+                          
                           // Insere movimentação
                           const { error: movError } = await supabase
                             .from('crediario_movimentacoes')
@@ -980,8 +1062,12 @@ export default function EditarClienteScreen() {
                               tipo: tipoCredito,
                               descricao: descricaoCredito,
                               data: dataMov,
+                              usuario_id: currentUser?.id || null,
                             });
-                          if (movError) throw movError;
+                          if (movError) {
+                            console.error('Erro ao inserir movimentação:', movError);
+                            throw movError;
+                          }
                           
                           // Recalcula saldo do banco de dados
                           const { data: movimentacoes, error: saldoError } = await supabase
@@ -1024,7 +1110,14 @@ export default function EditarClienteScreen() {
           <View style={styles.tabContent}>
             {agendamentos.length > 0 ? (
               agendamentos.map((agendamento) => (
-                <View key={agendamento.id} style={styles.agendamentoCard}>
+                <TouchableOpacity
+                  key={agendamento.id}
+                  style={styles.agendamentoCard}
+                  onPress={() => {
+                    setAgendamentoSelecionado(agendamento);
+                    setModalAgendamentoVisible(true);
+                  }}
+                >
                   <View style={styles.agendamentoHeader}>
                     <View style={styles.agendamentoDataHora}>
                       <FontAwesome5 name="calendar" size={14} color={colors.textSecondary} />
@@ -1052,14 +1145,7 @@ export default function EditarClienteScreen() {
                     <FontAwesome5 name="user" size={12} color={colors.textTertiary} />
                     <Text style={styles.agendamentoProfissionalText}>{agendamento.usuario}</Text>
                   </View>
-                  <TouchableOpacity 
-                    style={styles.verDetalhesButton}
-                    onPress={() => router.push(`/agenda`)}
-                  >
-                    <Text style={styles.verDetalhesText}>Ver na Agenda</Text>
-                    <FontAwesome5 name="arrow-right" size={12} color={colors.primary} />
-                  </TouchableOpacity>
-                </View>
+                </TouchableOpacity>
               ))
             ) : (
               <View style={styles.emptyState}>
@@ -1067,14 +1153,6 @@ export default function EditarClienteScreen() {
                 <Text style={styles.emptyStateText}>Nenhum agendamento encontrado</Text>
               </View>
             )}
-            
-            <TouchableOpacity 
-              style={styles.addButton}
-              onPress={() => router.push(`/agenda`)}
-            >
-              <FontAwesome5 name="plus" size={16} color={colors.primary} />
-              <Text style={styles.addButtonText}>Novo Agendamento</Text>
-            </TouchableOpacity>
           </View>
         );
 
@@ -1085,26 +1163,55 @@ export default function EditarClienteScreen() {
               <>
                 <View style={styles.resumoHistorico}>
                   <Text style={styles.resumoTitle}>
-                    Total de {historico.length} atendimento{historico.length !== 1 ? 's' : ''}
-                  </Text>
-                  <Text style={styles.resumoValor}>
-                    R$ {historico.reduce((sum, h) => sum + h.valor, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    {historico.length} item{historico.length !== 1 ? 'ns' : ''} vendido{historico.length !== 1 ? 's' : ''}
                   </Text>
                 </View>
                 {historico.map((item) => (
-                  <View key={item.id} style={styles.historicoCard}>
+                  <TouchableOpacity 
+                    key={item.id} 
+                    style={styles.historicoCard}
+                    onPress={() => {
+                      console.log('🔘 [MODAL HISTÓRICO] Item clicado:', item);
+                      console.log('🔘 [MODAL HISTÓRICO] Dados da comanda:', item.comanda);
+                      setHistoricoSelecionado(item);
+                      setModalHistoricoVisible(true);
+                    }}
+                    activeOpacity={0.7}
+                  >
                     <View style={styles.historicoHeader}>
-                      <Text style={styles.historicoData}>{item.data}</Text>
+                      <View>
+                        <Text style={styles.historicoData}>{item.data}</Text>
+                        <Text style={styles.historicoHora}>{item.hora}</Text>
+                      </View>
                       <Text style={styles.historicoValor}>
-                        R$ {item.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        R$ {(item.valor * item.quantidade).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </Text>
                     </View>
-                    <Text style={styles.historicoServico}>{item.servico}</Text>
-                    <View style={styles.historicoProfissional}>
-                      <FontAwesome5 name="user" size={12} color={colors.textTertiary} />
-                      <Text style={styles.historicoProfissionalText}>{item.profissional}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                      <Text style={styles.historicoServico}>{item.nome}</Text>
+                      {item.quantidade > 1 && (
+                        <Text style={{ fontSize: 13, color: colors.textTertiary, marginLeft: 8 }}>
+                          x{item.quantidade}
+                        </Text>
+                      )}
                     </View>
-                  </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <View style={styles.historicoProfissional}>
+                        <FontAwesome5 name="user" size={12} color={colors.textTertiary} />
+                        <Text style={styles.historicoProfissionalText}>{item.profissional}</Text>
+                      </View>
+                      <View style={[
+                        styles.statusBadge,
+                        { paddingHorizontal: 8, paddingVertical: 2 }
+                      ]}>
+                        <Text style={{ fontSize: 10, color: colors.textTertiary }}>
+                          {item.tipo === 'servico' ? '✂️ Serviço' : 
+                           item.tipo === 'produto' ? '📦 Produto' : 
+                           '🎁 Pacote'}
+                        </Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
                 ))}
               </>
             ) : (
@@ -1251,11 +1358,48 @@ export default function EditarClienteScreen() {
                   <TouchableOpacity 
                     key={foto.id} 
                     style={styles.galeriaItem}
-                    onPress={() => Alert.alert('Foto', foto.descricao || 'Sem descrição')}
+                    onPress={() => {
+                      setFotoSelecionada(foto);
+                      setModalFotoVisible(true);
+                    }}
+                    onLongPress={() => {
+                      Alert.prompt(
+                        'Descrição da Foto',
+                        'Digite uma descrição para esta foto',
+                        [
+                          { text: 'Cancelar', style: 'cancel' },
+                          {
+                            text: 'Salvar',
+                            onPress: async (text) => {
+                              try {
+                                const { error } = await supabase
+                                  .from('cliente_fotos')
+                                  .update({ descricao: text })
+                                  .eq('id', foto.id);
+                                
+                                if (error) throw error;
+                                
+                                carregarGaleria();
+                                Alert.alert('Sucesso', 'Descrição atualizada!');
+                              } catch (error) {
+                                Alert.alert('Erro', 'Não foi possível atualizar a descrição');
+                              }
+                            }
+                          }
+                        ],
+                        'plain-text',
+                        foto.descricao
+                      );
+                    }}
                   >
-                    <Image source={{ uri: foto.url }} style={styles.galeriaImagem} />
+                    <Image source={{ uri: foto.url }} style={styles.galeriaImagem} resizeMode="cover" />
                     <View style={styles.galeriaInfo}>
-                      <Text style={styles.galeriaData}>{foto.data}</Text>
+                      <Text style={styles.galeriaData} numberOfLines={1}>{foto.data}</Text>
+                      {foto.descricao && (
+                        <Text style={{ fontSize: 10, color: '#fff', marginTop: 2 }} numberOfLines={1}>
+                          {foto.descricao}
+                        </Text>
+                      )}
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -1263,15 +1407,18 @@ export default function EditarClienteScreen() {
             ) : (
               <View style={styles.emptyState}>
                 <FontAwesome5 name="images" size={48} color={colors.textTertiary} />
-                <Text style={styles.emptyStateText}>Nenhuma foto adicionada</Text>
+                <Text style={styles.emptyStateText}>Nenhuma foto na galeria</Text>
                 <Text style={styles.emptyStateSubtext}>
-                  Registre fotos de antes/depois dos atendimentos
+                  Adicione fotos de antes/depois dos atendimentos
+                </Text>
+                <Text style={styles.emptyStateSubtext}>
+                  Toque longo na foto para adicionar descrição
                 </Text>
               </View>
             )}
             
             <TouchableOpacity 
-              style={styles.addButton}
+              style={[styles.addButton, { marginTop: 16 }]}
               onPress={async () => {
                 try {
                   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -1281,28 +1428,42 @@ export default function EditarClienteScreen() {
                   }
 
                   const result = await ImagePicker.launchImageLibraryAsync({
-                    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                    allowsEditing: true,
-                    quality: 0.7,
+                    mediaTypes: 'images',
+                    allowsEditing: false,
+                    quality: 1.0,
                     base64: true,
                   });
 
-                  if (!result.canceled && result.assets[0].base64) {
+                  console.log('📸 [FOTO] Resultado da seleção:', result);
+
+                  if (!result.canceled && result.assets[0]) {
+                    if (!result.assets[0].base64) {
+                      Alert.alert('Erro', 'Não foi possível processar a imagem');
+                      return;
+                    }
+
+                    console.log('📸 [FOTO] Fazendo upload...');
                     const fotoNome = `${user?.id}/${Date.now()}.jpg`;
-                    const { error: uploadError } = await supabase.storage
-                      .from('cliente-fotos')
+                    
+                    const { data: uploadData, error: uploadError } = await supabase.storage
+                      .from('cliente-galeria')
                       .upload(fotoNome, decode(result.assets[0].base64), {
                         contentType: 'image/jpeg',
                       });
 
+                    console.log('📸 [FOTO] Resultado upload:', { uploadData, uploadError });
+
                     if (uploadError) {
-                      Alert.alert('Erro', 'Não foi possível fazer upload da foto');
+                      console.error('❌ [FOTO] Erro no upload:', uploadError);
+                      Alert.alert('Erro', `Não foi possível fazer upload da foto: ${uploadError.message}`);
                       return;
                     }
 
                     const { data: { publicUrl } } = supabase.storage
-                      .from('cliente-fotos')
+                      .from('cliente-galeria')
                       .getPublicUrl(fotoNome);
+
+                    console.log('📸 [FOTO] URL pública:', publicUrl);
 
                     const { error } = await supabase
                       .from('cliente_fotos')
@@ -1310,9 +1471,11 @@ export default function EditarClienteScreen() {
                         cliente_id: cliente?.id,
                         foto_url: publicUrl,
                         descricao: '',
+                        estabelecimento_id: estabelecimentoId,
                       });
 
                     if (error) {
+                      console.error('❌ [FOTO] Erro ao salvar no banco:', error);
                       Alert.alert('Erro', 'Não foi possível salvar a foto');
                       return;
                     }
@@ -1421,6 +1584,498 @@ export default function EditarClienteScreen() {
           {renderContent()}
         </ScrollView>
 
+        {/* Modal de Detalhes do Agendamento */}
+        <Modal
+          visible={modalAgendamentoVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setModalAgendamentoVisible(false)}
+        >
+          <TouchableOpacity 
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setModalAgendamentoVisible(false)}
+          >
+            <TouchableOpacity 
+              style={styles.modalContent}
+              activeOpacity={1}
+              onPress={(e) => e.stopPropagation()}
+            >
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Detalhes do Agendamento</Text>
+                <TouchableOpacity 
+                  onPress={() => setModalAgendamentoVisible(false)}
+                  style={styles.closeButton}
+                >
+                  <FontAwesome5 name="times" size={16} color={colors.textTertiary} />
+                </TouchableOpacity>
+              </View>
+
+              {agendamentoSelecionado && (
+                <ScrollView 
+                  style={styles.modalBody}
+                  showsVerticalScrollIndicator={false}
+                >
+                  <View style={styles.statRow}>
+                    <View style={styles.statIconContainer}>
+                      <FontAwesome5 name="calendar" size={16} color="#6366F1" />
+                    </View>
+                    <View style={styles.statTextContainer}>
+                      <Text style={styles.statLabel}>Data</Text>
+                      <Text style={styles.statValue}>{agendamentoSelecionado.data}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.statRow}>
+                    <View style={styles.statIconContainer}>
+                      <FontAwesome5 name="clock" size={16} color="#10B981" />
+                    </View>
+                    <View style={styles.statTextContainer}>
+                      <Text style={styles.statLabel}>Horário</Text>
+                      <Text style={styles.statValue}>{agendamentoSelecionado.hora}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.statRow}>
+                    <View style={styles.statIconContainer}>
+                      <FontAwesome5 name="cut" size={16} color="#8B5CF6" />
+                    </View>
+                    <View style={styles.statTextContainer}>
+                      <Text style={styles.statLabel}>Serviço</Text>
+                      <Text style={styles.statValue}>{agendamentoSelecionado.servico}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.statRow}>
+                    <View style={styles.statIconContainer}>
+                      <FontAwesome5 name="user" size={16} color="#F59E0B" />
+                    </View>
+                    <View style={styles.statTextContainer}>
+                      <Text style={styles.statLabel}>Profissional</Text>
+                      <Text style={styles.statValue}>{agendamentoSelecionado.usuario}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.statRow}>
+                    <View style={styles.statIconContainer}>
+                      <FontAwesome5 
+                        name={
+                          agendamentoSelecionado.status === 'confirmado' ? 'check-circle' :
+                          agendamentoSelecionado.status === 'concluido' ? 'check-double' :
+                          agendamentoSelecionado.status === 'cancelado' ? 'times-circle' :
+                          agendamentoSelecionado.status === 'falta' ? 'exclamation-circle' : 'clock'
+                        }
+                        size={16}
+                        color={
+                          agendamentoSelecionado.status === 'confirmado' ? '#10B981' :
+                          agendamentoSelecionado.status === 'concluido' ? '#3B82F6' :
+                          agendamentoSelecionado.status === 'cancelado' ? '#EF4444' :
+                          agendamentoSelecionado.status === 'falta' ? '#F59E0B' : '#6B7280'
+                        }
+                      />
+                    </View>
+                    <View style={styles.statTextContainer}>
+                      <Text style={styles.statLabel}>Status</Text>
+                      <Text style={styles.statValue}>
+                        {agendamentoSelecionado.status === 'confirmado' ? 'Confirmado' :
+                         agendamentoSelecionado.status === 'concluido' ? 'Concluído' :
+                         agendamentoSelecionado.status === 'cancelado' ? 'Cancelado' :
+                         agendamentoSelecionado.status === 'falta' ? 'Falta' : 'Pendente'}
+                      </Text>
+                    </View>
+                  
+                  {agendamentoSelecionado.observacoes && (
+                    <View style={styles.statRow}>
+                      <View style={styles.statIconContainer}>
+                        <FontAwesome5 name="comment" size={16} color="#6B7280" />
+                      </View>
+                      <View style={styles.statTextContainer}>
+                        <Text style={styles.statLabel}>Observações</Text>
+                        <Text style={styles.statValue}>{agendamentoSelecionado.observacoes}</Text>
+                      </View>
+                    </View>
+                  )}
+                  </View>
+                </ScrollView>
+              )}
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* Modal de Detalhes do Histórico */}
+        <Modal
+          visible={modalHistoricoVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setModalHistoricoVisible(false)}
+        >
+          <TouchableOpacity 
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setModalHistoricoVisible(false)}
+          >
+            <View 
+              style={styles.modalContent}
+            >
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Detalhes da Comanda</Text>
+                <TouchableOpacity 
+                  onPress={() => setModalHistoricoVisible(false)}
+                  style={styles.closeButton}
+                >
+                  <FontAwesome5 name="times" size={16} color={colors.textTertiary} />
+                </TouchableOpacity>
+              </View>
+
+              {historicoSelecionado && (
+                <ScrollView 
+                  style={styles.modalBody}
+                  contentContainerStyle={{ paddingBottom: 20 }}
+                  showsVerticalScrollIndicator={true}
+                  nestedScrollEnabled={true}
+                >
+                  {console.log('📱 [MODAL] historicoSelecionado completo:', JSON.stringify(historicoSelecionado, null, 2))}
+                  {console.log('📱 [MODAL] comanda existe?', !!historicoSelecionado.comanda)}
+                  {console.log('📱 [MODAL] dados da comanda:', historicoSelecionado.comanda)}
+                  
+                  <View style={styles.statRow}>
+                    <View style={styles.statIconContainer}>
+                      <FontAwesome5 name="calendar" size={16} color="#6366F1" />
+                    </View>
+                    <View style={styles.statTextContainer}>
+                      <Text style={styles.statLabel}>Data</Text>
+                      <Text style={styles.statValue}>{historicoSelecionado.data}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.statRow}>
+                    <View style={styles.statIconContainer}>
+                      <FontAwesome5 name="clock" size={16} color="#6366F1" />
+                    </View>
+                    <View style={styles.statTextContainer}>
+                      <Text style={styles.statLabel}>Horário</Text>
+                      <Text style={styles.statValue}>{historicoSelecionado.hora}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.statRow}>
+                    <View style={styles.statIconContainer}>
+                      <FontAwesome5 
+                        name={
+                          historicoSelecionado.tipo === 'servico' ? 'cut' :
+                          historicoSelecionado.tipo === 'produto' ? 'box' : 'gift'
+                        }
+                        size={16}
+                        color="#8B5CF6"
+                      />
+                    </View>
+                    <View style={styles.statTextContainer}>
+                      <Text style={styles.statLabel}>Item</Text>
+                      <Text style={styles.statValue}>
+                        {historicoSelecionado.nome}
+                        {historicoSelecionado.quantidade > 1 && ` (x${historicoSelecionado.quantidade})`}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.statRow}>
+                    <View style={styles.statIconContainer}>
+                      <FontAwesome5 name="tag" size={16} color="#10B981" />
+                    </View>
+                    <View style={styles.statTextContainer}>
+                      <Text style={styles.statLabel}>Tipo</Text>
+                      <Text style={styles.statValue}>
+                        {historicoSelecionado.tipo === 'servico' ? '✂️ Serviço' :
+                         historicoSelecionado.tipo === 'produto' ? '📦 Produto' : '🎁 Pacote'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.statRow}>
+                    <View style={styles.statIconContainer}>
+                      <FontAwesome5 name="user" size={16} color="#F59E0B" />
+                    </View>
+                    <View style={styles.statTextContainer}>
+                      <Text style={styles.statLabel}>Profissional</Text>
+                      <Text style={styles.statValue}>{historicoSelecionado.profissional}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.statRow}>
+                    <View style={styles.statIconContainer}>
+                      <FontAwesome5 name="money-bill-wave" size={16} color="#10B981" />
+                    </View>
+                    <View style={styles.statTextContainer}>
+                      <Text style={styles.statLabel}>Valor do Item</Text>
+                      <Text style={styles.statValue}>
+                        R$ {(historicoSelecionado.valor * historicoSelecionado.quantidade).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {historicoSelecionado.comanda && (
+                    <>
+                      <View style={styles.modalDivider} />
+
+                      <View style={styles.statRow}>
+                        <View style={styles.statIconContainer}>
+                          <FontAwesome5 name="receipt" size={16} color="#6366F1" />
+                        </View>
+                        <View style={styles.statTextContainer}>
+                          <Text style={styles.statLabel}>Valor Total da Comanda</Text>
+                          <Text style={styles.statValue}>
+                            R$ {historicoSelecionado.comanda.valor_total?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.statRow}>
+                        <View style={styles.statIconContainer}>
+                          <FontAwesome5 name="money-bill-wave" size={16} color="#10B981" />
+                        </View>
+                        <View style={styles.statTextContainer}>
+                          <Text style={styles.statLabel}>Valor Pago</Text>
+                          <Text style={styles.statValue}>
+                            R$ {historicoSelecionado.comanda.valor_pago?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {historicoSelecionado.comanda.troco > 0 && (
+                        <View style={styles.statRow}>
+                          <View style={styles.statIconContainer}>
+                            <FontAwesome5 name="hand-holding-usd" size={16} color="#F59E0B" />
+                          </View>
+                          <View style={styles.statTextContainer}>
+                            <Text style={styles.statLabel}>Troco</Text>
+                            <Text style={styles.statValue}>
+                              R$ {historicoSelecionado.comanda.troco?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}
+                            </Text>
+                          </View>
+                        </View>
+                      )}
+
+                      {(historicoSelecionado.comanda.valor_pago < historicoSelecionado.comanda.valor_total) && (
+                        <View style={styles.statRow}>
+                          <View style={styles.statIconContainer}>
+                            <FontAwesome5 name="exclamation-circle" size={16} color="#EF4444" />
+                          </View>
+                          <View style={styles.statTextContainer}>
+                            <Text style={styles.statLabel}>Falta (Saldo Devedor)</Text>
+                            <Text style={[styles.statValue, { color: '#EF4444' }]}>
+                              R$ {(historicoSelecionado.comanda.valor_total - historicoSelecionado.comanda.valor_pago)?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}
+                            </Text>
+                          </View>
+                        </View>
+                      )}
+
+                      {historicoSelecionado.comanda.troco_para_credito > 0 && (
+                        <View style={styles.statRow}>
+                          <View style={styles.statIconContainer}>
+                            <FontAwesome5 name="piggy-bank" size={16} color="#8B5CF6" />
+                          </View>
+                          <View style={styles.statTextContainer}>
+                            <Text style={styles.statLabel}>Troco Convertido em Crédito</Text>
+                            <Text style={styles.statValue}>
+                              R$ {historicoSelecionado.comanda.troco_para_credito?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}
+                            </Text>
+                          </View>
+                        </View>
+                      )}
+
+                      <View style={styles.statRow}>
+                        <View style={styles.statIconContainer}>
+                          <FontAwesome5 name="credit-card" size={16} color="#8B5CF6" />
+                        </View>
+                        <View style={styles.statTextContainer}>
+                          <Text style={styles.statLabel}>Forma de Pagamento</Text>
+                          <Text style={styles.statValue}>
+                            {historicoSelecionado.comanda.forma_pagamento === 'dinheiro' ? 'Dinheiro' :
+                             historicoSelecionado.comanda.forma_pagamento === 'cartao_credito' ? 'Cartão de Crédito' :
+                             historicoSelecionado.comanda.forma_pagamento === 'cartao_debito' ? 'Cartão de Débito' :
+                             historicoSelecionado.comanda.forma_pagamento === 'pix' ? 'PIX' :
+                             historicoSelecionado.comanda.forma_pagamento === 'crediario' ? 'Crediário' :
+                             historicoSelecionado.comanda.forma_pagamento === 'multiplo' ? 'Múltiplas Formas' :
+                             'Não informado'}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {historicoSelecionado.comanda.forma_pagamento === 'multiplo' && historicoSelecionado.comanda.formas_pagamento_detalhes && (
+                        <View style={{ marginTop: 8, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: colors.background, borderRadius: 8 }}>
+                          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 8 }}>Detalhamento:</Text>
+                          {historicoSelecionado.comanda.formas_pagamento_detalhes.map((detalhe: any, index: number) => (
+                            <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                              <Text style={{ fontSize: 12, color: colors.textSecondary }}>
+                                {detalhe.forma_pagamento === 'dinheiro' ? 'Dinheiro' :
+                                 detalhe.forma_pagamento === 'cartao_credito' ? 'Cartão Crédito' :
+                                 detalhe.forma_pagamento === 'cartao_debito' ? 'Cartão Débito' :
+                                 detalhe.forma_pagamento === 'pix' ? 'PIX' :
+                                 detalhe.forma_pagamento === 'crediario' ? 'Crediário' : detalhe.forma_pagamento}
+                              </Text>
+                              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text }}>
+                                R$ {detalhe.valor?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                    </>
+                  )}
+                </ScrollView>
+              )}
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* Modal de Visualização de Foto */}
+        <Modal
+          visible={modalFotoVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setModalFotoVisible(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.95)' }}>
+            {/* Botão Fechar */}
+            <TouchableOpacity
+              style={{ position: 'absolute', top: 50, right: 20, zIndex: 10, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: 10 }}
+              onPress={() => setModalFotoVisible(false)}
+            >
+              <FontAwesome5 name="times" size={24} color="#fff" />
+            </TouchableOpacity>
+
+            {/* Imagem em tela cheia com zoom nativo */}
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.95)' }}>
+              {fotoSelecionada && (
+                <ScrollView
+                  style={{ flex: 1, width: '100%' }}
+                  contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center' }}
+                  maximumZoomScale={5}
+                  minimumZoomScale={1}
+                  showsHorizontalScrollIndicator={false}
+                  showsVerticalScrollIndicator={false}
+                  bounces={true}
+                  bouncesZoom={true}
+                  scrollEnabled={true}
+                  pinchGestureEnabled={true}
+                  centerContent={true}
+                >
+                  <Image 
+                    source={{ uri: fotoSelecionada.url }} 
+                    style={{ 
+                      width: Dimensions.get('window').width, 
+                      height: Dimensions.get('window').height * 0.7
+                    }}
+                    resizeMode="contain"
+                  />
+                </ScrollView>
+              )}
+            </View>
+
+            {/* Informações e Ações */}
+            {fotoSelecionada && (
+              <View style={{ backgroundColor: 'rgba(0,0,0,0.8)', padding: 20, paddingBottom: 40 }}>
+                <View style={{ marginBottom: 16 }}>
+                  <Text style={{ color: '#fff', fontSize: 14, marginBottom: 4 }}>
+                    {fotoSelecionada.data}
+                  </Text>
+                  {fotoSelecionada.descricao && (
+                    <Text style={{ color: '#ccc', fontSize: 13 }}>
+                      {fotoSelecionada.descricao}
+                    </Text>
+                  )}
+                </View>
+
+                <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 10 }}>
+                  {/* Botão Adicionar Descrição */}
+                  <TouchableOpacity
+                    style={{ backgroundColor: '#6366F1', borderRadius: 8, padding: 10, alignItems: 'center', justifyContent: 'center', width: 42, height: 42 }}
+                    onPress={() => {
+                      Alert.prompt(
+                        'Descrição da Foto',
+                        'Digite uma descrição para esta foto',
+                        [
+                          { text: 'Cancelar', style: 'cancel' },
+                          {
+                            text: 'Salvar',
+                            onPress: async (text) => {
+                              try {
+                                const { error } = await supabase
+                                  .from('cliente_fotos')
+                                  .update({ descricao: text })
+                                  .eq('id', fotoSelecionada.id);
+                                
+                                if (error) throw error;
+                                
+                                await carregarGaleria();
+                                setModalFotoVisible(false);
+                                Alert.alert('Sucesso', 'Descrição atualizada!');
+                              } catch (error) {
+                                Alert.alert('Erro', 'Não foi possível atualizar a descrição');
+                              }
+                            }
+                          }
+                        ],
+                        'plain-text',
+                        fotoSelecionada.descricao
+                      );
+                    }}
+                  >
+                    <FontAwesome5 name="edit" size={16} color="#fff" />
+                  </TouchableOpacity>
+
+                  {/* Botão Download */}
+                  <TouchableOpacity
+                    style={{ backgroundColor: '#10B981', borderRadius: 8, padding: 10, alignItems: 'center', justifyContent: 'center', width: 42, height: 42 }}
+                    onPress={() => {
+                      // Abrir imagem no navegador para download
+                      Linking.openURL(fotoSelecionada.url);
+                    }}
+                  >
+                    <FontAwesome5 name="download" size={16} color="#fff" />
+                  </TouchableOpacity>
+
+                  {/* Botão Excluir */}
+                  <TouchableOpacity
+                    style={{ backgroundColor: '#EF4444', borderRadius: 8, padding: 10, alignItems: 'center', justifyContent: 'center', width: 42, height: 42 }}
+                    onPress={() => {
+                      Alert.alert(
+                        'Excluir Foto',
+                        'Tem certeza que deseja excluir esta foto?',
+                        [
+                          { text: 'Cancelar', style: 'cancel' },
+                          {
+                            text: 'Excluir',
+                            style: 'destructive',
+                            onPress: async () => {
+                              try {
+                                const { error } = await supabase
+                                  .from('cliente_fotos')
+                                  .delete()
+                                  .eq('id', fotoSelecionada.id);
+                                
+                                if (error) throw error;
+                                
+                                await carregarGaleria();
+                                setModalFotoVisible(false);
+                                Alert.alert('Sucesso', 'Foto excluída com sucesso!');
+                              } catch (error) {
+                                Alert.alert('Erro', 'Não foi possível excluir a foto');
+                              }
+                            }
+                          }
+                        ]
+                      );
+                    }}
+                  >
+                    <FontAwesome5 name="trash" size={16} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </View>
+        </Modal>
+
         {/* Modal de Informações do Cliente */}
         <Modal
           visible={modalInfoVisible}
@@ -1433,28 +2088,30 @@ export default function EditarClienteScreen() {
             activeOpacity={1}
             onPress={() => setModalInfoVisible(false)}
           >
-            <View style={styles.modalContainer}>
-              <TouchableOpacity 
-                style={styles.modalContent}
-                activeOpacity={1}
-                onPress={(e) => e.stopPropagation()}
-              >
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Informações do Cliente</Text>
-                  <TouchableOpacity 
-                    onPress={() => setModalInfoVisible(false)}
-                    style={styles.closeButton}
-                  >
-                    <FontAwesome5 name="times" size={16} color={colors.textTertiary} />
-                  </TouchableOpacity>
-                </View>
+            <TouchableOpacity 
+              style={styles.modalContent}
+              activeOpacity={1}
+              onPress={(e) => e.stopPropagation()}
+            >
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Informações do Cliente</Text>
+                <TouchableOpacity 
+                  onPress={() => setModalInfoVisible(false)}
+                  style={styles.closeButton}
+                >
+                  <FontAwesome5 name="times" size={16} color={colors.textTertiary} />
+                </TouchableOpacity>
+              </View>
 
-                {loadingModalInfo ? (
-                  <View style={styles.modalLoading}>
-                    <Text style={styles.loadingText}>Carregando...</Text>
-                  </View>
-                ) : (
-                  <View style={styles.modalBody}>
+              {loadingModalInfo ? (
+                <View style={styles.modalLoading}>
+                  <Text style={styles.loadingText}>Carregando...</Text>
+                </View>
+              ) : (
+                <ScrollView 
+                  style={styles.modalBody}
+                  showsVerticalScrollIndicator={false}
+                >
                   <View style={styles.statRow}>
                     <View style={styles.statIconContainer}>
                       <FontAwesome5 name="user-plus" size={16} color="#6366F1" />
@@ -1554,10 +2211,9 @@ export default function EditarClienteScreen() {
                       </Text>
                     </View>
                   )}
-                  </View>
+                  </ScrollView>
                 )}
               </TouchableOpacity>
-            </View>
           </TouchableOpacity>
         </Modal>
 
@@ -1993,6 +2649,11 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
   },
+  historicoHora: {
+    fontSize: 11,
+    color: colors.textTertiary,
+    marginTop: 2,
+  },
   historicoValor: {
     fontSize: 16,
     fontWeight: '600',
@@ -2204,11 +2865,6 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     padding: 20,
   },
   modalContent: {
@@ -2216,6 +2872,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 16,
     width: '100%',
     maxWidth: 400,
+    maxHeight: '85%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -2281,7 +2938,8 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.textSecondary,
   },
   modalBody: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   statRow: {
     flexDirection: 'row',

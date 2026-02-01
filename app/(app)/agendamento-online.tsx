@@ -1,0 +1,333 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Clipboard, Linking, Share, Platform, DeviceEventEmitter } from 'react-native';
+import { useRouter } from 'expo-router';
+import { FontAwesome5 } from '@expo/vector-icons';
+import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
+import { supabase } from '../../lib/supabase';
+import { logger } from '../../utils/logger';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { Switch } from 'react-native';
+
+export default function AgendamentoOnlineScreen() {
+  const router = useRouter();
+  const { colors } = useTheme();
+  const { estabelecimentoId } = useAuth();
+  
+  const [agendamentoOnlineAtivo, setAgendamentoOnlineAtivo] = useState(false);
+  const [loading, setLoading] = useState(true);
+  
+  // Estado para o slug
+  const [slug, setSlug] = useState<string>('');
+  
+  // Gerar o link de agendamento baseado no slug do estabelecimento
+  const linkAgendamento = slug 
+    ? `https://business.app/agendar/${slug}` 
+    : 'Carregando...';
+  
+  useEffect(() => {
+    carregarConfiguracao();
+    carregarSlug();
+    
+    // Escutar mudanças do toggle no header
+    const subscription = DeviceEventEmitter.addListener(
+      'agendamentoOnlineAtualizado',
+      (novoValor: boolean) => {
+        setAgendamentoOnlineAtivo(novoValor);
+      }
+    );
+    
+    return () => subscription.remove();
+  }, []);
+  
+  const carregarSlug = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('estabelecimentos')
+        .select('slug')
+        .eq('id', estabelecimentoId)
+        .single();
+      
+      if (error) throw error;
+      
+      setSlug(data?.slug || '');
+    } catch (error) {
+      logger.error('Erro ao carregar slug:', error);
+    }
+  };
+  
+  const carregarConfiguracao = async () => {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase
+        .from('configuracoes')
+        .select('valor')
+        .eq('chave', 'agendamento_online_ativo')
+        .eq('estabelecimento_id', estabelecimentoId)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') { // Ignora erro de "não encontrado"
+        throw error;
+      }
+      
+      setAgendamentoOnlineAtivo(data?.valor === 'true');
+    } catch (error) {
+      logger.error('Erro ao carregar configuração:', error);
+      Alert.alert('Erro', 'Não foi possível carregar as configurações');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const copiarLink = () => {
+    Clipboard.setString(linkAgendamento);
+    Alert.alert('Sucesso', 'Link copiado para a área de transferência!');
+  };
+  
+  const compartilharWhatsApp = async () => {
+    const mensagem = `📅 Agende seu horário comigo!\n\nAcesse o link e escolha o melhor horário:\n${linkAgendamento}`;
+    const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(mensagem)}`;
+    
+    try {
+      const supported = await Linking.canOpenURL(whatsappUrl);
+      if (supported) {
+        await Linking.openURL(whatsappUrl);
+      } else {
+        Alert.alert('Erro', 'WhatsApp não está instalado neste dispositivo');
+      }
+    } catch (error) {
+      logger.error('Erro ao abrir WhatsApp:', error);
+      Alert.alert('Erro', 'Não foi possível abrir o WhatsApp');
+    }
+  };
+  
+  const compartilharLink = async () => {
+    try {
+      await Share.share({
+        message: `📅 Agende seu horário comigo!\n\nAcesse o link e escolha o melhor horário:\n${linkAgendamento}`,
+        title: 'Link de Agendamento',
+      });
+    } catch (error) {
+      logger.error('Erro ao compartilhar:', error);
+    }
+  };
+  
+  if (loading) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.loadingContainer}>
+          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Carregando...</Text>
+        </View>
+      </View>
+    );
+  }
+  
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Content */}
+      <View style={styles.content}>
+        {/* Mensagem quando desativado */}
+        {!agendamentoOnlineAtivo && (
+          <Animated.View 
+            entering={FadeIn.delay(100).springify()}
+            style={[styles.card, { backgroundColor: colors.surface }]}
+          >
+            <View style={styles.infoHeader}>
+              <FontAwesome5 name="info-circle" size={18} color={colors.textSecondary} />
+              <Text style={[styles.infoTitle, { color: colors.text }]}>Agendamento Online Desativado</Text>
+            </View>
+            <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+              Ative o agendamento online no botão acima para permitir que seus clientes agendem horários pela internet.
+            </Text>
+          </Animated.View>
+        )}
+        
+        {/* Card do Link */}
+        {agendamentoOnlineAtivo && (
+          <Animated.View 
+            entering={FadeIn.delay(200).springify()}
+            style={[styles.card, { backgroundColor: colors.surface }]}
+          >
+            <View style={styles.linkHeader}>
+              <FontAwesome5 name="link" size={18} color={colors.primary} />
+              <Text style={[styles.linkTitle, { color: colors.text }]}>Seu Link de Agendamento</Text>
+            </View>
+            
+            <View style={[styles.linkContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <Text style={[styles.linkText, { color: colors.textSecondary }]} numberOfLines={1}>
+                {linkAgendamento}
+              </Text>
+            </View>
+            
+            <View style={styles.buttonsContainer}>
+              <TouchableOpacity 
+                style={[styles.actionButton, { backgroundColor: colors.primary }]}
+                onPress={copiarLink}
+              >
+                <FontAwesome5 name="copy" size={16} color="#fff" />
+                <Text style={styles.actionButtonText}>Copiar Link</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.actionButton, { backgroundColor: '#25D366' }]}
+                onPress={compartilharWhatsApp}
+              >
+                <FontAwesome5 name="whatsapp" size={16} color="#fff" />
+                <Text style={styles.actionButtonText}>WhatsApp</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        )}
+        
+        {/* Card de Informações */}
+        {agendamentoOnlineAtivo && (
+          <Animated.View 
+            entering={FadeIn.delay(300).springify()}
+            style={[styles.card, { backgroundColor: colors.surface }]}
+          >
+            <View style={styles.infoHeader}>
+              <FontAwesome5 name="info-circle" size={18} color={colors.primary} />
+              <Text style={[styles.infoTitle, { color: colors.text }]}>Como Funciona</Text>
+            </View>
+            
+            <View style={styles.infoItem}>
+              <FontAwesome5 name="check-circle" size={14} color={colors.success} />
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                Clientes acessam o link e escolhem data e horário
+              </Text>
+            </View>
+            
+            <View style={styles.infoItem}>
+              <FontAwesome5 name="check-circle" size={14} color={colors.success} />
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                Você recebe notificação de novos agendamentos
+              </Text>
+            </View>
+            
+            <View style={styles.infoItem}>
+              <FontAwesome5 name="check-circle" size={14} color={colors.success} />
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                Horários ocupados são automaticamente bloqueados
+              </Text>
+            </View>
+          </Animated.View>
+        )}
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+    padding: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+  },
+  card: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  cardHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  cardHeaderText: {
+    flex: 1,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  cardDescription: {
+    fontSize: 13,
+  },
+  linkHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  linkTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  linkContainer: {
+    borderRadius: 8,
+    borderWidth: 1,
+    padding: 12,
+    marginBottom: 16,
+  },
+  linkText: {
+    fontSize: 13,
+  },
+  buttonsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: 12,
+    borderRadius: 8,
+  },
+  actionButtonText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  infoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 8,
+  },
+  infoTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  infoText: {
+    fontSize: 13,
+    flex: 1,
+  },
+});

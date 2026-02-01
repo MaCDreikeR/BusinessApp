@@ -3,7 +3,7 @@ import { Drawer } from 'expo-router/drawer';
 import { useFocusEffect } from '@react-navigation/native';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { usePathname , router , Stack , useRouter } from 'expo-router';
-import { TouchableOpacity, View, Text, StyleSheet, Image, Alert, ActivityIndicator, Dimensions, Platform , DeviceEventEmitter } from 'react-native';
+import { TouchableOpacity, View, Text, StyleSheet, Image, Alert, ActivityIndicator, Dimensions, Platform , DeviceEventEmitter, Switch } from 'react-native';
 import { DrawerContentScrollView, DrawerItemList , DrawerContentComponentProps } from '@react-navigation/drawer';
 import { supabase } from '../../lib/supabase';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -726,7 +726,20 @@ export default function AppLayout() {
           headerShown: false,
           drawerItemStyle: { display: permissions.pode_ver_relatorios ? 'flex' : 'none' },
         }}
-      />  
+      />
+
+      <Drawer.Screen
+        name="despesas"
+        options={{
+          title: 'Despesas',
+          drawerIcon: ({ color }) => (
+            <FontAwesome5 name="wallet" size={20} color={color} />
+          ),
+          headerShown: false,
+          drawerItemStyle: { display: permissions.pode_ver_despesas ? 'flex' : 'none' },
+        }}
+      />
+      
       <Drawer.Screen
   name="clientes" // Nome da pasta/rota
   options={{
@@ -786,17 +799,6 @@ export default function AppLayout() {
       />
 
       <Drawer.Screen
-        name="despesas"
-        options={{
-          title: 'Despesas',
-          drawerIcon: ({ color }) => (
-            <FontAwesome5 name="money-bill-alt" size={20} color={color} />
-          ),
-          drawerItemStyle: { display: 'none' }, // Oculto - tela não implementada
-        }}
-      />
-
-      <Drawer.Screen
         name="comissoes"
         options={{
           title: 'Comissões',
@@ -818,13 +820,87 @@ export default function AppLayout() {
       />
 
       <Drawer.Screen
-        name="agendamentos-online"
+        name="agendamento-online"
         options={{
-          title: 'Agendamentos Online',
+          title: 'Agendamento Online',
           drawerIcon: ({ color }) => (
-            <FontAwesome5 name="globe" size={20} color={color} />
+            <FontAwesome5 name="calendar-check" size={20} color={color} />
           ),
-          drawerItemStyle: { display: 'none' }, // Oculto - tela não implementada
+          drawerItemStyle: undefined, // Sempre visível
+          headerRight: () => {
+            const { estabelecimentoId } = useAuth();
+            const [ativo, setAtivo] = React.useState(false);
+            const [carregando, setCarregando] = React.useState(true);
+            
+            React.useEffect(() => {
+              if (!estabelecimentoId) return;
+              
+              const carregar = async () => {
+                try {
+                  const { data } = await supabase
+                    .from('configuracoes')
+                    .select('valor')
+                    .eq('chave', 'agendamento_online_ativo')
+                    .eq('estabelecimento_id', estabelecimentoId)
+                    .single();
+                  
+                  setAtivo(data?.valor === 'true');
+                } catch (error) {
+                  console.error('Erro ao carregar:', error);
+                } finally {
+                  setCarregando(false);
+                }
+              };
+              carregar();
+            }, [estabelecimentoId]);
+            
+            const salvar = async (novoValor: boolean) => {
+              if (!estabelecimentoId) return;
+              
+              try {
+                const { data: existente } = await supabase
+                  .from('configuracoes')
+                  .select('id')
+                  .eq('chave', 'agendamento_online_ativo')
+                  .eq('estabelecimento_id', estabelecimentoId)
+                  .single();
+                
+                if (existente) {
+                  await supabase
+                    .from('configuracoes')
+                    .update({ valor: novoValor.toString() })
+                    .eq('chave', 'agendamento_online_ativo')
+                    .eq('estabelecimento_id', estabelecimentoId);
+                } else {
+                  await supabase
+                    .from('configuracoes')
+                    .insert({
+                      chave: 'agendamento_online_ativo',
+                      valor: novoValor.toString(),
+                      estabelecimento_id: estabelecimentoId
+                    });
+                }
+                
+                setAtivo(novoValor);
+                DeviceEventEmitter.emit('agendamentoOnlineAtualizado', novoValor);
+              } catch (error) {
+                console.error('Erro ao salvar:', error);
+              }
+            };
+            
+            if (carregando || !estabelecimentoId) return null;
+            
+            return (
+              <View style={{ marginRight: 16 }}>
+                <Switch
+                  value={ativo}
+                  onValueChange={salvar}
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                  thumbColor={colors.white}
+                />
+              </View>
+            );
+          },
         }}
       />
 

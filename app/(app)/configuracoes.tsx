@@ -1,5 +1,5 @@
 import React, { useState, useEffect , useMemo} from 'react';
-import { StyleSheet, View, ScrollView, TouchableOpacity, Text, Switch, Alert } from 'react-native';
+import { StyleSheet, View, ScrollView, TouchableOpacity, Text, Switch, Alert, Clipboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -190,6 +190,19 @@ export default function ConfiguracoesScreen() {
         },
       ]
     );
+  };
+
+  const handleCopyLink = () => {
+    if (!empresaData?.slug) {
+      Alert.alert('Aviso', 'Slug não configurado para este estabelecimento');
+      return;
+    }
+    
+    const link = `https://businessapp-web.vercel.app/${empresaData.slug}`;
+    Clipboard.setString(link);
+    Alert.alert('Link Copiado!', link, [
+      { text: 'OK' }
+    ]);
   };
 
   const handleSync = async () => {
@@ -475,6 +488,32 @@ export default function ConfiguracoesScreen() {
                     {empresaData?.segmento || 'Não informado'}
                   </Text>
                 </View>
+              </View>
+            </View>
+
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Agendamento Online</Text>
+            <View style={[styles.settingCard, { backgroundColor: colors.surface }]}>
+              <View style={styles.infoRow}>
+                <Ionicons name="link-outline" size={20} color={colors.textSecondary} />
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Link Público</Text>
+                  <Text style={[styles.infoValue, { color: colors.primary, fontSize: 14 }]}>
+                    {empresaData?.slug ? `https://businessapp-web.vercel.app/${empresaData.slug}` : 'Slug não configurado'}
+                  </Text>
+                  {empresaData?.slug && (
+                    <Text style={[styles.infoLabel, { color: colors.textSecondary, marginTop: 4, fontSize: 12 }]}>
+                      Compartilhe este link com seus clientes para agendamento online
+                    </Text>
+                  )}
+                </View>
+                {empresaData?.slug && (
+                  <TouchableOpacity 
+                    onPress={handleCopyLink}
+                    style={{ padding: 8 }}
+                  >
+                    <Ionicons name="copy-outline" size={20} color={colors.primary} />
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
 
