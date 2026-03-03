@@ -714,7 +714,7 @@ const VendasScreen = () => {
               <View style={styles.detalhesHeader}>
                 <Text style={styles.detalhesTitle}>Detalhamento por Forma de Pagamento</Text>
                 <TouchableOpacity onPress={() => setModalDetalhesVisible(false)}>
-                  <Ionicons name="close" size={24} color=colors.text />
+                  <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
               </View>
 
@@ -775,7 +775,7 @@ const VendasScreen = () => {
                   {detalhesMovimentacao.cartao_credito.quantidade > 0 && (
                     <View style={[styles.detalhesSecao, { borderLeftColor: colors.primary }]}>
                       <View style={styles.detalhesSecaoHeader}>
-                        <Ionicons name="card-outline" size={20} color=colors.info />
+                        <Ionicons name="card-outline" size={20} color={colors.info} />
                         <Text style={styles.detalhesSecaoTitulo}>Cartão de Crédito</Text>
                       </View>
                       <Text style={styles.detalhesInfo}>
@@ -824,7 +824,7 @@ const VendasScreen = () => {
                   {detalhesMovimentacao.cartao_debito.quantidade > 0 && (
                     <View style={[styles.detalhesSecao, { borderLeftColor: colors.primary }]}>
                       <View style={styles.detalhesSecaoHeader}>
-                        <Ionicons name="card" size={20} color=colors.primary />
+                        <Ionicons name="card" size={20} color={colors.primary} />
                         <Text style={styles.detalhesSecaoTitulo}>Cartão de Débito</Text>
                       </View>
                       <Text style={styles.detalhesInfo}>
@@ -870,7 +870,7 @@ const VendasScreen = () => {
                   {detalhesMovimentacao.pix.quantidade > 0 && (
                     <View style={[styles.detalhesSecao, { borderLeftColor: colors.primary }]}>
                       <View style={styles.detalhesSecaoHeader}>
-                        <Ionicons name="qr-code-outline" size={20} color=colors.successDark />
+                        <Ionicons name="qr-code-outline" size={20} color={colors.successDark} />
                         <Text style={styles.detalhesSecaoTitulo}>PIX</Text>
                       </View>
                       <Text style={styles.detalhesInfo}>

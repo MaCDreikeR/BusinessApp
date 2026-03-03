@@ -443,7 +443,7 @@ export default function ClientesScreen() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             colors={[colors.primary]}
-            tintColor=colors.primary
+            tintColor={colors.primary}
           />
         }
       >

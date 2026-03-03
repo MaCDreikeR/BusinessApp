@@ -405,7 +405,7 @@ export default function ComissoesScreen() {
         <View style={styles.cardHeader}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
-              <Ionicons name="person" size={24} color=colors.white />
+              <Ionicons name="person" size={24} color={colors.white} />
             </View>
             <View style={styles.usuarioInfo}>
               <Text style={styles.usuarioNome}>{item.nome_completo}</Text>
@@ -431,7 +431,7 @@ export default function ComissoesScreen() {
             style={styles.botaoPagar}
             onPress={() => pagarComissao(item)}
           >
-            <Ionicons name="cash" size={20} color=colors.white />
+            <Ionicons name="cash" size={20} color={colors.white} />
             <Text style={styles.botaoPagarTexto}>Pagar</Text>
           </TouchableOpacity>
         )}
@@ -455,7 +455,7 @@ export default function ComissoesScreen() {
               style={styles.botaoRegistrar}
               onPress={() => registrarComissao(item)}
             >
-              <Ionicons name="add-circle" size={20} color=colors.white />
+              <Ionicons name="add-circle" size={20} color={colors.white} />
               <Text style={styles.botaoRegistrarTexto}>Adicionar</Text>
             </TouchableOpacity>
           </View>
@@ -479,7 +479,7 @@ export default function ComissoesScreen() {
           onPress={() => abrirDetalhes(item)}
         >
           <Text style={styles.botaoDetalhesTexto}>Ver histórico</Text>
-          <Ionicons name="chevron-forward" size={18} color=colors.primary />
+          <Ionicons name="chevron-forward" size={18} color={colors.primary} />
         </TouchableOpacity>
       </View>
     );
@@ -519,7 +519,7 @@ export default function ComissoesScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color=colors.primary />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }

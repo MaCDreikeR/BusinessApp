@@ -1741,7 +1741,7 @@ export default function NovoAgendamentoScreen() {
                       style={styles.botaoCadastrar}
                       onPress={handleCadastrarCliente}
                     >
-                      <FontAwesome5 name="user-plus" size={16} color=colors.white style={styles.botaoCadastrarIcon} />
+                      <FontAwesome5 name="user-plus" size={16} color={colors.white} style={styles.botaoCadastrarIcon} />
                       <Text style={styles.botaoCadastrarText}>Cadastrar Novo Cliente</Text>
                     </TouchableOpacity>
                   </View>
@@ -1999,7 +1999,7 @@ export default function NovoAgendamentoScreen() {
                   {data || 'Selecionar Data'}
                 </Text>
                 {isDataBloqueada(data) && (
-                  <Ionicons name="alert-circle" size={20} color=colors.error style={styles.alertIcon} />
+                  <Ionicons name="alert-circle" size={20} color={colors.error} style={styles.alertIcon} />
                 )}
               </View>
             </TouchableOpacity>
@@ -2585,7 +2585,7 @@ export default function NovoAgendamentoScreen() {
                     <FontAwesome5 name="check" size={16} color={theme.colors.primary} />
                   )}
                   {item.ocupado && (
-                    <FontAwesome5 name="ban" size={16} color=colors.error />
+                    <FontAwesome5 name="ban" size={16} color={colors.error} />
                   )}
                 </TouchableOpacity>
               )}

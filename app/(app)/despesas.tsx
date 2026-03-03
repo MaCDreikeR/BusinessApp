@@ -170,7 +170,7 @@ export default function DespesasScreen() {
                 style={styles.dateButton}
                 onPress={() => setShowStartDatePicker(true)}
               >
-                <FontAwesome5 name="calendar" size={14} color=colors.textSecondary />
+                <FontAwesome5 name="calendar" size={14} color={colors.textSecondary} />
                 <Text style={styles.dateButtonText}>
                   {filters.startDate 
                     ? (() => {
@@ -188,7 +188,7 @@ export default function DespesasScreen() {
                 style={styles.dateButton}
                 onPress={() => setShowEndDatePicker(true)}
               >
-                <FontAwesome5 name="calendar" size={14} color=colors.textSecondary />
+                <FontAwesome5 name="calendar" size={14} color={colors.textSecondary} />
                 <Text style={styles.dateButtonText}>
                   {filters.endDate 
                     ? (() => {
@@ -275,7 +275,7 @@ export default function DespesasScreen() {
             style={styles.emptyButton}
             onPress={handleOpenForm}
           >
-            <FontAwesome5 name="plus" size={16} color=colors.white />
+            <FontAwesome5 name="plus" size={16} color={colors.white} />
             <Text style={styles.emptyButtonText}>Registrar Primeira Despesa</Text>
           </TouchableOpacity>
         </View>
@@ -344,7 +344,7 @@ export default function DespesasScreen() {
                         <FontAwesome5 
                           name={getCategoryById(selectedExpense.category_id)?.icon || 'tag'} 
                           size={14} 
-                          color=colors.white 
+                          color={colors.white} 
                         />
                       </View>
                       <Text style={styles.detailsCategoryText}>
@@ -356,7 +356,7 @@ export default function DespesasScreen() {
 
                 {/* Data */}
                 <View style={styles.detailsInfoRow}>
-                  <FontAwesome5 name="calendar" size={14} color=colors.textSecondary />
+                  <FontAwesome5 name="calendar" size={14} color={colors.textSecondary} />
                   <Text style={styles.detailsInfoText}>
                     {(() => {
                       const [year, month, day] = selectedExpense.date.split('-');
@@ -367,7 +367,7 @@ export default function DespesasScreen() {
 
                 {/* Forma de Pagamento */}
                 <View style={styles.detailsInfoRow}>
-                  <FontAwesome5 name="credit-card" size={14} color=colors.textSecondary />
+                  <FontAwesome5 name="credit-card" size={14} color={colors.textSecondary} />
                   <Text style={styles.detailsInfoText}>
                     {selectedExpense.payment_method === 'pix' ? 'PIX' :
                      selectedExpense.payment_method === 'credit' ? 'Crédito' :
@@ -380,7 +380,7 @@ export default function DespesasScreen() {
                 {/* Recorrente */}
                 {selectedExpense.recurring && (
                   <View style={styles.detailsInfoRow}>
-                    <FontAwesome5 name="redo" size={14} color=colors.textSecondary />
+                    <FontAwesome5 name="redo" size={14} color={colors.textSecondary} />
                     <Text style={[styles.detailsInfoText, { color: colors.textSecondary, fontWeight: '500' }]}>
                       Despesa Recorrente
                     </Text>

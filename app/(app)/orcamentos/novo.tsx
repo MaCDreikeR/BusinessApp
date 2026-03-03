@@ -685,7 +685,7 @@ export default function NovoOrcamentoScreen() {
                   style={styles.clearButton}
                   onPress={handleLimparCliente}
                 >
-                  <Ionicons name="close-circle" size={20} color=colors.textSecondary />
+                  <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
               )}
             </View>

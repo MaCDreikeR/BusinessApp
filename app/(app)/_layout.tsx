@@ -324,7 +324,7 @@ export default function AppLayout() {
               style={styles.footerButton}
               onPress={() => router.push('/configuracoes')}
             >
-              <FontAwesome5 name="cog" size={20} color=colors.textSecondary />
+              <FontAwesome5 name="cog" size={20} color={colors.textSecondary} />
               <Text style={dynamicStyles.footerButtonText}>Configurações</Text>
             </TouchableOpacity>
           )}

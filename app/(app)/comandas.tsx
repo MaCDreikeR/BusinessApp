@@ -2486,7 +2486,7 @@ export default function ComandasScreen() {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Detalhes da Comanda</Text>
                 <TouchableOpacity onPress={fecharModal}>
-                  <Ionicons name="close" size={24} color=colors.text />
+                  <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -2977,7 +2977,7 @@ export default function ComandasScreen() {
                     }
                   }}
                 >
-                  <Ionicons name="trash" size={20} color=colors.white />
+                  <Ionicons name="trash" size={20} color={colors.white} />
                   <Text style={styles.excluirComandaText}>Excluir Comanda</Text>
                 </TouchableOpacity>
               </View>
@@ -3017,7 +3017,7 @@ export default function ComandasScreen() {
                               tipoItem === 'servico' ? 'Serviços' : 'Pacotes'}
                 </Text>
                 <TouchableOpacity onPress={fecharModalItens}>
-                  <Ionicons name="close" size={24} color=colors.text />
+                  <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
               </View>
             </View>

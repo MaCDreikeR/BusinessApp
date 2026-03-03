@@ -2136,7 +2136,7 @@ export default function AgendaScreen() {
                 onPress={() => setShowPresencaModal(false)}
                 style={styles.closeButton}
               >
-                <Ionicons name="close" size={24} color=colors.textSecondary />
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
             
@@ -2159,7 +2159,7 @@ export default function AgendaScreen() {
                       />
                     ) : (
                       <View style={[styles.presencaAvatar, styles.presencaAvatarPlaceholder]}>
-                        <Ionicons name="person" size={20} color=colors.textSecondary />
+                        <Ionicons name="person" size={20} color={colors.textSecondary} />
                       </View>
                     )}
                     <Text style={styles.presencaUserName}>{usuario.nome_completo}</Text>
@@ -2197,7 +2197,7 @@ export default function AgendaScreen() {
                 onPress={() => setShowBloqueioModal(false)}
                 style={styles.closeButton}
               >
-                <Ionicons name="close" size={24} color=colors.textSecondary />
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
             
@@ -2242,7 +2242,7 @@ export default function AgendaScreen() {
                   style={styles.dataAddButton}
                   onPress={adicionarDataBloqueada}
                 >
-                  <Ionicons name="add" size={24} color=colors.white />
+                  <Ionicons name="add" size={24} color={colors.white} />
                 </TouchableOpacity>
               </View>
               
@@ -2296,7 +2296,7 @@ export default function AgendaScreen() {
                 onPress={() => setShowHorariosModal(false)}
                 style={styles.closeButton}
               >
-                <Ionicons name="close" size={24} color=colors.textSecondary />
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
             
@@ -2457,7 +2457,7 @@ export default function AgendaScreen() {
         style={[styles.addButton, { opacity: 0 }]}
         onPress={() => router.push('/(app)/agenda/novo')}
       >
-        <Ionicons name="add" size={30} color=colors.white />
+        <Ionicons name="add" size={30} color={colors.white} />
       </TouchableOpacity>
 
       {/* Toast de mensagem de sucesso */}
@@ -2481,7 +2481,7 @@ export default function AgendaScreen() {
               onPress={() => setShowAgendamentosModal(false)}
               style={styles.closeButtonTopRight}
             >
-              <Ionicons name="close" size={28} color=colors.text />
+              <Ionicons name="close" size={28} color={colors.text} />
             </TouchableOpacity>
 
             <ScrollView showsVerticalScrollIndicator={false}>
@@ -2676,7 +2676,7 @@ export default function AgendaScreen() {
                         }
                       }}
                     >
-                      <Ionicons name="logo-whatsapp" size={20} color=colors.white />
+                      <Ionicons name="logo-whatsapp" size={20} color={colors.white} />
                       <Text style={styles.whatsappButtonText}>Compartilhar via WhatsApp</Text>
                     </TouchableOpacity>
 
@@ -2855,7 +2855,7 @@ export default function AgendaScreen() {
                 style={styles.deleteButtonExclusao}
                 onPress={() => confirmarExclusao()}
               >
-                <Ionicons name="trash-outline" size={20} color=colors.white style={{ marginRight: 6 }} />
+                <Ionicons name="trash-outline" size={20} color={colors.white} style={{ marginRight: 6 }} />
                 <Text style={styles.deleteButtonTextExclusao}>Excluir</Text>
               </TouchableOpacity>
             </View>

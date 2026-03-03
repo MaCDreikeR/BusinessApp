@@ -820,7 +820,7 @@ export default function HomeScreen() {
           <FontAwesome5
             name={toastType === 'success' ? 'check-circle' : 'exclamation-circle'}
             size={20}
-            color=colors.white
+            color={colors.white}
           />
           <Text style={styles.toastText}>{toastMessage}</Text>
         </Animated.View>
