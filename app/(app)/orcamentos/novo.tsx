@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, Modal, PanResponder, Animated } from 'react-native';
+﻿import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, Modal, PanResponder, Animated } from 'react-native';
 import { router } from 'expo-router';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { criarOrcamento, adicionarItemOrcamento, buscarClientes, buscarProdutos, buscarServicos, buscarPacotes, Cliente, Produto, Servico, Pacote } from './utils';

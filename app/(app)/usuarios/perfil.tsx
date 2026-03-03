@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ScrollView, Image, Modal, FlatList, ActivityIndicator, DeviceEventEmitter, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useNavigation, useLocalSearchParams } from 'expo-router';

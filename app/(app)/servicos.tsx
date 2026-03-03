@@ -1,4 +1,4 @@
-import React, { useState, useEffect , useMemo} from 'react';
+﻿import React, { useState, useEffect , useMemo} from 'react';
 import { StyleSheet, View, FlatList, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator, DeviceEventEmitter, ScrollView, Animated, PanResponder, Text } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { ThemedText } from '../../components/ThemedText';

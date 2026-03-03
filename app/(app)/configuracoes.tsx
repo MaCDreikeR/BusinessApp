@@ -1,4 +1,4 @@
-import React, { useState, useEffect , useMemo} from 'react';
+﻿import React, { useState, useEffect , useMemo} from 'react';
 import { StyleSheet, View, ScrollView, TouchableOpacity, Text, Switch, Alert, Clipboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';

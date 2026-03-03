@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, Image, DeviceEventEmitter } from 'react-native';
 import { useRouter, Stack, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../../contexts/AuthContext';

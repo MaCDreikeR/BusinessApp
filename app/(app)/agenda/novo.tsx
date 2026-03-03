@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback , useMemo} from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback , useMemo} from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, PanResponder, Animated, Platform, ActivityIndicator, Image, DeviceEventEmitter, FlatList, BackHandler, KeyboardAvoidingView, GestureResponderEvent, NativeSyntheticEvent, Switch, TouchableWithoutFeedback } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import { format } from 'date-fns';
@@ -3039,7 +3039,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   servicoPreco: {
     fontSize: 14,
-    color: colors.primary,
+    color: colors.primaryContrast,
     fontWeight: '500',
   },
   servicoDuracao: {
@@ -3079,7 +3079,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   selecionadoPreco: {
     fontSize: 14,
-    color: colors.primary,
+    color: colors.primaryContrast,
     fontWeight: '500',
     marginTop: 2,
   },
@@ -3175,7 +3175,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   totalValor: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: colors.primary,
+    color: colors.primaryContrast,
   },
   infoText: {
     color: colors.textSecondary,
@@ -3216,7 +3216,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.text,
   },
   horarioItemTextSelecionado: {
-    color: theme.colors.primary,
+    color: colors.primaryContrast,
     fontWeight: '600',
   },
   horarioItemOcupado: {

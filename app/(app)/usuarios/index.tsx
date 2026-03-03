@@ -1,4 +1,4 @@
-import React, { useEffect, useState , useMemo} from 'react';
+﻿import React, { useEffect, useState , useMemo} from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '../../../components/ThemedText';

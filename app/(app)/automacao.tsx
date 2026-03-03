@@ -1,4 +1,4 @@
-import React, { useEffect, useState , useMemo} from 'react';
+﻿import React, { useEffect, useState , useMemo} from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';

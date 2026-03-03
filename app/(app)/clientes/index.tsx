@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback , useMemo} from 'react';
+﻿import React, { useState, useEffect, useCallback , useMemo} from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, ScrollView, Alert, Linking, Modal, RefreshControl } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';

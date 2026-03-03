@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef , useMemo} from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef , useMemo} from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, RefreshControl, ActivityIndicator, Animated, Modal, ScrollView } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';

@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert, Image, Dimensions, ActivityIndicator } from 'react-native';
+﻿import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert, Image, Dimensions, ActivityIndicator } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';

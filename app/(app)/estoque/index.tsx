@@ -1,4 +1,4 @@
-import React, { useState, useEffect , useMemo} from 'react';
+﻿import React, { useState, useEffect , useMemo} from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, ScrollView, Modal, PanResponder, Animated, ActivityIndicator , DeviceEventEmitter } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';

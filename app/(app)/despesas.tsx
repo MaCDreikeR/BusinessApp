@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -123,7 +123,7 @@ export default function DespesasScreen() {
             onPress={() => updateFilters({ period: 'today' })}
           >
             <View style={[styles.filtroIcone, filters.period === 'today' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="calendar-day" size={16} color={filters.period === 'today' ? colors.primary : colors.textSecondary} />
+              <FontAwesome5 name="calendar-day" size={16} color={filters.period === 'today' ? colors.primaryContrast : colors.textSecondary} />
             </View>
             <Text style={[styles.filtroTexto, filters.period === 'today' && styles.filtroTextoAtivo]}>Hoje</Text>
           </TouchableOpacity>
@@ -133,7 +133,7 @@ export default function DespesasScreen() {
             onPress={() => updateFilters({ period: 'week' })}
           >
             <View style={[styles.filtroIcone, filters.period === 'week' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="calendar-week" size={16} color={filters.period === 'week' ? colors.primary : colors.textSecondary} />
+              <FontAwesome5 name="calendar-week" size={16} color={filters.period === 'week' ? colors.primaryContrast : colors.textSecondary} />
             </View>
             <Text style={[styles.filtroTexto, filters.period === 'week' && styles.filtroTextoAtivo]}>Semana</Text>
           </TouchableOpacity>
@@ -143,7 +143,7 @@ export default function DespesasScreen() {
             onPress={() => updateFilters({ period: 'month' })}
           >
             <View style={[styles.filtroIcone, filters.period === 'month' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="calendar-alt" size={16} color={filters.period === 'month' ? colors.primary : colors.textSecondary} />
+              <FontAwesome5 name="calendar-alt" size={16} color={filters.period === 'month' ? colors.primaryContrast : colors.textSecondary} />
             </View>
             <Text style={[styles.filtroTexto, filters.period === 'month' && styles.filtroTextoAtivo]}>Mês</Text>
           </TouchableOpacity>
@@ -153,7 +153,7 @@ export default function DespesasScreen() {
             onPress={() => updateFilters({ period: 'custom' })}
           >
             <View style={[styles.filtroIcone, filters.period === 'custom' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="calendar" size={16} color={filters.period === 'custom' ? colors.primary : colors.textSecondary} />
+              <FontAwesome5 name="calendar" size={16} color={filters.period === 'custom' ? colors.primaryContrast : colors.textSecondary} />
             </View>
             <Text style={[styles.filtroTexto, filters.period === 'custom' && styles.filtroTextoAtivo]}>Personalizado</Text>
           </TouchableOpacity>

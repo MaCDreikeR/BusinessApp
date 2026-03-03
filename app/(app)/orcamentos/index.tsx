@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Animated, ActivityIndicator, TextInput, ScrollView } from 'react-native';
+﻿import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Animated, ActivityIndicator, TextInput, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState, useEffect, useRef, useMemo } from 'react';
