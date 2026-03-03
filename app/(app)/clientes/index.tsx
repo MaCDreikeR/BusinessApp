@@ -1,4 +1,4 @@
-ï»¿import React, { useState, useEffect, useCallback , useMemo} from 'react';
+import React, { useState, useEffect, useCallback , useMemo} from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, ScrollView, Alert, Linking, Modal, RefreshControl } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
@@ -29,7 +29,7 @@ export default function ClientesScreen() {
   const { estabelecimentoId } = useAuth();
   const { colors } = useTheme();
   
-  // Estilos dinÃ¢micos baseados no tema
+  // Estilos dinâmicos baseados no tema
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [clientes, setClientes] = useState<ClienteLista[]>([]);
   const [filtro, setFiltro] = useState('todos');
@@ -65,7 +65,7 @@ export default function ClientesScreen() {
   const carregarClientes = async () => {
     try {
       if (!estabelecimentoId) {
-        Alert.alert('Erro', 'Estabelecimento nÃ£o identificado');
+        Alert.alert('Erro', 'Estabelecimento não identificado');
         return;
       }
 
@@ -77,7 +77,7 @@ export default function ClientesScreen() {
       );
 
       if (cachedData) {
-        logger.debug('âœ… Usando cache para clientes');
+        logger.debug('? Usando cache para clientes');
         setClientes(cachedData);
         return;
       }
@@ -106,9 +106,9 @@ export default function ClientesScreen() {
         return;
       }
 
-      // Buscar todas as movimentaÃ§Ãµes de crediÃ¡rio
-      // A tabela crediario_movimentacoes nÃ£o tem estabelecimento_id, 
-      // entÃ£o vamos buscar sÃ³ dos clientes deste estabelecimento
+      // Buscar todas as movimentações de crediário
+      // A tabela crediario_movimentacoes não tem estabelecimento_id, 
+      // então vamos buscar só dos clientes deste estabelecimento
       const clienteIds = clientesData?.map(c => c.id) || [];
       
       let movimentacoesData: any[] = [];
@@ -119,7 +119,7 @@ export default function ClientesScreen() {
           .in('cliente_id', clienteIds);
 
         if (movimentacoesError) {
-          logger.error('Erro ao carregar movimentaÃ§Ãµes:', movimentacoesError);
+          logger.error('Erro ao carregar movimentações:', movimentacoesError);
         } else {
           movimentacoesData = data || [];
         }
@@ -131,7 +131,7 @@ export default function ClientesScreen() {
         if (!saldosPorCliente[mov.cliente_id]) {
           saldosPorCliente[mov.cliente_id] = 0;
         }
-        // Converte o valor para nÃºmero (pode vir como string do banco)
+        // Converte o valor para número (pode vir como string do banco)
         const valorNumerico = typeof mov.valor === 'number' ? mov.valor : parseFloat(mov.valor);
         saldosPorCliente[mov.cliente_id] += valorNumerico;
       });
@@ -167,7 +167,7 @@ export default function ClientesScreen() {
       );
     } catch (error) {
       logger.error('Erro ao carregar clientes:', error);
-      Alert.alert('Erro', 'NÃ£o foi possÃ­vel carregar os clientes');
+      Alert.alert('Erro', 'Não foi possível carregar os clientes');
     }
   };
 
@@ -224,8 +224,8 @@ export default function ClientesScreen() {
     // Validar se o telefone existe
     if (!telefone || telefone.trim() === '') {
       Alert.alert(
-        'Telefone nÃ£o cadastrado',
-        'Este cliente nÃ£o possui telefone cadastrado. Deseja cadastrar agora?',
+        'Telefone não cadastrado',
+        'Este cliente não possui telefone cadastrado. Deseja cadastrar agora?',
         [
           {
             text: 'Cancelar',
@@ -246,11 +246,11 @@ export default function ClientesScreen() {
 
     const numeroLimpo = telefone.replace(/\D/g, '');
     
-    // Validar se o nÃºmero tem pelo menos 10 dÃ­gitos (DDD + nÃºmero)
+    // Validar se o número tem pelo menos 10 dígitos (DDD + número)
     if (numeroLimpo.length < 10) {
       Alert.alert(
-        'Telefone invÃ¡lido',
-        'O telefone cadastrado Ã© invÃ¡lido. Deseja corrigir?',
+        'Telefone inválido',
+        'O telefone cadastrado é inválido. Deseja corrigir?',
         [
           {
             text: 'Cancelar',
@@ -274,14 +274,14 @@ export default function ClientesScreen() {
     Linking.canOpenURL(url)
       .then(supported => {
         if (!supported) {
-          Alert.alert('Erro', 'WhatsApp nÃ£o estÃ¡ instalado neste dispositivo');
+          Alert.alert('Erro', 'WhatsApp não está instalado neste dispositivo');
           return;
         }
         return Linking.openURL(url);
       })
       .catch(err => {
         logger.error('Erro ao abrir WhatsApp:', err);
-        Alert.alert('Erro', 'NÃ£o foi possÃ­vel abrir o WhatsApp');
+        Alert.alert('Erro', 'Não foi possível abrir o WhatsApp');
       });
   };
 
@@ -303,7 +303,7 @@ export default function ClientesScreen() {
     try {
       const { status } = await Contacts.requestPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('PermissÃ£o necessÃ¡ria', 'Precisamos de acesso aos seus contatos para importÃ¡-los.');
+        Alert.alert('Permissão necessária', 'Precisamos de acesso aos seus contatos para importá-los.');
         return;
       }
 
@@ -312,7 +312,7 @@ export default function ClientesScreen() {
       });
 
       if (data.length === 0) {
-        Alert.alert('Nenhum contato', 'NÃ£o foram encontrados contatos no dispositivo.');
+        Alert.alert('Nenhum contato', 'Não foram encontrados contatos no dispositivo.');
         return;
       }
 
@@ -328,7 +328,7 @@ export default function ClientesScreen() {
         .filter(contato => contato !== null);
 
       if (contatosValidos.length === 0) {
-        Alert.alert('Nenhum contato vÃ¡lido', 'NÃ£o foram encontrados contatos com nome e nÃºmero de telefone vÃ¡lidos.');
+        Alert.alert('Nenhum contato válido', 'Não foram encontrados contatos com nome e número de telefone válidos.');
         return;
       }
       
@@ -341,7 +341,7 @@ export default function ClientesScreen() {
 
     } catch (error) {
       logger.error('Erro ao acessar contatos:', error);
-      Alert.alert('Erro', 'NÃ£o foi possÃ­vel acessar os contatos do dispositivo.');
+      Alert.alert('Erro', 'Não foi possível acessar os contatos do dispositivo.');
     }
   };
 
@@ -351,14 +351,14 @@ export default function ClientesScreen() {
 
   return (
     <View style={styles.container}>
-      {/* --- CABEÃ‡ALHO COM LAYOUT CORRIGIDO --- */}
+      {/* --- CABEÇALHO COM LAYOUT CORRIGIDO --- */}
       <View style={[styles.header, { paddingTop: insets.top, paddingBottom: 16 }]}>
         <View style={styles.headerLeft}>
           <TouchableOpacity 
             style={styles.headerButton}
             onPress={abrirDrawer}
           >
-            <FontAwesome5 name="bars" size={20} color={theme.colors.primary} />
+            <FontAwesome5 name="bars" size={20} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.title}>Clientes</Text>
         </View>
@@ -367,7 +367,7 @@ export default function ClientesScreen() {
           style={styles.headerButton}
           onPress={abrirMenu}
         >
-          <FontAwesome5 name="plus" size={20} color={theme.colors.primary} />
+          <FontAwesome5 name="plus" size={20} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -383,7 +383,7 @@ export default function ClientesScreen() {
             onPress={() => setFiltro('todos')}
           >
             <View style={[styles.filtroIcone, filtro === 'todos' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="users" size={16} color={filtro === 'todos' ? theme.colors.primary : colors.textSecondary} />
+              <FontAwesome5 name="users" size={16} color={filtro === 'todos' ? colors.primary : colors.textSecondary} />
             </View>
             <Text style={[styles.filtroTexto, filtro === 'todos' && styles.filtroTextoAtivo]}>Todos</Text>
           </TouchableOpacity>
@@ -393,7 +393,7 @@ export default function ClientesScreen() {
             onPress={() => setFiltro('agendados')}
           >
             <View style={[styles.filtroIcone, filtro === 'agendados' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="calendar" size={16} color={filtro === 'agendados' ? theme.colors.primary : colors.textSecondary} />
+              <FontAwesome5 name="calendar" size={16} color={filtro === 'agendados' ? colors.primary : colors.textSecondary} />
             </View>
             <Text style={[styles.filtroTexto, filtro === 'agendados' && styles.filtroTextoAtivo]}>Agendados</Text>
           </TouchableOpacity>
@@ -403,9 +403,9 @@ export default function ClientesScreen() {
             onPress={() => setFiltro('com_credito')}
           >
             <View style={[styles.filtroIcone, filtro === 'com_credito' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="user" size={16} color={filtro === 'com_credito' ? theme.colors.primary : colors.textSecondary} />
+              <FontAwesome5 name="user" size={16} color={filtro === 'com_credito' ? colors.primary : colors.textSecondary} />
             </View>
-            <Text style={[styles.filtroTexto, filtro === 'com_credito' && styles.filtroTextoAtivo]}>Com crÃ©dito</Text>
+            <Text style={[styles.filtroTexto, filtro === 'com_credito' && styles.filtroTextoAtivo]}>Com crédito</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -413,9 +413,9 @@ export default function ClientesScreen() {
             onPress={() => setFiltro('com_debito')}
           >
             <View style={[styles.filtroIcone, filtro === 'com_debito' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="exclamation-circle" size={16} color={filtro === 'com_debito' ? theme.colors.primary : colors.textSecondary} />
+              <FontAwesome5 name="exclamation-circle" size={16} color={filtro === 'com_debito' ? colors.primary : colors.textSecondary} />
             </View>
-            <Text style={[styles.filtroTexto, filtro === 'com_debito' && styles.filtroTextoAtivo]}>Com DÃ©bito</Text>
+            <Text style={[styles.filtroTexto, filtro === 'com_debito' && styles.filtroTextoAtivo]}>Com Débito</Text>
           </TouchableOpacity>
         </ScrollView>
       </View>
@@ -518,7 +518,7 @@ export default function ClientesScreen() {
               style={styles.menuItem}
               onPress={novoCliente}
             >
-              <FontAwesome5 name="user-plus" size={20} color={theme.colors.primary} />
+              <FontAwesome5 name="user-plus" size={20} color={colors.primary} />
               <Text style={styles.menuItemTexto}>Novo Cliente</Text>
             </TouchableOpacity>
 
@@ -526,7 +526,7 @@ export default function ClientesScreen() {
               style={styles.menuItem}
               onPress={importarContato}
             >
-              <FontAwesome5 name="address-book" size={20} color={theme.colors.primary} />
+              <FontAwesome5 name="address-book" size={20} color={colors.primary} />
               <Text style={styles.menuItemTexto}>Importar contatos</Text>
             </TouchableOpacity>
           </View>
@@ -536,8 +536,8 @@ export default function ClientesScreen() {
   );
 }
 
-// --- STYLESHEET COM AS MUDANÃ‡AS ---
-// FunÃ§Ã£o auxiliar para criar estilos dinÃ¢micos
+// --- STYLESHEET COM AS MUDANÇAS ---
+// Função auxiliar para criar estilos dinâmicos
 const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
@@ -546,7 +546,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between', // MantÃ©m os grupos da esquerda e direita separados
+    justifyContent: 'space-between', // Mantém os grupos da esquerda e direita separados
     paddingHorizontal: 16,
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
@@ -565,8 +565,8 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    color: theme.colors.primary,
-    marginLeft: 10, // EspaÃ§amento entre o Ã­cone de menu e o tÃ­tulo
+    color: colors.primary,
+    marginLeft: 10, // Espaçamento entre o ícone de menu e o título
   },
   filtrosWrapper: {
     backgroundColor: colors.surface,
@@ -607,7 +607,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.textSecondary,
   },
   filtroTextoAtivo: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: '500',
   },
   pesquisaContainer: {

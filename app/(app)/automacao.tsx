@@ -1,4 +1,4 @@
-Ôªøimport React, { useEffect, useState , useMemo} from 'react';
+import React, { useEffect, useState , useMemo} from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -18,7 +18,7 @@ export default function AutomacaoScreen() {
   const { estabelecimentoId } = useAuth();
   const { colors } = useTheme();
   
-  // Estilos din√¢micos baseados no tema
+  // Estilos din‚micos baseados no tema
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [tab, setTab] = useState<TabType>('agendamentos');
   const [modeloAgendamento, setModeloAgendamento] = useState('');
@@ -49,17 +49,17 @@ export default function AutomacaoScreen() {
       Alert.alert('Sucesso', 'Modelo de mensagem de agendamento salvo.');
     } catch (e) {
       logger.error(e);
-      Alert.alert('Erro', 'N√£o foi poss√≠vel salvar o modelo.');
+      Alert.alert('Erro', 'N„o foi possÌvel salvar o modelo.');
     }
   };
 
   const onSalvarAniversariante = async () => {
     try {
       await salvarModeloAniversariante(modeloAniversariante, estabelecimentoId || undefined);
-      Alert.alert('Sucesso', 'Modelo de mensagem de anivers√°rio salvo.');
+      Alert.alert('Sucesso', 'Modelo de mensagem de anivers·rio salvo.');
     } catch (e) {
       logger.error(e);
-      Alert.alert('Erro', 'N√£o foi poss√≠vel salvar o modelo.');
+      Alert.alert('Erro', 'N„o foi possÌvel salvar o modelo.');
     }
   };
 
@@ -91,7 +91,7 @@ export default function AutomacaoScreen() {
           <Text style={styles.title}>Mensagem de agendamento</Text>
           <Text style={styles.help}>
             Use os placeholders:
-            {'\n'}‚Ä¢ {`{cliente}`} ‚Ä¢ {`{data}`} ‚Ä¢ {`{hora}`} ‚Ä¢ {`{dia}`} {'\n'}‚Ä¢ {`{servico}`} ‚Ä¢ {`{empresa}`} ‚Ä¢ {`{valor}`}
+            {'\n'}ï {`{cliente}`} ï {`{data}`} ï {`{hora}`} ï {`{dia}`} {'\n'}ï {`{servico}`} ï {`{empresa}`} ï {`{valor}`}
           </Text>
           <TextInput
             multiline
@@ -115,16 +115,16 @@ export default function AutomacaoScreen() {
 
       {tab === 'aniversariantes' && (
         <ScrollView contentContainerStyle={styles.content}>
-          <Text style={styles.title}>Mensagem de anivers√°rio</Text>
+          <Text style={styles.title}>Mensagem de anivers·rio</Text>
           <Text style={styles.help}>
             Use os placeholders:
-            {'\n'}‚Ä¢ {`{cliente}`} ‚Ä¢ {`{idade}`} ‚Ä¢ {`{data_nascimento}`} ‚Ä¢ {`{empresa}`}
+            {'\n'}ï {`{cliente}`} ï {`{idade}`} ï {`{data_nascimento}`} ï {`{empresa}`}
           </Text>
           <TextInput
             multiline
             value={modeloAniversariante}
             onChangeText={setModeloAniversariante}
-            placeholder="Digite o modelo da mensagem de anivers√°rio..."
+            placeholder="Digite o modelo da mensagem de anivers·rio..."
             style={styles.textarea}
             editable={!loading}
           />
@@ -143,14 +143,14 @@ export default function AutomacaoScreen() {
   );
 }
 
-// Fun√ß√£o auxiliar para criar estilos din√¢micos
+// FunÁ„o auxiliar para criar estilos din‚micos
 const createStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surface },
   tabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#eee' },
   tab: { paddingVertical: 12, paddingHorizontal: 16 },
-  tabActive: { borderBottomWidth: 2, borderBottomColor: theme.colors.primary },
+  tabActive: { borderBottomWidth: 2, borderBottomColor: colors.primary },
   tabText: { color: colors.textSecondary, fontWeight: '600' },
-  tabTextActive: { color: theme.colors.primary },
+  tabTextActive: { color: colors.primary },
   content: { padding: 16 },
   title: { fontSize: 18, fontWeight: '700', marginBottom: 12 },
   help: { color: colors.textSecondary, marginBottom: 12, lineHeight: 20 },

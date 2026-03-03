@@ -1,4 +1,4 @@
-Ôªøimport React, { useState, useEffect , useMemo} from 'react';
+import React, { useState, useEffect , useMemo} from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, ScrollView, Modal, PanResponder, Animated, ActivityIndicator, TextStyle, TouchableWithoutFeedback , DeviceEventEmitter } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
@@ -35,7 +35,7 @@ type ServicoPacote = {
 
 type PacoteDetalhado = Pick<PacoteBase, 'id' | 'nome' | 'descricao' | 'valor' | 'estabelecimento_id'> & {
   desconto: number;
-  duracao_total?: number; // dura√ß√£o total calculada em minutos
+  duracao_total?: number; // duraÁ„o total calculada em minutos
   data_cadastro: string;
   produtos?: ProdutoPacote[];
   servicos?: ServicoPacote[];
@@ -69,7 +69,7 @@ export default function PacotesScreen() {
   const { estabelecimentoId } = useAuth();
   const { colors } = useTheme();
   
-  // Estilos din√¢micos baseados no tema
+  // Estilos din‚micos baseados no tema
   const styles = useMemo(() => createStyles(colors), [colors]);
   
   const [pacotes, setPacotes] = useState<PacoteDetalhado[]>([]);
@@ -112,7 +112,7 @@ export default function PacotesScreen() {
     };
   }, []);
 
-  // Carregar produtos e servi√ßos quando estabelecimentoId estiver dispon√≠vel
+  // Carregar produtos e serviÁos quando estabelecimentoId estiver disponÌvel
   useEffect(() => {
     if (estabelecimentoId) {
       carregarProdutos();
@@ -202,8 +202,8 @@ export default function PacotesScreen() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.user?.id) {
-        logger.error('Usu√°rio n√£o autenticado');
-        Alert.alert('Erro', 'Usu√°rio n√£o autenticado. Por favor, fa√ßa login novamente.');
+        logger.error('Usu·rio n„o autenticado');
+        Alert.alert('Erro', 'Usu·rio n„o autenticado. Por favor, faÁa login novamente.');
         router.replace('/(auth)/login');
         return;
       }
@@ -235,7 +235,7 @@ export default function PacotesScreen() {
 
       if (error) throw error;
 
-      // Fun√ß√£o para calcular dura√ß√£o total do pacote
+      // FunÁ„o para calcular duraÁ„o total do pacote
       const calcularDuracaoTotal = (servicos: any[]): number | undefined => {
         if (!servicos || servicos.length === 0) return undefined;
         
@@ -279,7 +279,7 @@ export default function PacotesScreen() {
       setPacotes(pacotesFormatados || []);
     } catch (error) {
       logger.error('Erro ao carregar pacotes:', error);
-      Alert.alert('Erro', 'N√£o foi poss√≠vel carregar os pacotes');
+      Alert.alert('Erro', 'N„o foi possÌvel carregar os pacotes');
     } finally {
       setLoading(false);
     }
@@ -288,7 +288,7 @@ export default function PacotesScreen() {
   const carregarProdutos = async () => {
     try {
       if (!estabelecimentoId) {
-        logger.error('Estabelecimento n√£o identificado');
+        logger.error('Estabelecimento n„o identificado');
         return;
       }
 
@@ -303,14 +303,14 @@ export default function PacotesScreen() {
       logger.debug('Produtos carregados para pacotes:', data?.length || 0);
     } catch (error) {
       logger.error('Erro ao carregar produtos:', error);
-      Alert.alert('Erro', 'N√£o foi poss√≠vel carregar os produtos');
+      Alert.alert('Erro', 'N„o foi possÌvel carregar os produtos');
     }
   };
 
   const carregarServicos = async () => {
     try {
       if (!estabelecimentoId) {
-        logger.error('Estabelecimento n√£o identificado');
+        logger.error('Estabelecimento n„o identificado');
         return;
       }
 
@@ -322,10 +322,10 @@ export default function PacotesScreen() {
 
       if (error) throw error;
       setServicos(data || []);
-      logger.debug('Servi√ßos carregados para pacotes:', data?.length || 0);
+      logger.debug('ServiÁos carregados para pacotes:', data?.length || 0);
     } catch (error) {
-      logger.error('Erro ao carregar servi√ßos:', error);
-      Alert.alert('Erro', 'N√£o foi poss√≠vel carregar os servi√ßos');
+      logger.error('Erro ao carregar serviÁos:', error);
+      Alert.alert('Erro', 'N„o foi possÌvel carregar os serviÁos');
     }
   };
 
@@ -345,7 +345,7 @@ export default function PacotesScreen() {
   const handleEditarPacote = (pacote: PacoteDetalhado) => {
     setPacoteEmEdicao(pacote);
     
-    // Recalcular a soma dos servi√ßos e produtos (sem desconto)
+    // Recalcular a soma dos serviÁos e produtos (sem desconto)
     const somaProdutos = (pacote.produtos || []).reduce((total, item) => {
       return total + (item.produto?.preco || 0) * item.quantidade;
     }, 0);
@@ -369,7 +369,7 @@ export default function PacotesScreen() {
 
   const handleExcluirPacote = async (pacote: PacoteDetalhado) => {
     Alert.alert(
-      'Confirmar Exclus√£o',
+      'Confirmar Exclus„o',
       'Tem certeza que deseja excluir este pacote?',
       [
         {
@@ -390,7 +390,7 @@ export default function PacotesScreen() {
               await carregarPacotes();
             } catch (error) {
               logger.error('Erro ao excluir pacote:', error);
-              Alert.alert('Erro', 'N√£o foi poss√≠vel excluir o pacote');
+              Alert.alert('Erro', 'N„o foi possÌvel excluir o pacote');
             }
           },
         },
@@ -401,35 +401,35 @@ export default function PacotesScreen() {
   const handleSalvarPacote = async () => {
     try {
       if (!novoPacote.nome.trim()) {
-        Alert.alert('Erro', 'O nome do pacote √© obrigat√≥rio');
+        Alert.alert('Erro', 'O nome do pacote È obrigatÛrio');
         return;
       }
 
       if (!estabelecimentoId) {
-        Alert.alert('Erro', 'Estabelecimento n√£o identificado. Entre novamente.');
+        Alert.alert('Erro', 'Estabelecimento n„o identificado. Entre novamente.');
         return;
       }
 
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.user?.id) {
-        Alert.alert('Erro', 'Usu√°rio n√£o autenticado');
+        Alert.alert('Erro', 'Usu·rio n„o autenticado');
         return;
       }
 
-      // Calcular soma dos servi√ßos e produtos
+      // Calcular soma dos serviÁos e produtos
       const somaServicos = Number(novoPacote.valor.replace(',', '.'));
       const descontoNum = Number(novoPacote.desconto.replace(',', '.'));
       
       // IMPORTANTE: O campo "valor" no banco deve ser o VALOR FINAL (com desconto aplicado)
-      // novoPacote.valor cont√©m a SOMA dos servi√ßos/produtos
-      // Ent√£o: valor_final = soma_servicos - desconto
+      // novoPacote.valor contÈm a SOMA dos serviÁos/produtos
+      // Ent„o: valor_final = soma_servicos - desconto
       const valorFinal = somaServicos - descontoNum;
       
       const pacoteData = {
         nome: novoPacote.nome.trim(),
         descricao: novoPacote.descricao.trim(),
-        valor: isNaN(valorFinal) ? 0 : Math.max(0, valorFinal), // Garantir que n√£o seja negativo
+        valor: isNaN(valorFinal) ? 0 : Math.max(0, valorFinal), // Garantir que n„o seja negativo
         desconto: isNaN(descontoNum) ? 0 : descontoNum,
         estabelecimento_id: estabelecimentoId,
       };
@@ -447,9 +447,9 @@ export default function PacotesScreen() {
         if (error) throw error;
         pacoteId = pacoteEmEdicao.id;
 
-        // Remover produtos e servi√ßos existentes
-        // Nota: offlineDelete n√£o suporta delete em lote por pacote_id.
-        // Como estamos editando, os deletes s√£o refeitos localmente e sincronizados depois.
+        // Remover produtos e serviÁos existentes
+        // Nota: offlineDelete n„o suporta delete em lote por pacote_id.
+        // Como estamos editando, os deletes s„o refeitos localmente e sincronizados depois.
         await Promise.all([
           supabase.from('pacotes_produtos').delete().eq('pacote_id', pacoteId),
           supabase.from('pacotes_servicos').delete().eq('pacote_id', pacoteId)
@@ -485,7 +485,7 @@ export default function PacotesScreen() {
         }
       }
 
-      // Inserir servi√ßos
+      // Inserir serviÁos
       let lastFromCache = false;
       if (novoPacote.servicos.length > 0) {
         for (const servico of novoPacote.servicos) {
@@ -523,7 +523,7 @@ export default function PacotesScreen() {
       Alert.alert(feedback.title, feedback.message);
     } catch (error) {
       logger.error('Erro ao salvar pacote:', error);
-      Alert.alert('Erro', 'N√£o foi poss√≠vel salvar o pacote');
+      Alert.alert('Erro', 'N„o foi possÌvel salvar o pacote');
     }
   };
 
@@ -570,7 +570,7 @@ export default function PacotesScreen() {
 
       const novosProdutos: ProdutoPacote[] = produtosSelecionados.map(produto => ({
         id: Math.random().toString(),
-        pacote_id: '', // Ser√° preenchido quando o pacote for salvo
+        pacote_id: '', // Ser· preenchido quando o pacote for salvo
         produto_id: produto.id,
         quantidade: Number(quantidadesProdutos[produto.id] || '1'),
         produto: {
@@ -604,7 +604,7 @@ export default function PacotesScreen() {
 
   const handleAdicionarServicos = () => {
     if (servicosSelecionados.length === 0) {
-      Alert.alert('Erro', 'Selecione pelo menos um servi√ßo');
+      Alert.alert('Erro', 'Selecione pelo menos um serviÁo');
       return;
     }
 
@@ -670,7 +670,7 @@ export default function PacotesScreen() {
   };
 
   const handleMostrarModalServicos = async () => {
-    // Garantir que os servi√ßos estejam carregados
+    // Garantir que os serviÁos estejam carregados
     if (servicos.length === 0) {
       await carregarServicos();
     }
@@ -678,7 +678,7 @@ export default function PacotesScreen() {
   };
 
   const renderItem = ({ item }: { item: PacoteDetalhado }) => {
-    // Calcular soma dos servi√ßos e produtos
+    // Calcular soma dos serviÁos e produtos
     const somaProdutos = (item.produtos || []).reduce((total, prod) => {
       return total + (prod.produto?.preco || 0) * prod.quantidade;
     }, 0);
@@ -688,7 +688,7 @@ export default function PacotesScreen() {
     }, 0);
     
     const valorSemDesconto = somaProdutos + somaServicos;
-    const valorComDesconto = item.valor; // Agora item.valor J√Å √â o valor final
+    const valorComDesconto = item.valor; // Agora item.valor J¡ … o valor final
     
     return (
     <TouchableOpacity 
@@ -757,7 +757,7 @@ export default function PacotesScreen() {
 
       {item.servicos && item.servicos.length > 0 && (
         <View style={styles.secaoLista}>
-          <Text style={styles.secaoTitulo}>Servi√ßos:</Text>
+          <Text style={styles.secaoTitulo}>ServiÁos:</Text>
           {item.servicos.map((servico) => (
             <View key={servico.id} style={styles.itemListaCompacto}>
               <View style={styles.itemInfoCompacto}>
@@ -766,7 +766,7 @@ export default function PacotesScreen() {
                 </Text>
                 {servico.servico?.duracao && (
                   <Text style={styles.itemDuracaoCompacto}>
-                    ‚è±Ô∏è {servico.servico.duracao * servico.quantidade} min
+                    ?? {servico.servico.duracao * servico.quantidade} min
                   </Text>
                 )}
               </View>
@@ -781,7 +781,7 @@ export default function PacotesScreen() {
           {item.duracao_total && (
             <View style={styles.duracaoTotalContainer}>
               <Text style={styles.duracaoTotalText}>
-                ‚è±Ô∏è Dura√ß√£o total: {item.duracao_total} minutos
+                ?? DuraÁ„o total: {item.duracao_total} minutos
               </Text>
             </View>
           )}
@@ -826,7 +826,7 @@ export default function PacotesScreen() {
         ListEmptyComponent={
           loading ? (
             <View style={styles.emptyContainer}>
-              <ActivityIndicator size="large" color={theme.colors.primary} />
+              <ActivityIndicator size="large" color={colors.primary} />
             </View>
           ) : (
             <View style={styles.emptyContainer}>
@@ -902,12 +902,12 @@ export default function PacotesScreen() {
                   </View>
 
                   <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Descri√ß√£o</Text>
+                    <Text style={styles.label}>DescriÁ„o</Text>
                     <TextInput
                       style={[styles.input, styles.textArea]}
                       value={novoPacote.descricao}
                       onChangeText={(text) => setNovoPacote({ ...novoPacote, descricao: text })}
-                      placeholder="Digite a descri√ß√£o do pacote"
+                      placeholder="Digite a descriÁ„o do pacote"
                       placeholderTextColor={colors.textTertiary}
                       multiline
                       numberOfLines={4}
@@ -920,7 +920,7 @@ export default function PacotesScreen() {
                       style={styles.addButton}
                       onPress={handleMostrarModalProdutos}
                     >
-                      <Ionicons name="add-circle-outline" size={24} color={theme.colors.primary} />
+                      <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
                       <Text style={styles.addButtonText}>Adicionar Produtos</Text>
                     </TouchableOpacity>
                     {novoPacote.produtos.map((produto, index) => (
@@ -946,13 +946,13 @@ export default function PacotesScreen() {
                   </View>
 
                   <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Servi√ßos</Text>
+                    <Text style={styles.label}>ServiÁos</Text>
                     <TouchableOpacity
                       style={styles.addButton}
                       onPress={handleMostrarModalServicos}
                     >
-                      <Ionicons name="add-circle-outline" size={24} color={theme.colors.primary} />
-                      <Text style={styles.addButtonText}>Adicionar Servi√ßos</Text>
+                      <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
+                      <Text style={styles.addButtonText}>Adicionar ServiÁos</Text>
                     </TouchableOpacity>
                     {novoPacote.servicos.map((servico, index) => (
                       <View key={servico.id} style={styles.itemLista}>
@@ -961,7 +961,7 @@ export default function PacotesScreen() {
                           <Text style={styles.itemQuantidade}>Qtd: {servico.quantidade}</Text>
                           {servico.servico?.duracao && (
                             <Text style={styles.itemDuracao}>
-                              ‚è±Ô∏è {servico.servico.duracao * servico.quantidade} min
+                              ?? {servico.servico.duracao * servico.quantidade} min
                             </Text>
                           )}
                           <Text style={styles.itemPreco}>
@@ -1127,7 +1127,7 @@ export default function PacotesScreen() {
                           <Ionicons 
                             name={produtosSelecionados.some(p => p.id === produto.id) ? "checkbox" : "square-outline"} 
                             size={24} 
-                            color={theme.colors.primary} 
+                            color={colors.primary} 
                           />
                         </View>
                         <Text style={styles.modalItemText}>{produto.nome}</Text>
@@ -1151,7 +1151,7 @@ export default function PacotesScreen() {
                                 }
                               }}
                             >
-                              <Ionicons name="remove" size={20} color={theme.colors.primary} />
+                              <Ionicons name="remove" size={20} color={colors.primary} />
                             </TouchableOpacity>
                             <TextInput
                               style={styles.quantidadeInput}
@@ -1173,7 +1173,7 @@ export default function PacotesScreen() {
                                 }
                               }}
                             >
-                              <Ionicons name="add" size={20} color={theme.colors.primary} />
+                              <Ionicons name="add" size={20} color={colors.primary} />
                             </TouchableOpacity>
                           </View>
                         </View>
@@ -1199,7 +1199,7 @@ export default function PacotesScreen() {
         </TouchableOpacity>
       </Modal>
 
-      {/* Modal de Servi√ßos */}
+      {/* Modal de ServiÁos */}
       <Modal
         visible={mostrarModalServicos}
         transparent={true}
@@ -1224,7 +1224,7 @@ export default function PacotesScreen() {
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Adicionar Servi√ßos</Text>
+                <Text style={styles.modalTitle}>Adicionar ServiÁos</Text>
                 <TouchableOpacity
                   onPress={() => {
                     setMostrarModalServicos(false);
@@ -1244,7 +1244,7 @@ export default function PacotesScreen() {
                   style={styles.searchModalInput}
                   value={buscaServico}
                   onChangeText={setBuscaServico}
-                  placeholder="Buscar servi√ßos..."
+                  placeholder="Buscar serviÁos..."
                   placeholderTextColor={colors.textTertiary}
                 />
               </View>
@@ -1269,7 +1269,7 @@ export default function PacotesScreen() {
                           <Ionicons 
                             name={servicosSelecionados.some(s => s.id === servico.id) ? "checkbox" : "square-outline"} 
                             size={24} 
-                            color={theme.colors.primary} 
+                            color={colors.primary} 
                           />
                         </View>
                         <Text style={styles.modalItemText}>{servico.nome}</Text>
@@ -1293,7 +1293,7 @@ export default function PacotesScreen() {
                                 }
                               }}
                             >
-                              <Ionicons name="remove" size={20} color={theme.colors.primary} />
+                              <Ionicons name="remove" size={20} color={colors.primary} />
                             </TouchableOpacity>
                             <TextInput
                               style={styles.quantidadeInput}
@@ -1315,7 +1315,7 @@ export default function PacotesScreen() {
                                 }
                               }}
                             >
-                              <Ionicons name="add" size={20} color={theme.colors.primary} />
+                              <Ionicons name="add" size={20} color={colors.primary} />
                             </TouchableOpacity>
                           </View>
                         </View>
@@ -1344,7 +1344,7 @@ export default function PacotesScreen() {
   );
 }
 
-// Fun√ß√£o auxiliar para criar estilos din√¢micos
+// FunÁ„o auxiliar para criar estilos din‚micos
 const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
@@ -1412,17 +1412,17 @@ const createStyles = (colors: any) => StyleSheet.create({
   valorOriginalText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   descontoText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   valorFinalText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   pacoteDescricao: {
     fontSize: 14,
@@ -1532,7 +1532,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     padding: 12,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
   },
   cancelButton: {
     backgroundColor: colors.background,
@@ -1552,7 +1552,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     padding: 20,
   },
   emptyText: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontSize: 16,
     fontWeight: '500',
     textAlign: 'center',
@@ -1569,7 +1569,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   addButtonText: {
     fontSize: 16,
     fontWeight: '500',
-    color: theme.colors.primary,
+    color: colors.primary,
     marginLeft: 8,
   },
   itemLista: {
@@ -1595,7 +1595,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   itemPreco: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   removeButton: {
     padding: 8,
@@ -1631,7 +1631,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   modalItemPreco: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   quantidadeInputContainer: {
     marginTop: 8,
@@ -1770,7 +1770,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   itemPrecoCompacto: {
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.primary,
+    color: colors.primary,
     marginLeft: 8,
   },
   itemDuracao: {
@@ -1789,7 +1789,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   duracaoTotalText: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   modalItemCheckbox: {
     marginRight: 12,

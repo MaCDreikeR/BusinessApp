@@ -1,10 +1,11 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ScrollView, Image, Modal, FlatList, ActivityIndicator, DeviceEventEmitter, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useNavigation, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useTheme } from '../../../contexts/ThemeContext';
 import { Picker } from '@react-native-picker/picker';
 import { logger } from '../../../utils/logger';
 import { formatarCPF, formatarCNPJ, formatarTelefone as formatarCelular } from '../../../utils/validators';
@@ -13,10 +14,10 @@ import { theme, colors } from '../../../utils/theme';
 const SEGMENTOS = [
   { label: 'Selecione um segmento', value: '' },
   { label: 'Varejo', value: 'varejo' },
-  { label: 'Serviços', value: 'servicos' },
-  { label: 'Alimentação', value: 'alimentacao' },
-  { label: 'Beleza e Estética', value: 'beleza' },
-  { label: 'Saúde', value: 'saude' },
+  { label: 'Servi�os', value: 'servicos' },
+  { label: 'Alimenta��o', value: 'alimentacao' },
+  { label: 'Beleza e Est�tica', value: 'beleza' },
+  { label: 'Sa�de', value: 'saude' },
   { label: 'Outros', value: 'outros' }
 ];
 
@@ -25,14 +26,14 @@ const PERMISSOES = [
   { key: 'pode_editar_agenda', label: 'Editar Agenda', icon: 'calendar' },
   { key: 'pode_ver_clientes', label: 'Ver Clientes', icon: 'people-outline' },
   { key: 'pode_editar_clientes', label: 'Editar Clientes', icon: 'people' },
-  { key: 'pode_ver_servicos', label: 'Ver Serviços', icon: 'construct-outline' },
-  { key: 'pode_editar_servicos', label: 'Editar Serviços', icon: 'construct' },
+  { key: 'pode_ver_servicos', label: 'Ver Servi�os', icon: 'construct-outline' },
+  { key: 'pode_editar_servicos', label: 'Editar Servi�os', icon: 'construct' },
   { key: 'pode_ver_vendas', label: 'Ver Vendas', icon: 'cash-outline' },
   { key: 'pode_editar_vendas', label: 'Editar Vendas', icon: 'cash' },
   { key: 'pode_ver_comandas', label: 'Ver Comandas', icon: 'receipt-outline' },
   { key: 'pode_editar_comandas', label: 'Editar Comandas', icon: 'receipt' },
-  { key: 'pode_ver_orcamentos', label: 'Ver Orçamentos', icon: 'document-text-outline' },
-  { key: 'pode_editar_orcamentos', label: 'Editar Orçamentos', icon: 'document-text' },
+  { key: 'pode_ver_orcamentos', label: 'Ver Or�amentos', icon: 'document-text-outline' },
+  { key: 'pode_editar_orcamentos', label: 'Editar Or�amentos', icon: 'document-text' },
   { key: 'pode_ver_pacotes', label: 'Ver Pacotes', icon: 'cube-outline' },
   { key: 'pode_editar_pacotes', label: 'Editar Pacotes', icon: 'cube' },
   { key: 'pode_ver_estoque', label: 'Ver Estoque', icon: 'archive-outline' },
@@ -45,22 +46,23 @@ const PERMISSOES = [
   { key: 'pode_editar_metas', label: 'Editar Metas', icon: 'flag' },
   { key: 'pode_ver_despesas', label: 'Ver Despesas', icon: 'card-outline' },
   { key: 'pode_editar_despesas', label: 'Editar Despesas', icon: 'card' },
-  { key: 'pode_ver_comissoes', label: 'Ver Comissões', icon: 'cash-outline' },
-  { key: 'pode_editar_comissoes', label: 'Editar Comissões', icon: 'cash' },
+  { key: 'pode_ver_comissoes', label: 'Ver Comiss�es', icon: 'cash-outline' },
+  { key: 'pode_editar_comissoes', label: 'Editar Comiss�es', icon: 'cash' },
   { key: 'pode_ver_agendamentos_online', label: 'Ver Agendamentos Online', icon: 'globe-outline' },
   { key: 'pode_editar_agendamentos_online', label: 'Editar Agendamentos Online', icon: 'globe' },
-  { key: 'pode_ver_automacao', label: 'Ver Automação', icon: 'settings-outline' },
-  { key: 'pode_editar_automacao', label: 'Editar Automação', icon: 'settings' },
-  { key: 'pode_ver_notificacoes', label: 'Ver Notificações', icon: 'notifications-outline' },
-  { key: 'pode_editar_notificacoes', label: 'Editar Notificações', icon: 'notifications' },
-  { key: 'pode_ver_relatorios', label: 'Ver Relatórios', icon: 'bar-chart-outline' },
-  { key: 'pode_ver_configuracoes', label: 'Ver Configurações', icon: 'cog-outline' },
-  { key: 'pode_editar_configuracoes', label: 'Editar Configurações', icon: 'cog' },
-  { key: 'pode_gerenciar_usuarios', label: 'Gerenciar Usuários', icon: 'person-add-outline' }
+  { key: 'pode_ver_automacao', label: 'Ver Automa��o', icon: 'settings-outline' },
+  { key: 'pode_editar_automacao', label: 'Editar Automa��o', icon: 'settings' },
+  { key: 'pode_ver_notificacoes', label: 'Ver Notifica��es', icon: 'notifications-outline' },
+  { key: 'pode_editar_notificacoes', label: 'Editar Notifica��es', icon: 'notifications' },
+  { key: 'pode_ver_relatorios', label: 'Ver Relat�rios', icon: 'bar-chart-outline' },
+  { key: 'pode_ver_configuracoes', label: 'Ver Configura��es', icon: 'cog-outline' },
+  { key: 'pode_editar_configuracoes', label: 'Editar Configura��es', icon: 'cog' },
+  { key: 'pode_gerenciar_usuarios', label: 'Gerenciar Usu�rios', icon: 'person-add-outline' }
 ];
 
 export default function PerfilScreen() {
   const { session, estabelecimentoId } = useAuth();
+  const { colors } = useTheme();
   const { userId } = useLocalSearchParams();
   const editandoOutroUsuario = userId && userId !== session?.user?.id;
   const [loading, setLoading] = useState(true);
@@ -76,7 +78,7 @@ export default function PerfilScreen() {
   const [numeroDocumento, setNumeroDocumento] = useState('');
   const [segmento, setSegmento] = useState('');
   
-  // Novos estados para SEO e informações completas do estabelecimento
+  // Novos estados para SEO e informa��es completas do estabelecimento
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [telefoneEstabelecimento, setTelefoneEstabelecimento] = useState('');
   const [whatsappEstabelecimento, setWhatsappEstabelecimento] = useState('');
@@ -101,7 +103,7 @@ export default function PerfilScreen() {
   const [showNovaSenha, setShowNovaSenha] = useState(false);
   const [showConfirmarSenha, setShowConfirmarSenha] = useState(false);
   
-  // Estados para modal de permissões
+  // Estados para modal de permiss�es
   const [modalPermissionsVisible, setModalPermissionsVisible] = useState(false);
   const [permissoes, setPermissoes] = useState<{[key: string]: boolean}>({});
   const [loadingPermissions, setLoadingPermissions] = useState(false);
@@ -114,7 +116,7 @@ export default function PerfilScreen() {
       carregarPerfil();
     } else {
       setLoading(false);
-      Alert.alert('Erro', 'Usuário não autenticado.');
+      Alert.alert('Erro', 'Usu�rio n�o autenticado.');
       router.replace('/(auth)/login');
     }
   }, [session?.user?.id, userId]);
@@ -122,15 +124,15 @@ export default function PerfilScreen() {
   useEffect(() => {
     navigation.setOptions({
       headerShown: true,
-      headerTitle: editandoOutroUsuario ? 'Editar Usuário' : 'Editar Perfil',
+      headerTitle: editandoOutroUsuario ? 'Editar Usu�rio' : 'Editar Perfil',
       headerLeft: () => (
         <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 16 }}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
+          <Ionicons name="arrow-back" size={24} color={colors.primary} />
         </TouchableOpacity>
       ),
       headerRight: () => (
         <TouchableOpacity onPress={handleOpenPermissionsModal} style={{ marginRight: 16 }}>
-          <Ionicons name="shield-checkmark" size={24} color={theme.colors.primary} />
+          <Ionicons name="shield-checkmark" size={24} color={colors.primary} />
         </TouchableOpacity>
       ),
     });
@@ -139,11 +141,11 @@ export default function PerfilScreen() {
   const carregarPerfil = async () => {
     setLoading(true);
     try {
-      if (!session?.user?.id) throw new Error("ID do usuário não encontrado na sessão.");
+      if (!session?.user?.id) throw new Error("ID do usu�rio n�o encontrado na sess�o.");
 
       const targetUserId = editandoOutroUsuario ? userId as string : session.user.id;
       
-      // Se estiver editando outro usuário, usar função RPC para contornar RLS
+      // Se estiver editando outro usu�rio, usar fun��o RPC para contornar RLS
       let data, error;
       if (editandoOutroUsuario) {
         const result = await supabase.rpc('get_usuarios_estabelecimento', {
@@ -152,7 +154,7 @@ export default function PerfilScreen() {
         error = result.error;
         data = result.data?.find((u: any) => u.id === userId);
         if (!data && !error) {
-          throw new Error('Usuário não encontrado ou sem permissão para visualizar');
+          throw new Error('Usu�rio n�o encontrado ou sem permiss�o para visualizar');
         }
       } else {
         const result = await supabase
@@ -211,7 +213,7 @@ export default function PerfilScreen() {
     try {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert('Permissão Necessária', 'Precisamos de permissão para acessar suas fotos.');
+            Alert.alert('Permiss�o Necess�ria', 'Precisamos de permiss�o para acessar suas fotos.');
             return;
         }
 
@@ -249,7 +251,7 @@ export default function PerfilScreen() {
             .from('avatars')
             .getPublicUrl(fileName);
 
-        if (!publicUrl) throw new Error("Não foi possível obter a URL pública da nova imagem.");
+        if (!publicUrl) throw new Error("N�o foi poss�vel obter a URL p�blica da nova imagem.");
 
         const { error: updateError } = await supabase
             .from('usuarios')
@@ -273,7 +275,7 @@ export default function PerfilScreen() {
         Alert.alert('Sucesso', 'Imagem de perfil atualizada!');
 
     } catch (error: any) {
-        Alert.alert('Erro', `Não foi possível fazer o upload da imagem: ${error.message}`);
+        Alert.alert('Erro', `N�o foi poss�vel fazer o upload da imagem: ${error.message}`);
     } finally {
         setSaving(false);
     }
@@ -283,7 +285,7 @@ export default function PerfilScreen() {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permissão Necessária', 'Precisamos de permissão para acessar suas fotos.');
+        Alert.alert('Permiss�o Necess�ria', 'Precisamos de permiss�o para acessar suas fotos.');
         return;
       }
 
@@ -319,7 +321,7 @@ export default function PerfilScreen() {
         .from('logos')
         .getPublicUrl(fileName);
 
-      if (!publicUrl) throw new Error('Não foi possível obter URL pública');
+      if (!publicUrl) throw new Error('N�o foi poss�vel obter URL p�blica');
 
       const { error: updateError } = await supabase
         .from('estabelecimentos')
@@ -331,7 +333,7 @@ export default function PerfilScreen() {
       setLogoUrl(publicUrl);
       Alert.alert('Sucesso', 'Logo atualizada!');
     } catch (error: any) {
-      Alert.alert('Erro', `Não foi possível fazer upload: ${error.message}`);
+      Alert.alert('Erro', `N�o foi poss�vel fazer upload: ${error.message}`);
     } finally {
       setSaving(false);
     }
@@ -347,7 +349,7 @@ export default function PerfilScreen() {
       const data = await response.json();
 
       if (data.erro) {
-        Alert.alert('CEP não encontrado', 'Verifique o CEP digitado');
+        Alert.alert('CEP n�o encontrado', 'Verifique o CEP digitado');
         return;
       }
 
@@ -356,7 +358,7 @@ export default function PerfilScreen() {
       setCidade(data.localidade || '');
       setEstado(data.uf || '');
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível buscar o CEP');
+      Alert.alert('Erro', 'N�o foi poss�vel buscar o CEP');
     } finally {
       setLoadingCep(false);
     }
@@ -379,7 +381,7 @@ export default function PerfilScreen() {
                     try {
                         const fileNameMatch = avatarUrl.match(/avatars\/(.*)/);
                         if (!fileNameMatch || !fileNameMatch[1]) {
-                            throw new Error("Não foi possível extrair o nome do arquivo da URL.");
+                            throw new Error("N�o foi poss�vel extrair o nome do arquivo da URL.");
                         }
                         const fileName = fileNameMatch[1].split('?')[0];
 
@@ -392,7 +394,7 @@ export default function PerfilScreen() {
                         setAvatarUrl(null);
                         Alert.alert('Sucesso', 'Sua foto de perfil foi removida.');
                     } catch (error: any) {
-                        Alert.alert('Erro', `Não foi possível remover a foto: ${error.message}`);
+                        Alert.alert('Erro', `N�o foi poss�vel remover a foto: ${error.message}`);
                     } finally {
                         setSaving(false);
                     }
@@ -407,7 +409,7 @@ export default function PerfilScreen() {
     try {
       let estabelecimentoId = usuarioData?.estabelecimento?.id;
 
-      // Se for principal e não tiver estabelecimento vinculado, cria um novo
+      // Se for principal e n�o tiver estabelecimento vinculado, cria um novo
       if (isPrincipal && !estabelecimentoId) {
         const { data: newEstab, error: newEstabError } = await supabase
           .from('estabelecimentos')
@@ -424,7 +426,7 @@ export default function PerfilScreen() {
         if (newEstab) estabelecimentoId = newEstab.id;
       }
 
-      // Atualiza dados do usuário usando função RPC (contorna RLS)
+      // Atualiza dados do usu�rio usando fun��o RPC (contorna RLS)
       const targetUserId = editandoOutroUsuario ? userId as string : session!.user.id;
       
       const { data: updateResult, error: userError } = await supabase.rpc('update_usuario_estabelecimento', {
@@ -436,7 +438,7 @@ export default function PerfilScreen() {
 
       if (userError) throw userError;
 
-      // Atualiza dados do estabelecimento se já existir
+      // Atualiza dados do estabelecimento se j� existir
       if (isPrincipal && estabelecimentoId) {
         const { error: estabError } = await supabase.from('estabelecimentos').update({
           nome: nomeEstabelecimento,
@@ -477,11 +479,11 @@ export default function PerfilScreen() {
 
   const handleAlterarSenha = async () => {
     if (novaSenha !== confirmarSenha) {
-        Alert.alert('Erro', 'As novas senhas não coincidem.');
+        Alert.alert('Erro', 'As novas senhas n�o coincidem.');
         return;
     }
     if (novaSenha.length < 8) {
-        Alert.alert('Erro', 'A nova senha deve ter no mínimo 8 caracteres.');
+        Alert.alert('Erro', 'A nova senha deve ter no m�nimo 8 caracteres.');
         return;
     }
     setSaving(true);
@@ -499,15 +501,15 @@ export default function PerfilScreen() {
     }
   };
 
-  // Funções para gerenciar permissões
+  // Fun��es para gerenciar permiss�es
   const handleOpenPermissionsModal = async () => {
     if (!session?.user?.id) {
-      Alert.alert('Erro', 'Usuário não autenticado.');
+      Alert.alert('Erro', 'Usu�rio n�o autenticado.');
       return;
     }
 
     try {
-      // Verificar se o usuário é admin
+      // Verificar se o usu�rio � admin
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
         .select('role')
@@ -517,7 +519,7 @@ export default function PerfilScreen() {
       if (userError) throw userError;
 
       if (userData?.role !== 'admin') {
-        Alert.alert('Acesso Negado', 'Você não tem permissão para acessar esta área.');
+        Alert.alert('Acesso Negado', 'Voc� n�o tem permiss�o para acessar esta �rea.');
         return;
       }
 
@@ -525,8 +527,8 @@ export default function PerfilScreen() {
       await carregarPermissoes();
       setModalPermissionsVisible(true);
     } catch (error: any) {
-      logger.error('Erro ao verificar permissões:', error);
-      Alert.alert('Erro', 'Não foi possível verificar as permissões do usuário.');
+      logger.error('Erro ao verificar permiss�es:', error);
+      Alert.alert('Erro', 'N�o foi poss�vel verificar as permiss�es do usu�rio.');
     }
   };
 
@@ -535,10 +537,10 @@ export default function PerfilScreen() {
 
     setLoadingPermissions(true);
     try {
-      // Usar o ID do usuário que está sendo editado, não o usuário logado
+      // Usar o ID do usu�rio que est� sendo editado, n�o o usu�rio logado
       const targetUserId = editandoOutroUsuario ? userId as string : session.user.id;
       
-      // Buscar permissões do usuário correto
+      // Buscar permiss�es do usu�rio correto
       const { data, error } = await supabase
         .from('permissoes_usuario')
         .select('*')
@@ -548,7 +550,7 @@ export default function PerfilScreen() {
 
       if (error && error.code !== 'PGRST116') throw error;
 
-      // Se não existir registro de permissões, criar com todas liberadas por padrão
+      // Se n�o existir registro de permiss�es, criar com todas liberadas por padr�o
       if (!data) {
         const permissoesIniciais: {[key: string]: boolean} = {};
         PERMISSOES.forEach(p => {
@@ -557,7 +559,7 @@ export default function PerfilScreen() {
         setPermissoes(permissoesIniciais);
         await salvarPermissoes(permissoesIniciais);
       } else {
-        // Converter as permissões do banco para o estado local
+        // Converter as permiss�es do banco para o estado local
         const permissoesUsuario: {[key: string]: boolean} = {};
         PERMISSOES.forEach(p => {
           permissoesUsuario[p.key] = data[p.key] ?? true;
@@ -565,8 +567,8 @@ export default function PerfilScreen() {
         setPermissoes(permissoesUsuario);
       }
     } catch (error: any) {
-      logger.error('Erro ao carregar permissões:', error);
-      Alert.alert('Erro', 'Não foi possível carregar as permissões.');
+      logger.error('Erro ao carregar permiss�es:', error);
+      Alert.alert('Erro', 'N�o foi poss�vel carregar as permiss�es.');
     } finally {
       setLoadingPermissions(false);
     }
@@ -584,7 +586,7 @@ export default function PerfilScreen() {
     if (!session?.user?.id) return;
 
     try {
-      // Usar o ID do usuário que está sendo editado, não o usuário logado
+      // Usar o ID do usu�rio que est� sendo editado, n�o o usu�rio logado
       const targetUserId = editandoOutroUsuario ? userId as string : session.user.id;
       
       const dadosPermissoes = {
@@ -600,14 +602,14 @@ export default function PerfilScreen() {
 
       if (error) throw error;
 
-      Alert.alert('Sucesso', 'Permissões salvas com sucesso!');
+      Alert.alert('Sucesso', 'Permiss�es salvas com sucesso!');
       setModalPermissionsVisible(false);
       
-      // Emitir evento para atualizar permissões em outros componentes
+      // Emitir evento para atualizar permiss�es em outros componentes
       DeviceEventEmitter.emit('permissoesAtualizadas');
     } catch (error: any) {
-      logger.error('Erro ao salvar permissões:', error);
-      Alert.alert('Erro', 'Não foi possível salvar as permissões.');
+      logger.error('Erro ao salvar permiss�es:', error);
+      Alert.alert('Erro', 'N�o foi poss�vel salvar as permiss�es.');
     }
   };
 
@@ -620,7 +622,7 @@ export default function PerfilScreen() {
         <Ionicons 
           name={item.icon as any} 
           size={24} 
-          color={theme.colors.primary} 
+          color={colors.primary} 
           style={styles.permissionIcon} 
         />
         <Text style={styles.permissionLabel}>{item.label}</Text>
@@ -629,7 +631,7 @@ export default function PerfilScreen() {
         <Ionicons
           name={permissoes[item.key] ? "checkbox" : "square-outline"}
           size={24}
-          color={permissoes[item.key] ? theme.colors.primary : "#9CA3AF"}
+          color={permissoes[item.key] ? colors.primary : "#9CA3AF"}
         />
       </View>
     </TouchableOpacity>
@@ -647,7 +649,7 @@ export default function PerfilScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -662,7 +664,7 @@ export default function PerfilScreen() {
                 <Image source={{ uri: avatarUrl }} style={styles.avatar} />
               ) : (
                 <View style={styles.avatarPlaceholder}>
-                  <Ionicons name="person" size={40} color={theme.colors.primary} />
+                  <Ionicons name="person" size={40} color={colors.primary} />
                 </View>
               )}
               <TouchableOpacity style={styles.editAvatarButton} onPress={handleUploadAvatar} disabled={saving}>
@@ -692,8 +694,8 @@ export default function PerfilScreen() {
                 <TextInput style={styles.input} value={celular} onChangeText={(text) => setCelular(formatarCelular(text))} keyboardType="phone-pad" placeholder="(00) 00000-0000"/>
             </View>
             <View style={styles.switchContainer}>
-                <Text style={styles.label}>Este usuário faz atendimentos/agendamentos</Text>
-                <Switch trackColor={{ false: "#767577", true: "#81b0ff" }} thumbColor={fazAtendimento ? theme.colors.primary : "#f4f3f4"} value={fazAtendimento} onValueChange={setFazAtendimento} />
+                <Text style={styles.label}>Este usu�rio faz atendimentos/agendamentos</Text>
+                <Switch trackColor={{ false: "#767577", true: "#81b0ff" }} thumbColor={fazAtendimento ? colors.primary : "#f4f3f4"} value={fazAtendimento} onValueChange={setFazAtendimento} />
             </View>
           </View>
           
@@ -738,7 +740,7 @@ export default function PerfilScreen() {
                   </View>
                 ) : (
                   <TouchableOpacity style={styles.uploadButton} onPress={handleUploadLogo} disabled={saving}>
-                    <Ionicons name="cloud-upload-outline" size={24} color={theme.colors.primary} />
+                    <Ionicons name="cloud-upload-outline" size={24} color={colors.primary} />
                     <Text style={styles.uploadButtonText}>Fazer Upload da Logo</Text>
                   </TouchableOpacity>
                 )}
@@ -746,7 +748,7 @@ export default function PerfilScreen() {
 
               {/* Contato */}
               <Text style={[styles.label, { marginTop: 20, marginBottom: 10, fontSize: 16, fontWeight: '600' }]}>
-                📞 Contato
+                ?? Contato
               </Text>
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Telefone</Text>
@@ -769,9 +771,9 @@ export default function PerfilScreen() {
                 />
               </View>
 
-              {/* Endereço */}
+              {/* Endere�o */}
               <Text style={[styles.label, { marginTop: 20, marginBottom: 10, fontSize: 16, fontWeight: '600' }]}>
-                📍 Localização
+                ?? Localiza��o
               </Text>
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>CEP</Text>
@@ -789,16 +791,16 @@ export default function PerfilScreen() {
                     placeholder="00000-000"
                     maxLength={9}
                   />
-                  {loadingCep && <ActivityIndicator size="small" color={theme.colors.primary} style={{ marginLeft: 10 }} />}
+                  {loadingCep && <ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: 10 }} />}
                 </View>
               </View>
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Endereço</Text>
+                <Text style={styles.label}>Endere�o</Text>
                 <TextInput 
                   style={styles.input} 
                   value={endereco} 
                   onChangeText={setEndereco}
-                  placeholder="Rua, Av, número"
+                  placeholder="Rua, Av, n�mero"
                 />
               </View>
               <View style={styles.inputContainer}>
@@ -844,25 +846,25 @@ export default function PerfilScreen() {
 
               {/* SEO */}
               <Text style={[styles.label, { marginTop: 20, marginBottom: 10, fontSize: 16, fontWeight: '600' }]}>
-                🏷️ Informações para Buscadores (Google)
+                ??? Informa��es para Buscadores (Google)
               </Text>
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Descrição do Estabelecimento</Text>
+                <Text style={styles.label}>Descri��o do Estabelecimento</Text>
                 <TextInput 
                   style={[styles.input, { height: 80, textAlignVertical: 'top' }]} 
                   value={descricao} 
                   onChangeText={setDescricao}
-                  placeholder="Breve descrição do seu negócio (aparece no Google)"
+                  placeholder="Breve descri��o do seu neg�cio (aparece no Google)"
                   multiline
                   numberOfLines={4}
                 />
               </View>
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Faixa de Preço</Text>
+                <Text style={styles.label}>Faixa de Pre�o</Text>
                 <View style={styles.pickerContainer}>
                   <Picker selectedValue={faixaPreco} onValueChange={(itemValue) => setFaixaPreco(itemValue)}>
                     <Picker.Item label="Selecione" value="" />
-                    <Picker.Item label="$ (Econômico)" value="$" />
+                    <Picker.Item label="$ (Econ�mico)" value="$" />
                     <Picker.Item label="$$ (Moderado)" value="$$" />
                     <Picker.Item label="$$$ (Alto)" value="$$$" />
                     <Picker.Item label="$$$$ (Premium)" value="$$$$" />
@@ -872,7 +874,7 @@ export default function PerfilScreen() {
 
               {/* Redes Sociais */}
               <Text style={[styles.label, { marginTop: 20, marginBottom: 10, fontSize: 16, fontWeight: '600' }]}>
-                🌐 Redes Sociais (opcional)
+                ?? Redes Sociais (opcional)
               </Text>
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Instagram</Text>
@@ -906,7 +908,7 @@ export default function PerfilScreen() {
                 />
               </View>
 
-              {/* Nota sobre horários */}
+              {/* Nota sobre hor�rios */}
               <View style={{ 
                 backgroundColor: '#EEF2FF', 
                 padding: 12, 
@@ -915,9 +917,9 @@ export default function PerfilScreen() {
                 flexDirection: 'row',
                 alignItems: 'center'
               }}>
-                <Ionicons name="information-circle" size={20} color={theme.colors.primary} style={{ marginRight: 8 }} />
+                <Ionicons name="information-circle" size={20} color={colors.primary} style={{ marginRight: 8 }} />
                 <Text style={{ fontSize: 13, color: '#4338CA', flex: 1 }}>
-                  Horários de funcionamento: configure na tela de Agenda
+                  Hor�rios de funcionamento: configure na tela de Agenda
                 </Text>
               </View>
             </View>
@@ -927,7 +929,7 @@ export default function PerfilScreen() {
             <Text style={styles.sectionTitle}>Alterar Senha</Text>
             <View style={styles.inputContainer}>
                 <Text style={styles.label}>Nova Senha</Text>
-                <TextInput style={styles.input} value={novaSenha} onChangeText={setNovaSenha} secureTextEntry={!showNovaSenha} placeholder="Mínimo 8 caracteres"/>
+                <TextInput style={styles.input} value={novaSenha} onChangeText={setNovaSenha} secureTextEntry={!showNovaSenha} placeholder="M�nimo 8 caracteres"/>
             </View>
             <View style={styles.inputContainer}>
                 <Text style={styles.label}>Confirmar Nova Senha</Text>
@@ -939,12 +941,12 @@ export default function PerfilScreen() {
           </View>
 
           <TouchableOpacity style={[styles.saveButton, styles.mainSaveButton]} onPress={handleSalvar} disabled={saving}>
-              {saving ? <ActivityIndicator color={colors.white} /> : <Text style={styles.saveButtonText}>Salvar Alterações</Text>}
+              {saving ? <ActivityIndicator color={colors.white} /> : <Text style={styles.saveButtonText}>Salvar Altera��es</Text>}
           </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* Modal de Permissões */}
+      {/* Modal de Permiss�es */}
       <Modal
         visible={modalPermissionsVisible}
         animationType="slide"
@@ -953,7 +955,7 @@ export default function PerfilScreen() {
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
-              {editandoOutroUsuario ? `Permissões - ${nome}` : 'Permissões de Acesso'}
+              {editandoOutroUsuario ? `Permiss�es - ${nome}` : 'Permiss�es de Acesso'}
             </Text>
             <TouchableOpacity
               onPress={() => setModalPermissionsVisible(false)}
@@ -965,8 +967,8 @@ export default function PerfilScreen() {
 
           {loadingPermissions ? (
             <View style={styles.modalLoadingContainer}>
-              <ActivityIndicator size="large" color={theme.colors.primary} />
-              <Text style={styles.loadingText}>Carregando permissões...</Text>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={styles.loadingText}>Carregando permiss�es...</Text>
             </View>
           ) : (
             <>
@@ -989,7 +991,7 @@ export default function PerfilScreen() {
                   style={styles.modalSaveButton}
                   onPress={() => salvarPermissoes()}
                 >
-                  <Text style={styles.modalSaveText}>Salvar Alterações</Text>
+                  <Text style={styles.modalSaveText}>Salvar Altera��es</Text>
                 </TouchableOpacity>
               </View>
             </>
@@ -1000,7 +1002,7 @@ export default function PerfilScreen() {
   );
 }
 
-// Função auxiliar para criar estilos dinâmicos
+// Fun��o auxiliar para criar estilos din�micos
 const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
@@ -1042,7 +1044,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     position: 'absolute',
     right: 0,
     bottom: 0,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -1123,7 +1125,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
   },
   mainSaveButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     padding: 16,
     marginTop: 16,
   },
@@ -1132,7 +1134,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  // Estilos do Modal de Permissões
+  // Estilos do Modal de Permiss�es
   modalContainer: {
     flex: 1,
     backgroundColor: colors.surface,
@@ -1217,7 +1219,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   modalSaveButton: {
     flex: 1,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -1242,7 +1244,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginBottom: 12,
   },
   changeLogoButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 6,
@@ -1260,13 +1262,13 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: '#F9FAFB',
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: theme.colors.primary,
+    borderColor: colors.primary,
     borderStyle: 'dashed',
     gap: 8,
   },
   uploadButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
 });
