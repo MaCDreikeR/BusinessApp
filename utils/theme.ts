@@ -61,6 +61,34 @@ export const colors = {
   
   // Cores Neutras (Tema Escuro)
   dark: {
+    // Cores Primárias Ajustadas para Dark Mode
+    primary: '#A78BFA',            // Violeta mais claro para melhor contraste
+    primaryDark: '#8B5CF6',        // Violeta médio
+    primaryLight: '#C4B5FD',       // Violeta suave
+    primaryLighter: '#DDD6FE',     // Violeta muito claro
+    
+    // Cores Secundárias Ajustadas
+    secondary: '#34D399',          // Verde esmeralda mais claro
+    secondaryDark: '#10B981',
+    secondaryLight: '#6EE7B7',
+    
+    // Cores de Status Ajustadas (mais vibrantes para contraste no escuro)
+    success: '#4ADE80',            // Verde mais claro e vibrante
+    successLight: '#86EFAC',
+    successDark: '#22C55E',
+    
+    error: '#F87171',              // Vermelho mais claro
+    errorLight: '#FCA5A5',
+    errorDark: '#EF4444',
+    
+    warning: '#FBBF24',            // Amarelo/laranja mais claro
+    warningLight: '#FCD34D',
+    warningDark: '#F59E0B',
+    
+    info: '#60A5FA',               // Azul mais claro
+    infoLight: '#93C5FD',
+    infoDark: '#3B82F6',
+    
     // Fundos - Material Design Dark Theme otimizado
     background: '#121212',         // Fundo principal (mais confortável que preto puro)
     backgroundSecondary: '#1E1E1E', // Cards e seções (melhor separação visual)
@@ -79,11 +107,17 @@ export const colors = {
     separator: '#3A3A3A',          // Separadores (entre border e borderLight)
     
     // Backgrounds de Status - Sutis para dark mode
-    successBackground: 'rgba(52, 199, 89, 0.15)',    // Verde translúcido
-    errorBackground: 'rgba(255, 59, 48, 0.15)',      // Vermelho translúcido
-    warningBackground: 'rgba(255, 149, 0, 0.15)',    // Laranja translúcido
-    infoBackground: 'rgba(90, 200, 250, 0.15)',      // Azul translúcido
-    primaryBackground: 'rgba(124, 58, 237, 0.15)',   // Roxo translúcido
+    successBackground: 'rgba(74, 222, 128, 0.18)',    // Verde translúcido
+    errorBackground: 'rgba(248, 113, 113, 0.18)',     // Vermelho translúcido
+    warningBackground: 'rgba(251, 191, 36, 0.18)',    // Amarelo translúcido
+    infoBackground: 'rgba(96, 165, 250, 0.18)',       // Azul translúcido
+    primaryBackground: 'rgba(167, 139, 250, 0.18)',   // Roxo translúcido
+    
+    // Cores especiais
+    white: '#FFFFFF',
+    online: '#4ADE80',
+    offline: '#6B7280',
+    busy: '#FBBF24',
   },
   
   // Backgrounds de Status - Tema Claro
