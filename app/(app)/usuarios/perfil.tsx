@@ -1034,7 +1034,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1055,7 +1055,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     position: 'absolute',
     left: 0,
     bottom: 0,
-    backgroundColor: '#EF4444',
+    backgroundColor: colors.error,
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -1075,7 +1075,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
+    color: colors.text,
     marginBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
@@ -1097,7 +1097,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: '#1F2937',
+    color: colors.text,
   },
   inputDisabled: {
     backgroundColor: colors.background,
@@ -1117,7 +1117,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     paddingVertical: 8,
   },
   saveButton: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.primary,
     borderRadius: 8,
     padding: 12,
     alignItems: 'center',
@@ -1148,7 +1148,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
   },
   modalCloseButton: {
     padding: 8,
@@ -1184,7 +1184,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   permissionLabel: {
     fontSize: 16,
-    color: '#111827',
+    color: colors.text,
     flex: 1,
   },
   checkboxContainer: {
@@ -1233,7 +1233,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: '#F9FAFB',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
   },
   logoImage: {
     width: 120,

@@ -233,7 +233,7 @@ export default function AgendamentoOnlineScreen() {
                 style={[styles.actionButton, { backgroundColor: colors.primary }]}
                 onPress={copiarLink}
               >
-                <FontAwesome5 name="copy" size={16} color="#fff" />
+                <FontAwesome5 name="copy" size={16} color=colors.white />
                 <Text style={styles.actionButtonText}>Copiar Link</Text>
               </TouchableOpacity>
               
@@ -241,7 +241,7 @@ export default function AgendamentoOnlineScreen() {
                 style={[styles.actionButton, { backgroundColor: '#25D366' }]}
                 onPress={compartilharWhatsApp}
               >
-                <FontAwesome5 name="whatsapp" size={16} color="#fff" />
+                <FontAwesome5 name="whatsapp" size={16} color=colors.white />
                 <Text style={styles.actionButtonText}>WhatsApp</Text>
               </TouchableOpacity>
             </View>
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   actionButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 13,
     fontWeight: '600',
   },

@@ -1741,7 +1741,7 @@ export default function NovoAgendamentoScreen() {
                       style={styles.botaoCadastrar}
                       onPress={handleCadastrarCliente}
                     >
-                      <FontAwesome5 name="user-plus" size={16} color="#fff" style={styles.botaoCadastrarIcon} />
+                      <FontAwesome5 name="user-plus" size={16} color=colors.white style={styles.botaoCadastrarIcon} />
                       <Text style={styles.botaoCadastrarText}>Cadastrar Novo Cliente</Text>
                     </TouchableOpacity>
                   </View>
@@ -1985,7 +1985,7 @@ export default function NovoAgendamentoScreen() {
                 <FontAwesome5 
                   name="calendar" 
                   size={16} 
-                  color={data ? (isDataBloqueada(data) ? '#FF6B6B' : theme.colors.primary) : ((servicosSelecionados.length === 0 && pacotesSelecionados.length === 0) ? '#D1D5DB' : '#9CA3AF')} 
+                  color={data ? (isDataBloqueada(data) ? colors.error : theme.colors.primary) : ((servicosSelecionados.length === 0 && pacotesSelecionados.length === 0) ? '#D1D5DB' : '#9CA3AF')} 
                   style={styles.inputIcon} 
                 />
                 <Text 
@@ -1999,7 +1999,7 @@ export default function NovoAgendamentoScreen() {
                   {data || 'Selecionar Data'}
                 </Text>
                 {isDataBloqueada(data) && (
-                  <Ionicons name="alert-circle" size={20} color="#FF6B6B" style={styles.alertIcon} />
+                  <Ionicons name="alert-circle" size={20} color=colors.error style={styles.alertIcon} />
                 )}
               </View>
             </TouchableOpacity>
@@ -2449,7 +2449,7 @@ export default function NovoAgendamentoScreen() {
                 value={criarComandaAutomatica}
                 onValueChange={setCriarComandaAutomatica}
                 trackColor={{ false: '#D1D5DB', true: '#C4B5FD' }}
-                thumbColor={criarComandaAutomatica ? theme.colors.primary : '#F3F4F6'}
+                thumbColor={criarComandaAutomatica ? theme.colors.primary : colors.borderLight}
                 ios_backgroundColor="#D1D5DB"
               />
             </View>
@@ -2585,7 +2585,7 @@ export default function NovoAgendamentoScreen() {
                     <FontAwesome5 name="check" size={16} color={theme.colors.primary} />
                   )}
                   {item.ocupado && (
-                    <FontAwesome5 name="ban" size={16} color="#FF6B6B" />
+                    <FontAwesome5 name="ban" size={16} color=colors.error />
                   )}
                 </TouchableOpacity>
               )}
@@ -2704,7 +2704,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: colors.text,
     marginBottom: 16,
   },
   inputGroup: {
@@ -2722,7 +2722,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 16,
     fontSize: 16,
-    color: '#1F2937',
+    color: colors.text,
   },
   select: {
     flexDirection: 'row',
@@ -2735,17 +2735,17 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   selectText: {
     fontSize: 16,
-    color: '#1F2937',
+    color: colors.text,
   },
   placeholder: {
     color: colors.textTertiary,
   },
   inputError: {
-    borderColor: '#EF4444',
+    borderColor: colors.error,
     borderWidth: 1,
   },
   errorText: {
-    color: '#EF4444',
+    color: colors.error,
     fontSize: 12,
     marginTop: 4,
   },
@@ -2777,7 +2777,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   modalHandle: {
     width: 40,
     height: 4,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.border,
     borderRadius: 2,
     alignSelf: 'center',
     marginBottom: 12,
@@ -2785,14 +2785,14 @@ const createStyles = (colors: any) => StyleSheet.create({
   modalDragIndicator: {
     width: 40,
     height: 4,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.border,
     borderRadius: 2,
     marginBottom: 8,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
     textAlign: 'center',
     flex: 1,
   },
@@ -2856,7 +2856,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderColor: colors.border,
   },
   modalServicoItemSelecionado: {
-    backgroundColor: '#F3E8FF',
+    backgroundColor: colors.primaryBackground,
     borderColor: colors.primary,
   },
   modalServicoInfo: {
@@ -2901,7 +2901,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   servicoSelecionadoNome: {
     fontSize: 14,
-    color: '#111827',
+    color: colors.text,
   },
   servicoSelecionadoPreco: {
     fontSize: 14,
@@ -2928,7 +2928,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   quantidadeText: {
     fontSize: 14,
-    color: '#111827',
+    color: colors.text,
     minWidth: 24,
     textAlign: 'center',
   },
@@ -2968,7 +2968,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   modalAdicionarButtonDisabled: {
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.border,
   },
   modalAdicionarButtonText: {
     color: '#FFFFFF',
@@ -3012,7 +3012,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     flexWrap: 'wrap',
   },
   servicoItemSelecionado: {
-    backgroundColor: '#F3E8FF',
+    backgroundColor: colors.primaryBackground,
     borderColor: colors.primary,
   },
   servicoItem: {
@@ -3089,7 +3089,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     gap: 8,
   },
   servicoButtonSelecionado: {
-    backgroundColor: '#F3E8FF',
+    backgroundColor: colors.primaryBackground,
   },
   servicoButtonContent: {
     flexDirection: 'row',
@@ -3100,7 +3100,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   servicoButtonText: {
     fontSize: 16,
-    color: '#111827',
+    color: colors.text,
   },
   servicoButtonTextSelecionado: {
     color: theme.colors.primary,
@@ -3111,23 +3111,23 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontWeight: '500',
   },
   inputBloqueado: {
-    borderColor: '#FF6B6B',
+    borderColor: colors.error,
     backgroundColor: '#FFEEEE',
   },
   inputTextBloqueado: {
-    color: '#FF6B6B',
+    color: colors.error,
   },
   alertIcon: {
     marginLeft: 4,
   },
   inputAlertText: {
-    color: '#FF6B6B',
+    color: colors.error,
     fontSize: 12,
     marginTop: 4,
   },
   inputDisabled: {
-    backgroundColor: '#F3F4F6',
-    borderColor: '#E5E7EB',
+    backgroundColor: colors.borderLight,
+    borderColor: colors.border,
     opacity: 0.6,
   },
   inputTextDisabled: {
@@ -3161,7 +3161,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   totalContainer: {
     marginTop: 8,
     padding: 12,
-    backgroundColor: '#F3E8FF',
+    backgroundColor: colors.primaryBackground,
     borderRadius: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -3209,18 +3209,18 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
   },
   horarioItemSelecionado: {
-    backgroundColor: '#F3E8FF',
+    backgroundColor: colors.primaryBackground,
   },
   horarioItemText: {
     fontSize: 16,
-    color: '#1F2937',
+    color: colors.text,
   },
   horarioItemTextSelecionado: {
     color: theme.colors.primary,
     fontWeight: '600',
   },
   horarioItemOcupado: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.errorBackground,
     opacity: 0.7,
   },
   horarioItemParcial: {
@@ -3263,7 +3263,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   legendaTitulo: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: colors.text,
     marginBottom: 8,
   },
   legendaItem: {
@@ -3284,7 +3284,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: '#FFFBEB',
   },
   legendaCorOcupado: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.errorBackground,
   },
   legendaTexto: {
     fontSize: 12,
@@ -3312,7 +3312,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
     flex: 1,
     textAlign: 'center',
     marginRight: 24,
@@ -3339,7 +3339,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F3E8FF',
+    backgroundColor: colors.primaryBackground,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
@@ -3370,7 +3370,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   switchLabel: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#111827',
+    color: colors.text,
     marginBottom: 4,
   },
   switchSubtext: {
@@ -3501,7 +3501,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3E8FF',
+    backgroundColor: colors.primaryBackground,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -3514,7 +3514,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   sugestaoNome: {
     fontSize: 14,
-    color: '#111827',
+    color: colors.text,
   },
   sugestaoTelefone: {
     fontSize: 14,
@@ -3545,7 +3545,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   inputPreenchido: {
     borderColor: theme.colors.primary,
-    backgroundColor: '#F3E8FF',
+    backgroundColor: colors.primaryBackground,
   },
   inputContent: {
     flexDirection: 'row',
@@ -3587,7 +3587,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   datePickerWebTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
     marginBottom: 16,
   },
   datePickerWebCloseButton: {

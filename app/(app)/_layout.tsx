@@ -13,7 +13,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import AgendamentoNotificacao from '../../components/AgendamentoNotificacao';
 import { useAgendamentoNotificacao } from '../../hooks/useAgendamentoNotificacao';
 import { logger } from '../../utils/logger';
-import { theme } from '@utils/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { SyncIndicator } from '../../components/SyncIndicator';
 
@@ -80,7 +79,7 @@ export default function AppLayout() {
       justifyContent: 'center' as const,
     },
     placeholderText: {
-      color: '#fff',
+      color: colors.white,
       fontSize: 24,
       fontWeight: 'bold' as const,
     },
@@ -288,7 +287,7 @@ export default function AppLayout() {
                 {loadingAvatar && (
                   <ActivityIndicator 
                     size="small" 
-                    color={theme.colors.primary} 
+                    color={colors.primary} 
                     style={styles.loadingIndicator}
                   />
                 )}
@@ -325,7 +324,7 @@ export default function AppLayout() {
               style={styles.footerButton}
               onPress={() => router.push('/configuracoes')}
             >
-              <FontAwesome5 name="cog" size={20} color="#666" />
+              <FontAwesome5 name="cog" size={20} color=colors.textSecondary />
               <Text style={dynamicStyles.footerButtonText}>Configurações</Text>
             </TouchableOpacity>
           )}
@@ -358,8 +357,8 @@ export default function AppLayout() {
         headerStyle: {
           backgroundColor: colors.surface,
         },
-        headerTintColor: theme.colors.primary,
-        drawerActiveTintColor: theme.colors.primary,
+        headerTintColor: colors.primary,
+        drawerActiveTintColor: colors.primary,
         drawerInactiveTintColor: colors.textSecondary,
         headerShown: !isEstoque && !isNovoOrcamento && !isPerfil && !isNovoUsuario,
         drawerType: isPermanentDrawer ? 'permanent' : 'slide',
@@ -381,7 +380,7 @@ export default function AppLayout() {
           fontSize: 16,
           fontWeight: '500',
         },
-        drawerActiveBackgroundColor: isDark ? colors.primaryDark : '#F3E8FF',
+        drawerActiveBackgroundColor: isDark ? colors.primaryDark : colors.primaryBackground,
         drawerInactiveBackgroundColor: 'transparent',
         // Removido drawerItemContainerStyle inválido
         headerRight: () => {
@@ -451,10 +450,10 @@ export default function AppLayout() {
                     paddingVertical: 6,
                     borderRadius: 8,
                     borderWidth: 1,
-                    borderColor: theme.colors.primary
+                    borderColor: colors.primary
                   }}
                 >
-                  <FontAwesome5 name="calendar-alt" size={16} color={theme.colors.primary} />
+                  <FontAwesome5 name="calendar-alt" size={16} color={colors.primary} />
                 </TouchableOpacity>
               </View>
             );
@@ -501,10 +500,10 @@ export default function AppLayout() {
                     paddingVertical: 6,
                     borderRadius: 8,
                     borderWidth: 1,
-                    borderColor: theme.colors.primary
+                    borderColor: colors.primary
                   }}
                 >
-                  <FontAwesome5 name="receipt" size={16} color={theme.colors.primary} />
+                  <FontAwesome5 name="receipt" size={16} color={colors.primary} />
                 </TouchableOpacity>
               )}
               <TouchableOpacity
@@ -527,10 +526,10 @@ export default function AppLayout() {
                   paddingVertical: 6,
                   borderRadius: 8,
                   borderWidth: 1,
-                  borderColor: theme.colors.primary
+                  borderColor: colors.primary
                 }}
               >
-                <FontAwesome5 name="calendar-alt" size={16} color={theme.colors.primary} />
+                <FontAwesome5 name="calendar-alt" size={16} color={colors.primary} />
               </TouchableOpacity>
             </View>
           ),
@@ -554,7 +553,7 @@ export default function AppLayout() {
                   DeviceEventEmitter.emit('togglePresencaUsuarios');
                 }}
               >
-                <Ionicons name="people-outline" size={24} color={theme.colors.primary} />
+                <Ionicons name="people-outline" size={24} color={colors.primary} />
               </TouchableOpacity>
               
               {/* Gerenciar bloqueios - apenas para admins */}
@@ -565,7 +564,7 @@ export default function AppLayout() {
                     DeviceEventEmitter.emit('toggleBloqueioModal');
                   }}
                 >
-                  <Ionicons name="sunny-outline" size={24} color={theme.colors.primary} />
+                  <Ionicons name="sunny-outline" size={24} color={colors.primary} />
                 </TouchableOpacity>
               )}
               
@@ -577,7 +576,7 @@ export default function AppLayout() {
                     DeviceEventEmitter.emit('toggleHorariosModal');
                   }}
                 >
-                  <Ionicons name="settings-outline" size={24} color={theme.colors.primary} />
+                  <Ionicons name="settings-outline" size={24} color={colors.primary} />
                 </TouchableOpacity>
               )}
               
@@ -585,7 +584,7 @@ export default function AppLayout() {
               <TouchableOpacity 
                 onPress={() => router.push('/agenda/novo')}
               >
-                <Ionicons name="add" size={24} color={theme.colors.primary} />
+                <Ionicons name="add" size={24} color={colors.primary} />
               </TouchableOpacity>
             </View>
           ),
@@ -614,7 +613,7 @@ export default function AppLayout() {
               }}
               style={{ marginRight: 16 }}
             >
-              <Ionicons name="add" size={24} color={theme.colors.primary} />
+              <Ionicons name="add" size={24} color={colors.primary} />
             </TouchableOpacity>
           ),
         }}
@@ -658,7 +657,7 @@ export default function AppLayout() {
                 }}
                 style={{ padding: 8 }}
               >
-                <Ionicons name="list" size={24} color={theme.colors.primary} />
+                <Ionicons name="list" size={24} color={colors.primary} />
               </TouchableOpacity>
               <TouchableOpacity 
                 onPress={() => {
@@ -673,7 +672,7 @@ export default function AppLayout() {
                 }}
                 style={{ padding: 8 }}
               >
-                <Ionicons name="add" size={24} color={theme.colors.primary} />
+                <Ionicons name="add" size={24} color={colors.primary} />
               </TouchableOpacity>
             </View>
           ),
@@ -702,7 +701,7 @@ export default function AppLayout() {
                 }
               }}
             >
-              <Ionicons name="add" size={24} color={theme.colors.primary} />
+              <Ionicons name="add" size={24} color={colors.primary} />
             </TouchableOpacity>
           ),
         }}
@@ -962,7 +961,7 @@ export default function AppLayout() {
               onPress={() => router.push('/agenda')}
               style={{ marginLeft: 8 }}
             >
-              <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
+              <Ionicons name="arrow-back" size={24} color={colors.primary} />
             </TouchableOpacity>
           )
         }}
@@ -1007,12 +1006,12 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 30,
   },
   placeholderAvatar: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   placeholderText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 24,
     fontWeight: 'bold',
   },
@@ -1022,7 +1021,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   appName: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: colors.text,
     marginBottom: 2,
   },
   subtitle: {

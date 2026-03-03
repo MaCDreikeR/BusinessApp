@@ -235,7 +235,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 15,
   },
   filtroButtonTextSelected: {
-    color: '#FFF',
+    color: colors.white,
     fontWeight: '700',
   },
   container: {
@@ -266,7 +266,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#111827',
+    color: colors.text,
     padding: 0,
   },
   listContent: {
@@ -292,7 +292,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   cliente: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
   },
   statusBadge: {
     paddingHorizontal: 8,
@@ -331,7 +331,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     textAlign: 'center',
   },
   skeleton: {
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.border,
     borderRadius: 4,
   },
 });

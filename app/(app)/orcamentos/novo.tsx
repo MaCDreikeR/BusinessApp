@@ -685,7 +685,7 @@ export default function NovoOrcamentoScreen() {
                   style={styles.clearButton}
                   onPress={handleLimparCliente}
                 >
-                  <Ionicons name="close-circle" size={20} color="#666" />
+                  <Ionicons name="close-circle" size={20} color=colors.textSecondary />
                 </TouchableOpacity>
               )}
             </View>
@@ -766,7 +766,7 @@ export default function NovoOrcamentoScreen() {
                 <Ionicons 
                   name="cube-outline" 
                   size={24} 
-                  color={tipoItem === 'produto' ? '#fff' : colors.primary} 
+                  color={tipoItem === 'produto' ? colors.white : colors.primary} 
                 />
                 <Text style={[
                   styles.tipoItemButtonText,
@@ -790,7 +790,7 @@ export default function NovoOrcamentoScreen() {
                 <Ionicons 
                   name="construct-outline" 
                   size={24} 
-                  color={tipoItem === 'servico' ? '#fff' : colors.primary} 
+                  color={tipoItem === 'servico' ? colors.white : colors.primary} 
                 />
                 <Text style={[
                   styles.tipoItemButtonText,
@@ -814,7 +814,7 @@ export default function NovoOrcamentoScreen() {
                 <Ionicons 
                   name="gift-outline" 
                   size={24} 
-                  color={tipoItem === 'pacote' ? '#fff' : colors.primary} 
+                  color={tipoItem === 'pacote' ? colors.white : colors.primary} 
                 />
                 <Text style={[
                   styles.tipoItemButtonText,
@@ -1149,7 +1149,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: colors.text,
     marginBottom: 16,
   },
   field: {
@@ -1159,7 +1159,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
-    color: '#333',
+    color: colors.text,
   },
   input: {
     borderWidth: 1,
@@ -1183,7 +1183,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     opacity: 0.7,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -1209,11 +1209,11 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   clienteNome: {
     fontSize: 16,
-    color: '#333',
+    color: colors.text,
   },
   clienteTelefone: {
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   clienteNaoEncontrado: {
@@ -1224,7 +1224,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   clienteNaoEncontradoText: {
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 8,
   },
   cadastrarClienteButton: {
@@ -1234,13 +1234,13 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
   },
   cadastrarClienteText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 14,
     fontWeight: '600',
   },
   inputDisabled: {
     backgroundColor: colors.background,
-    color: '#666',
+    color: colors.textSecondary,
   },
   clearButton: {
     position: 'absolute',
@@ -1276,7 +1276,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginBottom: 16,
   },
   adicionarItemText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -1297,12 +1297,12 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   itemDescricao: {
     fontSize: 16,
-    color: '#333',
+    color: colors.text,
     marginBottom: 4,
   },
   itemQuantidade: {
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
   },
   itemValor: {
     fontSize: 14,
@@ -1333,11 +1333,11 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   valorLabel: {
     fontSize: 16,
-    color: '#666',
+    color: colors.textSecondary,
   },
   valorText: {
     fontSize: 16,
-    color: '#333',
+    color: colors.text,
     fontWeight: '500',
   },
   descontoInput: {
@@ -1351,7 +1351,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   valorFinalLabel: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: colors.text,
   },
   valorFinalText: {
     fontSize: 18,
@@ -1375,7 +1375,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   produtoNome: {
     fontSize: 16,
-    color: '#333',
+    color: colors.text,
   },
   produtoDetalhes: {
     flexDirection: 'row',
@@ -1389,7 +1389,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   produtoEstoque: {
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
   },
   produtoNaoEncontrado: {
     marginTop: 8,
@@ -1399,7 +1399,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   produtoNaoEncontradoText: {
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
   },
   salvarButton: {
     backgroundColor: colors.primary,
@@ -1446,7 +1446,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.primary,
   },
   tipoItemButtonTextActive: {
-    color: '#fff',
+    color: colors.white,
   },
   modalContainer: {
     flex: 1,
@@ -1468,12 +1468,12 @@ const createStyles = (colors: any) => StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#333',
+    color: colors.text,
   },
   modalDragIndicator: {
     width: 40,
     height: 4,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.border,
     borderRadius: 2,
     marginBottom: 8,
     alignSelf: 'center',
@@ -1509,7 +1509,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   modalItemNome: {
     fontSize: 16,
-    color: '#333',
+    color: colors.text,
   },
   modalItemDetalhes: {
     flexDirection: 'row',
@@ -1523,7 +1523,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   modalItemEstoque: {
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
   },
   modalSelecionados: {
     marginTop: 16,
@@ -1534,7 +1534,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   modalSelecionadosTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: colors.text,
     marginBottom: 8,
   },
   modalSelecionadoItem: {
@@ -1550,7 +1550,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   modalSelecionadoNome: {
     fontSize: 14,
-    color: '#333',
+    color: colors.text,
   },
   modalSelecionadoPreco: {
     fontSize: 14,
@@ -1567,7 +1567,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   modalQuantidadeText: {
     fontSize: 16,
-    color: '#333',
+    color: colors.text,
     marginHorizontal: 8,
   },
   modalRemoverButton: {
@@ -1584,13 +1584,13 @@ const createStyles = (colors: any) => StyleSheet.create({
   modalCancelButton: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.borderLight,
     borderRadius: 8,
     alignItems: 'center',
     marginRight: 8,
   },
   modalCancelButtonText: {
-    color: '#666',
+    color: colors.textSecondary,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -1606,7 +1606,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: '#9CA3AF',
   },
   modalConfirmButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -1618,7 +1618,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontWeight: '600',
   },
   errorText: {
-    color: '#EF4444',
+    color: colors.error,
     fontSize: 12,
     marginTop: 4,
   },

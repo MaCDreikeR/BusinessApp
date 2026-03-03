@@ -201,7 +201,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   nome: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: colors.text,
   },
   telefone: {
     fontSize: 14,

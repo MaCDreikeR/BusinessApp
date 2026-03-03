@@ -383,7 +383,7 @@ export default function ClientesScreen() {
             onPress={() => setFiltro('todos')}
           >
             <View style={[styles.filtroIcone, filtro === 'todos' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="users" size={16} color={filtro === 'todos' ? theme.colors.primary : '#666'} />
+              <FontAwesome5 name="users" size={16} color={filtro === 'todos' ? theme.colors.primary : colors.textSecondary} />
             </View>
             <Text style={[styles.filtroTexto, filtro === 'todos' && styles.filtroTextoAtivo]}>Todos</Text>
           </TouchableOpacity>
@@ -393,7 +393,7 @@ export default function ClientesScreen() {
             onPress={() => setFiltro('agendados')}
           >
             <View style={[styles.filtroIcone, filtro === 'agendados' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="calendar" size={16} color={filtro === 'agendados' ? theme.colors.primary : '#666'} />
+              <FontAwesome5 name="calendar" size={16} color={filtro === 'agendados' ? theme.colors.primary : colors.textSecondary} />
             </View>
             <Text style={[styles.filtroTexto, filtro === 'agendados' && styles.filtroTextoAtivo]}>Agendados</Text>
           </TouchableOpacity>
@@ -403,7 +403,7 @@ export default function ClientesScreen() {
             onPress={() => setFiltro('com_credito')}
           >
             <View style={[styles.filtroIcone, filtro === 'com_credito' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="user" size={16} color={filtro === 'com_credito' ? theme.colors.primary : '#666'} />
+              <FontAwesome5 name="user" size={16} color={filtro === 'com_credito' ? theme.colors.primary : colors.textSecondary} />
             </View>
             <Text style={[styles.filtroTexto, filtro === 'com_credito' && styles.filtroTextoAtivo]}>Com crédito</Text>
           </TouchableOpacity>
@@ -413,7 +413,7 @@ export default function ClientesScreen() {
             onPress={() => setFiltro('com_debito')}
           >
             <View style={[styles.filtroIcone, filtro === 'com_debito' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="exclamation-circle" size={16} color={filtro === 'com_debito' ? theme.colors.primary : '#666'} />
+              <FontAwesome5 name="exclamation-circle" size={16} color={filtro === 'com_debito' ? theme.colors.primary : colors.textSecondary} />
             </View>
             <Text style={[styles.filtroTexto, filtro === 'com_debito' && styles.filtroTextoAtivo]}>Com Débito</Text>
           </TouchableOpacity>
@@ -442,8 +442,8 @@ export default function ClientesScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#7C3AED']}
-            tintColor="#7C3AED"
+            colors={[colors.primary]}
+            tintColor=colors.primary
           />
         }
       >
@@ -550,7 +550,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     paddingHorizontal: 16,
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.borderLight,
   },
   headerLeft: { // Novo estilo para o grupo da esquerda
     flexDirection: 'row',
@@ -572,7 +572,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.surface,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.borderLight,
   },
   filtrosContainer: {
     //
@@ -588,7 +588,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     minWidth: 95,
   },
   filtroAtivo: {
-    backgroundColor: '#EDE9FE',
+    backgroundColor: colors.primaryBackground,
   },
   filtroIcone: {
     width: 24,
@@ -604,7 +604,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   filtroTexto: {
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
   },
   filtroTextoAtivo: {
     color: theme.colors.primary,
@@ -625,7 +625,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     flex: 1,
     height: 40,
     fontSize: 14,
-    color: '#111827',
+    color: colors.text,
   },
   totalClientes: {
     fontSize: 14,
@@ -634,7 +634,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginBottom: 8,
   },
   totalClientesNumero: {
-    color: '#111827',
+    color: colors.text,
     fontWeight: 'bold',
   },
   listaClientes: {
@@ -649,7 +649,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 8,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: colors.borderLight,
   },
   clienteFotoContainer: {
     marginRight: 12,
@@ -673,7 +673,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   clienteNome: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#111827',
+    color: colors.text,
     marginBottom: 4,
   },
   clienteTelefone: {
@@ -685,10 +685,10 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontWeight: '600',
   },
   saldoPositivo: {
-    color: '#10B981',
+    color: colors.success,
   },
   saldoNegativo: {
-    color: '#EF4444',
+    color: colors.error,
   },
   whatsappButton: {
     width: 40,
@@ -720,6 +720,6 @@ const createStyles = (colors: any) => StyleSheet.create({
   menuItemTexto: {
     marginLeft: 12,
     fontSize: 16,
-    color: '#111827',
+    color: colors.text,
   },
 });

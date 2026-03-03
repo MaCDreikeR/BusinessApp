@@ -460,7 +460,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#111827',
+    color: colors.text,
   },
   section: {
     backgroundColor: colors.surface,
@@ -476,7 +476,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
     marginBottom: 16,
   },
   avatarContainer: {
@@ -523,7 +523,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#111827',
+    color: colors.text,
     backgroundColor: colors.surface,
   },
   passwordContainer: {
@@ -539,7 +539,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#111827',
+    color: colors.text,
   },
   passwordToggle: {
     padding: 12,
@@ -558,7 +558,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   radioButtonActive: {
     borderColor: colors.primary,
-    backgroundColor: '#F3E8FF',
+    backgroundColor: colors.primaryBackground,
   },
   radioCircle: {
     width: 20,

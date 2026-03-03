@@ -102,7 +102,7 @@ export default function HomeScreen() {
     cardPrimary: { borderLeftWidth: 4 },
     cardSuccess: { borderLeftWidth: 4, borderLeftColor: '#22C55E' },
     cardInfo: { borderLeftWidth: 4, borderLeftColor: '#0066FF' },
-    cardDanger: { borderLeftWidth: 4, borderLeftColor: '#EF4444' },
+    cardDanger: { borderLeftWidth: 4, borderLeftColor: colors.error },
     section: {
       backgroundColor: colors.surface,
       marginTop: 16,
@@ -246,7 +246,7 @@ export default function HomeScreen() {
       width: 48,
       height: 48,
       borderRadius: 24,
-      backgroundColor: '#F3E8FF',
+      backgroundColor: colors.primaryBackground,
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
     },
@@ -254,7 +254,7 @@ export default function HomeScreen() {
       width: 32,
       height: 32,
       borderRadius: 16,
-      backgroundColor: '#F3E8FF',
+      backgroundColor: colors.primaryBackground,
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
       marginBottom: 4,
@@ -329,11 +329,11 @@ export default function HomeScreen() {
       borderRadius: 12,
     },
     produtoZerado: {
-      color: '#EF4444',
+      color: colors.error,
       fontWeight: 'bold' as const,
     },
     produtoBaixo: {
-      color: '#F59E0B',
+      color: colors.warning,
       fontWeight: 'bold' as const,
     },
     // Toast
@@ -358,7 +358,7 @@ export default function HomeScreen() {
       backgroundColor: colors.error,
     },
     toastText: {
-      color: '#fff',
+      color: colors.white,
       fontSize: 14,
       fontWeight: '500' as const,
       marginLeft: 12,
@@ -386,7 +386,7 @@ export default function HomeScreen() {
       borderRadius: 8,
     },
     retryButtonText: {
-      color: '#fff',
+      color: colors.white,
       fontSize: 14,
       fontWeight: '600' as const,
     },
@@ -820,7 +820,7 @@ export default function HomeScreen() {
           <FontAwesome5
             name={toastType === 'success' ? 'check-circle' : 'exclamation-circle'}
             size={20}
-            color="#fff"
+            color=colors.white
           />
           <Text style={styles.toastText}>{toastMessage}</Text>
         </Animated.View>
@@ -1180,7 +1180,7 @@ export default function HomeScreen() {
                   <FontAwesome5
                     name={produto.quantidade === 0 ? "times-circle" : "exclamation-circle"}
                     size={20}
-                    color={produto.quantidade === 0 ? "#EF4444" : "#F59E0B"}
+                    color={produto.quantidade === 0 ? colors.error : colors.warning}
                   />
                 </View>
               </Animated.View>

@@ -157,6 +157,6 @@ const createStyles = (colors: any) => StyleSheet.create({
   textarea: { minHeight: 160, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, textAlignVertical: 'top', fontSize: 16 },
   actions: { marginTop: 12, flexDirection: 'row', gap: 10 },
   button: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  buttonPrimary: { backgroundColor: '#D1FAE5', borderWidth: 1, borderColor: '#10B981' },
+  buttonPrimary: { backgroundColor: colors.successBackground, borderWidth: 1, borderColor: colors.success },
   buttonPrimaryText: { color: '#065F46', fontWeight: '700' },
 });

@@ -560,7 +560,7 @@ export default function NovoClienteScreen() {
                 <FontAwesome5
                   name={tab.icon}
                   size={16}
-                  color={activeTab === tab.id ? theme.colors.primary : "#666"}
+                  color={activeTab === tab.id ? theme.colors.primary : colors.textSecondary}
                 />
                 <Text 
                   style={[
@@ -664,13 +664,13 @@ const createStyles = (colors: any) => StyleSheet.create({
     height: 56,
   },
   tabActive: {
-    backgroundColor: '#EDE9FE',
+    backgroundColor: colors.primaryBackground,
     borderBottomWidth: 2,
     borderBottomColor: theme.colors.primary,
   },
   tabText: {
     fontSize: 12,
-    color: '#666',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 4,
   },
@@ -725,7 +725,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     flex: 1,
     padding: 12,
     fontSize: 14,
-    color: '#111827',
+    color: colors.text,
   },
   textArea: {
     height: 100,
@@ -764,7 +764,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.text,
   },
   footerButtonTextSalvar: {
-    color: '#10B981',
+    color: colors.success,
   },
   tabContent: {
     padding: 16,

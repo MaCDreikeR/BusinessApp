@@ -636,13 +636,13 @@ const VendasScreen = () => {
                 markedDates={{
                   [format(filtros.dataInicio || new Date(), 'yyyy-MM-dd')]: {
                     selected: true,
-                    selectedColor: '#4CAF50'
+                    selectedColor: colors.success
                   }
                 }}
                 theme={{
-                  selectedDayBackgroundColor: '#4CAF50',
-                  todayTextColor: '#4CAF50',
-                  arrowColor: '#4CAF50',
+                  selectedDayBackgroundColor: colors.success,
+                  todayTextColor: colors.success,
+                  arrowColor: colors.success,
                   textDayFontSize: 14,
                   textMonthFontSize: 16,
                   textDayHeaderFontSize: 14,
@@ -680,13 +680,13 @@ const VendasScreen = () => {
                 markedDates={{
                   [format(filtros.dataFim || new Date(), 'yyyy-MM-dd')]: {
                     selected: true,
-                    selectedColor: '#4CAF50'
+                    selectedColor: colors.success
                   }
                 }}
                 theme={{
-                  selectedDayBackgroundColor: '#4CAF50',
-                  todayTextColor: '#4CAF50',
-                  arrowColor: '#4CAF50',
+                  selectedDayBackgroundColor: colors.success,
+                  todayTextColor: colors.success,
+                  arrowColor: colors.success,
                   textDayFontSize: 14,
                   textMonthFontSize: 16,
                   textDayHeaderFontSize: 14,
@@ -714,7 +714,7 @@ const VendasScreen = () => {
               <View style={styles.detalhesHeader}>
                 <Text style={styles.detalhesTitle}>Detalhamento por Forma de Pagamento</Text>
                 <TouchableOpacity onPress={() => setModalDetalhesVisible(false)}>
-                  <Ionicons name="close" size={24} color="#1F2937" />
+                  <Ionicons name="close" size={24} color=colors.text />
                 </TouchableOpacity>
               </View>
 
@@ -742,13 +742,13 @@ const VendasScreen = () => {
                       {/* Trocos adicionados ao crediário */}
                       {detalhesMovimentacao.dinheiro.trocos_adicionados.length > 0 && (
                         <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
-                          <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 4 }}>
+                          <Text style={{ fontSize: 12, color: colors.success, fontWeight: '600', marginBottom: 4 }}>
                             💰 Trocos adicionados ao crediário (incluído no total acima):
                           </Text>
                           {detalhesMovimentacao.dinheiro.trocos_adicionados.map((troco: any, idx: number) => (
                             <View key={idx} style={styles.comandaDetalhe}>
                               <Text style={styles.comandaTexto}>#{troco.comanda_id} - {troco.cliente_nome}</Text>
-                              <Text style={[styles.comandaValor, { color: '#10B981' }]}>+R$ {troco.valor.toFixed(2)}</Text>
+                              <Text style={[styles.comandaValor, { color: colors.success }]}>+R$ {troco.valor.toFixed(2)}</Text>
                             </View>
                           ))}
                         </View>
@@ -757,13 +757,13 @@ const VendasScreen = () => {
                       {/* Faltas adicionadas ao crediário */}
                       {detalhesMovimentacao.dinheiro.faltas_adicionadas.length > 0 && (
                         <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
-                          <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '600', marginBottom: 4 }}>
+                          <Text style={{ fontSize: 12, color: colors.error, fontWeight: '600', marginBottom: 4 }}>
                             ⚠️ Faltas adicionadas ao crediário (subtraído do total acima):
                           </Text>
                           {detalhesMovimentacao.dinheiro.faltas_adicionadas.map((falta: any, idx: number) => (
                             <View key={idx} style={styles.comandaDetalhe}>
                               <Text style={styles.comandaTexto}>#{falta.comanda_id} - {falta.cliente_nome}</Text>
-                              <Text style={[styles.comandaValor, { color: '#EF4444' }]}>-R$ {falta.valor.toFixed(2)}</Text>
+                              <Text style={[styles.comandaValor, { color: colors.error }]}>-R$ {falta.valor.toFixed(2)}</Text>
                             </View>
                           ))}
                         </View>
@@ -775,7 +775,7 @@ const VendasScreen = () => {
                   {detalhesMovimentacao.cartao_credito.quantidade > 0 && (
                     <View style={[styles.detalhesSecao, { borderLeftColor: colors.primary }]}>
                       <View style={styles.detalhesSecaoHeader}>
-                        <Ionicons name="card-outline" size={20} color="#3B82F6" />
+                        <Ionicons name="card-outline" size={20} color=colors.info />
                         <Text style={styles.detalhesSecaoTitulo}>Cartão de Crédito</Text>
                       </View>
                       <Text style={styles.detalhesInfo}>
@@ -793,26 +793,26 @@ const VendasScreen = () => {
                       {/* Trocos/Faltas adicionados */}
                       {detalhesMovimentacao.cartao_credito.trocos_adicionados.length > 0 && (
                         <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
-                          <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 4 }}>
+                          <Text style={{ fontSize: 12, color: colors.success, fontWeight: '600', marginBottom: 4 }}>
                             💰 Trocos adicionados ao crediário (incluído no total acima):
                           </Text>
                           {detalhesMovimentacao.cartao_credito.trocos_adicionados.map((troco: any, idx: number) => (
                             <View key={idx} style={styles.comandaDetalhe}>
                               <Text style={styles.comandaTexto}>#{troco.comanda_id} - {troco.cliente_nome}</Text>
-                              <Text style={[styles.comandaValor, { color: '#10B981' }]}>+R$ {troco.valor.toFixed(2)}</Text>
+                              <Text style={[styles.comandaValor, { color: colors.success }]}>+R$ {troco.valor.toFixed(2)}</Text>
                             </View>
                           ))}
                         </View>
                       )}
                       {detalhesMovimentacao.cartao_credito.faltas_adicionadas.length > 0 && (
                         <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
-                          <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '600', marginBottom: 4 }}>
+                          <Text style={{ fontSize: 12, color: colors.error, fontWeight: '600', marginBottom: 4 }}>
                             ⚠️ Faltas adicionadas ao crediário (subtraído do total acima):
                           </Text>
                           {detalhesMovimentacao.cartao_credito.faltas_adicionadas.map((falta: any, idx: number) => (
                             <View key={idx} style={styles.comandaDetalhe}>
                               <Text style={styles.comandaTexto}>#{falta.comanda_id} - {falta.cliente_nome}</Text>
-                              <Text style={[styles.comandaValor, { color: '#EF4444' }]}>-R$ {falta.valor.toFixed(2)}</Text>
+                              <Text style={[styles.comandaValor, { color: colors.error }]}>-R$ {falta.valor.toFixed(2)}</Text>
                             </View>
                           ))}
                         </View>
@@ -824,7 +824,7 @@ const VendasScreen = () => {
                   {detalhesMovimentacao.cartao_debito.quantidade > 0 && (
                     <View style={[styles.detalhesSecao, { borderLeftColor: colors.primary }]}>
                       <View style={styles.detalhesSecaoHeader}>
-                        <Ionicons name="card" size={20} color="#8B5CF6" />
+                        <Ionicons name="card" size={20} color=colors.primary />
                         <Text style={styles.detalhesSecaoTitulo}>Cartão de Débito</Text>
                       </View>
                       <Text style={styles.detalhesInfo}>
@@ -839,26 +839,26 @@ const VendasScreen = () => {
                       
                       {detalhesMovimentacao.cartao_debito.trocos_adicionados.length > 0 && (
                         <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
-                          <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 4 }}>
+                          <Text style={{ fontSize: 12, color: colors.success, fontWeight: '600', marginBottom: 4 }}>
                             💰 Trocos adicionados ao crediário (incluído no total acima):
                           </Text>
                           {detalhesMovimentacao.cartao_debito.trocos_adicionados.map((troco: any, idx: number) => (
                             <View key={idx} style={styles.comandaDetalhe}>
                               <Text style={styles.comandaTexto}>#{troco.comanda_id} - {troco.cliente_nome}</Text>
-                              <Text style={[styles.comandaValor, { color: '#10B981' }]}>+R$ {troco.valor.toFixed(2)}</Text>
+                              <Text style={[styles.comandaValor, { color: colors.success }]}>+R$ {troco.valor.toFixed(2)}</Text>
                             </View>
                           ))}
                         </View>
                       )}
                       {detalhesMovimentacao.cartao_debito.faltas_adicionadas.length > 0 && (
                         <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
-                          <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '600', marginBottom: 4 }}>
+                          <Text style={{ fontSize: 12, color: colors.error, fontWeight: '600', marginBottom: 4 }}>
                             ⚠️ Faltas adicionadas ao crediário (subtraído do total acima):
                           </Text>
                           {detalhesMovimentacao.cartao_debito.faltas_adicionadas.map((falta: any, idx: number) => (
                             <View key={idx} style={styles.comandaDetalhe}>
                               <Text style={styles.comandaTexto}>#{falta.comanda_id} - {falta.cliente_nome}</Text>
-                              <Text style={[styles.comandaValor, { color: '#EF4444' }]}>-R$ {falta.valor.toFixed(2)}</Text>
+                              <Text style={[styles.comandaValor, { color: colors.error }]}>-R$ {falta.valor.toFixed(2)}</Text>
                             </View>
                           ))}
                         </View>
@@ -870,7 +870,7 @@ const VendasScreen = () => {
                   {detalhesMovimentacao.pix.quantidade > 0 && (
                     <View style={[styles.detalhesSecao, { borderLeftColor: colors.primary }]}>
                       <View style={styles.detalhesSecaoHeader}>
-                        <Ionicons name="qr-code-outline" size={20} color="#059669" />
+                        <Ionicons name="qr-code-outline" size={20} color=colors.successDark />
                         <Text style={styles.detalhesSecaoTitulo}>PIX</Text>
                       </View>
                       <Text style={styles.detalhesInfo}>
@@ -885,26 +885,26 @@ const VendasScreen = () => {
                       
                       {detalhesMovimentacao.pix.trocos_adicionados.length > 0 && (
                         <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
-                          <Text style={{ fontSize: 12, color: '#10B981', fontWeight: '600', marginBottom: 4 }}>
+                          <Text style={{ fontSize: 12, color: colors.success, fontWeight: '600', marginBottom: 4 }}>
                             💰 Trocos adicionados ao crediário (incluído no total acima):
                           </Text>
                           {detalhesMovimentacao.pix.trocos_adicionados.map((troco: any, idx: number) => (
                             <View key={idx} style={styles.comandaDetalhe}>
                               <Text style={styles.comandaTexto}>#{troco.comanda_id} - {troco.cliente_nome}</Text>
-                              <Text style={[styles.comandaValor, { color: '#10B981' }]}>+R$ {troco.valor.toFixed(2)}</Text>
+                              <Text style={[styles.comandaValor, { color: colors.success }]}>+R$ {troco.valor.toFixed(2)}</Text>
                             </View>
                           ))}
                         </View>
                       )}
                       {detalhesMovimentacao.pix.faltas_adicionadas.length > 0 && (
                         <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
-                          <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '600', marginBottom: 4 }}>
+                          <Text style={{ fontSize: 12, color: colors.error, fontWeight: '600', marginBottom: 4 }}>
                             ⚠️ Faltas adicionadas ao crediário (subtraído do total acima):
                           </Text>
                           {detalhesMovimentacao.pix.faltas_adicionadas.map((falta: any, idx: number) => (
                             <View key={idx} style={styles.comandaDetalhe}>
                               <Text style={styles.comandaTexto}>#{falta.comanda_id} - {falta.cliente_nome}</Text>
-                              <Text style={[styles.comandaValor, { color: '#EF4444' }]}>-R$ {falta.valor.toFixed(2)}</Text>
+                              <Text style={[styles.comandaValor, { color: colors.error }]}>-R$ {falta.valor.toFixed(2)}</Text>
                             </View>
                           ))}
                         </View>
@@ -925,7 +925,7 @@ const VendasScreen = () => {
                       {detalhesMovimentacao.crediario.comandas.map((cmd: any, idx: number) => (
                         <View key={idx} style={styles.comandaDetalhe}>
                           <Text style={styles.comandaTexto}>#{cmd.id} - {cmd.cliente_nome}</Text>
-                          <Text style={[styles.comandaValor, { color: '#F59E0B' }]}>R$ {cmd.valor_total.toFixed(2)}</Text>
+                          <Text style={[styles.comandaValor, { color: colors.warning }]}>R$ {cmd.valor_total.toFixed(2)}</Text>
                         </View>
                       ))}
                     </View>
@@ -995,7 +995,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333333',
+    color: colors.text,
   },
   resumoContainer: {
     flexDirection: 'row',
@@ -1005,7 +1005,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   resumoCard: {
     flex: 1,
-    backgroundColor: '#4CAF50',
+    backgroundColor: colors.success,
     padding: 15,
     borderRadius: 8,
     marginHorizontal: 5,
@@ -1015,12 +1015,12 @@ const createStyles = (colors: any) => StyleSheet.create({
     position: 'relative',
   },
   resumoLabel: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 12,
     marginBottom: 5,
   },
   resumoValue: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -1037,18 +1037,18 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   filtroButton: {
     flex: 1,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: colors.background,
     padding: 10,
     borderRadius: 5,
     marginHorizontal: 5,
     alignItems: 'center',
   },
   filtroButtonText: {
-    color: '#666',
+    color: colors.textSecondary,
     fontWeight: 'bold',
   },
   input: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: colors.background,
     padding: 10,
     borderRadius: 5,
     marginBottom: 10,
@@ -1060,7 +1060,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   tipoFiltroButton: {
     flex: 1,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: colors.background,
     padding: 10,
     borderRadius: 5,
     marginHorizontal: 5,
@@ -1070,14 +1070,14 @@ const createStyles = (colors: any) => StyleSheet.create({
     gap: 6,
   },
   tipoFiltroButtonAtivo: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: colors.success,
   },
   tipoFiltroText: {
-    color: '#666',
+    color: colors.textSecondary,
     fontWeight: 'bold',
   },
   tipoFiltroTextAtivo: {
-    color: '#fff',
+    color: colors.white,
   },
   contadorBadge: {
     borderRadius: 10,
@@ -1091,12 +1091,12 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.surface,
   },
   contadorText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 11,
     fontWeight: 'bold',
   },
   contadorTextAtivo: {
-    color: '#4CAF50',
+    color: colors.success,
   },
   secaoContainer: {
     marginBottom: 20,
@@ -1106,7 +1106,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 10,
-    color: '#333333',
+    color: colors.text,
   },
   itemContainer: {
     backgroundColor: colors.surface,
@@ -1131,12 +1131,12 @@ const createStyles = (colors: any) => StyleSheet.create({
   itemTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333333',
+    color: colors.text,
     flex: 1,
   },
   itemDate: {
     fontSize: 14,
-    color: '#666666',
+    color: colors.textSecondary,
   },
   itemDetails: {
     marginBottom: 12,
@@ -1148,12 +1148,12 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   itemLabel: {
     fontSize: 14,
-    color: '#666666',
+    color: colors.textSecondary,
   },
   itemValue: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#333333',
+    color: colors.text,
   },
   itemFooter: {
     borderTopWidth: 1,
@@ -1162,7 +1162,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   itemInfo: {
     fontSize: 12,
-    color: '#666666',
+    color: colors.textSecondary,
     marginBottom: 4,
   },
   loadingContainer: {
@@ -1185,7 +1185,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   closeButton: {
     marginTop: 20,
     padding: 10,
-    backgroundColor: '#4CAF50',
+    backgroundColor: colors.success,
     borderRadius: 5,
     alignItems: 'center',
   },
@@ -1211,7 +1211,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   detalhesTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: colors.text,
   },
   detalhesContent: {
     padding: 16,
@@ -1232,7 +1232,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   detalhesSecaoTitulo: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: colors.text,
     marginLeft: 8,
   },
   detalhesInfo: {
@@ -1258,7 +1258,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   comandaValor: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#10B981',
+    color: colors.success,
   },
   detalhesFecharButton: {
     margin: 16,

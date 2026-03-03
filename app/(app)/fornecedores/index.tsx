@@ -250,7 +250,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   fornecedorNome: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
     marginBottom: 4,
   },
   fornecedorCNPJ: {

@@ -495,7 +495,7 @@ function createStyles(colors: any) {
     sectionTitle: {
       fontSize: 16,
       fontWeight: '600',
-      color: '#111827',
+      color: colors.text,
       marginBottom: 16,
     },
     inputGroup: {
@@ -514,7 +514,7 @@ function createStyles(colors: any) {
       borderWidth: 1,
       borderColor: colors.border,
       fontSize: 16,
-      color: '#111827',
+      color: colors.text,
     },
     textArea: {
       height: 100,
@@ -536,7 +536,7 @@ function createStyles(colors: any) {
     },
     pickerButtonText: {
       fontSize: 16,
-      color: '#111827',
+      color: colors.text,
     },
     pickerButtonPlaceholder: {
       fontSize: 16,
@@ -580,7 +580,7 @@ function createStyles(colors: any) {
     modalTitle: {
       fontSize: 18,
       fontWeight: '600',
-      color: '#111827',
+      color: colors.text,
     },
     modalCloseButton: {
       padding: 4,

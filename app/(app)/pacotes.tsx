@@ -1369,7 +1369,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     fontSize: 16,
-    color: '#111827',
+    color: colors.text,
   },
   listContent: {
     padding: 16,
@@ -1400,11 +1400,11 @@ const createStyles = (colors: any) => StyleSheet.create({
   pacoteNome: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
     marginBottom: 4,
   },
   pacoteValores: {
-    backgroundColor: '#EDE9FE',
+    backgroundColor: colors.primaryBackground,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
@@ -1504,7 +1504,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   modalDragIndicator: {
     width: 40,
     height: 4,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.border,
     borderRadius: 2,
     alignSelf: 'center',
     marginBottom: 12,
@@ -1512,7 +1512,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
     textAlign: 'center',
   },
   modalFooter: {
@@ -1585,7 +1585,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   itemNome: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
     marginBottom: 4,
   },
   itemQuantidade: {
@@ -1612,7 +1612,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderBottomColor: colors.border,
   },
   modalItemSelecionado: {
-    backgroundColor: '#EDE9FE',
+    backgroundColor: colors.primaryBackground,
   },
   modalItemContent: {
     flexDirection: 'column',
@@ -1626,7 +1626,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   modalItemText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
   },
   modalItemPreco: {
     fontSize: 14,
@@ -1659,14 +1659,14 @@ const createStyles = (colors: any) => StyleSheet.create({
     flex: 1,
     textAlign: 'center',
     fontSize: 16,
-    color: '#111827',
+    color: colors.text,
     paddingHorizontal: 4,
     paddingVertical: 2,
     minWidth: 40,
   },
   quantidadeButton: {
     padding: 6,
-    backgroundColor: '#EDE9FE',
+    backgroundColor: colors.primaryBackground,
     borderRadius: 6,
     width: 28,
     height: 28,
@@ -1674,7 +1674,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   buttonDisabled: {
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.border,
   },
   buttonTextDisabled: {
     color: colors.textTertiary,
@@ -1721,7 +1721,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     fontSize: 16,
-    color: '#111827',
+    color: colors.text,
   },
   modalSubHeader: {
     paddingHorizontal: 16,

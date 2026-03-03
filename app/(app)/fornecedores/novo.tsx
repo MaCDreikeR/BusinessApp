@@ -412,7 +412,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
     marginBottom: 16,
   },
   inputGroup: {
@@ -433,10 +433,10 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 16,
   },
   inputError: {
-    borderColor: '#DC2626',
+    borderColor: colors.errorDark,
   },
   errorText: {
-    color: '#DC2626',
+    color: colors.errorDark,
     fontSize: 12,
     marginTop: 4,
   },

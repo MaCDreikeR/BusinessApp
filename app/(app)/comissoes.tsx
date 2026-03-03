@@ -405,7 +405,7 @@ export default function ComissoesScreen() {
         <View style={styles.cardHeader}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
-              <Ionicons name="person" size={24} color="#fff" />
+              <Ionicons name="person" size={24} color=colors.white />
             </View>
             <View style={styles.usuarioInfo}>
               <Text style={styles.usuarioNome}>{item.nome_completo}</Text>
@@ -431,7 +431,7 @@ export default function ComissoesScreen() {
             style={styles.botaoPagar}
             onPress={() => pagarComissao(item)}
           >
-            <Ionicons name="cash" size={20} color="#fff" />
+            <Ionicons name="cash" size={20} color=colors.white />
             <Text style={styles.botaoPagarTexto}>Pagar</Text>
           </TouchableOpacity>
         )}
@@ -455,7 +455,7 @@ export default function ComissoesScreen() {
               style={styles.botaoRegistrar}
               onPress={() => registrarComissao(item)}
             >
-              <Ionicons name="add-circle" size={20} color="#fff" />
+              <Ionicons name="add-circle" size={20} color=colors.white />
               <Text style={styles.botaoRegistrarTexto}>Adicionar</Text>
             </TouchableOpacity>
           </View>
@@ -479,7 +479,7 @@ export default function ComissoesScreen() {
           onPress={() => abrirDetalhes(item)}
         >
           <Text style={styles.botaoDetalhesTexto}>Ver histórico</Text>
-          <Ionicons name="chevron-forward" size={18} color="#8B5CF6" />
+          <Ionicons name="chevron-forward" size={18} color=colors.primary />
         </TouchableOpacity>
       </View>
     );
@@ -519,7 +519,7 @@ export default function ComissoesScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#8B5CF6" />
+        <ActivityIndicator size="large" color=colors.primary />
       </View>
     );
   }
@@ -683,7 +683,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -694,7 +694,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   usuarioNome: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
     marginBottom: 2,
   },
   usuarioEmail: {
@@ -715,29 +715,29 @@ const createStyles = (colors: any) => StyleSheet.create({
   comissaoAPagarValor: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#111827',
+    color: colors.text,
   },
   comissaoAPagarDestaque: {
-    color: '#10B981',
+    color: colors.success,
   },
   botaoPagar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.primary,
     paddingVertical: 12,
     borderRadius: 8,
     gap: 8,
     marginBottom: 16,
   },
   botaoPagarTexto: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
   cardBody: {
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: colors.borderLight,
     paddingTop: 16,
     marginBottom: 12,
   },
@@ -761,13 +761,13 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: '#111827',
+    color: colors.text,
   },
   botaoRegistrar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#10B981',
+    backgroundColor: colors.success,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
@@ -775,7 +775,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginTop: 18,
   },
   botaoRegistrarTexto: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -789,7 +789,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
-    color: '#111827',
+    color: colors.text,
     minHeight: 60,
     textAlignVertical: 'top',
   },
@@ -801,7 +801,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   botaoDetalhesTexto: {
     fontSize: 14,
-    color: '#8B5CF6',
+    color: colors.primary,
     fontWeight: '600',
     marginRight: 4,
   },
@@ -853,12 +853,12 @@ const createStyles = (colors: any) => StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#111827',
+    color: colors.text,
   },
   modalTitleCenter: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
   },
   closeButton: {
     padding: 4,
@@ -885,17 +885,17 @@ const createStyles = (colors: any) => StyleSheet.create({
   resumoValor: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
   },
   resumoValorDestaque: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#8B5CF6',
+    color: colors.primary,
   },
   vendasTitulo: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
     paddingHorizontal: 20,
     marginBottom: 12,
   },
@@ -917,7 +917,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   registroDescricao: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
     flex: 1,
     marginRight: 8,
   },
@@ -934,16 +934,16 @@ const createStyles = (colors: any) => StyleSheet.create({
   registroValor: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#10B981',
+    color: colors.success,
   },
   registroValorNegativo: {
-    color: '#EF4444',
+    color: colors.error,
   },
   registroPago: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#fff',
-    backgroundColor: '#EF4444',
+    color: colors.white,
+    backgroundColor: colors.error,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,

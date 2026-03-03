@@ -312,7 +312,7 @@ export default function AgendaScreen() {
         selected: data === selectedDateStr ? true : false,
         disableTouchEvent: false,
         selectedColor: data === selectedDateStr ? theme.colors.primary : undefined,
-        dotColor: '#FF6B6B',
+        dotColor: colors.error,
         marked: true
       };
     });
@@ -2136,7 +2136,7 @@ export default function AgendaScreen() {
                 onPress={() => setShowPresencaModal(false)}
                 style={styles.closeButton}
               >
-                <Ionicons name="close" size={24} color="#666" />
+                <Ionicons name="close" size={24} color=colors.textSecondary />
               </TouchableOpacity>
             </View>
             
@@ -2159,7 +2159,7 @@ export default function AgendaScreen() {
                       />
                     ) : (
                       <View style={[styles.presencaAvatar, styles.presencaAvatarPlaceholder]}>
-                        <Ionicons name="person" size={20} color="#666" />
+                        <Ionicons name="person" size={20} color=colors.textSecondary />
                       </View>
                     )}
                     <Text style={styles.presencaUserName}>{usuario.nome_completo}</Text>
@@ -2197,7 +2197,7 @@ export default function AgendaScreen() {
                 onPress={() => setShowBloqueioModal(false)}
                 style={styles.closeButton}
               >
-                <Ionicons name="close" size={24} color="#666" />
+                <Ionicons name="close" size={24} color=colors.textSecondary />
               </TouchableOpacity>
             </View>
             
@@ -2242,7 +2242,7 @@ export default function AgendaScreen() {
                   style={styles.dataAddButton}
                   onPress={adicionarDataBloqueada}
                 >
-                  <Ionicons name="add" size={24} color="#fff" />
+                  <Ionicons name="add" size={24} color=colors.white />
                 </TouchableOpacity>
               </View>
               
@@ -2296,7 +2296,7 @@ export default function AgendaScreen() {
                 onPress={() => setShowHorariosModal(false)}
                 style={styles.closeButton}
               >
-                <Ionicons name="close" size={24} color="#666" />
+                <Ionicons name="close" size={24} color=colors.textSecondary />
               </TouchableOpacity>
             </View>
             
@@ -2457,7 +2457,7 @@ export default function AgendaScreen() {
         style={[styles.addButton, { opacity: 0 }]}
         onPress={() => router.push('/(app)/agenda/novo')}
       >
-        <Ionicons name="add" size={30} color="#fff" />
+        <Ionicons name="add" size={30} color=colors.white />
       </TouchableOpacity>
 
       {/* Toast de mensagem de sucesso */}
@@ -2481,7 +2481,7 @@ export default function AgendaScreen() {
               onPress={() => setShowAgendamentosModal(false)}
               style={styles.closeButtonTopRight}
             >
-              <Ionicons name="close" size={28} color="#333" />
+              <Ionicons name="close" size={28} color=colors.text />
             </TouchableOpacity>
 
             <ScrollView showsVerticalScrollIndicator={false}>
@@ -2489,15 +2489,15 @@ export default function AgendaScreen() {
                 const getStatusInfo = (status?: string) => {
                   switch(status) {
                     case 'confirmado':
-                      return { label: 'CONFIRMADO', icon: 'checkmark-circle', color: '#10B981' };
+                      return { label: 'CONFIRMADO', icon: 'checkmark-circle', color: colors.success };
                     case 'em_atendimento':
-                      return { label: 'EM ATENDIMENTO', icon: 'person', color: '#F59E0B' };
+                      return { label: 'EM ATENDIMENTO', icon: 'person', color: colors.warning };
                     case 'concluido':
                       return { label: 'FINALIZADO', icon: 'checkmark-done', color: colors.textSecondary };
                     case 'cancelado':
-                      return { label: 'CANCELADO', icon: 'close-circle', color: '#EF4444' };
+                      return { label: 'CANCELADO', icon: 'close-circle', color: colors.error };
                     case 'falta':
-                      return { label: 'FALTA', icon: 'alert-circle', color: '#DC2626' };
+                      return { label: 'FALTA', icon: 'alert-circle', color: colors.errorDark };
                     default:
                       return { label: 'AGENDADO', icon: 'calendar', color: theme.colors.primary };
                   }
@@ -2545,7 +2545,7 @@ export default function AgendaScreen() {
                         <Text style={styles.detalhesSaldo}>
                           Saldo na casa: <Text style={[
                             styles.detalhesSaldoValor,
-                            { color: (item.cliente_saldo || 0) >= 0 ? '#10B981' : '#EF4444' }
+                            { color: (item.cliente_saldo || 0) >= 0 ? colors.success : colors.error }
                           ]}>
                             {item.cliente_saldo !== null && item.cliente_saldo !== undefined 
                               ? `R$ ${item.cliente_saldo.toFixed(2).replace('.', ',')}` 
@@ -2676,7 +2676,7 @@ export default function AgendaScreen() {
                         }
                       }}
                     >
-                      <Ionicons name="logo-whatsapp" size={20} color="#fff" />
+                      <Ionicons name="logo-whatsapp" size={20} color=colors.white />
                       <Text style={styles.whatsappButtonText}>Compartilhar via WhatsApp</Text>
                     </TouchableOpacity>
 
@@ -2713,7 +2713,7 @@ export default function AgendaScreen() {
                         <Ionicons 
                           name="checkmark-circle-outline" 
                           size={20} 
-                          color={item.status === 'confirmado' ? '#10B981' : '#9CA3AF'} 
+                          color={item.status === 'confirmado' ? colors.success : '#9CA3AF'} 
                         />
                         <Text style={[
                           styles.statusButtonTextLarge,
@@ -2733,7 +2733,7 @@ export default function AgendaScreen() {
                         <Ionicons 
                           name="close-circle-outline" 
                           size={20} 
-                          color={item.status === 'cancelado' ? '#EF4444' : '#9CA3AF'} 
+                          color={item.status === 'cancelado' ? colors.error : '#9CA3AF'} 
                         />
                         <Text style={[
                           styles.statusButtonTextLarge,
@@ -2767,11 +2767,11 @@ export default function AgendaScreen() {
                     {/* Botões de ação na parte inferior */}
                     <View style={styles.detalhesActionsGrid}>
                       <TouchableOpacity 
-                        style={[styles.detalhesActionButton, { backgroundColor: '#FEE2E2' }]}
+                        style={[styles.detalhesActionButton, { backgroundColor: colors.errorBackground }]}
                         onPress={() => iniciarExclusao(item.id)}
                       >
                         <Ionicons name="trash-outline" size={20} color={colors.error} />
-                        <Text style={[styles.detalhesActionButtonText, { color: '#DC2626' }]}>
+                        <Text style={[styles.detalhesActionButtonText, { color: colors.errorDark }]}>
                           Excluir
                         </Text>
                       </TouchableOpacity>
@@ -2780,7 +2780,7 @@ export default function AgendaScreen() {
                         style={[
                           styles.detalhesActionButton, 
                           { 
-                            backgroundColor: item.comanda_id ? '#DBEAFE' : '#F3F4F6',
+                            backgroundColor: item.comanda_id ? '#DBEAFE' : colors.borderLight,
                             opacity: item.comanda_id ? 1 : 0.5
                           }
                         ]}
@@ -2855,7 +2855,7 @@ export default function AgendaScreen() {
                 style={styles.deleteButtonExclusao}
                 onPress={() => confirmarExclusao()}
               >
-                <Ionicons name="trash-outline" size={20} color="#fff" style={{ marginRight: 6 }} />
+                <Ionicons name="trash-outline" size={20} color=colors.white style={{ marginRight: 6 }} />
                 <Text style={styles.deleteButtonTextExclusao}>Excluir</Text>
               </TouchableOpacity>
             </View>
@@ -3012,7 +3012,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
   },
   statusBadgeText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 10,
     fontWeight: 'bold',
   },
@@ -3140,7 +3140,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   agendamentoCounterText: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.white,
   },
   agendamentoMultiplo: {
     fontSize: 10,
@@ -3223,7 +3223,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: '#F3E8FF',
+    backgroundColor: colors.primaryBackground,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -3238,7 +3238,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   detalhesSaldo: {
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 2,
   },
   detalhesSaldoValor: {
@@ -3248,7 +3248,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   detalhesTelefone: {
     fontSize: 13,
-    color: '#666',
+    color: colors.textSecondary,
   },
   detalhesIconButton: {
     width: 40,
@@ -3266,7 +3266,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   detalhesInfoLabel: {
     fontSize: 14,
-    color: '#333',
+    color: colors.text,
     marginBottom: 4,
     lineHeight: 20,
   },
@@ -3287,7 +3287,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginBottom: 20,
   },
   whatsappButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
@@ -3352,7 +3352,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   detalhesCardDivider: {
     height: 2,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.border,
     marginVertical: 30,
   },
   modalHeader: {
@@ -3366,7 +3366,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: colors.text,
   },
   closeButton: {
     padding: 4,
@@ -3405,7 +3405,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   presencaUserName: {
     fontSize: 16,
-    color: '#333',
+    color: colors.text,
     flex: 1,
   },
   presencaStatus: {
@@ -3457,7 +3457,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   modalSubtitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: colors.text,
     marginBottom: 12,
   },
   diasSemanaContainer: {
@@ -3480,10 +3480,10 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   diaSemanaText: {
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
   },
   diaSemanaTextSelected: {
-    color: '#fff',
+    color: colors.white,
   },
   dataInputContainer: {
     flexDirection: 'row',
@@ -3496,7 +3496,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 16,
-    color: '#333',
+    color: colors.text,
     marginRight: 8,
   },
   dataAddButton: {
@@ -3522,7 +3522,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   dataBloqueadaText: {
     fontSize: 16,
-    color: '#333',
+    color: colors.text,
   },
   dataRemoveButton: {
     padding: 4,
@@ -3536,7 +3536,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginBottom: 16,
   },
   salvarButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -3551,12 +3551,12 @@ const createStyles = (colors: any) => StyleSheet.create({
   diaBloqueadoText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FF6B6B',
+    color: colors.error,
     marginBottom: 8,
   },
   diaBloqueadoSubtext: {
     fontSize: 16,
-    color: '#666',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   // Estilos para o formulário de horários
@@ -3581,7 +3581,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
-    color: '#333',
+    color: colors.text,
   },
   switchContainer: {
     flexDirection: 'row',
@@ -3641,7 +3641,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: '#4B5563',
   },
   selectOptionTextSelected: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: '500',
   },
   counterContainer: {
@@ -3656,14 +3656,14 @@ const createStyles = (colors: any) => StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
   counterValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: colors.text,
     marginHorizontal: 16,
   },
   loadingContainer: {
@@ -3692,7 +3692,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     bottom: 80,
     left: 20,
     right: 20,
-    backgroundColor: '#4CAF50',
+    backgroundColor: colors.success,
     padding: 12,
     borderRadius: 8,
     flexDirection: 'row',
@@ -3737,13 +3737,13 @@ const createStyles = (colors: any) => StyleSheet.create({
   agendamentoModalCliente: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#111827',
+    color: colors.text,
   },
   agendamentoModalNumero: {
     fontSize: 12,
     color: theme.colors.primary,
     fontWeight: '500',
-    backgroundColor: '#F3E8FF',
+    backgroundColor: colors.primaryBackground,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 12,
@@ -3786,7 +3786,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   agendamentoModalServicoItem: {
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
     marginLeft: 8,
     marginBottom: 4,
   },
@@ -3805,13 +3805,13 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   agendamentoModalObservacoesText: {
     fontSize: 12,
-    color: '#666',
+    color: colors.textSecondary,
   },
   agendamentoModalComandaInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#F3E8FF',
+    backgroundColor: colors.primaryBackground,
     padding: 8,
     borderRadius: 6,
     marginBottom: 8,
@@ -3849,7 +3849,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   agendamentoModalHorario: {
     fontSize: 12,
-    color: '#666',
+    color: colors.textSecondary,
   },
   agendamentoDeleteButton: {
     padding: 10,
@@ -3857,7 +3857,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   agendamentoModalDivider: {
     height: 1,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.border,
     marginTop: 12,
   },
   flatlistContent: {
@@ -3874,7 +3874,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginLeft: 8,
   },
   cancelarButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -3906,14 +3906,14 @@ const createStyles = (colors: any) => StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.errorBackground,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalTitleExclusao: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: colors.text,
     textAlign: 'center',
     marginBottom: 12,
   },
@@ -3942,7 +3942,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   deleteButtonExclusao: {
     flex: 1,
-    backgroundColor: '#DC2626',
+    backgroundColor: colors.errorDark,
     borderRadius: 10,
     paddingVertical: 14,
     paddingHorizontal: 20,
@@ -3951,7 +3951,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
   },
   deleteButtonTextExclusao: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -3965,7 +3965,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginRight: 8,
   },
   deleteButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },

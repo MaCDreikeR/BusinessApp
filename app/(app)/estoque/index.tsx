@@ -580,10 +580,10 @@ export default function EstoqueScreen() {
   };
 
   const getStatusEstoque = (quantidade: number, quantidade_minima: number) => {
-    if (quantidade === 0) return { cor: '#EF4444', texto: 'Zerado', background: '#FEE2E2' };
-    if (quantidade <= quantidade_minima) return { cor: '#EF4444', texto: 'Abaixo do Mínimo', background: '#FEE2E2' };
-    if (quantidade <= 5) return { cor: '#F59E0B', texto: 'Baixo', background: '#FFFFFF' };
-    return { cor: '#10B981', texto: 'Normal', background: '#FFFFFF' };
+    if (quantidade === 0) return { cor: colors.error, texto: 'Zerado', background: colors.errorBackground };
+    if (quantidade <= quantidade_minima) return { cor: colors.error, texto: 'Abaixo do Mínimo', background: colors.errorBackground };
+    if (quantidade <= 5) return { cor: colors.warning, texto: 'Baixo', background: '#FFFFFF' };
+    return { cor: colors.success, texto: 'Normal', background: '#FFFFFF' };
   };
 
   const handleNovoProduto = () => {
@@ -1033,12 +1033,12 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     fontSize: 16,
-    color: '#111827',
+    color: colors.text,
   },
   limparFiltros: {
     marginLeft: 12,
     padding: 8,
-    backgroundColor: '#EDE9FE',
+    backgroundColor: colors.primaryBackground,
     borderRadius: 8,
     minWidth: 60,
     alignItems: 'center',
@@ -1088,7 +1088,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderColor: colors.border,
   },
   filtroChipAtivo: {
-    backgroundColor: '#EDE9FE',
+    backgroundColor: colors.primaryBackground,
     borderColor: colors.primary,
   },
   filtroChipText: {
@@ -1138,7 +1138,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   produtoNome: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
     marginBottom: 4,
   },
   produtoCodigo: {
@@ -1175,12 +1175,12 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   produtoQuantidade: {
     fontSize: 14,
-    color: '#111827',
+    color: colors.text,
     marginRight: 16,
   },
   produtoPreco: {
     fontSize: 14,
-    color: '#111827',
+    color: colors.text,
     fontWeight: '600',
   },
   modalOverlay: {
@@ -1213,7 +1213,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   modalDragIndicator: {
     width: 40,
     height: 4,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.border,
     borderRadius: 2,
     alignSelf: 'center',
     marginBottom: 12,
@@ -1221,7 +1221,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
     textAlign: 'center',
   },
   modalTabs: {
@@ -1307,7 +1307,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   categoriaNome: {
     fontSize: 16,
-    color: '#111827',
+    color: colors.text,
   },
   categoriaActions: {
     flexDirection: 'row',

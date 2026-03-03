@@ -838,7 +838,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 4,
-    color: '#1F2937',
+    color: colors.text,
   },
   servicoDescricao: {
     fontSize: 14,
@@ -903,7 +903,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     marginBottom: 20,
-    color: '#1F2937',
+    color: colors.text,
   },
   inputGroup: {
     marginBottom: 16,
@@ -911,7 +911,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   inputLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#1F2937',
+    color: colors.text,
     marginBottom: 8,
   },
   inputHelper: {
@@ -952,7 +952,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontWeight: '600',
   },
   cancelButtonText: {
-    color: '#1F2937',
+    color: colors.text,
   },
   saveButtonText: {
     color: '#FFFFFF',
@@ -1018,10 +1018,10 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   filtroButtonText: {
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
   },
   filtroButtonTextSelected: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: '500',
   },
   categoriasButton: {
@@ -1036,7 +1036,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 12,
-    color: '#1F2937',
+    color: colors.text,
   },
   categoriaItem: {
     flexDirection: 'row',
@@ -1053,7 +1053,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   categoriaNome: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#1F2937',
+    color: colors.text,
   },
   categoriaDescricao: {
     fontSize: 14,
@@ -1078,7 +1078,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   precoSimbolo: {
     paddingHorizontal: 12,
     fontSize: 16,
-    color: '#1F2937',
+    color: colors.text,
     fontWeight: '500',
   },
   precoInput: {

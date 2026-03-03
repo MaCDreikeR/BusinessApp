@@ -123,7 +123,7 @@ export default function DespesasScreen() {
             onPress={() => updateFilters({ period: 'today' })}
           >
             <View style={[styles.filtroIcone, filters.period === 'today' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="calendar-day" size={16} color={filters.period === 'today' ? theme.colors.primary : '#666'} />
+              <FontAwesome5 name="calendar-day" size={16} color={filters.period === 'today' ? theme.colors.primary : colors.textSecondary} />
             </View>
             <Text style={[styles.filtroTexto, filters.period === 'today' && styles.filtroTextoAtivo]}>Hoje</Text>
           </TouchableOpacity>
@@ -133,7 +133,7 @@ export default function DespesasScreen() {
             onPress={() => updateFilters({ period: 'week' })}
           >
             <View style={[styles.filtroIcone, filters.period === 'week' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="calendar-week" size={16} color={filters.period === 'week' ? theme.colors.primary : '#666'} />
+              <FontAwesome5 name="calendar-week" size={16} color={filters.period === 'week' ? theme.colors.primary : colors.textSecondary} />
             </View>
             <Text style={[styles.filtroTexto, filters.period === 'week' && styles.filtroTextoAtivo]}>Semana</Text>
           </TouchableOpacity>
@@ -143,7 +143,7 @@ export default function DespesasScreen() {
             onPress={() => updateFilters({ period: 'month' })}
           >
             <View style={[styles.filtroIcone, filters.period === 'month' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="calendar-alt" size={16} color={filters.period === 'month' ? theme.colors.primary : '#666'} />
+              <FontAwesome5 name="calendar-alt" size={16} color={filters.period === 'month' ? theme.colors.primary : colors.textSecondary} />
             </View>
             <Text style={[styles.filtroTexto, filters.period === 'month' && styles.filtroTextoAtivo]}>Mês</Text>
           </TouchableOpacity>
@@ -153,7 +153,7 @@ export default function DespesasScreen() {
             onPress={() => updateFilters({ period: 'custom' })}
           >
             <View style={[styles.filtroIcone, filters.period === 'custom' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="calendar" size={16} color={filters.period === 'custom' ? theme.colors.primary : '#666'} />
+              <FontAwesome5 name="calendar" size={16} color={filters.period === 'custom' ? theme.colors.primary : colors.textSecondary} />
             </View>
             <Text style={[styles.filtroTexto, filters.period === 'custom' && styles.filtroTextoAtivo]}>Personalizado</Text>
           </TouchableOpacity>
@@ -170,7 +170,7 @@ export default function DespesasScreen() {
                 style={styles.dateButton}
                 onPress={() => setShowStartDatePicker(true)}
               >
-                <FontAwesome5 name="calendar" size={14} color="#666" />
+                <FontAwesome5 name="calendar" size={14} color=colors.textSecondary />
                 <Text style={styles.dateButtonText}>
                   {filters.startDate 
                     ? (() => {
@@ -188,7 +188,7 @@ export default function DespesasScreen() {
                 style={styles.dateButton}
                 onPress={() => setShowEndDatePicker(true)}
               >
-                <FontAwesome5 name="calendar" size={14} color="#666" />
+                <FontAwesome5 name="calendar" size={14} color=colors.textSecondary />
                 <Text style={styles.dateButtonText}>
                   {filters.endDate 
                     ? (() => {
@@ -239,13 +239,13 @@ export default function DespesasScreen() {
             <FontAwesome5 
               name={summary.comparison.trend === 'up' ? 'arrow-up' : summary.comparison.trend === 'down' ? 'arrow-down' : 'minus'} 
               size={18} 
-              color={summary.comparison.trend === 'up' ? '#FF4444' : summary.comparison.trend === 'down' ? '#4CAF50' : '#666'} 
+              color={summary.comparison.trend === 'up' ? '#FF4444' : summary.comparison.trend === 'down' ? colors.success : colors.textSecondary} 
             />
             <Text style={styles.cardTitle}>Variação</Text>
           </View>
           <Text style={[
             styles.cardValue,
-            { color: summary.comparison.trend === 'up' ? '#FF4444' : summary.comparison.trend === 'down' ? '#4CAF50' : '#666' }
+            { color: summary.comparison.trend === 'up' ? '#FF4444' : summary.comparison.trend === 'down' ? colors.success : colors.textSecondary }
           ]}>
             {summary.comparison.percentage > 0 ? `${summary.comparison.percentage.toFixed(0)}%` : '—'}
           </Text>
@@ -275,7 +275,7 @@ export default function DespesasScreen() {
             style={styles.emptyButton}
             onPress={handleOpenForm}
           >
-            <FontAwesome5 name="plus" size={16} color="#fff" />
+            <FontAwesome5 name="plus" size={16} color=colors.white />
             <Text style={styles.emptyButtonText}>Registrar Primeira Despesa</Text>
           </TouchableOpacity>
         </View>
@@ -344,7 +344,7 @@ export default function DespesasScreen() {
                         <FontAwesome5 
                           name={getCategoryById(selectedExpense.category_id)?.icon || 'tag'} 
                           size={14} 
-                          color="#fff" 
+                          color=colors.white 
                         />
                       </View>
                       <Text style={styles.detailsCategoryText}>
@@ -356,7 +356,7 @@ export default function DespesasScreen() {
 
                 {/* Data */}
                 <View style={styles.detailsInfoRow}>
-                  <FontAwesome5 name="calendar" size={14} color="#666" />
+                  <FontAwesome5 name="calendar" size={14} color=colors.textSecondary />
                   <Text style={styles.detailsInfoText}>
                     {(() => {
                       const [year, month, day] = selectedExpense.date.split('-');
@@ -367,7 +367,7 @@ export default function DespesasScreen() {
 
                 {/* Forma de Pagamento */}
                 <View style={styles.detailsInfoRow}>
-                  <FontAwesome5 name="credit-card" size={14} color="#666" />
+                  <FontAwesome5 name="credit-card" size={14} color=colors.textSecondary />
                   <Text style={styles.detailsInfoText}>
                     {selectedExpense.payment_method === 'pix' ? 'PIX' :
                      selectedExpense.payment_method === 'credit' ? 'Crédito' :
@@ -380,8 +380,8 @@ export default function DespesasScreen() {
                 {/* Recorrente */}
                 {selectedExpense.recurring && (
                   <View style={styles.detailsInfoRow}>
-                    <FontAwesome5 name="redo" size={14} color="#666" />
-                    <Text style={[styles.detailsInfoText, { color: '#666', fontWeight: '500' }]}>
+                    <FontAwesome5 name="redo" size={14} color=colors.textSecondary />
+                    <Text style={[styles.detailsInfoText, { color: colors.textSecondary, fontWeight: '500' }]}>
                       Despesa Recorrente
                     </Text>
                   </View>
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
   
   // Header
   header: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
 
   // Filtros (Abas)
   filtrosWrapper: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
@@ -540,15 +540,15 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
   },
   filtroIconeAtivo: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
   },
   filtroTexto: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: colors.textSecondary,
   },
   filtroTextoAtivo: {
     color: '#2e7d32',
@@ -556,7 +556,7 @@ const styles = StyleSheet.create({
 
   // Seletor de Data Personalizada
   customDateContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
   dateLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 8,
   },
   dateButton: {
@@ -595,7 +595,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 16,
     gap: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
   },
   card: {
     flex: 1,
@@ -614,7 +614,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#666',
+    color: colors.textSecondary,
     textTransform: 'uppercase',
   },
   cardValue: {
@@ -637,14 +637,14 @@ const styles = StyleSheet.create({
   contadorContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
   contadorTexto: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: colors.textSecondary,
   },
 
   // Lista
@@ -668,7 +668,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     margin: 16,
     borderRadius: 12,
   },
@@ -681,7 +681,7 @@ const styles = StyleSheet.create({
   },
   emptyDescription: {
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 8,
     textAlign: 'center',
     lineHeight: 20,
@@ -697,7 +697,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#2e7d32',
   },
   emptyButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -711,7 +711,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   detailsCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 16,
     padding: 24,
     width: 320,
@@ -759,7 +759,7 @@ const styles = StyleSheet.create({
   },
   detailsDescriptionText: {
     fontSize: 13,
-    color: '#666',
+    color: colors.textSecondary,
     lineHeight: 18,
   },
 });
