@@ -2893,6 +2893,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     flex: 1,
     marginHorizontal: 8,
     fontSize: 16,
+    color: colors.text,
   },
   filterButton: {
     marginLeft: 8,
