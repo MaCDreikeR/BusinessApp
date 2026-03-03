@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert, Image, Dimensions, ActivityIndicator } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
@@ -12,6 +12,8 @@ import { Agendamento as AgendamentoBase, Produto as ProdutoBase } from '@types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { CacheManager, CacheNamespaces, CacheTTL } from '../../utils/cacheManager';
 import { getStartOfDayLocal, getEndOfDayLocal, toISOStringWithTimezone, parseISOStringLocal } from '../../lib/timezone';
+import * as Haptics from 'expo-haptics';
+import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 
 // Tipos estendidos para o dashboard
 type AgendamentoDashboard = Pick<AgendamentoBase, 'id' | 'status'> & {
@@ -31,6 +33,13 @@ type VendaDashboard = {
 };
 
 type ProdutoDashboard = Pick<ProdutoBase, 'id' | 'nome' | 'quantidade' | 'quantidade_minima'>;
+
+type DashboardErrors = {
+  cards?: string;
+  agendamentos?: string;
+  vendas?: string;
+  estoque?: string;
+};
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -327,6 +336,88 @@ export default function HomeScreen() {
       color: '#F59E0B',
       fontWeight: 'bold' as const,
     },
+    // Toast
+    toastContainer: {
+      position: 'absolute' as const,
+      top: 16,
+      left: 16,
+      right: 16,
+      backgroundColor: colors.success,
+      borderRadius: 12,
+      padding: 16,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      zIndex: 1000,
+      elevation: 5,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+    },
+    toastError: {
+      backgroundColor: colors.error,
+    },
+    toastText: {
+      color: '#fff',
+      fontSize: 14,
+      fontWeight: '500' as const,
+      marginLeft: 12,
+      flex: 1,
+    },
+    // Error State
+    errorState: {
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      padding: 24,
+      backgroundColor: colors.background,
+      borderRadius: 12,
+    },
+    errorText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginTop: 12,
+      marginBottom: 16,
+      textAlign: 'center' as const,
+    },
+    retryButton: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      borderRadius: 8,
+    },
+    retryButtonText: {
+      color: '#fff',
+      fontSize: 14,
+      fontWeight: '600' as const,
+    },
+    // Skeleton
+    skeletonCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      padding: 20,
+      minHeight: 160,
+      justifyContent: 'space-between' as const,
+    },
+    skeletonCircle: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: colors.border,
+      marginBottom: 12,
+    },
+    skeletonLine: {
+      height: 14,
+      backgroundColor: colors.border,
+      borderRadius: 4,
+      marginBottom: 8,
+    },
+    skeletonLineWide: {
+      height: 28,
+      backgroundColor: colors.border,
+      borderRadius: 4,
+      marginBottom: 4,
+      width: '60%' as const,
+    },
   }), [colors]);
 
   const [agendamentosHoje, setAgendamentosHoje] = useState(0);
@@ -336,10 +427,37 @@ export default function HomeScreen() {
   const [vendasRecentes, setVendasRecentes] = useState<VendaDashboard[]>([]);
   const [produtosBaixoEstoque, setProdutosBaixoEstoque] = useState<ProdutoDashboard[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [errors, setErrors] = useState<DashboardErrors>({});
+  const [loadingStates, setLoadingStates] = useState({
+    cards: true,
+    agendamentos: true,
+    vendas: true,
+    estoque: true,
+  });
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
+
+  // Função utilitária para sanitizar valores numéricos
+  const formatarValor = (valor: number | null | undefined): string => {
+    if (valor === null || valor === undefined || isNaN(valor)) {
+      return 'R$ 0,00';
+    }
+    return `R$ ${valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+  };
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToastMessage(message);
+    setToastType(type);
+    setTimeout(() => {
+      setToastMessage('');
+    }, 3000);
+  };
 
   const carregarProdutosBaixoEstoque = useCallback(async () => {
     if (!estabelecimentoId) return;
     try {
+      setLoadingStates(prev => ({ ...prev, estoque: true }));
+      
       // Tentar cache primeiro
       const cacheKey = `baixo_estoque_${estabelecimentoId}`;
       const cachedData = await CacheManager.get<ProdutoDashboard[]>(
@@ -349,6 +467,7 @@ export default function HomeScreen() {
       
       if (cachedData) {
         setProdutosBaixoEstoque(cachedData);
+        setLoadingStates(prev => ({ ...prev, estoque: false }));
         return;
       }
       
@@ -368,7 +487,10 @@ export default function HomeScreen() {
           .order('quantidade', { ascending: true })
           .limit(50);
 
-        if (errProdutos) throw errProdutos;
+        if (errProdutos) {
+          setErrors(prev => ({ ...prev, estoque: 'Erro ao carregar produtos' }));
+          throw errProdutos;
+        }
 
         const filtrados = (produtosRaw || [])
           .filter(p => (p.quantidade ?? 0) <= (p.quantidade_minima ?? 5))
@@ -383,6 +505,8 @@ export default function HomeScreen() {
         );
         
         setProdutosBaixoEstoque(filtrados);
+        setErrors(prev => ({ ...prev, estoque: undefined }));
+        setLoadingStates(prev => ({ ...prev, estoque: false }));
         return;
       }
 
@@ -395,14 +519,26 @@ export default function HomeScreen() {
       );
       
       setProdutosBaixoEstoque(produtosRpc || []);
+      setErrors(prev => ({ ...prev, estoque: undefined }));
+      setLoadingStates(prev => ({ ...prev, estoque: false }));
     } catch (error) {
       logger.error('Erro inesperado ao carregar produtos baixo estoque:', error);
+      setErrors(prev => ({ ...prev, estoque: 'Erro ao carregar produtos' }));
+      setLoadingStates(prev => ({ ...prev, estoque: false }));
     }
   }, [estabelecimentoId]);
 
   const carregarDados = useCallback(async () => {
     if (!user || !estabelecimentoId) return;
+    
+    // Timeout promise para evitar queries infinitas
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Timeout ao carregar dados')), 15000)
+    );
+    
     try {
+      setLoadingStates(prev => ({ ...prev, cards: true, agendamentos: true, vendas: true }));
+      
       // Tentar cache primeiro
       const cacheKey = `dashboard_${estabelecimentoId}_${role || 'all'}`;
       const cachedData = await CacheManager.get<any>(
@@ -416,6 +552,7 @@ export default function HomeScreen() {
         setClientesAtivos(cachedData.clientesAtivos);
         setProximosAgendamentos(cachedData.proximosAgendamentos);
         setVendasRecentes(cachedData.vendasRecentes);
+        setLoadingStates({ cards: false, agendamentos: false, vendas: false, estoque: false });
         return;
       }
       
@@ -431,17 +568,28 @@ export default function HomeScreen() {
         { count: clientesCount, error: clientesError },
         { data: proxAgendamentos, error: proxError },
         { data: vendasRecentesData, error: vendasRecentesError },
-      ] = await Promise.all([
-        // Carregar agendamentos de hoje
-        supabase.from('agendamentos').select('*', { count: 'exact' }).eq('estabelecimento_id', estabelecimentoId).gte('data_hora', inicioHoje).lte('data_hora', fimHoje),
-        // Carregar vendas de hoje - SOMENTE COMANDAS FECHADAS HOJE
-        supabase.from('comandas_itens').select(`preco_total, comandas!inner(status, estabelecimento_id, finalized_at)`).eq('comandas.estabelecimento_id', estabelecimentoId).eq('comandas.status', 'fechada').gte('comandas.finalized_at', inicioHoje).lte('comandas.finalized_at', fimHoje),
-        // Carregar clientes ativos
-        supabase.from('clientes').select('*', { count: 'exact', head: true }).eq('estabelecimento_id', estabelecimentoId),
-        // Carregar próximos agendamentos - profissionais veem apenas os seus
+      ] = await Promise.race([
+        Promise.all([
+          // Carregar agendamentos de hoje
+          supabase.from('agendamentos').select('*', { count: 'exact' }).eq('estabelecimento_id', estabelecimentoId).gte('data_hora', inicioHoje).lte('data_hora', fimHoje),
+          // Carregar vendas de hoje - SOMENTE COMANDAS FECHADAS HOJE
+          supabase.from('comandas_itens').select(`preco_total, comandas!inner(status, estabelecimento_id, finalized_at)`).eq('comandas.estabelecimento_id', estabelecimentoId).eq('comandas.status', 'fechada').gte('comandas.finalized_at', inicioHoje).lte('comandas.finalized_at', fimHoje),
+          // Carregar clientes ativos
+          supabase.from('clientes').select('*', { count: 'exact', head: true }).eq('estabelecimento_id', estabelecimentoId),
+        // Carregar próximos agendamentos com JOIN - elimina N+1
         (() => {
           let query = supabase.from('agendamentos')
-            .select('id, cliente, data_hora, horario_termino, servicos, usuario_id, status')
+            .select(`
+              id,
+              cliente,
+              cliente_id,
+              data_hora,
+              horario_termino,
+              servicos,
+              status,
+              usuario:usuarios(nome_completo),
+              cliente_info:clientes!cliente_id(foto_url)
+            `)
             .eq('estabelecimento_id', estabelecimentoId)
             .gte('data_hora', toISOStringWithTimezone(new Date()))
             .order('data_hora', { ascending: true })
@@ -456,69 +604,58 @@ export default function HomeScreen() {
         })(),
         // Carregar vendas recentes - COMANDAS FECHADAS COM VALOR_TOTAL
         supabase.from('comandas').select('id, cliente_nome, valor_total, finalized_at').eq('estabelecimento_id', estabelecimentoId).eq('status', 'fechada').order('finalized_at', { ascending: false }).limit(5),
+        ]),
+        timeoutPromise
       ]);
 
-      if (agendamentosError) logger.error('Erro agendamentos:', agendamentosError); else setAgendamentosHoje(agendamentos?.length || 0);
+      // Processar agendamentos
+      if (agendamentosError) {
+        logger.error('Erro agendamentos:', agendamentosError);
+        setErrors(prev => ({ ...prev, cards: 'Erro ao carregar agendamentos de hoje' }));
+      } else {
+        setAgendamentosHoje(agendamentos?.length || 0);
+        setErrors(prev => ({ ...prev, cards: undefined }));
+      }
+
+      // Processar vendas
       if (vendasError) {
         logger.error('Erro vendas hoje:', vendasError);
+        setErrors(prev => ({ ...prev, vendas: 'Erro ao carregar vendas' }));
       } else {
         logger.debug('Vendas hoje dados:', vendasHojeData);
-        setVendasHoje(vendasHojeData?.reduce((total, v) => total + (v.preco_total || 0), 0) || 0);
+        const totalVendas = vendasHojeData?.reduce((total, v) => total + (v.preco_total || 0), 0) || 0;
+        setVendasHoje(totalVendas);
+        setErrors(prev => ({ ...prev, vendas: undefined }));
       }
-      if (clientesError) logger.error('Erro clientes:', clientesError); else setClientesAtivos(clientesCount || 0);
+
+      // Processar clientes
+      if (clientesError) {
+        logger.error('Erro clientes:', clientesError);
+      } else {
+        setClientesAtivos(clientesCount || 0);
+      }
+
+      // Processar próximos agendamentos com dados já incluídos no JOIN
       if (proxError) {
         logger.error('Erro próximos agendamentos:', proxError);
+        setErrors(prev => ({ ...prev, agendamentos: 'Erro ao carregar próximos agendamentos' }));
       } else if (proxAgendamentos) {
         logger.debug('Próximos agendamentos carregados:', proxAgendamentos);
         
-        // Buscar nomes dos usuários e fotos dos clientes
-        const agendamentosComDados = await Promise.all(
-          proxAgendamentos.map(async (ag: any) => {
-            let usuarioNome = 'Não atribuído';
-            let clienteFoto = null;
-            
-            // Buscar nome do usuário
-            if (ag.usuario_id) {
-              const { data: userData } = await supabase
-                .from('usuarios')
-                .select('nome_completo')
-                .eq('id', ag.usuario_id)
-                .single();
-              
-              if (userData) {
-                usuarioNome = userData.nome_completo;
-              }
-            }
-            
-            // Buscar foto do cliente pelo nome
-            if (ag.cliente) {
-              const { data: clienteData } = await supabase
-                .from('clientes')
-                .select('foto_url')
-                .eq('estabelecimento_id', estabelecimentoId)
-                .ilike('nome', ag.cliente)
-                .limit(1)
-                .maybeSingle();
-              
-              if (clienteData) {
-                clienteFoto = clienteData.foto_url;
-              }
-            }
-            
-            return {
-              id: ag.id,
-              cliente_nome: ag.cliente || 'Cliente não informado',
-              cliente_foto: clienteFoto,
-              servico: ag.servicos?.[0]?.nome || ag.servicos?.[0]?.servico?.nome || 'Serviço não especificado',
-              horario: ag.data_hora,
-              horario_termino: ag.horario_termino,
-              usuario_nome: usuarioNome,
-              status: ag.status
-            };
-          })
-        );
+        // Mapear dados do JOIN - sem queries adicionais!
+        const agendamentosFormatados = proxAgendamentos.map((ag: any) => ({
+          id: ag.id,
+          cliente_nome: ag.cliente || 'Cliente não informado',
+          cliente_foto: ag.cliente_info?.foto_url || null,
+          servico: ag.servicos?.[0]?.nome || ag.servicos?.[0]?.servico?.nome || 'Serviço não especificado',
+          horario: ag.data_hora,
+          horario_termino: ag.horario_termino,
+          usuario_nome: ag.usuario?.nome_completo || 'Não atribuído',
+          status: ag.status
+        }));
         
-        setProximosAgendamentos(agendamentosComDados);
+        setProximosAgendamentos(agendamentosFormatados);
+        setErrors(prev => ({ ...prev, agendamentos: undefined }));
       }
       if (vendasRecentesError) {
         logger.error('Erro vendas recentes:', vendasRecentesError);
@@ -551,14 +688,33 @@ export default function HomeScreen() {
         CacheTTL.TWO_MINUTES
       );
 
+      setLoadingStates({ cards: false, agendamentos: false, vendas: false, estoque: false });
+
     } catch (error) {
       logger.error('Erro ao carregar dados:', error);
-      Alert.alert('Erro', 'Não foi possível carregar os dados');
+      
+      // Tratamento específico para timeout
+      if (error instanceof Error && error.message === 'Timeout ao carregar dados') {
+        setErrors(prev => ({ ...prev, cards: 'Conexão lenta. Tente novamente.' }));
+        showToast('Tempo de conexão esgotado', 'error');
+      } else {
+        setErrors(prev => ({ ...prev, cards: 'Erro ao carregar dados do dashboard' }));
+      }
+      
+      setLoadingStates({ cards: false, agendamentos: false, vendas: false, estoque: false });
     }
   }, [user, estabelecimentoId, role]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+    
+    // Haptic feedback no início
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (error) {
+      logger.warn('Falha ao executar haptic inicial:', error);
+    }
+    
     // Limpar cache para forçar atualização
     const cacheKey = `dashboard_${estabelecimentoId}_${role || 'all'}`;
     await CacheManager.remove(CacheNamespaces.RELATORIOS, cacheKey);
@@ -566,6 +722,15 @@ export default function HomeScreen() {
     await CacheManager.remove(CacheNamespaces.ESTOQUE, cacheKeyEstoque);
     
     await Promise.all([carregarDados(), carregarProdutosBaixoEstoque()]);
+    
+    // Haptic feedback de sucesso e toast
+    try {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showToast('Dados atualizados com sucesso', 'success');
+    } catch (error) {
+      logger.warn('Falha ao executar haptic de sucesso:', error);
+    }
+    
     setRefreshing(false);
   }, [carregarDados, carregarProdutosBaixoEstoque, estabelecimentoId, role]);
 
@@ -634,10 +799,38 @@ export default function HomeScreen() {
 
   const cardWidth = getCardWidth();
 
+  // Componente Skeleton Card
+  const SkeletonCard = () => (
+    <View style={[styles.skeletonCard, { width: cardWidth }]}>
+      <View style={styles.skeletonCircle} />
+      <View style={styles.skeletonLine} />
+      <View style={styles.skeletonLineWide} />
+      <View style={[styles.skeletonLine, { width: '40%' }]} />
+    </View>
+  );
+
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
+    <>
+      {/* Toast */}
+      {toastMessage ? (
+        <Animated.View
+          entering={FadeInDown.duration(300).springify()}
+          style={[styles.toastContainer, toastType === 'error' && styles.toastError]}
+        >
+          <FontAwesome5
+            name={toastType === 'success' ? 'check-circle' : 'exclamation-circle'}
+            size={20}
+            color="#fff"
+          />
+          <Text style={styles.toastText}>{toastMessage}</Text>
+        </Animated.View>
+      ) : null}
+
+      <ScrollView
+        style={styles.container}
+        accessibilityLabel="Tela de visão geral do dashboard"
+        accessibilityRole="scrollbar"
+        refreshControl={
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
@@ -645,67 +838,100 @@ export default function HomeScreen() {
           tintColor={colors.primary}
           title="Atualizando..."
           titleColor={colors.textSecondary}
+          accessibilityLabel={refreshing ? "Atualizando dados do dashboard" : "Arraste para atualizar"}
         />
       }
     >
       <View style={styles.grid}>
+        {/* Card Agendamentos Hoje */}
         {role !== 'profissional' && (
-          <TouchableOpacity
-            style={[styles.card, styles.cardPrimary, { width: cardWidth, borderLeftColor: colors.primary }]}
-            onPress={() => router.push('/agenda')}
-          >
-            <View style={styles.cardIconContainer}>
-              <FontAwesome5 name="calendar-check" size={24} color={colors.primary} />
-            </View>
-            <Text style={styles.cardTitle}>Agendamentos Hoje</Text>
-            <Text style={styles.cardValue}>{agendamentosHoje}</Text>
-            <Text style={styles.cardSubtitle}>Ver agenda</Text>
-          </TouchableOpacity>
+          loadingStates.cards ? (
+            <SkeletonCard />
+          ) : (
+            <TouchableOpacity
+              style={[styles.card, styles.cardPrimary, { width: cardWidth, borderLeftColor: colors.primary }]}
+              onPress={() => router.push('/agenda')}
+              accessibilityRole="button"
+              accessibilityLabel={`${agendamentosHoje} agendamentos hoje`}
+              accessibilityHint="Toque duas vezes para ver a agenda completa"
+            >
+              <View style={styles.cardIconContainer}>
+                <FontAwesome5 name="calendar-check" size={24} color={colors.primary} />
+              </View>
+              <Text style={styles.cardTitle}>Agendamentos Hoje</Text>
+              <Text style={styles.cardValue}>{agendamentosHoje}</Text>
+              <Text style={styles.cardSubtitle}>Ver agenda</Text>
+            </TouchableOpacity>
+          )
         )}
 
+        {/* Card Vendas Hoje */}
         {role !== 'profissional' && permissions.pode_ver_vendas && (
-          <TouchableOpacity
-            style={[styles.card, styles.cardSuccess, { width: cardWidth }]}
-            onPress={() => {
-              logger.debug('Navegando para vendas...');
-              router.push('/(app)/vendas');
-            }}
-          >
-            <View style={styles.cardIconContainer}>
-              <FontAwesome5 name="dollar-sign" size={24} color={colors.success} />
-            </View>
-            <Text style={styles.cardTitle}>Vendas Hoje</Text>
-            <Text style={styles.cardValue}>R$ {vendasHoje.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</Text>
-            <Text style={styles.cardSubtitle}>Total do dia</Text>
-          </TouchableOpacity>
+          loadingStates.cards ? (
+            <SkeletonCard />
+          ) : (
+            <TouchableOpacity
+              style={[styles.card, styles.cardSuccess, { width: cardWidth }]}
+              onPress={() => {
+                logger.debug('Navegando para vendas...');
+                router.push('/(app)/vendas');
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`Vendas hoje: ${vendasHoje.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}
+              accessibilityHint="Toque duas vezes para ver todas as vendas"
+            >
+              <View style={styles.cardIconContainer}>
+                <FontAwesome5 name="dollar-sign" size={24} color={colors.success} />
+              </View>
+              <Text style={styles.cardTitle}>Vendas Hoje</Text>
+              <Text style={styles.cardValue}>{formatarValor(vendasHoje)}</Text>
+              <Text style={styles.cardSubtitle}>Total do dia</Text>
+            </TouchableOpacity>
+          )
         )}
 
+        {/* Card Clientes Ativos */}
         {role !== 'profissional' && (
-          <TouchableOpacity
-            style={[styles.card, styles.cardInfo, { width: cardWidth }]}
-            onPress={() => router.push('/clientes')}
-          >
-            <View style={styles.cardIconContainer}>
-              <FontAwesome5 name="users" size={24} color="#0066FF" />
-            </View>
-            <Text style={styles.cardTitle}>Clientes Ativos</Text>
-            <Text style={styles.cardValue}>{clientesAtivos}</Text>
-            <Text style={styles.cardSubtitle}>Ver clientes</Text>
-          </TouchableOpacity>
+          loadingStates.cards ? (
+            <SkeletonCard />
+          ) : (
+            <TouchableOpacity
+              style={[styles.card, styles.cardInfo, { width: cardWidth }]}
+              onPress={() => router.push('/clientes')}
+              accessibilityRole="button"
+              accessibilityLabel={`${clientesAtivos} clientes ativos`}
+              accessibilityHint="Toque duas vezes para ver a lista de clientes"
+            >
+              <View style={styles.cardIconContainer}>
+                <FontAwesome5 name="users" size={24} color="#0066FF" />
+              </View>
+              <Text style={styles.cardTitle}>Clientes Ativos</Text>
+              <Text style={styles.cardValue}>{clientesAtivos}</Text>
+              <Text style={styles.cardSubtitle}>Ver clientes</Text>
+            </TouchableOpacity>
+          )
         )}
 
+        {/* Card Produtos Baixo Estoque */}
         {role !== 'profissional' && (
-          <TouchableOpacity
-            style={[styles.card, styles.cardDanger, { width: cardWidth }]}
-            onPress={() => router.push('/estoque')}
-          >
-            <View style={styles.cardIconContainer}>
-              <FontAwesome5 name="exclamation-triangle" size={24} color={colors.error} />
-            </View>
-            <Text style={styles.cardTitle}>Produtos Baixo Estoque</Text>
-            <Text style={styles.cardValue}>{produtosBaixoEstoque?.length || 0}</Text>
-            <Text style={styles.cardSubtitle}>Ver estoque</Text>
-          </TouchableOpacity>
+          loadingStates.estoque ? (
+            <SkeletonCard />
+          ) : (
+            <TouchableOpacity
+              style={[styles.card, styles.cardDanger, { width: cardWidth }]}
+              onPress={() => router.push('/estoque')}
+              accessibilityRole="button"
+              accessibilityLabel={`${produtosBaixoEstoque?.length || 0} produtos com baixo estoque`}
+              accessibilityHint="Toque duas vezes para ver o estoque completo"
+            >
+              <View style={styles.cardIconContainer}>
+                <FontAwesome5 name="exclamation-triangle" size={24} color={colors.error} />
+              </View>
+              <Text style={styles.cardTitle}>Produtos Baixo Estoque</Text>
+              <Text style={styles.cardValue}>{produtosBaixoEstoque?.length || 0}</Text>
+              <Text style={styles.cardSubtitle}>Ver estoque</Text>
+            </TouchableOpacity>
+          )
         )}
       </View>
 
@@ -716,10 +942,36 @@ export default function HomeScreen() {
             <Text style={[styles.sectionAction, { color: colors.primary }]}>Ver todos</Text>
           </TouchableOpacity>
         </View>
-        {proximosAgendamentos.length > 0 ? (
+
+        {/* Loading State */}
+        {loadingStates.agendamentos ? (
+          <View style={styles.emptyAgendamentos}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.emptyText}>Carregando agendamentos...</Text>
+          </View>
+        ) : /* Error State */
+        errors.agendamentos ? (
+          <View style={styles.errorState} accessibilityRole="alert">
+            <FontAwesome5 name="exclamation-circle" size={32} color={colors.error} />
+            <Text style={styles.errorText}>{errors.agendamentos}</Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={async () => {
+                setErrors(prev => ({ ...prev, agendamentos: undefined }));
+                await carregarDados();
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Tentar carregar agendamentos novamente"
+            >
+              <Text style={styles.retryButtonText}>Tentar novamente</Text>
+            </TouchableOpacity>
+          </View>
+        ) : /* Content */
+        proximosAgendamentos.length > 0 ? (
           proximosAgendamentos.map((agendamento, index) => (
-            <View
+            <Animated.View
               key={agendamento.id}
+              entering={FadeInDown.delay(index * 100).duration(400).springify()}
               style={[
                 styles.agendamentoItem,
                 index === 0 && styles.primeiroAgendamento,
@@ -797,10 +1049,10 @@ export default function HomeScreen() {
                   </Text>
                 </View>
               </View>
-            </View>
+            </Animated.View>
           ))
         ) : (
-          <View style={styles.emptyAgendamentos}>
+          <View style={styles.emptyAgendamentos} accessibilityLabel="Nenhum agendamento próximo">
             <FontAwesome5 name="calendar-times" size={24} color={colors.textTertiary} />
             <Text style={styles.emptyText}>Nenhum agendamento próximo</Text>
           </View>
@@ -818,9 +1070,38 @@ export default function HomeScreen() {
               <Text style={[styles.sectionAction, { color: colors.primary }]}>Ver todas</Text>
             </TouchableOpacity>
           </View>
-          {vendasRecentes.length > 0 ? (
-            vendasRecentes.map(venda => (
-              <View key={venda.id} style={styles.vendaItem}>
+
+          {/* Loading State */}
+          {loadingStates.vendas ? (
+            <View style={styles.emptyState}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={styles.emptyText}>Carregando vendas...</Text>
+            </View>
+          ) : /* Error State */
+          errors.vendas ? (
+            <View style={styles.errorState} accessibilityRole="alert">
+              <FontAwesome5 name="exclamation-circle" size={32} color={colors.error} />
+              <Text style={styles.errorText}>{errors.vendas}</Text>
+              <TouchableOpacity
+                style={styles.retryButton}
+                onPress={async () => {
+                  setErrors(prev => ({ ...prev, vendas: undefined }));
+                  await carregarDados();
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Tentar carregar vendas novamente"
+              >
+                <Text style={styles.retryButtonText}>Tentar novamente</Text>
+              </TouchableOpacity>
+            </View>
+          ) : /* Content */
+          vendasRecentes.length > 0 ? (
+            vendasRecentes.map((venda, index) => (
+              <Animated.View
+                key={venda.id}
+                entering={FadeInDown.delay(index * 80).duration(400).springify()}
+                style={styles.vendaItem}
+              >
                 <View style={styles.vendaContent}>
                   <Text style={styles.vendaCliente}>{venda.cliente_nome}</Text>
                   <Text style={styles.vendaData}>
@@ -830,10 +1111,10 @@ export default function HomeScreen() {
                 <Text style={styles.vendaValor}>
                   R$ {venda.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </Text>
-              </View>
+              </Animated.View>
             ))
           ) : (
-            <View style={styles.emptyState}>
+            <View style={styles.emptyState} accessibilityLabel="Nenhuma venda recente">
               <FontAwesome5 name="receipt" size={24} color={colors.textTertiary} />
               <Text style={styles.emptyText}>Nenhuma venda recente</Text>
             </View>
@@ -849,9 +1130,38 @@ export default function HomeScreen() {
               <Text style={[styles.sectionAction, { color: colors.primary }]}>Ver estoque</Text>
             </TouchableOpacity>
           </View>
-          {produtosBaixoEstoque && produtosBaixoEstoque.length > 0 ? (
-            produtosBaixoEstoque.map(produto => (
-              <View key={produto.id} style={styles.produtoItem}>
+
+          {/* Loading State */}
+          {loadingStates.estoque ? (
+            <View style={styles.emptyState}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={styles.emptyText}>Carregando produtos...</Text>
+            </View>
+          ) : /* Error State */
+          errors.estoque ? (
+            <View style={styles.errorState} accessibilityRole="alert">
+              <FontAwesome5 name="exclamation-circle" size={32} color={colors.error} />
+              <Text style={styles.errorText}>{errors.estoque}</Text>
+              <TouchableOpacity
+                style={styles.retryButton}
+                onPress={async () => {
+                  setErrors(prev => ({ ...prev, estoque: undefined }));
+                  await carregarProdutosBaixoEstoque();
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Tentar carregar produtos novamente"
+              >
+                <Text style={styles.retryButtonText}>Tentar novamente</Text>
+              </TouchableOpacity>
+            </View>
+          ) : /* Content */
+          produtosBaixoEstoque && produtosBaixoEstoque.length > 0 ? (
+            produtosBaixoEstoque.map((produto, index) => (
+              <Animated.View
+                key={produto.id}
+                entering={FadeInDown.delay(index * 80).duration(400).springify()}
+                style={styles.produtoItem}
+              >
                 <View style={styles.produtoContent}>
                   <Text style={styles.produtoNome}>{produto.nome}</Text>
                   <View style={styles.produtoInfo}>
@@ -873,10 +1183,10 @@ export default function HomeScreen() {
                     color={produto.quantidade === 0 ? "#EF4444" : "#F59E0B"}
                   />
                 </View>
-              </View>
+              </Animated.View>
             ))
           ) : (
-            <View style={styles.emptyState}>
+            <View style={styles.emptyState} accessibilityLabel="Nenhum produto com estoque baixo">
               <FontAwesome5 name="check-circle" size={24} color={colors.textTertiary} />
               <Text style={styles.emptyText}>Nenhum produto com estoque baixo</Text>
             </View>
@@ -884,5 +1194,6 @@ export default function HomeScreen() {
         </View>
       )}
     </ScrollView>
+    </>
   );
 }
