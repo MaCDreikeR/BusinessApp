@@ -77,7 +77,21 @@ export const colors = {
     border: '#404040',             // Bordas principais (mais neutro)
     borderLight: '#2A2A2A',        // Bordas sutis (refinado)
     separator: '#3A3A3A',          // Separadores (entre border e borderLight)
+    
+    // Backgrounds de Status - Sutis para dark mode
+    successBackground: 'rgba(52, 199, 89, 0.15)',    // Verde translúcido
+    errorBackground: 'rgba(255, 59, 48, 0.15)',      // Vermelho translúcido
+    warningBackground: 'rgba(255, 149, 0, 0.15)',    // Laranja translúcido
+    infoBackground: 'rgba(90, 200, 250, 0.15)',      // Azul translúcido
+    primaryBackground: 'rgba(124, 58, 237, 0.15)',   // Roxo translúcido
   },
+  
+  // Backgrounds de Status - Tema Claro
+  successBackground: '#D1FAE5',    // Verde claro
+  errorBackground: '#FEE2E2',      // Vermelho claro
+  warningBackground: '#FEF3C7',    // Amarelo claro
+  infoBackground: '#DBEAFE',       // Azul claro
+  primaryBackground: '#F3E8FF',    // Roxo claro
   
   // Cores de Status
   online: '#34C759',

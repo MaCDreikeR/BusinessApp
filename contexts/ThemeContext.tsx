@@ -78,6 +78,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     border: themeConfig.colors.dark.border,
     borderLight: themeConfig.colors.dark.borderLight,
     separator: themeConfig.colors.dark.separator,
+    // Backgrounds de status dark
+    successBackground: themeConfig.colors.dark.successBackground,
+    errorBackground: themeConfig.colors.dark.errorBackground,
+    warningBackground: themeConfig.colors.dark.warningBackground,
+    infoBackground: themeConfig.colors.dark.infoBackground,
+    primaryBackground: themeConfig.colors.dark.primaryBackground,
   } : themeConfig.colors;
 
   if (!isReady) {

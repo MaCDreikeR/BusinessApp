@@ -1924,7 +1924,7 @@ export default function ComandasScreen() {
           <Ionicons 
             name="ellipsis-horizontal-circle" 
             size={24} 
-            color={abaAtiva === 'abertas' ? theme.colors.primary : '#6B7280'} 
+            color={abaAtiva === 'abertas' ? theme.colors.primary : colors.textSecondary} 
           />
           <Text style={[styles.tabText, abaAtiva === 'abertas' && styles.tabTextActive]}>
             Abertas
@@ -1938,7 +1938,7 @@ export default function ComandasScreen() {
           <Ionicons 
             name="checkmark-circle" 
             size={24} 
-            color={abaAtiva === 'fechadas' ? theme.colors.primary : '#6B7280'}
+            color={abaAtiva === 'fechadas' ? theme.colors.primary : colors.textSecondary}
           />
           <Text style={[styles.tabText, abaAtiva === 'fechadas' && styles.tabTextActive]}>
             Fechadas
@@ -1952,7 +1952,7 @@ export default function ComandasScreen() {
           <Ionicons 
             name="close-circle" 
             size={24} 
-            color={abaAtiva === 'canceladas' ? theme.colors.primary : '#6B7280'}
+            color={abaAtiva === 'canceladas' ? theme.colors.primary : colors.textSecondary}
           />
           <Text style={[styles.tabText, abaAtiva === 'canceladas' && styles.tabTextActive]}>
             Canceladas
@@ -2016,7 +2016,7 @@ export default function ComandasScreen() {
               ) : (
                 <>
                   <View style={styles.emptyIconContainer}>
-                    <FontAwesome5 name="clipboard-list" size={44} color="#CBD5E1" />
+                    <FontAwesome5 name="clipboard-list" size={44} color={colors.borderLight} />
                   </View>
                   <Text style={styles.emptyText}>
                     {abaAtiva === 'abertas' 
@@ -2060,7 +2060,7 @@ export default function ComandasScreen() {
                     limparFormularioComanda();
                   });
                 }}>
-                  <Ionicons name="close" size={24} color="#111827" />
+                  <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -2441,7 +2441,7 @@ export default function ComandasScreen() {
             <Text style={{
               fontSize: 22,
               fontWeight: 'bold',
-              color: (saldoCrediario || 0) >= 0 ? '#10B981' : '#EF4444',
+              color: (saldoCrediario || 0) >= 0 ? colors.success : colors.error,
               textAlign: 'center',
               marginBottom: 16
             }}>
@@ -2535,9 +2535,9 @@ export default function ComandasScreen() {
                   <View style={styles.comandaDetailStatus}>
                     <View style={[
                       styles.comandaDetailStatusBadge,
-                      comandaEmEdicao.status === 'aberta' && {backgroundColor: '#DCFCE7'},
-                      comandaEmEdicao.status === 'fechada' && {backgroundColor: '#E0E7FF'},
-                      comandaEmEdicao.status === 'cancelada' && {backgroundColor: '#FEE2E2'}
+                      comandaEmEdicao.status === 'aberta' && {backgroundColor: colors.successBackground},
+                      comandaEmEdicao.status === 'fechada' && {backgroundColor: colors.infoBackground},
+                      comandaEmEdicao.status === 'cancelada' && {backgroundColor: colors.errorBackground}
                     ]}>
                       <Text style={styles.comandaDetailStatusText}>
                         {comandaEmEdicao.status === 'aberta' ? 'Aberta' : 
@@ -2775,7 +2775,7 @@ export default function ComandasScreen() {
                                   <Text style={[styles.comandaPagamentoValue, { fontWeight: '600' }]}>
                                     {nomeForma}
                                   </Text>
-                                  <Text style={[styles.comandaValorPago, { color: '#10B981', fontWeight: '700' }]}>
+                                  <Text style={[styles.comandaValorPago, { color: colors.success, fontWeight: '700' }]}>
                                     {forma.valor.toLocaleString('pt-BR', {
                                       style: 'currency',
                                       currency: 'BRL',
@@ -2849,14 +2849,14 @@ export default function ComandasScreen() {
                           <FontAwesome5 
                             name={comandaEmEdicao.saldo_aplicado > 0 ? "minus-circle" : "plus-circle"} 
                             size={16} 
-                            color={comandaEmEdicao.saldo_aplicado > 0 ? "#10B981" : "#EF4444"} 
+                            color={comandaEmEdicao.saldo_aplicado > 0 ? colors.success : colors.error} 
                           />
                           <Text style={styles.crediarioInfoLabel}>
                             {comandaEmEdicao.saldo_aplicado > 0 ? 'Crédito usado:' : 'Débito quitado:'}
                           </Text>
                           <Text style={[
                             styles.crediarioInfoValue,
-                            { color: comandaEmEdicao.saldo_aplicado > 0 ? '#10B981' : '#EF4444' }
+                            { color: comandaEmEdicao.saldo_aplicado > 0 ? colors.success : colors.error }
                           ]}>
                             {Math.abs(comandaEmEdicao.saldo_aplicado).toLocaleString('pt-BR', {
                               style: 'currency',
@@ -2872,7 +2872,7 @@ export default function ComandasScreen() {
                         <View style={styles.crediarioInfoRow}>
                           <FontAwesome5 name="plus-circle" size={16} color={colors.success} />
                           <Text style={styles.crediarioInfoLabel}>Troco → Crédito:</Text>
-                          <Text style={[styles.crediarioInfoValue, { color: '#10B981' }]}>
+                          <Text style={[styles.crediarioInfoValue, { color: colors.success }]}>
                             +{comandaEmEdicao.troco_para_credito.toLocaleString('pt-BR', {
                               style: 'currency',
                               currency: 'BRL'
@@ -2887,7 +2887,7 @@ export default function ComandasScreen() {
                         <View style={styles.crediarioInfoRow}>
                           <FontAwesome5 name="minus-circle" size={16} color={colors.error} />
                           <Text style={styles.crediarioInfoLabel}>Falta → Débito:</Text>
-                          <Text style={[styles.crediarioInfoValue, { color: '#EF4444' }]}>
+                          <Text style={[styles.crediarioInfoValue, { color: colors.error }]}>
                             -{comandaEmEdicao.falta_para_debito.toLocaleString('pt-BR', {
                               style: 'currency',
                               currency: 'BRL'
@@ -3180,7 +3180,7 @@ export default function ComandasScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Pagamento</Text>
               <TouchableOpacity onPress={() => setModalPagamentoVisible(false)}>
-                <Ionicons name="close" size={24} color="#111827" />
+                <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
@@ -3192,12 +3192,12 @@ export default function ComandasScreen() {
               {/* Indicador de Saldo Aplicado */}
               {usarSaldoCrediario && valorAplicadoSaldo !== 0 && (
                 <View style={{
-                  backgroundColor: saldoCrediario && saldoCrediario > 0 ? '#E8FFF3' : '#FFF1F2',
+                  backgroundColor: saldoCrediario && saldoCrediario > 0 ? colors.successBackground : colors.errorBackground,
                   borderRadius: 12,
                   padding: 12,
                   marginBottom: 16,
                   borderWidth: 1,
-                  borderColor: saldoCrediario && saldoCrediario > 0 ? '#10B981' : '#EF4444',
+                  borderColor: saldoCrediario && saldoCrediario > 0 ? colors.success : colors.error,
                 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <View style={{ flex: 1 }}>
@@ -3207,7 +3207,7 @@ export default function ComandasScreen() {
                       <Text style={{ 
                         fontSize: 16, 
                         fontWeight: 'bold',
-                        color: saldoCrediario && saldoCrediario > 0 ? '#10B981' : '#EF4444'
+                        color: saldoCrediario && saldoCrediario > 0 ? colors.success : colors.error
                       }}>
                         {saldoCrediario && saldoCrediario > 0 ? '- ' : '+ '}
                         {Math.abs(valorAplicadoSaldo).toLocaleString('pt-BR', {
@@ -3270,7 +3270,7 @@ export default function ComandasScreen() {
                     <Ionicons 
                       name="cash-outline" 
                       size={24} 
-                      color={formasPagamentoSelecionadas.includes('dinheiro') ? '#FFFFFF' : '#6B7280'} 
+                      color={formasPagamentoSelecionadas.includes('dinheiro') ? '#FFFFFF' : colors.textSecondary} 
                     />
                     <Text style={[
                       styles.pagamentoOpcaoTexto,
@@ -3288,7 +3288,7 @@ export default function ComandasScreen() {
                     <Ionicons 
                       name="card-outline" 
                       size={24} 
-                      color={formasPagamentoSelecionadas.includes('cartao_credito') ? '#FFFFFF' : '#6B7280'} 
+                      color={formasPagamentoSelecionadas.includes('cartao_credito') ? '#FFFFFF' : colors.textSecondary} 
                     />
                     <Text style={[
                       styles.pagamentoOpcaoTexto,
@@ -3306,7 +3306,7 @@ export default function ComandasScreen() {
                     <Ionicons 
                       name="card-outline" 
                       size={24} 
-                      color={formasPagamentoSelecionadas.includes('cartao_debito') ? '#FFFFFF' : '#6B7280'} 
+                      color={formasPagamentoSelecionadas.includes('cartao_debito') ? '#FFFFFF' : colors.textSecondary} 
                     />
                     <Text style={[
                       styles.pagamentoOpcaoTexto,
@@ -3324,7 +3324,7 @@ export default function ComandasScreen() {
                     <Ionicons 
                       name="qr-code-outline" 
                       size={24} 
-                      color={formasPagamentoSelecionadas.includes('pix') ? '#FFFFFF' : '#6B7280'} 
+                      color={formasPagamentoSelecionadas.includes('pix') ? '#FFFFFF' : colors.textSecondary} 
                     />
                     <Text style={[
                       styles.pagamentoOpcaoTexto,
@@ -3355,7 +3355,7 @@ export default function ComandasScreen() {
                     <Ionicons 
                       name="wallet-outline" 
                       size={24} 
-                      color={formasPagamentoSelecionadas.includes('crediario') ? '#FFFFFF' : '#6B7280'} 
+                      color={formasPagamentoSelecionadas.includes('crediario') ? '#FFFFFF' : colors.textSecondary} 
                     />
                     <Text style={[
                       styles.pagamentoOpcaoTexto,
@@ -3729,7 +3729,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     flex: 1,
     fontSize: 16,
     marginLeft: 10,
-    color: '#1F2937',
+    color: colors.text,
   },
   tabsContainer: {
     flexDirection: 'row',
@@ -3753,7 +3753,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
   },
   tabActive: {
-    backgroundColor: '#F3E8FF',
+    backgroundColor: colors.primaryBackground,
     borderRadius: 12,
   },
   tabText: {
@@ -3784,7 +3784,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.background,
   },
   comandaCancelada: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.errorBackground,
   },
   comandaCardHeader: {
     marginBottom: 12,
@@ -3804,7 +3804,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#EDE9FE',
+    backgroundColor: colors.primaryBackground,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
@@ -3815,7 +3815,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   comandaCardCliente: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#111827',
+    color: colors.text,
   },
   comandaCardData: {
     fontSize: 13,
@@ -3846,10 +3846,10 @@ const createStyles = (colors: any) => StyleSheet.create({
   comandaValor: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: colors.text,
   },
   comandaDetailHeader: {
-    backgroundColor: '#F3E8FF',
+    backgroundColor: colors.primaryBackground,
     borderRadius: 8,
     padding: 16,
     marginBottom: 16,
@@ -3872,7 +3872,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#EDE9FE',
+    backgroundColor: colors.primaryBackground,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -3893,12 +3893,12 @@ const createStyles = (colors: any) => StyleSheet.create({
   comandaDetailValue: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#1F2937',
+    color: colors.text,
   },
   comandaDetailCliente: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: colors.text,
     marginBottom: 8,
   },
   comandaItemCard: {
@@ -3917,13 +3917,13 @@ const createStyles = (colors: any) => StyleSheet.create({
   comandaItemNome: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#1F2937',
+    color: colors.text,
     flex: 1,
   },
   comandaItemPreco: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: colors.text,
   },
   comandaItemQtd: {
     fontSize: 14,
@@ -3942,12 +3942,12 @@ const createStyles = (colors: any) => StyleSheet.create({
   comandaItemTotalText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#4B5563',
+    color: colors.textSecondary,
   },
   comandaItemTotalValue: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: colors.text,
     marginLeft: 8,
   },
   itemTypeTabs: {
@@ -4011,7 +4011,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   comandaDetailStatusText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#1F2937',
+    color: colors.text,
   },
   comandaItensContainer: {
     marginBottom: 16,
@@ -4025,14 +4025,14 @@ const createStyles = (colors: any) => StyleSheet.create({
   comandaItensTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
   },
   editarItensButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: '#F3E8FF',
+    backgroundColor: colors.primaryBackground,
     borderRadius: 6,
   },
   editarItensText: {
@@ -4046,13 +4046,13 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: colors.successBackground,
     borderRadius: 6,
   },
   salvarItensText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#10B981',
+    color: colors.success,
     marginLeft: 4,
   },
   quantidadeControls: {
@@ -4064,7 +4064,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#F3E8FF',
+    backgroundColor: colors.primaryBackground,
     justifyContent: 'center',
     alignItems: 'center',
     marginHorizontal: 4,
@@ -4072,7 +4072,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   quantidadeText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
     marginHorizontal: 8,
   },
   comandaItemRight: {
@@ -4132,7 +4132,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.errorBackground,
     height: 48,
     borderRadius: 8,
     marginRight: 8,
@@ -4148,7 +4148,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   cancelarComandaText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#EF4444',
+    color: colors.error,
     marginLeft: 8,
   },
   manterAbertaButton: {
@@ -4156,7 +4156,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F3E8FF',
+    backgroundColor: colors.primaryBackground,
     height: 48,
     borderRadius: 8,
     marginHorizontal: 8,
@@ -4219,13 +4219,13 @@ const createStyles = (colors: any) => StyleSheet.create({
   errorTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#EF4444',
+    color: colors.error,
     marginBottom: 8,
   },
   errorText: {
     fontSize: 16,
     textAlign: 'center',
-    color: '#B91C1C',
+    color: colors.error,
     marginTop: 16,
   },
   refreshButton: {
@@ -4266,7 +4266,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   modalDragIndicator: {
     width: 40,
     height: 5,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.border,
     borderRadius: 2.5,
     alignSelf: 'center',
     marginTop: 10,
@@ -4284,7 +4284,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#111827',
+    color: colors.text,
   },
   modalBody: {
     maxHeight: '70%',
@@ -4315,7 +4315,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     elevation: 1,
   },
   cancelButtonText: {
-    color: '#4B5563',
+    color: colors.textSecondary,
     fontWeight: 'bold',
     fontSize: 15,
   },
@@ -4333,7 +4333,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     elevation: 2,
   },
   saveButtonDisabled: {
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.border,
   },
   saveButtonText: {
     color: '#FFFFFF',
@@ -4343,12 +4343,12 @@ const createStyles = (colors: any) => StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
     marginBottom: 8,
   },
   inputLabel: {
     fontSize: 14,
-    color: '#4B5563',
+    color: colors.textSecondary,
     marginBottom: 4,
   },
   inputContainer: {
@@ -4364,7 +4364,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#111827',
+    color: colors.text,
   },
   clearButton: {
     padding: 4,
@@ -4372,7 +4372,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   clienteInput: {
     paddingVertical: 12,
     backgroundColor: colors.surface,
-    borderColor: '#D1D5DB',
+    borderColor: colors.border,
   },
   clientesDropdown: {
     backgroundColor: colors.surface,
@@ -4396,7 +4396,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.borderLight,
   },
   clienteFoto: {
     width: 40,
@@ -4408,7 +4408,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#EDE9FE',
+    backgroundColor: colors.primaryBackground,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -4426,7 +4426,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#EDE9FE',
+    backgroundColor: colors.primaryBackground,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
@@ -4434,7 +4434,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   clienteItemNome: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#111827',
+    color: colors.text,
   },
   clienteItemTelefone: {
     fontSize: 13,
@@ -4449,22 +4449,22 @@ const createStyles = (colors: any) => StyleSheet.create({
   mensagemCarregando: {
     marginTop: 8,
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
   },
   mensagemVazia: {
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   observacoesInput: {
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: colors.border,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#111827',
+    color: colors.text,
     minHeight: 120,
     textAlignVertical: 'top',
   },
@@ -4973,7 +4973,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     marginTop: 16,
     padding: 16,
-    backgroundColor: '#ECFDF5',
+    backgroundColor: colors.successBackground,
     borderRadius: 8,
   },
   pagamentoValorContainer: {
@@ -4989,7 +4989,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 8,
   },
   pagamentoFaltaContainer: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.errorBackground,
   },
   pagamentoInfoLabel: {
     fontSize: 16,
@@ -5054,7 +5054,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F3E8FF',
+    backgroundColor: colors.primaryBackground,
     padding: 12,
     borderRadius: 8,
     gap: 8,
@@ -5071,7 +5071,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 10,
-    color: '#333',
+    color: colors.text,
   },
   comprovantePreviewContainer: {
     width: '100%',
@@ -5081,13 +5081,13 @@ const createStyles = (colors: any) => StyleSheet.create({
     width: '100%',
     height: 200,
     borderRadius: 8,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: colors.background,
   },
   comprovanteButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F3E8FF',
+    backgroundColor: colors.primaryBackground,
     padding: 12,
     borderRadius: 8,
     marginTop: 10,
@@ -5102,13 +5102,13 @@ const createStyles = (colors: any) => StyleSheet.create({
     width: '100%',
     height: 200,
     borderRadius: 8,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
   },
   comprovantePlaceholderText: {
-    color: '#666',
+    color: colors.textSecondary,
     fontSize: 14,
     marginBottom: 10,
   },
@@ -5131,7 +5131,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     textAlign: 'center',
   },
   optionButton: {
-    backgroundColor: '#F3E8FF',
+    backgroundColor: colors.primaryBackground,
     padding: 12,
     borderRadius: 8,
     marginBottom: 10,
@@ -5143,7 +5143,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     textAlign: 'center',
   },
   optionButtonCancel: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.errorBackground,
     padding: 12,
     borderRadius: 8,
   },
@@ -5161,12 +5161,12 @@ const createStyles = (colors: any) => StyleSheet.create({
   itemSubtotalLabel: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: colors.text,
   },
   itemSubtotalValue: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: colors.text,
   },
   excluirButton: {
     padding: 8,
@@ -5179,23 +5179,23 @@ const createStyles = (colors: any) => StyleSheet.create({
   comandaPagamentoLabel: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: colors.text,
   },
   comandaPagamentoValue: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: colors.text,
     marginTop: 4,
   },
   comandaValorPago: {
     fontSize: 14,
-    color: '#10B981',
+    color: colors.success,
     marginTop: 6,
     fontWeight: '600',
   },
   comandaParcelas: {
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 5,
   },
   crediarioInfoBox: {
@@ -5213,7 +5213,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   crediarioInfoLabel: {
     fontSize: 14,
-    color: '#4B5563',
+    color: colors.textSecondary,
     flex: 1,
     marginLeft: 4,
   },
@@ -5237,10 +5237,10 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.background,
   },
   modalItemTextIndisponivel: {
-    color: '#999',
+    color: colors.textDisabled,
   },
   modalItemEstoqueZero: {
-    color: '#ff0000',
+    color: colors.error,
   },
   novoPagamentoContainer: {
     backgroundColor: colors.background,
@@ -5261,7 +5261,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 16,
     color: colors.text,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: colors.border,
     marginBottom: 12,
   },
   adicionarPagamentoButton: {
@@ -5271,7 +5271,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
   },
   adicionarPagamentoButtonDisabled: {
-    backgroundColor: '#9CA3AF',
+    backgroundColor: colors.borderLight,
   },
   adicionarPagamentoButtonText: {
     color: '#FFFFFF',
@@ -5279,6 +5279,6 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontWeight: 'bold',
   },
   adicionarPagamentoButtonTextDisabled: {
-    color: '#D1D5DB',
+    color: colors.textDisabled,
   },
 }); 
