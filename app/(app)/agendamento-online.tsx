@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   actionButtonText: {
-    color: colors.white,
+    color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '600',
   },

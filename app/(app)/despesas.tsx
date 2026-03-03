@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
   
   // Header
   header: {
-    backgroundColor: colors.white,
+    backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
 
   // Filtros (Abas)
   filtrosWrapper: {
-    backgroundColor: colors.white,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
@@ -540,15 +540,15 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.white,
+    backgroundColor: '#FFFFFF',
   },
   filtroIconeAtivo: {
-    backgroundColor: colors.white,
+    backgroundColor: '#FFFFFF',
   },
   filtroTexto: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textSecondary,
+    color: '#666',
   },
   filtroTextoAtivo: {
     color: '#2e7d32',
@@ -556,7 +556,7 @@ const styles = StyleSheet.create({
 
   // Seletor de Data Personalizada
   customDateContainer: {
-    backgroundColor: colors.white,
+    backgroundColor: '#FFFFFF',
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
   dateLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.textSecondary,
+    color: '#666',
     marginBottom: 8,
   },
   dateButton: {
@@ -595,7 +595,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 16,
     gap: 12,
-    backgroundColor: colors.white,
+    backgroundColor: '#FFFFFF',
   },
   card: {
     flex: 1,
@@ -614,7 +614,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 11,
     fontWeight: '600',
-    color: colors.textSecondary,
+    color: '#666',
     textTransform: 'uppercase',
   },
   cardValue: {
@@ -637,14 +637,14 @@ const styles = StyleSheet.create({
   contadorContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: colors.white,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
   contadorTexto: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textSecondary,
+    color: '#666',
   },
 
   // Lista
@@ -668,7 +668,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
-    backgroundColor: colors.white,
+    backgroundColor: '#FFFFFF',
     margin: 16,
     borderRadius: 12,
   },
@@ -681,7 +681,7 @@ const styles = StyleSheet.create({
   },
   emptyDescription: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: '#666',
     marginTop: 8,
     textAlign: 'center',
     lineHeight: 20,
@@ -697,7 +697,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#2e7d32',
   },
   emptyButtonText: {
-    color: colors.white,
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -711,7 +711,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   detailsCard: {
-    backgroundColor: colors.white,
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 24,
     width: 320,
@@ -759,7 +759,7 @@ const styles = StyleSheet.create({
   },
   detailsDescriptionText: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: '#666',
     lineHeight: 18,
   },
 });
