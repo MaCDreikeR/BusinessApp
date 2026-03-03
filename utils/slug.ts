@@ -31,7 +31,7 @@ function removerAcentos(texto: string): string {
  * Gera slug base a partir de um texto
  * 
  * @param texto - Texto original (ex: "Salão Emily Borges")
- * @returns Slug base (ex: "salao-emily-borges")
+ * @returns Slug base (ex: "salaoemilyborges")
  */
 export function gerarSlugBase(texto: string): string {
   if (!texto || typeof texto !== 'string') {
@@ -62,7 +62,7 @@ export function gerarSlugBase(texto: string): string {
   
   // Garantir mínimo de 3 caracteres
   if (slug.length < 3) {
-    slug = slug + '-' + Date.now().toString().slice(-4);
+    slug = slug + Date.now().toString().slice(-4);  // Sem hífen: estabelec1234
   }
   
   return slug;
@@ -161,13 +161,13 @@ export async function gerarSlugUnico(
     // Tentar até encontrar um slug disponível
     while (await slugJaExiste(slugCandidato, estabelecimentoId)) {
       contador++;
-      slugCandidato = `${slugBase}-${contador}`;
+      slugCandidato = `${slugBase}${contador}`;  // Sem hífen: thamaranascimento2
       
       // Proteção contra loop infinito
       if (contador > maxTentativas) {
-        // Usar timestamp como fallback
+        // Usar timestamp como fallback (sem hífen)
         const timestamp = Date.now().toString().slice(-8);
-        slugCandidato = `${slugBase}-${timestamp}`;
+        slugCandidato = `${slugBase}${timestamp}`;
         logger.warn(`Muitas tentativas para gerar slug. Usando timestamp: ${slugCandidato}`);
         break;
       }

@@ -15,23 +15,52 @@ import { logger } from './logger';
 // ============================================================================
 
 /**
- * Valida formato de email
+ * Valida formato de email (Supabase compatible)
  * @param email Email a ser validado
  * @returns true se email é válido
+ * 
+ * RFC 5322 simplified pattern compatible with Supabase Auth
  */
 export const validarEmail = (email: string): boolean => {
   if (!email || typeof email !== 'string') {
     return false;
   }
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const isValid = emailRegex.test(email.trim().toLowerCase());
+  const emailTrimmed = email.trim().toLowerCase();
   
-  if (!isValid) {
-    logger.debug('Email inválido:', email);
+  // RFC 5322 simplified + Supabase compatible
+  // Não permite caracteres especiais consecutivos como ".."
+  const emailRegex = /^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  
+  if (!emailRegex.test(emailTrimmed)) {
+    logger.debug('Email inválido (formato):', email);
+    return false;
   }
   
-  return isValid;
+  // Validações adicionais Supabase-específicas
+  if (emailTrimmed.includes('..')) {
+    logger.debug('Email inválido (pontos consecutivos):', email);
+    return false;
+  }
+  
+  if (emailTrimmed.startsWith('.') || emailTrimmed.startsWith('@')) {
+    logger.debug('Email inválido (começa com . ou @):', email);
+    return false;
+  }
+  
+  const [localPart, domain] = emailTrimmed.split('@');
+  
+  if (!localPart || localPart.length < 1 || localPart.length > 64) {
+    logger.debug('Email inválido (localpart inválido):', email);
+    return false;
+  }
+  
+  if (!domain || domain.length < 3) {
+    logger.debug('Email inválido (domínio inválido):', email);
+    return false;
+  }
+  
+  return true;
 };
 
 /**
