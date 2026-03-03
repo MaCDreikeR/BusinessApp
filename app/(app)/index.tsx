@@ -342,7 +342,7 @@ export default function HomeScreen() {
       top: 16,
       left: 16,
       right: 16,
-      backgroundColor: colors.success,
+      backgroundColor: 'rgba(124, 58, 237, 0.95)', // Primary com opacidade
       borderRadius: 12,
       padding: 16,
       flexDirection: 'row' as const,
