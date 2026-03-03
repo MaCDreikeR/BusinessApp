@@ -302,14 +302,29 @@ export default function ContaDetalhes() {
           onPress: async () => {
             try {
               setLoading(true);
-              
-              // Delete do estabelecimento (cascade deve deletar os usuários e dados relacionados)
-              const { error } = await supabase
-                .from('estabelecimentos')
-                .delete()
-                .eq('id', id);
 
-              if (error) throw error;
+              const { error } = await supabase.rpc('excluir_conta_completa', {
+                p_estabelecimento_id: id,
+                p_remover_auth: true,
+              });
+
+              if (error) {
+                logger.error('Erro na RPC excluir_conta_completa, tentando fallback:', error);
+
+                const { error: usuariosError } = await supabase
+                  .from('usuarios')
+                  .delete()
+                  .eq('estabelecimento_id', id);
+
+                if (usuariosError) throw usuariosError;
+
+                const { error: estabError } = await supabase
+                  .from('estabelecimentos')
+                  .delete()
+                  .eq('id', id);
+
+                if (estabError) throw estabError;
+              }
 
               Alert.alert(
                 'Conta Excluída',
@@ -323,7 +338,12 @@ export default function ContaDetalhes() {
               );
             } catch (e: any) {
               setLoading(false);
-              Alert.alert('Erro ao excluir', e.message ?? 'Não foi possível excluir a conta. Tente novamente.');
+              const mensagem = String(e?.message ?? '');
+              if (mensagem.includes('violates foreign key constraint')) {
+                Alert.alert('Erro ao excluir', 'Ainda existem dados vinculados a esta conta. Execute a RPC de exclusão completa no Supabase e tente novamente.');
+              } else {
+                Alert.alert('Erro ao excluir', e.message ?? 'Não foi possível excluir a conta. Tente novamente.');
+              }
             }
           }
         }
