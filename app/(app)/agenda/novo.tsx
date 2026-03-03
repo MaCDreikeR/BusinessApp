@@ -13,7 +13,7 @@ import { logger } from '../../../utils/logger';
 import { formatarDataInput, formatarTelefoneInput } from '@utils/validators';
 import { theme } from '@utils/theme';
 import { CacheManager, CacheNamespaces } from '../../../utils/cacheManager';
-// [CACHE-BUSTER-2025-11-05-14:30] Import condicional: DateTimePicker só é importado no mobile
+// [CACHE-BUSTER-2025-11-05-14:30] Import condicional: DateTimePicker sï¿½ ï¿½ importado no mobile
 let DateTimePicker: any = null;
 if (Platform.OS !== 'web') {
   DateTimePicker = require('@react-native-community/datetimepicker').default;
@@ -86,15 +86,15 @@ export default function NovoAgendamentoScreen() {
   const { estabelecimentoId, role, user } = useAuth();
   const { colors } = useTheme();
   
-  // Estilos dinâmicos baseados no tema
+  // Estilos dinï¿½micos baseados no tema
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [loading, setLoading] = useState(false);
   const [cliente, setCliente] = useState('');
   const [telefone, setTelefone] = useState('');
   const [data, setData] = useState('');
   const [hora, setHora] = useState('');
-  const [horaTermino, setHoraTermino] = useState(''); // Novo campo para horário de término
-  const [criarComandaAutomatica, setCriarComandaAutomatica] = useState(true); // Padrão: Sim
+  const [horaTermino, setHoraTermino] = useState(''); // Novo campo para horï¿½rio de tï¿½rmino
+  const [criarComandaAutomatica, setCriarComandaAutomatica] = useState(true); // Padrï¿½o: Sim
   const [servico, setServico] = useState('');
   const [servicosAgendamento, setServicosAgendamento] = useState<string>('');
   const [valorTotal, setValorTotal] = useState(0);
@@ -107,14 +107,14 @@ export default function NovoAgendamentoScreen() {
   const [buscandoClientes, setBuscandoClientes] = useState(false);
   const [mostrarLista, setMostrarLista] = useState(false);
 
-  // Novos estados para busca de serviços
+  // Novos estados para busca de serviï¿½os
   const [servicosEncontrados, setServicosEncontrados] = useState<Servico[]>([]);
   const [todosServicos, setTodosServicos] = useState<Servico[]>([]);
   const [servicoSelecionado, setServicoSelecionado] = useState<Servico | null>(null);
   const [buscandoServicos, setBuscandoServicos] = useState(false);
   const [mostrarListaServicos, setMostrarListaServicos] = useState(false);
 
-  // Estados para o modal de serviços
+  // Estados para o modal de serviï¿½os
   const [modalVisible, setModalVisible] = useState(false);
   const [pesquisaServico, setPesquisaServico] = useState('');
 
@@ -127,11 +127,11 @@ export default function NovoAgendamentoScreen() {
   const [pesquisaPacote, setPesquisaPacote] = useState('');
   const [buscandoPacotes, setBuscandoPacotes] = useState(false);
 
-  // Animações separadas para cada modal
+  // Animaï¿½ï¿½es separadas para cada modal
   const translateYServicos = useRef(new Animated.Value(500)).current;
   const translateYPacotes = useRef(new Animated.Value(500)).current;
   
-  // PanResponder para o modal de serviços
+  // PanResponder para o modal de serviï¿½os
   const panResponderServicos = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -201,7 +201,7 @@ export default function NovoAgendamentoScreen() {
     logger.debug('??? [STATE] showDatePicker mudou para:', showDatePicker, 'Platform:', Platform.OS);
   }, [showDatePicker]);
 
-  // Estados para usuários
+  // Estados para usuï¿½rios
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [usuarioSelecionado, setUsuarioSelecionado] = useState<Usuario | null>(null);
   const [presencaUsuarios, setPresencaUsuarios] = useState<Record<string, boolean>>({});
@@ -211,7 +211,7 @@ export default function NovoAgendamentoScreen() {
   const [diasSemanaBloqueados, setDiasSemanaBloqueados] = useState<number[]>([]);
   const [datasBloqueadas, setDatasBloqueadas] = useState<string[]>([]);
 
-  // Adicionar estado para armazenar o limite de agendamentos simultâneos
+  // Adicionar estado para armazenar o limite de agendamentos simultï¿½neos
   const [limiteSimultaneos, setLimiteSimultaneos] = useState('1');
 
   // Adicionar novos estados
@@ -225,7 +225,7 @@ export default function NovoAgendamentoScreen() {
   const [horarioIntervaloInicio, setHorarioIntervaloInicio] = useState('12:00');
   const [horarioIntervaloFim, setHorarioIntervaloFim] = useState('13:00');
 
-  // Função para calcular a duração total dos serviços selecionados
+  // Funï¿½ï¿½o para calcular a duraï¿½ï¿½o total dos serviï¿½os selecionados
   const calcularDuracaoTotal = useCallback((): number | null => {
     if (servicosSelecionados.length === 0) return null;
     
@@ -242,7 +242,7 @@ export default function NovoAgendamentoScreen() {
     return temDuracao ? duracaoTotal : null;
   }, [servicosSelecionados]);
 
-  // Função para calcular horário de término baseado no horário de início e duração
+  // Funï¿½ï¿½o para calcular horï¿½rio de tï¿½rmino baseado no horï¿½rio de inï¿½cio e duraï¿½ï¿½o
   const calcularHorarioTermino = useCallback((horarioInicio: string, duracaoMinutos: number): string => {
     const [horas, minutos] = horarioInicio.split(':').map(Number);
     
@@ -254,29 +254,29 @@ export default function NovoAgendamentoScreen() {
     const horasFim = Math.floor(minutosFim / 60);
     const minutosFim2 = minutosFim % 60;
     
-    // Formata com zero à esquerda
+    // Formata com zero ï¿½ esquerda
     const horaFormatada = String(horasFim).padStart(2, '0');
     const minutoFormatado = String(minutosFim2).padStart(2, '0');
     
     return `${horaFormatada}:${minutoFormatado}`;
   }, []);
 
-  // Calcular duração total considerando serviços e pacotes
+  // Calcular duraï¿½ï¿½o total considerando serviï¿½os e pacotes
   const calcularDuracaoTotalCompleta = useCallback((): number | null => {
     let duracaoTotal = 0;
     let temDuracao = false;
     
-    // Duração dos serviços
+    // Duraï¿½ï¿½o dos serviï¿½os
     for (const servico of servicosSelecionados) {
       if (servico.duracao) {
         const duracaoServico = servico.duracao * (servico.quantidade || 1);
         duracaoTotal += duracaoServico;
         temDuracao = true;
-        logger.debug(`?? Serviço "${servico.nome}": ${servico.duracao} min x ${servico.quantidade} = ${duracaoServico} min`);
+        logger.debug(`?? Serviï¿½o "${servico.nome}": ${servico.duracao} min x ${servico.quantidade} = ${duracaoServico} min`);
       }
     }
     
-    // Duração dos pacotes
+    // Duraï¿½ï¿½o dos pacotes
     for (const pacote of pacotesSelecionados) {
       if (pacote.duracao_total) {
         const duracaoPacote = pacote.duracao_total * (pacote.quantidade || 1);
@@ -284,7 +284,7 @@ export default function NovoAgendamentoScreen() {
         temDuracao = true;
         logger.debug(`?? Pacote "${pacote.nome}": ${pacote.duracao_total} min x ${pacote.quantidade} = ${duracaoPacote} min`);
       } else {
-        logger.warn(`?? Pacote "${pacote.nome}" NÃO tem duracao_total definida!`);
+        logger.warn(`?? Pacote "${pacote.nome}" Nï¿½O tem duracao_total definida!`);
       }
     }
     
@@ -292,49 +292,49 @@ export default function NovoAgendamentoScreen() {
     return temDuracao ? duracaoTotal : null;
   }, [servicosSelecionados, pacotesSelecionados]);
 
-  // Effect para atualizar horário de término automaticamente quando hora de início ou serviços/pacotes mudam
+  // Effect para atualizar horï¿½rio de tï¿½rmino automaticamente quando hora de inï¿½cio ou serviï¿½os/pacotes mudam
   useEffect(() => {
     logger.debug('-------------------------------------------------------');
-    logger.debug('?? useEffect DISPARADO - Verificando cálculo de término');
-    logger.debug(`?? Hora início: ${hora}`);
-    logger.debug(`?? Serviços selecionados: ${servicosSelecionados.length}`);
+    logger.debug('?? useEffect DISPARADO - Verificando cï¿½lculo de tï¿½rmino');
+    logger.debug(`?? Hora inï¿½cio: ${hora}`);
+    logger.debug(`?? Serviï¿½os selecionados: ${servicosSelecionados.length}`);
     logger.debug(`?? Pacotes selecionados: ${pacotesSelecionados.length}`);
     
     if (hora && (servicosSelecionados.length > 0 || pacotesSelecionados.length > 0)) {
-      logger.debug('? Condições atendidas - calculando duração...');
+      logger.debug('? Condiï¿½ï¿½es atendidas - calculando duraï¿½ï¿½o...');
       
       const duracaoTotal = calcularDuracaoTotalCompleta();
       
-      logger.debug(`??  Duração total calculada: ${duracaoTotal} min`);
+      logger.debug(`??  Duraï¿½ï¿½o total calculada: ${duracaoTotal} min`);
       
       if (duracaoTotal) {
         const horarioTerminoCalculado = calcularHorarioTermino(hora, duracaoTotal);
-        logger.debug(`?? Horário de término calculado: ${horarioTerminoCalculado}`);
+        logger.debug(`?? Horï¿½rio de tï¿½rmino calculado: ${horarioTerminoCalculado}`);
         logger.debug(`?? Atualizando estado horaTermino para: ${horarioTerminoCalculado}`);
         setHoraTermino(horarioTerminoCalculado);
         logger.debug(`? Estado horaTermino atualizado!`);
       } else {
-        logger.warn('??  duracaoTotal retornou NULL - sem duração definida');
+        logger.warn('??  duracaoTotal retornou NULL - sem duraï¿½ï¿½o definida');
         if (horaTermino) {
-          logger.debug('?? Mantendo horário de término manual');
+          logger.debug('?? Mantendo horï¿½rio de tï¿½rmino manual');
         }
       }
     } else {
-      logger.warn('? Condições NÃO atendidas:');
-      if (!hora) logger.warn('  - Hora de início não definida');
+      logger.warn('? Condiï¿½ï¿½es Nï¿½O atendidas:');
+      if (!hora) logger.warn('  - Hora de inï¿½cio nï¿½o definida');
       if (servicosSelecionados.length === 0 && pacotesSelecionados.length === 0) {
-        logger.warn('  - Nenhum serviço ou pacote selecionado');
+        logger.warn('  - Nenhum serviï¿½o ou pacote selecionado');
       }
     }
     logger.debug('-------------------------------------------------------');
   }, [hora, servicosSelecionados, pacotesSelecionados, calcularDuracaoTotalCompleta, calcularHorarioTermino]);
 
-  // Sincronização com o estado de presença da tela de agenda
+  // Sincronizaï¿½ï¿½o com o estado de presenï¿½a da tela de agenda
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener('atualizarPresencaUsuarios', (novoEstado: Record<string, boolean>) => {
       setPresencaUsuarios(novoEstado);
       
-      // Se o usuário selecionado foi marcado como ausente, desseleciona ele
+      // Se o usuï¿½rio selecionado foi marcado como ausente, desseleciona ele
       if (usuarioSelecionado && !novoEstado[usuarioSelecionado.id]) {
         setUsuarioSelecionado(null);
       }
@@ -346,16 +346,16 @@ export default function NovoAgendamentoScreen() {
   }, [usuarioSelecionado]);
 
   // Garantir que o loading seja resetado quando a tela for focada
-  // E limpar o formulário quando sair da tela
+  // E limpar o formulï¿½rio quando sair da tela
   useFocusEffect(
     useCallback(() => {
       // Resetar loading ao entrar na tela
       setLoading(false);
       logger.debug('Tela de novo agendamento focada - loading resetado');
       
-      // Função de cleanup quando sair da tela
+      // Funï¿½ï¿½o de cleanup quando sair da tela
       return () => {
-        logger.debug('Saindo da tela de novo agendamento - limpando formulário');
+        logger.debug('Saindo da tela de novo agendamento - limpando formulï¿½rio');
         // Limpar todos os campos
         setCliente('');
         setTelefone('');
@@ -402,26 +402,26 @@ export default function NovoAgendamentoScreen() {
 
   const carregarUsuarios = async () => {
     try {
-      logger.debug('Carregando usuários para novo agendamento - estabelecimento:', estabelecimentoId);
+      logger.debug('Carregando usuï¿½rios para novo agendamento - estabelecimento:', estabelecimentoId);
       
       if (!estabelecimentoId) {
-        logger.error('ID do estabelecimento não disponível');
+        logger.error('ID do estabelecimento nï¿½o disponï¿½vel');
         return;
       }
 
-      // Tenta usar RPC function primeiro (pode não existir já)
+      // Tenta usar RPC function primeiro (pode nï¿½o existir jï¿½)
       const { data: usuariosRpc, error: rpcError } = await supabase
         .rpc('get_usuarios_estabelecimento', { estabelecimento_uuid: estabelecimentoId });
 
       if (!rpcError && usuariosRpc) {
-        logger.debug('? Usuários carregados via RPC:', usuariosRpc.length);
-        logger.debug('?? Lista completa de usuários RPC:', JSON.stringify(usuariosRpc, null, 2));
+        logger.debug('? Usuï¿½rios carregados via RPC:', usuariosRpc.length);
+        logger.debug('?? Lista completa de usuï¿½rios RPC:', JSON.stringify(usuariosRpc, null, 2));
         
         // REGRA: Profissionais veem apenas a si mesmos
         let usuariosFiltrados = usuariosRpc || [];
         if (role === 'profissional' && user?.id) {
           usuariosFiltrados = usuariosRpc.filter((u: any) => u.id === user.id);
-          logger.debug('?? Profissional - mostrando apenas próprio usuário:', usuariosFiltrados);
+          logger.debug('?? Profissional - mostrando apenas prï¿½prio usuï¿½rio:', usuariosFiltrados);
           
           // Auto-selecionar o profissional
           if (usuariosFiltrados.length > 0) {
@@ -431,13 +431,13 @@ export default function NovoAgendamentoScreen() {
         
         setUsuarios(usuariosFiltrados);
         
-        // Inicializa o estado de presença para todos os usuários
+        // Inicializa o estado de presenï¿½a para todos os usuï¿½rios
         const presencaInicial = usuariosFiltrados.reduce((acc: Record<string, boolean>, usuario: any) => {
-          acc[usuario.id] = true; // Por padrão, todos estão presentes
+          acc[usuario.id] = true; // Por padrï¿½o, todos estï¿½o presentes
           return acc;
         }, {} as Record<string, boolean>);
         setPresencaUsuarios(presencaInicial);
-        logger.debug('? Total de usuários carregados:', usuariosFiltrados.length);
+        logger.debug('? Total de usuï¿½rios carregados:', usuariosFiltrados.length);
         return;
       }
 
@@ -446,7 +446,7 @@ export default function NovoAgendamentoScreen() {
       logger.debug('?? Erro RPC ou dados vazios, tentando fallback...');
 
       // Fallback para consulta direta
-      logger.debug('?? RPC não disponível, usando consulta direta...');
+      logger.debug('?? RPC nï¿½o disponï¿½vel, usando consulta direta...');
       const { data, error } = await supabase
         .from('usuarios')
         .select('id, nome_completo, email, avatar_url, faz_atendimento')
@@ -455,14 +455,14 @@ export default function NovoAgendamentoScreen() {
 
       if (error) throw error;
 
-      logger.debug('? Usuários encontrados via consulta direta:', data?.length);
-      logger.debug('?? Lista completa de usuários (fallback):', JSON.stringify(data, null, 2));
+      logger.debug('? Usuï¿½rios encontrados via consulta direta:', data?.length);
+      logger.debug('?? Lista completa de usuï¿½rios (fallback):', JSON.stringify(data, null, 2));
       
       // REGRA: Profissionais veem apenas a si mesmos
       let usuariosFiltrados = data || [];
       if (role === 'profissional' && user?.id) {
         usuariosFiltrados = data?.filter((u: any) => u.id === user.id) || [];
-        logger.debug('?? Profissional - mostrando apenas próprio usuário:', usuariosFiltrados);
+        logger.debug('?? Profissional - mostrando apenas prï¿½prio usuï¿½rio:', usuariosFiltrados);
         
         // Auto-selecionar o profissional
         if (usuariosFiltrados.length > 0) {
@@ -472,15 +472,15 @@ export default function NovoAgendamentoScreen() {
       
       setUsuarios(usuariosFiltrados);
       
-      // Inicializa o estado de presença para todos os usuários
+      // Inicializa o estado de presenï¿½a para todos os usuï¿½rios
       const presencaInicial = usuariosFiltrados.reduce((acc, usuario) => {
-        acc[usuario.id] = true; // Por padrão, todos estão presentes
+        acc[usuario.id] = true; // Por padrï¿½o, todos estï¿½o presentes
         return acc;
       }, {} as Record<string, boolean>);
       setPresencaUsuarios(presencaInicial);
     } catch (error) {
-      logger.error('Erro ao carregar usuários:', error);
-      Alert.alert('Erro', 'Não foi possível carregar a lista de usuários');
+      logger.error('Erro ao carregar usuï¿½rios:', error);
+      Alert.alert('Erro', 'Nï¿½o foi possï¿½vel carregar a lista de usuï¿½rios');
     }
   };
 
@@ -503,7 +503,7 @@ export default function NovoAgendamentoScreen() {
       setTodosServicos(data || []);
       setServicosEncontrados(data || []);
     } catch (error) {
-      logger.error('Erro ao carregar serviços:', error);
+      logger.error('Erro ao carregar serviï¿½os:', error);
     }
   };
 
@@ -512,14 +512,14 @@ export default function NovoAgendamentoScreen() {
       logger.debug('Iniciando carregamento de pacotes...', { estabelecimentoId });
       
       if (!estabelecimentoId) {
-        logger.warn('estabelecimentoId não disponível para carregar pacotes');
+        logger.warn('estabelecimentoId nï¿½o disponï¿½vel para carregar pacotes');
         return;
       }
       
       setBuscandoPacotes(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        logger.warn('Usuário não autenticado');
+        logger.warn('Usuï¿½rio nï¿½o autenticado');
         return;
       }
 
@@ -554,23 +554,23 @@ export default function NovoAgendamentoScreen() {
         throw error;
       }
       
-      // Calcular duracao_total para cada pacote se não existir
+      // Calcular duracao_total para cada pacote se nï¿½o existir
       const pacotesComDuracao = (data || []).map(pacote => {
         logger.debug(`\n?? Processando pacote: "${pacote.nome}"`);
         logger.debug(`   duracao_total do banco: ${pacote.duracao_total}`);
         logger.debug(`   Tem servicos? ${!!pacote.servicos} (${pacote.servicos?.length || 0} itens)`);
         
         if (!pacote.duracao_total && pacote.servicos) {
-          // Calcular duração total somando os serviços
+          // Calcular duraï¿½ï¿½o total somando os serviï¿½os
           const duracaoCalculada = pacote.servicos.reduce((total: number, item: any) => {
             const duracao = item.servico?.duracao || 0;
             const quantidade = item.quantidade || 1;
             const subtotal = duracao * quantidade;
-            logger.debug(`   - Serviço "${item.servico?.nome}": ${duracao} min x ${quantidade} = ${subtotal} min`);
+            logger.debug(`   - Serviï¿½o "${item.servico?.nome}": ${duracao} min x ${quantidade} = ${subtotal} min`);
             return total + subtotal;
           }, 0);
           
-          logger.debug(`   ? Duração CALCULADA: ${duracaoCalculada} min`);
+          logger.debug(`   ? Duraï¿½ï¿½o CALCULADA: ${duracaoCalculada} min`);
           
           return {
             ...pacote,
@@ -590,7 +590,7 @@ export default function NovoAgendamentoScreen() {
       setTodosPacotes(pacotesComDuracao);
     } catch (error) {
       logger.error('Erro ao carregar pacotes:', error);
-      Alert.alert('Erro', 'Não foi possível carregar os pacotes');
+      Alert.alert('Erro', 'Nï¿½o foi possï¿½vel carregar os pacotes');
     } finally {
       setBuscandoPacotes(false);
     }
@@ -610,7 +610,7 @@ export default function NovoAgendamentoScreen() {
         setDiasSemanaBloqueados(JSON.parse(diasData[0].valor));
       }
       
-      // Carregar datas específicas bloqueadas
+      // Carregar datas especï¿½ficas bloqueadas
       const { data: datasData, error: datasError } = await supabase
         .from('configuracoes')
         .select('valor')
@@ -622,7 +622,7 @@ export default function NovoAgendamentoScreen() {
         setDatasBloqueadas(JSON.parse(datasData[0].valor));
       }
       
-      // Carregar limite de agendamentos simultâneos
+      // Carregar limite de agendamentos simultï¿½neos
       const { data: limiteData, error: limiteError } = await supabase
         .from('configuracoes')
         .select('valor')
@@ -635,11 +635,11 @@ export default function NovoAgendamentoScreen() {
       }
       
     } catch (error) {
-      logger.error('Erro ao carregar configurações:', error);
+      logger.error('Erro ao carregar configuraï¿½ï¿½es:', error);
     }
   };
 
-  // Função para verificar se uma data está bloqueada
+  // Funï¿½ï¿½o para verificar se uma data estï¿½ bloqueada
   const isDataBloqueada = (dataStr: string) => {
     try {
       const dataParts = dataStr.split('/');
@@ -651,13 +651,13 @@ export default function NovoAgendamentoScreen() {
       
       const data = new Date(ano, mes, dia);
       
-      // Verifica se o dia da semana está bloqueado
+      // Verifica se o dia da semana estï¿½ bloqueado
       const diaSemana = data.getDay(); // 0 = Domingo, 1 = Segunda, etc.
       if (diasSemanaBloqueados.includes(diaSemana)) {
         return true;
       }
       
-      // Verifica se a data específica está bloqueada
+      // Verifica se a data especï¿½fica estï¿½ bloqueada
       const formattedDate = format(data, 'yyyy-MM-dd');
       return datasBloqueadas.includes(formattedDate);
     } catch (error) {
@@ -670,42 +670,42 @@ export default function NovoAgendamentoScreen() {
     const novosErros: {[key: string]: string} = {};
 
     if (!cliente.trim()) {
-      novosErros.cliente = 'Nome do cliente é obrigatório';
+      novosErros.cliente = 'Nome do cliente ï¿½ obrigatï¿½rio';
     }
 
     if (!telefone.trim()) {
-      novosErros.telefone = 'Telefone é obrigatório';
+      novosErros.telefone = 'Telefone ï¿½ obrigatï¿½rio';
     } else if (telefone.replace(/\D/g, '').length < 10) {
-      novosErros.telefone = 'Telefone inválido';
+      novosErros.telefone = 'Telefone invï¿½lido';
     }
 
     if (!data.trim()) {
-      novosErros.data = 'Data é obrigatória';
+      novosErros.data = 'Data ï¿½ obrigatï¿½ria';
     } else if (!validarData(data)) {
-      novosErros.data = 'Data inválida';
+      novosErros.data = 'Data invï¿½lida';
     } else if (isDataBloqueada(data)) {
-      novosErros.data = 'Esta data está bloqueada para agendamentos';
+      novosErros.data = 'Esta data estï¿½ bloqueada para agendamentos';
     }
 
     if (!hora.trim()) {
-      novosErros.hora = 'Hora é obrigatória';
+      novosErros.hora = 'Hora ï¿½ obrigatï¿½ria';
     } else if (!validarHora(hora)) {
-      novosErros.hora = 'Hora inválida';
+      novosErros.hora = 'Hora invï¿½lida';
     }
 
     if (!horaTermino.trim()) {
-      novosErros.horaTermino = 'Horário de término é obrigatório';
+      novosErros.horaTermino = 'Horï¿½rio de tï¿½rmino ï¿½ obrigatï¿½rio';
     } else if (!validarHora(horaTermino)) {
-      novosErros.horaTermino = 'Horário de término inválido';
+      novosErros.horaTermino = 'Horï¿½rio de tï¿½rmino invï¿½lido';
     } else if (hora && horaTermino) {
-      // Validar que término seja após início
+      // Validar que tï¿½rmino seja apï¿½s inï¿½cio
       const [horaIni, minIni] = hora.split(':').map(Number);
       const [horaTerm, minTerm] = horaTermino.split(':').map(Number);
       const minutosInicio = horaIni * 60 + minIni;
       const minutosTermino = horaTerm * 60 + minTerm;
       
       if (minutosTermino <= minutosInicio) {
-        novosErros.horaTermino = 'Horário de término deve ser após o início';
+        novosErros.horaTermino = 'Horï¿½rio de tï¿½rmino deve ser apï¿½s o inï¿½cio';
       }
     }
 
@@ -713,9 +713,9 @@ export default function NovoAgendamentoScreen() {
       novosErros.usuario = 'Selecione um profissional';
     }
 
-    // Remover validação obrigatória de serviços
+    // Remover validaï¿½ï¿½o obrigatï¿½ria de serviï¿½os
     // if (servicosSelecionados.length === 0) {
-    //   novosErros.servico = 'Selecione pelo menos um serviço';
+    //   novosErros.servico = 'Selecione pelo menos um serviï¿½o';
     // }
 
     setErrors(novosErros);
@@ -732,17 +732,17 @@ export default function NovoAgendamentoScreen() {
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        Alert.alert('Erro', 'Usuário não autenticado');
+        Alert.alert('Erro', 'Usuï¿½rio nï¿½o autenticado');
         return;
       }
 
       const [dia, mes, ano] = data.split('/');
       const [hora_agendamento, minuto] = hora.split(':');
       
-      // ?? CORREÇÃO: Criar data/hora SEM conversão de timezone
-      // Usar formato ISO local ao invés de UTC
+      // ?? CORREï¿½ï¿½O: Criar data/hora SEM conversï¿½o de timezone
+      // Usar formato ISO local ao invï¿½s de UTC
       const anoInt = parseInt(ano);
-      const mesInt = parseInt(mes) - 1; // JavaScript: mês começa em 0
+      const mesInt = parseInt(mes) - 1; // JavaScript: mï¿½s comeï¿½a em 0
       const diaInt = parseInt(dia);
       const horaInt = parseInt(hora_agendamento);
       const minInt = parseInt(minuto);
@@ -751,15 +751,15 @@ export default function NovoAgendamentoScreen() {
       logger.debug(`   Data: ${diaInt}/${mesInt + 1}/${anoInt}`);
       logger.debug(`   Hora: ${horaInt}:${minInt}`);
       
-      // ?? CORREÇÃO: Criar string ISO com offset de timezone local usando função utilitária
+      // ?? CORREï¿½ï¿½O: Criar string ISO com offset de timezone local usando funï¿½ï¿½o utilitï¿½ria
       const dataHoraLocal = createLocalISOString(anoInt, mesInt + 1, diaInt, horaInt, minInt);
       
       logger.debug(`   ISO Local com offset: ${dataHoraLocal}`);
       
-      // Criar objeto Date para comparações
+      // Criar objeto Date para comparaï¿½ï¿½es
       const dataHoraAgendamento = new Date(anoInt, mesInt, diaInt, horaInt, minInt);
 
-      // Buscar agendamentos para o mesmo horário usando timezone local
+      // Buscar agendamentos para o mesmo horï¿½rio usando timezone local
       const dataInicio = new Date(anoInt, mesInt, diaInt, horaInt, minInt - 15);
       const dataFim = new Date(anoInt, mesInt, diaInt, horaInt, minInt + 15);
       
@@ -771,14 +771,14 @@ export default function NovoAgendamentoScreen() {
         
       if (erroConsulta) throw erroConsulta;
 
-      logger.debug(`Encontrados ${agendamentosExistentes?.length || 0} agendamentos no mesmo horário`);
+      logger.debug(`Encontrados ${agendamentosExistentes?.length || 0} agendamentos no mesmo horï¿½rio`);
 
       // Verificar se atingiu o limite
       const limiteTotal = parseInt(limiteSimultaneos || '1');
       if (agendamentosExistentes && agendamentosExistentes.length >= limiteTotal) {
         Alert.alert(
-          'Horário Indisponível', 
-          `Este horário já atingiu o limite de ${limiteTotal} agendamento(s) simultâneo(s).\n\nJá agendado para: ${
+          'Horï¿½rio Indisponï¿½vel', 
+          `Este horï¿½rio jï¿½ atingiu o limite de ${limiteTotal} agendamento(s) simultï¿½neo(s).\n\nJï¿½ agendado para: ${
             agendamentosExistentes.map(a => a.cliente).join(', ')
           }`
         );
@@ -786,7 +786,7 @@ export default function NovoAgendamentoScreen() {
         return;
       }
 
-      // Preparar os detalhes dos serviços (incluir serviços avulsos + serviços dos pacotes)
+      // Preparar os detalhes dos serviï¿½os (incluir serviï¿½os avulsos + serviï¿½os dos pacotes)
       let detalhesServicos = servicosSelecionados.map(s => ({
         nome: s.nome,
         quantidade: s.quantidade,
@@ -794,14 +794,14 @@ export default function NovoAgendamentoScreen() {
         servico_id: s.id
       }));
 
-      // Adicionar serviços dos pacotes selecionados
+      // Adicionar serviï¿½os dos pacotes selecionados
       pacotesSelecionados.forEach(pacote => {
         if (pacote.servicos && Array.isArray(pacote.servicos)) {
           pacote.servicos.forEach((servicoPacote: any) => {
             detalhesServicos.push({
-              nome: servicoPacote.servico?.nome || servicoPacote.nome || 'Serviço do pacote',
+              nome: servicoPacote.servico?.nome || servicoPacote.nome || 'Serviï¿½o do pacote',
               quantidade: 1,
-              preco: 0, // Preço já está no valor do pacote
+              preco: 0, // Preï¿½o jï¿½ estï¿½ no valor do pacote
               servico_id: servicoPacote.servico_id
             });
           });
@@ -815,27 +815,27 @@ export default function NovoAgendamentoScreen() {
       const valorTotalPacotes = pacotesSelecionados.reduce((total, p) => total + (p.valor || 0), 0);
       const valorTotalFinal = valorTotalAgendamento + valorTotalPacotes;
 
-      // Preparar horário de término no formato TIME (HH:MM:SS)
+      // Preparar horï¿½rio de tï¿½rmino no formato TIME (HH:MM:SS)
       let horarioTerminoFormatado = null;
       if (horaTermino) {
         horarioTerminoFormatado = `${horaTermino}:00`; // Adiciona segundos ao formato HH:MM
-        logger.debug(`   Horário Término: ${horarioTerminoFormatado}`);
+        logger.debug(`   Horï¿½rio Tï¿½rmino: ${horarioTerminoFormatado}`);
       }
 
-      logger.debug(`\n?? ========== SALVANDO NO BANCO [CÓDIGO NOVO v2.0] ==========`);
+      logger.debug(`\n?? ========== SALVANDO NO BANCO [Cï¿½DIGO NOVO v2.0] ==========`);
       logger.debug(`   ? data_hora COM TIMEZONE: ${dataHoraLocal}`);
       logger.debug(`   ? horario_termino: ${horarioTerminoFormatado}`);
-      logger.debug(`   ?? Usando createLocalISOString() - CÓDIGO ATUALIZADO!`);
+      logger.debug(`   ?? Usando createLocalISOString() - Cï¿½DIGO ATUALIZADO!`);
 
       const { error } = await supabase
         .from('agendamentos')
         .insert({
           cliente,
           telefone: telefone.replace(/\D/g, ''),
-          data_hora: dataHoraLocal, // ?? Usar string ISO local ao invés de toISOString()
+          data_hora: dataHoraLocal, // ?? Usar string ISO local ao invï¿½s de toISOString()
           horario_termino: horarioTerminoFormatado,
           servicos: detalhesServicos,
-          valor_total: valorTotalFinal, // Valor total incluindo serviços + pacotes
+          valor_total: valorTotalFinal, // Valor total incluindo serviï¿½os + pacotes
           observacoes: observacoes.trim() || null,
           estabelecimento_id: estabelecimentoId,
           status: 'agendado',
@@ -869,14 +869,14 @@ export default function NovoAgendamentoScreen() {
       );
     } catch (error) {
       logger.error('Erro ao criar agendamento:', error);
-      Alert.alert('Erro', 'Não foi possível criar o agendamento');
+      Alert.alert('Erro', 'Nï¿½o foi possï¿½vel criar o agendamento');
     } finally {
       // Sempre resetar loading, independente de sucesso ou erro
       setLoading(false);
     }
   };
 
-  // Atualizar a função limparFormulario
+  // Atualizar a funï¿½ï¿½o limparFormulario
   const limparFormulario = () => {
     // Limpar campos de texto
     setCliente('');
@@ -888,14 +888,14 @@ export default function NovoAgendamentoScreen() {
     setObservacoes('');
     setValorTotal(0);
     
-    // Limpar seleções
+    // Limpar seleï¿½ï¿½es
     setClienteSelecionado(null);
     setServicosSelecionados([]);
     setPacotesSelecionados([]);
     setUsuarioSelecionado(null);
     
     // Resetar flags
-    setCriarComandaAutomatica(true); // Voltar ao padrão
+    setCriarComandaAutomatica(true); // Voltar ao padrï¿½o
     
     // Limpar erros
     setErrors({});
@@ -917,13 +917,13 @@ export default function NovoAgendamentoScreen() {
     // Resetar data
     setDateValue(new Date());
     
-    // Resetar horários disponíveis
+    // Resetar horï¿½rios disponï¿½veis
     atualizarHorariosDisponiveis();
     
-    // Resetar loading (importante para destravar o botão)
+    // Resetar loading (importante para destravar o botï¿½o)
     setLoading(false);
     
-    logger.debug('Formulário limpo com sucesso');
+    logger.debug('Formulï¿½rio limpo com sucesso');
   };
 
   const buscarClientes = async (nome: string) => {
@@ -1023,7 +1023,7 @@ export default function NovoAgendamentoScreen() {
   };
 
   const atualizarServicosSelecionados = () => {
-    // Calcula valor total combinando serviços e pacotes
+    // Calcula valor total combinando serviï¿½os e pacotes
     const totalServicos = servicosSelecionados.reduce(
       (sum, s) => sum + (s.preco * s.quantidade), 
       0
@@ -1037,13 +1037,13 @@ export default function NovoAgendamentoScreen() {
     const total = totalServicos + totalPacotes;
     setValorTotal(total);
     
-    // Limpa erro de serviço se houver algo selecionado
+    // Limpa erro de serviï¿½o se houver algo selecionado
     if (servicosSelecionados.length > 0 || pacotesSelecionados.length > 0) {
       setErrors(prev => ({ ...prev, servico: '' }));
     }
   };
 
-  // Funções para manipulação de pacotes
+  // Funï¿½ï¿½es para manipulaï¿½ï¿½o de pacotes
   const buscarPacotes = (nome: string) => {
     setPesquisaPacote(nome);
   };
@@ -1057,7 +1057,7 @@ export default function NovoAgendamentoScreen() {
       logger.debug(`?? Dados do pacote:`, JSON.stringify(pacote, null, 2));
       logger.debug(`??  duracao_total: ${pacote.duracao_total} min`);
       logger.debug(`?? Quantidade: 1`);
-      logger.debug(`?? Horário de início atual: ${hora}`);
+      logger.debug(`?? Horï¿½rio de inï¿½cio atual: ${hora}`);
       logger.debug('-------------------------------------------------------');
       
       setPacotesSelecionados([...pacotesSelecionados, { ...pacote, quantidade: 1 }]);
@@ -1085,8 +1085,8 @@ export default function NovoAgendamentoScreen() {
   };
 
   const atualizarPacotesSelecionados = () => {
-    // Esta função agora apenas dispara a atualização
-    // O cálculo real é feito em atualizarServicosSelecionados
+    // Esta funï¿½ï¿½o agora apenas dispara a atualizaï¿½ï¿½o
+    // O cï¿½lculo real ï¿½ feito em atualizarServicosSelecionados
     atualizarServicosSelecionados();
   };
 
@@ -1118,23 +1118,23 @@ export default function NovoAgendamentoScreen() {
     carregarBloqueios();
   }, []);
 
-  // Debug: Monitorar mudanças no estado horaTermino
+  // Debug: Monitorar mudanï¿½as no estado horaTermino
   useEffect(() => {
     logger.debug(`?? [MONITOR] horaTermino mudou para: "${horaTermino}"`);
   }, [horaTermino]);
 
-  // Adicionar função para carregar configurações de horários
+  // Adicionar funï¿½ï¿½o para carregar configuraï¿½ï¿½es de horï¿½rios
   const carregarConfiguracoesHorarios = async () => {
     try {
-      // Obter o usuário atual
+      // Obter o usuï¿½rio atual
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        logger.error('Usuário não autenticado ao carregar configurações de horários');
+        logger.error('Usuï¿½rio nï¿½o autenticado ao carregar configuraï¿½ï¿½es de horï¿½rios');
         inicializarHorariosPadrao();
         return;
       }
       
-      // Carregar configurações de horários
+      // Carregar configuraï¿½ï¿½es de horï¿½rios
       const { data, error } = await supabase
         .from('configuracoes')
         .select('chave, valor')
@@ -1148,14 +1148,14 @@ export default function NovoAgendamentoScreen() {
         .eq('estabelecimento_id', estabelecimentoId);
         
       if (error) {
-        logger.error('Erro ao carregar configurações de horários:', error);
+        logger.error('Erro ao carregar configuraï¿½ï¿½es de horï¿½rios:', error);
         inicializarHorariosPadrao();
         return;
       }
       
       let foiAtualizado = false;
       
-      // Mapear os valores das configurações para os estados
+      // Mapear os valores das configuraï¿½ï¿½es para os estados
       if (data && data.length > 0) {
         foiAtualizado = true;
         data.forEach(config => {
@@ -1184,45 +1184,45 @@ export default function NovoAgendamentoScreen() {
         });
       }
       
-      // Se não houve atualização, inicializar com valores padrão
+      // Se nï¿½o houve atualizaï¿½ï¿½o, inicializar com valores padrï¿½o
       if (!foiAtualizado) {
         inicializarHorariosPadrao();
       } else {
-        // Atualizar a lista de horários disponíveis
+        // Atualizar a lista de horï¿½rios disponï¿½veis
         atualizarHorariosDisponiveis();
       }
     } catch (error) {
-      logger.error('Erro ao carregar configurações de horários:', error);
+      logger.error('Erro ao carregar configuraï¿½ï¿½es de horï¿½rios:', error);
       inicializarHorariosPadrao();
     }
   };
 
-  // Função para inicializar horários com valores padrão
+  // Funï¿½ï¿½o para inicializar horï¿½rios com valores padrï¿½o
   const inicializarHorariosPadrao = () => {
     setHorarioInicio('08:00');
     setHorarioFim('18:00');
     setIntervaloAgendamentos('30');
     setTemIntervalo(false);
     
-    // Gerar horários disponíveis com valores padrão
+    // Gerar horï¿½rios disponï¿½veis com valores padrï¿½o
     const horariosIniciais = gerarHorarios('08:00', '18:00', 30, false, '', '');
     setHorariosDisponiveis(horariosIniciais.map(h => ({ horario: h, ocupado: false, quantidade: 0 })));
   };
 
-  // Função para converter hora no formato "HH:MM" para minutos
+  // Funï¿½ï¿½o para converter hora no formato "HH:MM" para minutos
   const converterHoraParaMinutos = (hora: string) => {
     const [horas, minutos] = hora.split(':').map(Number);
     return horas * 60 + minutos;
   };
 
-  // Função para converter minutos para hora no formato "HH:MM"
+  // Funï¿½ï¿½o para converter minutos para hora no formato "HH:MM"
   const converterMinutosParaHora = (minutos: number) => {
     const horas = Math.floor(minutos / 60);
     const mins = minutos % 60;
     return `${horas.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
   };
 
-  // Função para gerar lista de horários disponíveis
+  // Funï¿½ï¿½o para gerar lista de horï¿½rios disponï¿½veis
   const gerarHorarios = (inicio: string, fim: string, intervalo: number, temIntervalo: boolean, intervaloInicio: string, intervaloFim: string) => {
     try {
       const inicioMinutos = converterHoraParaMinutos(inicio);
@@ -1238,7 +1238,7 @@ export default function NovoAgendamentoScreen() {
       
       const horarios: string[] = [];
       
-      // Verificar se a data selecionada é hoje
+      // Verificar se a data selecionada ï¿½ hoje
       const hoje = new Date();
       let horaAtualMinutos = -1;
       
@@ -1252,25 +1252,25 @@ export default function NovoAgendamentoScreen() {
                        dataSelecionada.getFullYear() === hoje.getFullYear();
         
         if (ehHoje) {
-          // Arredondar para o próximo intervalo
+          // Arredondar para o prï¿½ximo intervalo
           const horaAtual = hoje.getHours();
           const minutoAtual = hoje.getMinutes();
           horaAtualMinutos = horaAtual * 60 + minutoAtual;
           
-          // Arredondar para o próximo múltiplo do intervalo
+          // Arredondar para o prï¿½ximo mï¿½ltiplo do intervalo
           horaAtualMinutos = Math.ceil(horaAtualMinutos / intervalo) * intervalo;
           
-          logger.debug(`?? Data selecionada é HOJE. Hora atual: ${horaAtual}:${minutoAtual} ? Próximo horário: ${converterMinutosParaHora(horaAtualMinutos)}`);
+          logger.debug(`?? Data selecionada ï¿½ HOJE. Hora atual: ${horaAtual}:${minutoAtual} ? Prï¿½ximo horï¿½rio: ${converterMinutosParaHora(horaAtualMinutos)}`);
         }
       }
       
       for (let i = inicioMinutos; i < fimMinutos; i += intervalo) {
-        // Pular horários durante o intervalo de almoço
+        // Pular horï¿½rios durante o intervalo de almoï¿½o
         if (temIntervalo && i >= intervaloInicioMinutos && i < intervaloFimMinutos) {
           continue;
         }
         
-        // Pular horários que já passaram (se for hoje)
+        // Pular horï¿½rios que jï¿½ passaram (se for hoje)
         if (horaAtualMinutos !== -1 && i < horaAtualMinutos) {
           continue;
         }
@@ -1280,20 +1280,20 @@ export default function NovoAgendamentoScreen() {
       
       return horarios;
     } catch (error) {
-      logger.error('Erro ao gerar horários:', error);
+      logger.error('Erro ao gerar horï¿½rios:', error);
       return [];
     }
   };
 
-  // Função para atualizar a lista de horários disponíveis
+  // Funï¿½ï¿½o para atualizar a lista de horï¿½rios disponï¿½veis
   const atualizarHorariosDisponiveis = () => {
     try {
-      logger.debug('Atualizando horários disponíveis com as configurações:');
-      logger.debug(`- Horário início: ${horarioInicio}`);
-      logger.debug(`- Horário fim: ${horarioFim}`);
+      logger.debug('Atualizando horï¿½rios disponï¿½veis com as configuraï¿½ï¿½es:');
+      logger.debug(`- Horï¿½rio inï¿½cio: ${horarioInicio}`);
+      logger.debug(`- Horï¿½rio fim: ${horarioFim}`);
       logger.debug(`- Tem intervalo: ${temIntervalo}`);
       if (temIntervalo) {
-        logger.debug(`- Intervalo início: ${horarioIntervaloInicio}`);
+        logger.debug(`- Intervalo inï¿½cio: ${horarioIntervaloInicio}`);
         logger.debug(`- Intervalo fim: ${horarioIntervaloFim}`);
       }
       logger.debug(`- Intervalo entre agendamentos: ${intervaloAgendamentos} minutos`);
@@ -1308,79 +1308,79 @@ export default function NovoAgendamentoScreen() {
         horarioIntervaloFim
       );
       
-      // Checar disponibilidade dos horários (quando uma data estiver selecionada)
+      // Checar disponibilidade dos horï¿½rios (quando uma data estiver selecionada)
       if (data && validarData(data)) {
         verificarDisponibilidadeHorarios(novosHorarios);
       } else {
         setHorariosDisponiveis(novosHorarios.map(h => ({ horario: h, ocupado: false, quantidade: 0 })));
       }
       
-      logger.debug('Lista de horários atualizada:', novosHorarios.length);
-      logger.debug('Horários gerados:', novosHorarios.join(', '));
+      logger.debug('Lista de horï¿½rios atualizada:', novosHorarios.length);
+      logger.debug('Horï¿½rios gerados:', novosHorarios.join(', '));
     } catch (error) {
-      logger.error('Erro ao atualizar lista de horários:', error);
+      logger.error('Erro ao atualizar lista de horï¿½rios:', error);
       inicializarHorariosPadrao();
     }
   };
 
-  // Função para selecionar horário com validação simples
+  // Funï¿½ï¿½o para selecionar horï¿½rio com validaï¿½ï¿½o simples
   const selecionarHorario = (horarioSelecionado: string) => {
     try {
-      // 1?? Calcular duração total
+      // 1?? Calcular duraï¿½ï¿½o total
       const duracaoTotal = calcularDuracaoTotalCompleta();
       
       if (!duracaoTotal) {
-        // Se não tem duração, apenas selecionar
+        // Se nï¿½o tem duraï¿½ï¿½o, apenas selecionar
         setHora(horarioSelecionado);
         setMostrarSeletorHorario(false);
         setErrors({...errors, hora: ''});
-        logger.debug(`? Horário ${horarioSelecionado} selecionado (sem duração)`);
+        logger.debug(`? Horï¿½rio ${horarioSelecionado} selecionado (sem duraï¿½ï¿½o)`);
         return;
       }
 
-      // 2?? Calcular horário de término
+      // 2?? Calcular horï¿½rio de tï¿½rmino
       const horarioTerminoCalculado = calcularHorarioTermino(horarioSelecionado, duracaoTotal);
-      logger.debug(`?? Verificando período: ${horarioSelecionado} até ${horarioTerminoCalculado} (duração: ${duracaoTotal}min)`);
+      logger.debug(`?? Verificando perï¿½odo: ${horarioSelecionado} atï¿½ ${horarioTerminoCalculado} (duraï¿½ï¿½o: ${duracaoTotal}min)`);
 
-      // 3?? Converter horas para minutos para comparação
+      // 3?? Converter horas para minutos para comparaï¿½ï¿½o
       const [hInicio, mInicio] = horarioSelecionado.split(':').map(Number);
       const minutosInicio = hInicio * 60 + mInicio;
 
       const [hFim, mFim] = horarioTerminoCalculado.split(':').map(Number);
       const minutosFim = hFim * 60 + mFim;
 
-      // 4?? Verificar se algum slot entre início e fim está ocupado
+      // 4?? Verificar se algum slot entre inï¿½cio e fim estï¿½ ocupado
       const slotsOcupados = horariosDisponiveis.filter(slot => {
         const [h, m] = slot.horario.split(':').map(Number);
         const minutosSlot = h * 60 + m;
         
-        // Verificar se este slot está dentro do intervalo [minutosInicio, minutosFim)
+        // Verificar se este slot estï¿½ dentro do intervalo [minutosInicio, minutosFim)
         return minutosSlot >= minutosInicio && minutosSlot < minutosFim && slot.ocupado;
       });
 
       if (slotsOcupados.length > 0) {
-        logger.error(`? Horário indisponível! Slots ocupados: ${slotsOcupados.map(s => s.horario).join(', ')}`);
+        logger.error(`? Horï¿½rio indisponï¿½vel! Slots ocupados: ${slotsOcupados.map(s => s.horario).join(', ')}`);
         Alert.alert(
-          'Horário Indisponível',
-          `Não é possível agendar de ${horarioSelecionado} até ${horarioTerminoCalculado} (${duracaoTotal} minutos).\n\nOs horários ${slotsOcupados.map(s => s.horario).join(', ')} já estão ocupados.\n\nEscolha outro horário ou serviço com duração menor.`
+          'Horï¿½rio Indisponï¿½vel',
+          `Nï¿½o ï¿½ possï¿½vel agendar de ${horarioSelecionado} atï¿½ ${horarioTerminoCalculado} (${duracaoTotal} minutos).\n\nOs horï¿½rios ${slotsOcupados.map(s => s.horario).join(', ')} jï¿½ estï¿½o ocupados.\n\nEscolha outro horï¿½rio ou serviï¿½o com duraï¿½ï¿½o menor.`
         );
         return;
       }
 
-      // 5?? Se passou na validação, selecionar o horário
+      // 5?? Se passou na validaï¿½ï¿½o, selecionar o horï¿½rio
       setHora(horarioSelecionado);
       setHoraTermino(horarioTerminoCalculado);
       setMostrarSeletorHorario(false);
       setErrors({...errors, hora: ''});
       
-      logger.success(`? Horário ${horarioSelecionado}-${horarioTerminoCalculado} selecionado com sucesso!`);
+      logger.success(`? Horï¿½rio ${horarioSelecionado}-${horarioTerminoCalculado} selecionado com sucesso!`);
     } catch (error) {
-      logger.error('Erro ao selecionar horário:', error);
-      Alert.alert('Erro', 'Ocorreu um erro ao validar o horário. Tente novamente.');
+      logger.error('Erro ao selecionar horï¿½rio:', error);
+      Alert.alert('Erro', 'Ocorreu um erro ao validar o horï¿½rio. Tente novamente.');
     }
   };
 
-  // Função para verificar disponibilidade de horários para a data selecionada
+  // Funï¿½ï¿½o para verificar disponibilidade de horï¿½rios para a data selecionada
   const verificarDisponibilidadeHorarios = async (horarios: string[]) => {
     try {
       if (!data || !validarData(data)) {
@@ -1395,7 +1395,7 @@ export default function NovoAgendamentoScreen() {
         parseInt(dia)
       );
       
-      // ?? CORREÇÃO: Usar timezone local para buscar agendamentos do dia
+      // ?? CORREï¿½ï¿½O: Usar timezone local para buscar agendamentos do dia
       const inicioDia = createLocalISOString(parseInt(ano), parseInt(mes), parseInt(dia), 0, 0, 0);
       const fimDia = createLocalISOString(parseInt(ano), parseInt(mes), parseInt(dia), 23, 59, 59);
       
@@ -1407,43 +1407,43 @@ export default function NovoAgendamentoScreen() {
         .lte('data_hora', fimDia);
         
       if (error) {
-        logger.error('Erro ao verificar disponibilidade de horários:', error);
+        logger.error('Erro ao verificar disponibilidade de horï¿½rios:', error);
         setHorariosDisponiveis(horarios.map(h => ({ horario: h, ocupado: false, quantidade: 0 })));
         return;
       }
       
       logger.debug(`Encontrados ${agendamentosDia?.length || 0} agendamentos para o dia ${data}`);
       
-      // Verificar disponibilidade de cada horário
+      // Verificar disponibilidade de cada horï¿½rio
       const horariosComStatus = horarios.map(horario => {
         const [horas, minutos] = horario.split(':').map(Number);
         const minutosDoSlot = horas * 60 + minutos;
         
-        // Contar agendamentos que OCUPAM este horário
+        // Contar agendamentos que OCUPAM este horï¿½rio
         const agendamentosNoHorario = agendamentosDia?.filter(agendamento => {
-          // ?? CORREÇÃO: Usar parseISOStringLocal para converter UTC ? BRT corretamente
+          // ?? CORREï¿½ï¿½O: Usar parseISOStringLocal para converter UTC ? BRT corretamente
           const dataParsada = parseISOStringLocal(agendamento.data_hora);
           const horaInicio = dataParsada.getHours();
           const minutoInicio = dataParsada.getMinutes();
           const minutosInicio = horaInicio * 60 + minutoInicio;
           
-          // Calcular minutos de término
+          // Calcular minutos de tï¿½rmino
           let minutosTermino = 0;
           if (agendamento.horario_termino) {
             const [hTerm, mTerm] = agendamento.horario_termino.split(':').map(Number);
             minutosTermino = hTerm * 60 + mTerm;
           } else {
-            // Se não tem término, assume que ocupa pelo menos o horário atual
+            // Se nï¿½o tem tï¿½rmino, assume que ocupa pelo menos o horï¿½rio atual
             minutosTermino = minutosInicio + 15;
           }
           
-          // Se atravessa meia-noite (ex: 23:00 até 01:00)
+          // Se atravessa meia-noite (ex: 23:00 atï¿½ 01:00)
           if (minutosTermino < minutosInicio) {
             minutosTermino += 24 * 60;
           }
           
-          // Verificar se este slot está dentro do intervalo do agendamento
-          // O agendamento ocupa todos os 15min a partir da hora de início até (mas não incluindo) a hora de término
+          // Verificar se este slot estï¿½ dentro do intervalo do agendamento
+          // O agendamento ocupa todos os 15min a partir da hora de inï¿½cio atï¿½ (mas nï¿½o incluindo) a hora de tï¿½rmino
           return minutosDoSlot >= minutosInicio && minutosDoSlot < minutosTermino;
         });
         
@@ -1460,7 +1460,7 @@ export default function NovoAgendamentoScreen() {
       
       setHorariosDisponiveis(horariosComStatus);
       
-      // Se o horário atual não está disponível, limpar a seleção
+      // Se o horï¿½rio atual nï¿½o estï¿½ disponï¿½vel, limpar a seleï¿½ï¿½o
       if (hora) {
         const horarioAtual = horariosComStatus.find(h => h.horario === hora);
         if (horarioAtual?.ocupado) {
@@ -1468,12 +1468,12 @@ export default function NovoAgendamentoScreen() {
         }
       }
     } catch (error) {
-      logger.error('Erro ao verificar disponibilidade de horários:', error);
+      logger.error('Erro ao verificar disponibilidade de horï¿½rios:', error);
       setHorariosDisponiveis(horarios.map(h => ({ horario: h, ocupado: false, quantidade: 0 })));
     }
   };
 
-  // Atualizar useEffect para carregar configurações de horários
+  // Atualizar useEffect para carregar configuraï¿½ï¿½es de horï¿½rios
   useEffect(() => {
     carregarUsuarios();
     carregarServicos();
@@ -1481,14 +1481,14 @@ export default function NovoAgendamentoScreen() {
     carregarConfiguracoesHorarios();
   }, []);
 
-  // Adicionar useEffect para atualizar horários quando a data mudar
+  // Adicionar useEffect para atualizar horï¿½rios quando a data mudar
   useEffect(() => {
     if (data && validarData(data)) {
       atualizarHorariosDisponiveis();
     }
   }, [data]);
 
-  // Extrair uma função para verificar se há dados preenchidos
+  // Extrair uma funï¿½ï¿½o para verificar se hï¿½ dados preenchidos
   const temDadosPreenchidos = () => 
     cliente.trim() !== '' || 
     telefone.trim() !== '' || 
@@ -1497,12 +1497,12 @@ export default function NovoAgendamentoScreen() {
     servicosSelecionados.length > 0 ||
     observacoes.trim() !== '';
 
-  // Função para confirmar se o usuário quer descartar as alterações
+  // Funï¿½ï¿½o para confirmar se o usuï¿½rio quer descartar as alteraï¿½ï¿½es
   const confirmarDescarte = () => {
     return new Promise<boolean>((resolve) => {
       Alert.alert(
-        'Descartar alterações',
-        'Você tem dados não salvos. Deseja descartar as alterações?',
+        'Descartar alteraï¿½ï¿½es',
+        'Vocï¿½ tem dados nï¿½o salvos. Deseja descartar as alteraï¿½ï¿½es?',
         [
           {
             text: 'Cancelar',
@@ -1522,7 +1522,7 @@ export default function NovoAgendamentoScreen() {
     });
   };
 
-  // Modificar o useEffect que trata o botão de voltar
+  // Modificar o useEffect que trata o botï¿½o de voltar
   useEffect(() => {
     // Adicionar um listener para o evento de hardware back (Android)
     const backHandler = () => {
@@ -1537,7 +1537,7 @@ export default function NovoAgendamentoScreen() {
       return false;
     };
     
-    // Adicionar o handler para o botão voltar no Android
+    // Adicionar o handler para o botï¿½o voltar no Android
     const backSubscription = BackHandler && BackHandler.addEventListener('hardwareBackPress', backHandler);
     
     // Limpar o listener quando o componente for desmontado
@@ -1546,17 +1546,17 @@ export default function NovoAgendamentoScreen() {
     };
   }, [cliente, telefone, data, hora, servicosSelecionados, observacoes]);
 
-  // Modificar o handleFecharModal para fechar o modal e aplicar serviços
+  // Modificar o handleFecharModal para fechar o modal e aplicar serviï¿½os
   const handleFecharModal = (confirmar?: boolean) => {
     if (confirmar === false) {
-      // Cancelar - limpar seleções e fechar modal
+      // Cancelar - limpar seleï¿½ï¿½es e fechar modal
       setServicosSelecionados([]);
       setModalVisible(false);
     } else if (confirmar === true) {
-      // Adicionar - manter seleções e fechar modal
+      // Adicionar - manter seleï¿½ï¿½es e fechar modal
       setModalVisible(false);
     } else {
-      // Fechar modal sem parâmetro - apenas fechar
+      // Fechar modal sem parï¿½metro - apenas fechar
       setModalVisible(false);
     }
     setMostrarSeletorHorario(false);
@@ -1618,13 +1618,13 @@ export default function NovoAgendamentoScreen() {
       const formattedDate = format(selectedDate, 'dd/MM/yyyy');
       setData(formattedDate);
       
-      // Verifica se a data selecionada está bloqueada
+      // Verifica se a data selecionada estï¿½ bloqueada
       if (isDataBloqueada(formattedDate)) {
-        setErrors({ ...errors, data: 'Esta data está bloqueada para agendamentos' });
-        Alert.alert('Data Bloqueada', 'Esta data não está disponível para agendamentos.');
+        setErrors({ ...errors, data: 'Esta data estï¿½ bloqueada para agendamentos' });
+        Alert.alert('Data Bloqueada', 'Esta data nï¿½o estï¿½ disponï¿½vel para agendamentos.');
       } else {
         setErrors({ ...errors, data: '' });
-        // Atualiza os horários disponíveis para a nova data
+        // Atualiza os horï¿½rios disponï¿½veis para a nova data
         setTimeout(() => {
           const intervalo = parseInt(intervaloAgendamentos);
           const novosHorarios = gerarHorarios(
@@ -1662,7 +1662,7 @@ export default function NovoAgendamentoScreen() {
     <View style={styles.container}>
       <ScrollView style={styles.formContainer}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Informações do Cliente</Text>
+          <Text style={styles.sectionTitle}>Informaï¿½ï¿½es do Cliente</Text>
           
           <View style={styles.clienteContainer}>
             <View style={styles.inputGroup}>
@@ -1771,7 +1771,7 @@ export default function NovoAgendamentoScreen() {
           </View>
         </View>
 
-        {/* Seção Profissional - oculta para profissionais (já está auto-selecionado) */}
+        {/* Seï¿½ï¿½o Profissional - oculta para profissionais (jï¿½ estï¿½ auto-selecionado) */}
         {role !== 'profissional' && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Profissional</Text>
@@ -1844,9 +1844,9 @@ export default function NovoAgendamentoScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Detalhes do Agendamento</Text>
 
-          {/* CAMPO DE SERVIÇO/PACOTE - MOVIDO PARA CIMA DA DATA */}
+          {/* CAMPO DE SERVIï¿½O/PACOTE - MOVIDO PARA CIMA DA DATA */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Serviços / Pacotes *</Text>
+            <Text style={styles.label}>Serviï¿½os / Pacotes *</Text>
             <View style={styles.servicoPacoteContainer}>
               <TouchableOpacity
                 style={[
@@ -1860,7 +1860,7 @@ export default function NovoAgendamentoScreen() {
                   <FontAwesome5 
                     name="cut" 
                     size={16} 
-                    color={servicosSelecionados.length > 0 ? colors.primary : '#9CA3AF'} 
+                    color={servicosSelecionados.length > 0 ? colors.primary : colors.textSecondary} 
                     style={styles.servicoIcon} 
                   />
                   <Text 
@@ -1870,8 +1870,8 @@ export default function NovoAgendamentoScreen() {
                     ]}
                   >
                     {servicosSelecionados.length > 0 
-                      ? `Serviços (${servicosSelecionados.length})` 
-                      : 'Serviços'}
+                      ? `Serviï¿½os (${servicosSelecionados.length})` 
+                      : 'Serviï¿½os'}
                   </Text>
                 </View>
                 {servicosSelecionados.length > 0 && (
@@ -1897,7 +1897,7 @@ export default function NovoAgendamentoScreen() {
                   <FontAwesome5 
                     name="box" 
                     size={16} 
-                    color={pacotesSelecionados.length > 0 ? colors.primary : '#9CA3AF'} 
+                    color={pacotesSelecionados.length > 0 ? colors.primary : colors.textSecondary} 
                     style={styles.servicoIcon} 
                   />
                   <Text style={[
@@ -1922,17 +1922,17 @@ export default function NovoAgendamentoScreen() {
             {renderError('servico')}
             {servicosSelecionados.length === 0 && pacotesSelecionados.length === 0 && (
               <Text style={styles.inputHelper}>
-                ?? Selecione um serviço ou pacote antes de escolher a data
+                ?? Selecione um serviï¿½o ou pacote antes de escolher a data
               </Text>
             )}
             
             {/* Mostra os itens selecionados */}
             {servicosSelecionados.length > 0 && (
               <View style={styles.itensSelecionadosContainer}>
-                <Text style={styles.itensSelecionadosLabel}>Serviços:</Text>
+                <Text style={styles.itensSelecionadosLabel}>Serviï¿½os:</Text>
                 {servicosSelecionados.map(s => (
                   <Text key={s.id} style={styles.itemSelecionadoTexto}>
-                    • {s.nome} ({s.quantidade}x) - R$ {(s.preco * s.quantidade).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    ï¿½ {s.nome} ({s.quantidade}x) - R$ {(s.preco * s.quantidade).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </Text>
                 ))}
               </View>
@@ -1943,7 +1943,7 @@ export default function NovoAgendamentoScreen() {
                 <Text style={styles.itensSelecionadosLabel}>Pacotes:</Text>
                 {pacotesSelecionados.map(p => (
                   <Text key={p.id} style={styles.itemSelecionadoTexto}>
-                    • {p.nome} ({p.quantidade}x) - R$ {(p.valor * p.quantidade).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    ï¿½ {p.nome} ({p.quantidade}x) - R$ {(p.valor * p.quantidade).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </Text>
                 ))}
               </View>
@@ -1974,7 +1974,7 @@ export default function NovoAgendamentoScreen() {
               ]}
               onPress={() => {
                 if (servicosSelecionados.length === 0 && pacotesSelecionados.length === 0) {
-                  Alert.alert('Atenção', 'Por favor, selecione um serviço ou pacote antes de escolher a data.');
+                  Alert.alert('Atenï¿½ï¿½o', 'Por favor, selecione um serviï¿½o ou pacote antes de escolher a data.');
                   return;
                 }
                 abrirSeletorData();
@@ -1985,7 +1985,7 @@ export default function NovoAgendamentoScreen() {
                 <FontAwesome5 
                   name="calendar" 
                   size={16} 
-                  color={data ? (isDataBloqueada(data) ? colors.error : colors.primary) : ((servicosSelecionados.length === 0 && pacotesSelecionados.length === 0) ? '#D1D5DB' : '#9CA3AF')} 
+                  color={data ? (isDataBloqueada(data) ? colors.error : colors.primary) : colors.textSecondary} 
                   style={styles.inputIcon} 
                 />
                 <Text 
@@ -2006,16 +2006,16 @@ export default function NovoAgendamentoScreen() {
             {renderError('data')}
             {servicosSelecionados.length === 0 && pacotesSelecionados.length === 0 && (
               <Text style={styles.inputHelper}>
-                ?? Selecione um serviço ou pacote primeiro
+                ?? Selecione um serviï¿½o ou pacote primeiro
               </Text>
             )}
             {isDataBloqueada(data) && !errors.data && (
-              <Text style={styles.inputAlertText}>Esta data está bloqueada para agendamentos</Text>
+              <Text style={styles.inputAlertText}>Esta data estï¿½ bloqueada para agendamentos</Text>
             )}
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Horário de Início *</Text>
+            <Text style={styles.label}>Horï¿½rio de Inï¿½cio *</Text>
             <TouchableOpacity
               style={[
                 styles.inputContainer,
@@ -2026,29 +2026,29 @@ export default function NovoAgendamentoScreen() {
                 if (data && validarData(data) && !isDataBloqueada(data)) {
                   setMostrarSeletorHorario(true);
                 } else {
-                  Alert.alert('Selecionar Data', 'Por favor, selecione uma data válida primeiro.');
+                  Alert.alert('Selecionar Data', 'Por favor, selecione uma data vï¿½lida primeiro.');
                 }
               }}
             >
-              <FontAwesome5 name="clock" size={16} color={hora ? colors.primary : '#9CA3AF'} style={styles.inputIcon} />
+              <FontAwesome5 name="clock" size={16} color={hora ? colors.primary : colors.textSecondary} style={styles.inputIcon} />
               <Text style={[
                 styles.inputText,
                 hora ? styles.inputTextPreenchido : null
               ]}>
-                {hora || 'Selecionar Horário de Início'}
+                {hora || 'Selecionar Horï¿½rio de Inï¿½cio'}
               </Text>
             </TouchableOpacity>
             {renderError('hora')}
             {horariosDisponiveis.length === 0 && data && validarData(data) && !isDataBloqueada(data) && (
-              <Text style={styles.infoText}>Não há horários disponíveis para esta data</Text>
+              <Text style={styles.infoText}>Nï¿½o hï¿½ horï¿½rios disponï¿½veis para esta data</Text>
             )}
             {horariosDisponiveis.every(h => h.ocupado) && data && validarData(data) && !isDataBloqueada(data) && (
-              <Text style={styles.infoText}>Todos os horários estão ocupados para esta data</Text>
+              <Text style={styles.infoText}>Todos os horï¿½rios estï¿½o ocupados para esta data</Text>
             )}
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Horário de Término *</Text>
+            <Text style={styles.label}>Horï¿½rio de Tï¿½rmino *</Text>
             <TouchableOpacity
               style={[
                 styles.inputContainer,
@@ -2057,18 +2057,18 @@ export default function NovoAgendamentoScreen() {
               ]}
               onPress={() => {
                 if (!hora) {
-                  Alert.alert('Atenção', 'Por favor, selecione o horário de início primeiro.');
+                  Alert.alert('Atenï¿½ï¿½o', 'Por favor, selecione o horï¿½rio de inï¿½cio primeiro.');
                   return;
                 }
                 setMostrarSeletorHorarioTermino(true);
               }}
             >
-              <FontAwesome5 name="clock" size={16} color={horaTermino ? colors.primary : '#9CA3AF'} style={styles.inputIcon} />
+              <FontAwesome5 name="clock" size={16} color={horaTermino ? colors.primary : colors.textSecondary} style={styles.inputIcon} />
               <Text style={[
                 styles.inputText,
                 horaTermino ? styles.inputTextPreenchido : null
               ]}>
-                {horaTermino || 'Selecionar Horário de Término'}
+                {horaTermino || 'Selecionar Horï¿½rio de Tï¿½rmino'}
               </Text>
             </TouchableOpacity>
             {renderError('horaTermino')}
@@ -2087,7 +2087,7 @@ export default function NovoAgendamentoScreen() {
                 }
                 return (
                   <Text style={styles.inputHelper}>
-                    ?? Duração total do atendimento: {textoTempo}
+                    ?? Duraï¿½ï¿½o total do atendimento: {textoTempo}
                   </Text>
                 );
               }
@@ -2095,7 +2095,7 @@ export default function NovoAgendamentoScreen() {
             })()}
           </View>
 
-          {/* Modal de Seleção de Serviços */}
+          {/* Modal de Seleï¿½ï¿½o de Serviï¿½os */}
           <Modal
             visible={modalVisible}
             transparent={true}
@@ -2120,7 +2120,7 @@ export default function NovoAgendamentoScreen() {
                 >
                   <View {...panResponderServicos.panHandlers} style={styles.modalHeader}>
                     <View style={styles.modalDragIndicator} />
-                    <Text style={styles.modalTitle}>Selecionar Serviços</Text>
+                    <Text style={styles.modalTitle}>Selecionar Serviï¿½os</Text>
                   </View>
                   
                   <TextInput
@@ -2130,7 +2130,7 @@ export default function NovoAgendamentoScreen() {
                       setPesquisaServico(text);
                       buscarServicos(text);
                     }}
-                    placeholder="Buscar serviços..."
+                    placeholder="Buscar serviï¿½os..."
                     placeholderTextColor={colors.textTertiary}
                     mode="flat"
                     underlineStyle={{ display: 'none' }}
@@ -2233,7 +2233,7 @@ export default function NovoAgendamentoScreen() {
             </TouchableOpacity>
           </Modal>
 
-          {/* Modal de Seleção de Pacotes */}
+          {/* Modal de Seleï¿½ï¿½o de Pacotes */}
           <Modal
             visible={modalPacotesVisible}
             transparent={true}
@@ -2341,7 +2341,7 @@ export default function NovoAgendamentoScreen() {
                                 </View>
                                 {pacote.servicos && pacote.servicos.length > 0 && (
                                   <Text style={styles.pacoteItens}>
-                                    ?? {pacote.servicos.length} serviço(s) incluído(s)
+                                    ?? {pacote.servicos.length} serviï¿½o(s) incluï¿½do(s)
                                   </Text>
                                 )}
                               </View>
@@ -2442,7 +2442,7 @@ export default function NovoAgendamentoScreen() {
                 <FontAwesome5 name="clipboard-list" size={20} color={colors.primary} />
                 <View style={styles.switchTextContainer}>
                   <Text style={styles.switchLabel}>Criar comanda para o dia do agendamento?</Text>
-                  <Text style={styles.switchSubtext}>Uma comanda será criada automaticamente no dia marcado</Text>
+                  <Text style={styles.switchSubtext}>Uma comanda serï¿½ criada automaticamente no dia marcado</Text>
                 </View>
               </View>
               <Switch
@@ -2456,7 +2456,7 @@ export default function NovoAgendamentoScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Observações</Text>
+            <Text style={styles.label}>Observaï¿½ï¿½es</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               value={observacoes}
@@ -2465,7 +2465,7 @@ export default function NovoAgendamentoScreen() {
                   setObservacoes(text);
                 }
               }}
-              placeholder="Observações sobre o agendamento"
+              placeholder="Observaï¿½ï¿½es sobre o agendamento"
               mode="outlined"
               multiline
               numberOfLines={4}
@@ -2478,7 +2478,7 @@ export default function NovoAgendamentoScreen() {
         </View>
       </ScrollView>
 
-      {/* Botão Salvar com KeyboardAvoidingView */}
+      {/* Botï¿½o Salvar com KeyboardAvoidingView */}
       <KeyboardAvoidingView 
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardAvoidingView}
@@ -2504,7 +2504,7 @@ export default function NovoAgendamentoScreen() {
         </TouchableOpacity>
       </KeyboardAvoidingView>
 
-      {/* Modal de Seleção de Horário */}
+      {/* Modal de Seleï¿½ï¿½o de Horï¿½rio */}
       <Modal
         visible={mostrarSeletorHorario}
         transparent={true}
@@ -2518,7 +2518,7 @@ export default function NovoAgendamentoScreen() {
         >
           <View style={styles.modalHorarioContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Selecionar Horário</Text>
+              <Text style={styles.modalTitle}>Selecionar Horï¿½rio</Text>
               <TouchableOpacity 
                 onPress={() => setMostrarSeletorHorario(false)}
                 style={styles.fecharModal}
@@ -2531,7 +2531,7 @@ export default function NovoAgendamentoScreen() {
               <Text style={styles.legendaTitulo}>Legenda:</Text>
               <View style={styles.legendaItem}>
                 <View style={styles.legendaCor} />
-                <Text style={styles.legendaTexto}>Horário disponível</Text>
+                <Text style={styles.legendaTexto}>Horï¿½rio disponï¿½vel</Text>
               </View>
               <View style={styles.legendaItem}>
                 <View style={[styles.legendaCor, styles.legendaCorParcial]} />
@@ -2539,7 +2539,7 @@ export default function NovoAgendamentoScreen() {
               </View>
               <View style={styles.legendaItem}>
                 <View style={[styles.legendaCor, styles.legendaCorOcupado]} />
-                <Text style={styles.legendaTexto}>Horário esgotado</Text>
+                <Text style={styles.legendaTexto}>Horï¿½rio esgotado</Text>
               </View>
             </View>
 
@@ -2576,7 +2576,7 @@ export default function NovoAgendamentoScreen() {
                         item.ocupado ? styles.horarioItemStatusOcupado : styles.horarioItemStatusParcial
                       ]}>
                         {item.ocupado 
-                          ? 'Horário esgotado' 
+                          ? 'Horï¿½rio esgotado' 
                           : `${item.quantidade}/${limiteSimultaneos} agendamentos`}
                       </Text>
                     )}
@@ -2593,7 +2593,7 @@ export default function NovoAgendamentoScreen() {
                 <View style={styles.semHorariosContainer}>
                   <FontAwesome5 name="calendar-times" size={36} color={colors.textTertiary} />
                   <Text style={styles.semHorariosText}>
-                    Não há horários disponíveis para esta data
+                    Nï¿½o hï¿½ horï¿½rios disponï¿½veis para esta data
                   </Text>
                 </View>
               }
@@ -2602,7 +2602,7 @@ export default function NovoAgendamentoScreen() {
         </TouchableOpacity>
       </Modal>
 
-      {/* Modal de Seleção de Horário de Término */}
+      {/* Modal de Seleï¿½ï¿½o de Horï¿½rio de Tï¿½rmino */}
       <Modal
         visible={mostrarSeletorHorarioTermino}
         transparent={true}
@@ -2616,7 +2616,7 @@ export default function NovoAgendamentoScreen() {
         >
           <View style={styles.modalHorarioContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Selecionar Horário de Término</Text>
+              <Text style={styles.modalTitle}>Selecionar Horï¿½rio de Tï¿½rmino</Text>
               <TouchableOpacity 
                 onPress={() => setMostrarSeletorHorarioTermino(false)}
                 style={styles.fecharModal}
@@ -2631,12 +2631,12 @@ export default function NovoAgendamentoScreen() {
                 const [horaInicio, minutoInicio] = hora.split(':').map(Number);
                 const horarios = [];
                 
-                // Gera horários a partir de 15 minutos após o início
+                // Gera horï¿½rios a partir de 15 minutos apï¿½s o inï¿½cio
                 for (let i = horaInicio; i <= 23; i++) {
                   for (let j = 0; j < 60; j += 15) {
                     const horarioAtual = `${String(i).padStart(2, '0')}:${String(j).padStart(2, '0')}`;
                     
-                    // Só adiciona se for após o horário de início (pelo menos 15 min)
+                    // Sï¿½ adiciona se for apï¿½s o horï¿½rio de inï¿½cio (pelo menos 15 min)
                     if (i > horaInicio || (i === horaInicio && j > minutoInicio)) {
                       horarios.push(horarioAtual);
                     }
@@ -2674,7 +2674,7 @@ export default function NovoAgendamentoScreen() {
                 <View style={styles.semHorariosContainer}>
                   <FontAwesome5 name="calendar-times" size={36} color={colors.textTertiary} />
                   <Text style={styles.semHorariosText}>
-                    Selecione um horário de início primeiro
+                    Selecione um horï¿½rio de inï¿½cio primeiro
                   </Text>
                 </View>
               }
@@ -2686,7 +2686,7 @@ export default function NovoAgendamentoScreen() {
   );
 }
 
-// Função auxiliar para criar estilos dinâmicos
+// Funï¿½ï¿½o auxiliar para criar estilos dinï¿½micos
 const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
@@ -2713,7 +2713,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#4B5563',
+    color: colors.text,
     marginBottom: 8,
   },
   input: {
@@ -2990,7 +2990,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     flex: 1,
   },
   pacoteButton: {
-    // Estilos específicos para o botão de pacotes, se necessário
+    // Estilos especï¿½ficos para o botï¿½o de pacotes, se necessï¿½rio
   },
   pacoteDetalhes: {
     flexDirection: 'row',
@@ -3112,7 +3112,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   inputBloqueado: {
     borderColor: colors.error,
-    backgroundColor: '#FFEEEE',
+    backgroundColor: colors.errorBackground,
   },
   inputTextBloqueado: {
     color: colors.error,
@@ -3131,7 +3131,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     opacity: 0.6,
   },
   inputTextDisabled: {
-    color: '#9CA3AF',
+    color: colors.textSecondary,
   },
   inputHelper: {
     fontSize: 12,
@@ -3224,20 +3224,20 @@ const createStyles = (colors: any) => StyleSheet.create({
     opacity: 0.7,
   },
   horarioItemParcial: {
-    backgroundColor: '#FFFBEB',
+    backgroundColor: colors.warningBackground,
   },
   horarioItemTextOcupado: {
-    color: '#B91C1C',
+    color: colors.error,
   },
   horarioItemStatus: {
     fontSize: 12,
     marginTop: 4,
   },
   horarioItemStatusOcupado: {
-    color: '#B91C1C',
+    color: colors.error,
   },
   horarioItemStatusParcial: {
-    color: '#C2410C',
+    color: colors.warning,
   },
   semHorariosContainer: {
     alignItems: 'center',
@@ -3281,14 +3281,14 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 4,
   },
   legendaCorParcial: {
-    backgroundColor: '#FFFBEB',
+    backgroundColor: colors.warningBackground,
   },
   legendaCorOcupado: {
     backgroundColor: colors.errorBackground,
   },
   legendaTexto: {
     fontSize: 12,
-    color: '#4B5563',
+    color: colors.textSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -3432,7 +3432,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     elevation: 5,
   },
   buttonDisabled: {
-    backgroundColor: '#D1D5DB',
+    backgroundColor: colors.borderLight,
     shadowOpacity: 0,
     elevation: 0,
   },
