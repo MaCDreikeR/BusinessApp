@@ -14,12 +14,12 @@ type TabType = 'aparencia' | 'notificacoes' | 'negocio' | 'sobre';
 
 // Cores de destaque disponíveis
 const ACCENT_COLORS = [
-  { id: 'purple', name: 'Roxo', color: colors.primary },
-  { id: 'blue', name: 'Azul', color: colors.info },
-  { id: 'green', name: 'Verde', color: colors.success },
-  { id: 'orange', name: 'Laranja', color: colors.warning },
+  { id: 'purple', name: 'Roxo', color: '#7C3AED' },
+  { id: 'blue', name: 'Azul', color: '#3B82F6' },
+  { id: 'green', name: 'Verde', color: '#10B981' },
+  { id: 'orange', name: 'Laranja', color: '#F59E0B' },
   { id: 'pink', name: 'Rosa', color: '#EC4899' },
-  { id: 'red', name: 'Vermelho', color: colors.error },
+  { id: 'red', name: 'Vermelho', color: '#EF4444' },
 ];
 
 interface NotificationSettings {

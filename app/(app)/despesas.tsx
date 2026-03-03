@@ -21,12 +21,12 @@ import { ExpenseFilters } from '../../components/ExpenseFilters';
 import { ExpenseCard } from '../../components/ExpenseCard';
 import { ExpenseForm } from '../../components/ExpenseForm';
 import { Expense, CreateExpenseInput, PeriodFilter } from '../../types/Expense';
-import { theme } from '../../utils/theme';
 
 export default function DespesasScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const navigation = useNavigation();
+  const { colors } = useTheme();
 
   const {
     expenses,
@@ -97,7 +97,7 @@ export default function DespesasScreen() {
             style={styles.headerButton}
             onPress={abrirDrawer}
           >
-            <FontAwesome5 name="bars" size={20} color={theme.colors.primary} />
+            <FontAwesome5 name="bars" size={20} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.title}>Despesas</Text>
         </View>
@@ -106,7 +106,7 @@ export default function DespesasScreen() {
           style={styles.headerButton}
           onPress={handleOpenForm}
         >
-          <FontAwesome5 name="plus" size={20} color={theme.colors.primary} />
+          <FontAwesome5 name="plus" size={20} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -123,7 +123,7 @@ export default function DespesasScreen() {
             onPress={() => updateFilters({ period: 'today' })}
           >
             <View style={[styles.filtroIcone, filters.period === 'today' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="calendar-day" size={16} color={filters.period === 'today' ? theme.colors.primary : colors.textSecondary} />
+              <FontAwesome5 name="calendar-day" size={16} color={filters.period === 'today' ? colors.primary : colors.textSecondary} />
             </View>
             <Text style={[styles.filtroTexto, filters.period === 'today' && styles.filtroTextoAtivo]}>Hoje</Text>
           </TouchableOpacity>
@@ -133,7 +133,7 @@ export default function DespesasScreen() {
             onPress={() => updateFilters({ period: 'week' })}
           >
             <View style={[styles.filtroIcone, filters.period === 'week' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="calendar-week" size={16} color={filters.period === 'week' ? theme.colors.primary : colors.textSecondary} />
+              <FontAwesome5 name="calendar-week" size={16} color={filters.period === 'week' ? colors.primary : colors.textSecondary} />
             </View>
             <Text style={[styles.filtroTexto, filters.period === 'week' && styles.filtroTextoAtivo]}>Semana</Text>
           </TouchableOpacity>
@@ -143,7 +143,7 @@ export default function DespesasScreen() {
             onPress={() => updateFilters({ period: 'month' })}
           >
             <View style={[styles.filtroIcone, filters.period === 'month' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="calendar-alt" size={16} color={filters.period === 'month' ? theme.colors.primary : colors.textSecondary} />
+              <FontAwesome5 name="calendar-alt" size={16} color={filters.period === 'month' ? colors.primary : colors.textSecondary} />
             </View>
             <Text style={[styles.filtroTexto, filters.period === 'month' && styles.filtroTextoAtivo]}>Mês</Text>
           </TouchableOpacity>
@@ -153,7 +153,7 @@ export default function DespesasScreen() {
             onPress={() => updateFilters({ period: 'custom' })}
           >
             <View style={[styles.filtroIcone, filters.period === 'custom' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="calendar" size={16} color={filters.period === 'custom' ? theme.colors.primary : colors.textSecondary} />
+              <FontAwesome5 name="calendar" size={16} color={filters.period === 'custom' ? colors.primary : colors.textSecondary} />
             </View>
             <Text style={[styles.filtroTexto, filters.period === 'custom' && styles.filtroTextoAtivo]}>Personalizado</Text>
           </TouchableOpacity>
@@ -217,7 +217,7 @@ export default function DespesasScreen() {
 
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <FontAwesome5 name="chart-pie" size={18} color={theme.colors.primary} />
+            <FontAwesome5 name="chart-pie" size={18} color={colors.primary} />
             <Text style={styles.cardTitle}>Maior</Text>
           </View>
           {summary.topCategory ? (
@@ -296,8 +296,8 @@ export default function DespesasScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={refresh}
-              colors={[theme.colors.primary]}
-              tintColor={theme.colors.primary}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
             />
           }
           contentContainerStyle={styles.listContent}
