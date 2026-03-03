@@ -3,6 +3,7 @@ import { Tabs, useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { View, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
 
 export default function AdminLayout() {
   const { role, loading, signOut } = useAuth();
@@ -48,27 +49,29 @@ export default function AdminLayout() {
 
   // Se for super_admin, mostra a navegação com abas
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: '#a78bfa',
-        tabBarStyle: {
-          backgroundColor: '#1f2937',
-          borderTopColor: '#374151',
-        },
-        headerStyle: {
-          backgroundColor: '#111827',
-        },
-        headerTintColor: '#fff',
-        headerRight: () => (
-          <TouchableOpacity
-            onPress={handleLogout}
-            style={{ marginRight: 16, padding: 8 }}
-          >
-            <FontAwesome5 name="sign-out-alt" size={20} color="#ff0000ff" />
-          </TouchableOpacity>
-        ),
-      }}
-    >
+    <>
+      <StatusBar style="light" backgroundColor="#111827" translucent={false} />
+      <Tabs
+        screenOptions={{
+          tabBarActiveTintColor: '#a78bfa',
+          tabBarStyle: {
+            backgroundColor: '#1f2937',
+            borderTopColor: '#374151',
+          },
+          headerStyle: {
+            backgroundColor: '#111827',
+          },
+          headerTintColor: '#fff',
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={handleLogout}
+              style={{ marginRight: 16, padding: 8 }}
+            >
+              <FontAwesome5 name="sign-out-alt" size={20} color="#ff0000ff" />
+            </TouchableOpacity>
+          ),
+        }}
+      >
       <Tabs.Screen
         name="dashboard"
         options={{
@@ -123,6 +126,7 @@ export default function AdminLayout() {
           headerShown: false,
         }}
       />
-    </Tabs>
+      </Tabs>
+    </>
   );
 }

@@ -4,6 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { usePathname , router , Stack , useRouter } from 'expo-router';
 import { TouchableOpacity, View, Text, StyleSheet, Image, Alert, ActivityIndicator, Dimensions, Platform , DeviceEventEmitter, Switch } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { DrawerContentScrollView, DrawerItemList , DrawerContentComponentProps } from '@react-navigation/drawer';
 import { supabase } from '../../lib/supabase';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -349,6 +350,7 @@ export default function AppLayout() {
 
   return (
     <>
+    <StatusBar style={isDark ? 'light' : 'dark'} backgroundColor={colors.surface} translucent={false} />
     <Drawer
       screenOptions={{
         headerStyle: {

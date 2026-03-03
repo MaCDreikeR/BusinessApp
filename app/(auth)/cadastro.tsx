@@ -347,27 +347,27 @@ export default function CadastroScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <LinearGradient
-        colors={[colors.primary, colors.primaryDark]}
-        style={styles.gradient}
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
       >
-        <ScrollView 
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+        <LinearGradient
+          colors={[colors.primary, colors.primaryDark]}
+          style={styles.gradient}
         >
-          <Animated.View 
-            entering={FadeInDown.duration(1000).springify()}
-            style={styles.header}
+          <ScrollView 
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
-        <Text style={styles.title}>Cadastre seu Estabelecimento</Text>
-        <Text style={styles.subtitle}>Comece sua jornada com o AppBusiness</Text>
-          </Animated.View>
+            <Animated.View 
+              entering={FadeInDown.duration(1000).springify()}
+              style={styles.header}
+            >
+          <Text style={styles.title}>Cadastre seu Estabelecimento</Text>
+          <Text style={styles.subtitle}>Comece sua jornada com o AppBusiness</Text>
+            </Animated.View>
 
           <Animated.View 
             entering={FadeInUp.duration(1000).springify()}
@@ -742,10 +742,10 @@ export default function CadastroScreen() {
           <Ionicons name="logo-whatsapp" size={20} color={colors.link} />
           <Text style={[styles.supportText, { color: colors.link }]}>Falar com o Suporte</Text>
         </TouchableOpacity>
-          </Animated.View>
-    </ScrollView>
-      </LinearGradient>
-    </KeyboardAvoidingView>
+            </Animated.View>
+      </ScrollView>
+        </LinearGradient>
+      </KeyboardAvoidingView>
   );
 }
 
@@ -765,6 +765,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
+    paddingTop: 8,
     marginBottom: 32,
   },
   title: {
