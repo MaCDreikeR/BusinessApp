@@ -1744,12 +1744,12 @@ export default function AgendaScreen() {
   // Função utilitária para obter cor por status (reutilizável na lista)
   const getStatusColorGlobal = (status?: string) => {
     switch (status) {
-      case 'confirmado': return '#10B981';
-      case 'em_atendimento': return '#F59E0B';
-      case 'concluido': return '#6B7280';
-      case 'cancelado': return '#EF4444';
-      case 'falta': return '#DC2626';
-      default: return (colors && (colors.primary as any)) || theme.colors.primary || '#2563EB';
+      case 'confirmado': return colors.success;
+      case 'em_atendimento': return colors.warning;
+      case 'concluido': return colors.textSecondary;
+      case 'cancelado': return colors.error;
+      case 'falta': return colors.error;
+      default: return (colors && (colors.primary as any)) || theme.colors.primary;
     }
   };
 
@@ -1758,17 +1758,17 @@ export default function AgendaScreen() {
       {/* Seletor de data com botão para alternar visualização */}
       <View style={styles.dateSelector}>
         <TouchableOpacity onPress={() => navegarData('anterior')}>
-          <Ionicons name="chevron-back" size={24} color="#000" />
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <TouchableOpacity 
           style={styles.dateContainer}
           onPress={() => setShowCalendar(!showCalendar)}
         >
-          <Ionicons name="calendar-outline" size={20} color="#000" />
+          <Ionicons name="calendar-outline" size={20} color={colors.text} />
           <Text style={styles.dateText}>
             {selectedDate.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}
           </Text>
-          <Ionicons name={showCalendar ? "chevron-up" : "chevron-down"} size={20} color="#000" />
+          <Ionicons name={showCalendar ? "chevron-up" : "chevron-down"} size={20} color={colors.text} />
         </TouchableOpacity>
 
         {/* Botão que alterna entre grade e lista */}
@@ -1776,11 +1776,11 @@ export default function AgendaScreen() {
           style={{ marginRight: 8, padding: 6 }}
           onPress={() => setViewMode(prev => prev === 'grid' ? 'list' : 'grid')}
         >
-          <Ionicons name={viewMode === 'grid' ? 'list' : 'grid'} size={20} color="#000" />
+          <Ionicons name={viewMode === 'grid' ? 'list' : 'grid'} size={20} color={colors.text} />
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => navegarData('proximo')}>
-          <Ionicons name="chevron-forward" size={24} color="#000" />
+          <Ionicons name="chevron-forward" size={24} color={colors.text} />
         </TouchableOpacity>
       </View>
 
@@ -1845,7 +1845,7 @@ export default function AgendaScreen() {
                         style={styles.avatarImage} 
                       />
                     ) : (
-                      <Ionicons name="person" size={24} color="#666" />
+                      <Ionicons name="person" size={24} color={colors.textSecondary} />
                     )}
                   </View>
                   <Text style={styles.avatarName}>{usuario.nome_completo}</Text>
@@ -1866,7 +1866,7 @@ export default function AgendaScreen() {
           <ScrollView style={styles.timeGrid}>
           {isDataBloqueada(selectedDate) ? (
             <View style={styles.diaBloqueadoContainer}>
-              <Ionicons name="sunny-outline" size={48} color="#FF6B6B" />
+              <Ionicons name="sunny-outline" size={48} color={colors.error} />
               <Text style={styles.diaBloqueadoText}>Dia Bloqueado</Text>
               <Text style={styles.diaBloqueadoSubtext}>Não são permitidos agendamentos para este dia</Text>
             </View>
@@ -1991,11 +1991,11 @@ export default function AgendaScreen() {
             // Obter cor baseada no status
             const getStatusColor = (status?: string) => {
               switch(status) {
-                case 'confirmado': return '#10B981';
-                case 'em_atendimento': return '#F59E0B';
-                case 'concluido': return '#6B7280';
-                case 'cancelado': return '#EF4444';
-                case 'falta': return '#DC2626';
+                case 'confirmado': return colors.success;
+                case 'em_atendimento': return colors.warning;
+                case 'concluido': return colors.textSecondary;
+                case 'cancelado': return colors.error;
+                case 'falta': return colors.error;
                 default: return theme.colors.primary;
               }
             };
@@ -2920,7 +2920,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 8,
   },
   avatarSelected: {
-    backgroundColor: '#FFF9E6',
+    backgroundColor: colors.primaryBackground,
   },
   avatarWrapper: {
     width: 50,
@@ -2962,12 +2962,12 @@ const createStyles = (colors: any) => StyleSheet.create({
   timeText: {
     width: 50,
     fontSize: 12,
-    color: '#666',
+    color: colors.textSecondary,
   },
   timeLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: colors.borderLight,
     marginLeft: 8,
   },
   cardsContainer: {
@@ -3017,21 +3017,21 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontWeight: 'bold',
   },
   timeLineAgendado: {
-    backgroundColor: '#F3E8FF',
+    backgroundColor: colors.primaryBackground,
     height: 'auto',
     minHeight: 80,
     padding: 4,
   },
   timeLineLimite: {
-    backgroundColor: '#FFEDD5',
+    backgroundColor: colors.warningBackground,
   },
   timeLineMultiplo: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: colors.infoBackground,
     borderLeftWidth: 3,
     borderLeftColor: theme.colors.primary,
   },
   timeLineUnico: {
-    backgroundColor: '#F3E8FF',
+    backgroundColor: colors.primaryBackground,
     borderLeftWidth: 3,
     borderLeftColor: theme.colors.primary,
   },
@@ -3085,12 +3085,12 @@ const createStyles = (colors: any) => StyleSheet.create({
   agendamentoClienteCard: {
     fontSize: 11,
     fontWeight: 'bold',
-    color: '#333',
+    color: colors.text,
     marginBottom: 2,
   },
   agendamentoServicosCard: {
     fontSize: 9,
-    color: '#666',
+    color: colors.textSecondary,
   },
   agendamentoInfo: {
     flex: 1,
@@ -3103,12 +3103,12 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   agendamentoServicos: {
     fontSize: 10,
-    color: '#666',
+    color: colors.textSecondary,
   },
   agendamentoLimite: {
     fontSize: 10,
     fontWeight: 'bold',
-    color: '#F97316',
+    color: colors.warning,
   },
   agendamentoHeader: {
     flexDirection: 'row',
@@ -3151,7 +3151,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 2,
-    backgroundColor: '#F3E8FF',
+    backgroundColor: colors.primaryBackground,
     paddingHorizontal: 4,
     paddingVertical: 2,
     borderRadius: 4,
