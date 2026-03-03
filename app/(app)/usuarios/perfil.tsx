@@ -75,6 +75,24 @@ export default function PerfilScreen() {
   const [tipoDocumento, setTipoDocumento] = useState('CPF');
   const [numeroDocumento, setNumeroDocumento] = useState('');
   const [segmento, setSegmento] = useState('');
+  
+  // Novos estados para SEO e informações completas do estabelecimento
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [telefoneEstabelecimento, setTelefoneEstabelecimento] = useState('');
+  const [whatsappEstabelecimento, setWhatsappEstabelecimento] = useState('');
+  const [cep, setCep] = useState('');
+  const [endereco, setEndereco] = useState('');
+  const [bairro, setBairro] = useState('');
+  const [cidade, setCidade] = useState('');
+  const [estado, setEstado] = useState('');
+  const [complemento, setComplemento] = useState('');
+  const [descricao, setDescricao] = useState('');
+  const [faixaPreco, setFaixaPreco] = useState('');
+  const [instagram, setInstagram] = useState('');
+  const [facebook, setFacebook] = useState('');
+  const [site, setSite] = useState('');
+  const [loadingCep, setLoadingCep] = useState(false);
+  
   const [senhaAtual, setSenhaAtual] = useState('');
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
@@ -162,6 +180,22 @@ export default function PerfilScreen() {
           const doc = data.estabelecimento.numero_documento || '';
           setNumeroDocumento(data.estabelecimento.tipo_documento === 'CPF' ? formatarCPF(doc) : formatarCNPJ(doc));
           setSegmento(data.estabelecimento.segmento || '');
+          
+          // Carregar novos campos
+          setLogoUrl(data.estabelecimento.logo_url || null);
+          setTelefoneEstabelecimento(formatarCelular(data.estabelecimento.telefone || ''));
+          setWhatsappEstabelecimento(formatarCelular(data.estabelecimento.whatsapp || ''));
+          setCep(data.estabelecimento.cep || '');
+          setEndereco(data.estabelecimento.endereco || '');
+          setBairro(data.estabelecimento.bairro || '');
+          setCidade(data.estabelecimento.cidade || '');
+          setEstado(data.estabelecimento.estado || '');
+          setComplemento(data.estabelecimento.complemento || '');
+          setDescricao(data.estabelecimento.descricao || '');
+          setFaixaPreco(data.estabelecimento.faixa_preco || '');
+          setInstagram(data.estabelecimento.instagram || '');
+          setFacebook(data.estabelecimento.facebook || '');
+          setSite(data.estabelecimento.site || '');
         }
       }
     } catch (error: any) {
@@ -245,6 +279,90 @@ export default function PerfilScreen() {
     }
   };
 
+  const handleUploadLogo = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permissão Necessária', 'Precisamos de permissão para acessar suas fotos.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (result.canceled || !result.assets[0]) return;
+
+      setSaving(true);
+      const file = result.assets[0];
+      const fileExt = file.uri.split('.').pop()?.toLowerCase() ?? 'jpg';
+      const fileName = `logo-${estabelecimentoId}-${Date.now()}.${fileExt}`;
+      const contentType = `image/${fileExt}`;
+
+      const formData = new FormData();
+      formData.append('file', {
+        uri: file.uri,
+        name: fileName,
+        type: contentType,
+      } as any);
+
+      const { error: uploadError } = await supabase.storage
+        .from('logos')
+        .upload(fileName, formData, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('logos')
+        .getPublicUrl(fileName);
+
+      if (!publicUrl) throw new Error('Não foi possível obter URL pública');
+
+      const { error: updateError } = await supabase
+        .from('estabelecimentos')
+        .update({ logo_url: publicUrl })
+        .eq('id', estabelecimentoId);
+
+      if (updateError) throw updateError;
+
+      setLogoUrl(publicUrl);
+      Alert.alert('Sucesso', 'Logo atualizada!');
+    } catch (error: any) {
+      Alert.alert('Erro', `Não foi possível fazer upload: ${error.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const buscarCep = async (cepInput: string) => {
+    const cepLimpo = cepInput.replace(/\D/g, '');
+    if (cepLimpo.length !== 8) return;
+
+    setLoadingCep(true);
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+      const data = await response.json();
+
+      if (data.erro) {
+        Alert.alert('CEP não encontrado', 'Verifique o CEP digitado');
+        return;
+      }
+
+      setEndereco(data.logradouro || '');
+      setBairro(data.bairro || '');
+      setCidade(data.localidade || '');
+      setEstado(data.uf || '');
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível buscar o CEP');
+    } finally {
+      setLoadingCep(false);
+    }
+  };
+
+
   const handleDeleteAvatar = async () => {
     if (!avatarUrl) return;
 
@@ -325,6 +443,19 @@ export default function PerfilScreen() {
           tipo_documento: tipoDocumento,
           numero_documento: numeroDocumento.replace(/\D/g, ''),
           segmento,
+          telefone: telefoneEstabelecimento.replace(/\D/g, '') || null,
+          whatsapp: whatsappEstabelecimento.replace(/\D/g, '') || null,
+          cep: cep.replace(/\D/g, '') || null,
+          endereco: endereco || null,
+          bairro: bairro || null,
+          cidade: cidade || null,
+          estado: estado || null,
+          complemento: complemento || null,
+          descricao: descricao || null,
+          faixa_preco: faixaPreco || null,
+          instagram: instagram || null,
+          facebook: facebook || null,
+          site: site || null,
           updated_at: new Date().toISOString(),
         }).eq('id', estabelecimentoId);
 
@@ -593,6 +724,201 @@ export default function PerfilScreen() {
                         {SEGMENTOS.map(s => <Picker.Item key={s.value} label={s.label} value={s.value} />)}
                     </Picker>
                 </View>
+              </View>
+
+              {/* Logo do Estabelecimento */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Logo do Estabelecimento</Text>
+                {logoUrl ? (
+                  <View style={styles.logoPreview}>
+                    <Image source={{ uri: logoUrl }} style={styles.logoImage} />
+                    <TouchableOpacity style={styles.changeLogoButton} onPress={handleUploadLogo} disabled={saving}>
+                      <Text style={styles.changeLogoText}>Alterar Logo</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity style={styles.uploadButton} onPress={handleUploadLogo} disabled={saving}>
+                    <Ionicons name="cloud-upload-outline" size={24} color={theme.colors.primary} />
+                    <Text style={styles.uploadButtonText}>Fazer Upload da Logo</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Contato */}
+              <Text style={[styles.label, { marginTop: 20, marginBottom: 10, fontSize: 16, fontWeight: '600' }]}>
+                📞 Contato
+              </Text>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Telefone</Text>
+                <TextInput 
+                  style={styles.input} 
+                  value={telefoneEstabelecimento} 
+                  onChangeText={(text) => setTelefoneEstabelecimento(formatarCelular(text))} 
+                  keyboardType="phone-pad"
+                  placeholder="(00) 0000-0000"
+                />
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>WhatsApp</Text>
+                <TextInput 
+                  style={styles.input} 
+                  value={whatsappEstabelecimento} 
+                  onChangeText={(text) => setWhatsappEstabelecimento(formatarCelular(text))} 
+                  keyboardType="phone-pad"
+                  placeholder="(00) 00000-0000"
+                />
+              </View>
+
+              {/* Endereço */}
+              <Text style={[styles.label, { marginTop: 20, marginBottom: 10, fontSize: 16, fontWeight: '600' }]}>
+                📍 Localização
+              </Text>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>CEP</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <TextInput 
+                    style={[styles.input, { flex: 1 }]} 
+                    value={cep} 
+                    onChangeText={(text) => {
+                      setCep(text);
+                      if (text.replace(/\D/g, '').length === 8) {
+                        buscarCep(text);
+                      }
+                    }} 
+                    keyboardType="numeric"
+                    placeholder="00000-000"
+                    maxLength={9}
+                  />
+                  {loadingCep && <ActivityIndicator size="small" color={theme.colors.primary} style={{ marginLeft: 10 }} />}
+                </View>
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Endereço</Text>
+                <TextInput 
+                  style={styles.input} 
+                  value={endereco} 
+                  onChangeText={setEndereco}
+                  placeholder="Rua, Av, número"
+                />
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Bairro</Text>
+                <TextInput 
+                  style={styles.input} 
+                  value={bairro} 
+                  onChangeText={setBairro}
+                  placeholder="Nome do bairro"
+                />
+              </View>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <View style={[styles.inputContainer, { flex: 2 }]}>
+                  <Text style={styles.label}>Cidade</Text>
+                  <TextInput 
+                    style={styles.input} 
+                    value={cidade} 
+                    onChangeText={setCidade}
+                    placeholder="Cidade"
+                  />
+                </View>
+                <View style={[styles.inputContainer, { flex: 1 }]}>
+                  <Text style={styles.label}>Estado</Text>
+                  <TextInput 
+                    style={styles.input} 
+                    value={estado} 
+                    onChangeText={(text) => setEstado(text.toUpperCase())}
+                    placeholder="UF"
+                    maxLength={2}
+                    autoCapitalize="characters"
+                  />
+                </View>
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Complemento (opcional)</Text>
+                <TextInput 
+                  style={styles.input} 
+                  value={complemento} 
+                  onChangeText={setComplemento}
+                  placeholder="Sala, andar, etc"
+                />
+              </View>
+
+              {/* SEO */}
+              <Text style={[styles.label, { marginTop: 20, marginBottom: 10, fontSize: 16, fontWeight: '600' }]}>
+                🏷️ Informações para Buscadores (Google)
+              </Text>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Descrição do Estabelecimento</Text>
+                <TextInput 
+                  style={[styles.input, { height: 80, textAlignVertical: 'top' }]} 
+                  value={descricao} 
+                  onChangeText={setDescricao}
+                  placeholder="Breve descrição do seu negócio (aparece no Google)"
+                  multiline
+                  numberOfLines={4}
+                />
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Faixa de Preço</Text>
+                <View style={styles.pickerContainer}>
+                  <Picker selectedValue={faixaPreco} onValueChange={(itemValue) => setFaixaPreco(itemValue)}>
+                    <Picker.Item label="Selecione" value="" />
+                    <Picker.Item label="$ (Econômico)" value="$" />
+                    <Picker.Item label="$$ (Moderado)" value="$$" />
+                    <Picker.Item label="$$$ (Alto)" value="$$$" />
+                    <Picker.Item label="$$$$ (Premium)" value="$$$$" />
+                  </Picker>
+                </View>
+              </View>
+
+              {/* Redes Sociais */}
+              <Text style={[styles.label, { marginTop: 20, marginBottom: 10, fontSize: 16, fontWeight: '600' }]}>
+                🌐 Redes Sociais (opcional)
+              </Text>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Instagram</Text>
+                <TextInput 
+                  style={styles.input} 
+                  value={instagram} 
+                  onChangeText={setInstagram}
+                  placeholder="@seu_perfil"
+                  autoCapitalize="none"
+                />
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Facebook</Text>
+                <TextInput 
+                  style={styles.input} 
+                  value={facebook} 
+                  onChangeText={setFacebook}
+                  placeholder="facebook.com/suapagina"
+                  autoCapitalize="none"
+                />
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Site</Text>
+                <TextInput 
+                  style={styles.input} 
+                  value={site} 
+                  onChangeText={setSite}
+                  placeholder="https://seusite.com.br"
+                  autoCapitalize="none"
+                  keyboardType="url"
+                />
+              </View>
+
+              {/* Nota sobre horários */}
+              <View style={{ 
+                backgroundColor: '#EEF2FF', 
+                padding: 12, 
+                borderRadius: 8, 
+                marginTop: 16,
+                flexDirection: 'row',
+                alignItems: 'center'
+              }}>
+                <Ionicons name="information-circle" size={20} color={theme.colors.primary} style={{ marginRight: 8 }} />
+                <Text style={{ fontSize: 13, color: '#4338CA', flex: 1 }}>
+                  Horários de funcionamento: configure na tela de Agenda
+                </Text>
               </View>
             </View>
           )}
@@ -900,5 +1226,47 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  logoPreview: {
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  logoImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  changeLogoButton: {
+    backgroundColor: theme.colors.primary,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+  },
+  changeLogoText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: theme.colors.primary,
+    borderStyle: 'dashed',
+    gap: 8,
+  },
+  uploadButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.primary,
   },
 });
