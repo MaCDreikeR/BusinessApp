@@ -305,7 +305,7 @@ export default function ConfiguracoesScreen() {
           style={[styles.tab, tab === 'aparencia' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]} 
           onPress={() => setTab('aparencia')}
         >
-          <Text style={[styles.tabText, { color: tab === 'aparencia' ? colors.primary : colors.textSecondary }]}>
+          <Text style={[styles.tabText, { color: tab === 'aparencia' ? colors.primaryContrast : colors.textSecondary }]}>
             Aparência
           </Text>
         </TouchableOpacity>
@@ -314,7 +314,7 @@ export default function ConfiguracoesScreen() {
           style={[styles.tab, tab === 'notificacoes' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]} 
           onPress={() => setTab('notificacoes')}
         >
-          <Text style={[styles.tabText, { color: tab === 'notificacoes' ? colors.primary : colors.textSecondary }]}>
+          <Text style=[styles.tabText, { color: tab === 'notificacoes' ? colors.primaryContrast : colors.textSecondary }]}>
             Notificações
           </Text>
         </TouchableOpacity>
@@ -324,7 +324,7 @@ export default function ConfiguracoesScreen() {
             style={[styles.tab, tab === 'negocio' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]} 
             onPress={() => setTab('negocio')}
           >
-            <Text style={[styles.tabText, { color: tab === 'negocio' ? colors.primary : colors.textSecondary }]}>
+            <Text style={[styles.tabText, { color: tab === 'negocio' ? colors.primaryContrast : colors.textSecondary }]}>
               Negócio
             </Text>
           </TouchableOpacity>
@@ -334,7 +334,7 @@ export default function ConfiguracoesScreen() {
           style={[styles.tab, tab === 'sobre' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]} 
           onPress={() => setTab('sobre')}
         >
-          <Text style={[styles.tabText, { color: tab === 'sobre' ? colors.primary : colors.textSecondary }]}>
+          <Text style={[styles.tabText, { color: tab === 'sobre' ? colors.primaryContrast : colors.textSecondary }]}>
             Sobre
           </Text>
         </TouchableOpacity>

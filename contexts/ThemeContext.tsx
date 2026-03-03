@@ -8,7 +8,7 @@ type ThemeMode = 'light' | 'dark' | 'auto';
 interface ThemeContextType {
   mode: ThemeMode;
   isDark: boolean;
-  colors: typeof themeConfig.colors;
+  colors: typeof themeConfig.colors & { primaryContrast: string };
   spacing: typeof themeConfig.spacing;
   typography: typeof themeConfig.typography;
   borders: typeof themeConfig.borders;
@@ -72,6 +72,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     primaryDark: themeConfig.colors.dark.primaryDark,
     primaryLight: themeConfig.colors.dark.primaryLight,
     primaryLighter: themeConfig.colors.dark.primaryLighter,
+    primaryContrast: themeConfig.colors.dark.white, // Branco para contrastar com fundos roxos
     // Cores secundárias
     secondary: themeConfig.colors.dark.secondary,
     secondaryDark: themeConfig.colors.dark.secondaryDark,
@@ -114,7 +115,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     online: themeConfig.colors.dark.online,
     offline: themeConfig.colors.dark.offline,
     busy: themeConfig.colors.dark.busy,
-  } : themeConfig.colors;
+  } : {
+    ...themeConfig.colors,
+    primaryContrast: themeConfig.colors.primary, // Roxo sobre fundos claros no light mode
+  };
 
   if (!isReady) {
     return null; // Ou um splash screen

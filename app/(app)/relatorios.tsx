@@ -94,7 +94,7 @@ export default function RelatoriosScreen() {
       marginTop: 4,
     },
     tabTextActive: {
-      color: colors.primary,
+      color: colors.primaryContrast,
       fontWeight: '500',
     },
     content: {
