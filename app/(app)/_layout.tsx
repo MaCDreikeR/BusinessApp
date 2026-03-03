@@ -358,7 +358,7 @@ export default function AppLayout() {
           backgroundColor: colors.surface,
         },
         headerTintColor: colors.primary,
-        drawerActiveTintColor: colors.primary,
+        drawerActiveTintColor: isDark ? colors.white : colors.primary,
         drawerInactiveTintColor: colors.textSecondary,
         headerShown: !isEstoque && !isNovoOrcamento && !isPerfil && !isNovoUsuario,
         drawerType: isPermanentDrawer ? 'permanent' : 'slide',
@@ -1048,7 +1048,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   footerButtonText: {
     marginLeft: 12,
     fontSize: 15,
-    color: '#4B5563',
+    color: colors.textSecondary,
   },
   loadingIndicator: {
     position: 'absolute',
