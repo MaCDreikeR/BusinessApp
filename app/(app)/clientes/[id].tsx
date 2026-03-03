@@ -1563,7 +1563,7 @@ export default function EditarClienteScreen() {
                 <FontAwesome5
                   name={tab.icon}
                   size={16}
-                  color={activeTab === tab.id ? colors.primary : "#666"}
+                  color={activeTab === tab.id ? colors.primaryContrast : "#666"}
                 />
                 <Text 
                   style={[

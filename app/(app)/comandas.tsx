@@ -1923,7 +1923,7 @@ export default function ComandasScreen() {
           <Ionicons 
             name="ellipsis-horizontal-circle" 
             size={24} 
-            color={abaAtiva === 'abertas' ? colors.primary : colors.textSecondary} 
+            color={abaAtiva === 'abertas' ? colors.primaryContrast : colors.textSecondary} 
           />
           <Text style={[styles.tabText, abaAtiva === 'abertas' && styles.tabTextActive]}>
             Abertas
@@ -1937,7 +1937,7 @@ export default function ComandasScreen() {
           <Ionicons 
             name="checkmark-circle" 
             size={24} 
-            color={abaAtiva === 'fechadas' ? colors.primary : colors.textSecondary}
+            color={abaAtiva === 'fechadas' ? colors.primaryContrast : colors.textSecondary}
           />
           <Text style={[styles.tabText, abaAtiva === 'fechadas' && styles.tabTextActive]}>
             Fechadas
@@ -1951,7 +1951,7 @@ export default function ComandasScreen() {
           <Ionicons 
             name="close-circle" 
             size={24} 
-            color={abaAtiva === 'canceladas' ? colors.primary : colors.textSecondary}
+            color={abaAtiva === 'canceladas' ? colors.primaryContrast : colors.textSecondary}
           />
           <Text style={[styles.tabText, abaAtiva === 'canceladas' && styles.tabTextActive]}>
             Canceladas
@@ -3762,7 +3762,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginTop: 4,
   },
   tabTextActive: {
-    color: colors.primary,
+    color: colors.primaryContrast,
     fontWeight: 'bold',
   },
   comandasList: {
