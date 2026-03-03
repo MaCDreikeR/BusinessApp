@@ -341,7 +341,7 @@ export default function AppLayout() {
             onPress={handleLogout}
           >
             <FontAwesome5 name="sign-out-alt" size={20} color={colors.error} />
-            <Text style={[styles.footerButtonText, { color: '#DC2626' }]}>Sair</Text>
+            <Text style={[styles.footerButtonText, { color: colors.error }]}>Sair</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -446,7 +446,7 @@ export default function AppLayout() {
                     flexDirection: 'row',
                     alignItems: 'center',
                     gap: 4,
-                    backgroundColor: '#F3E8FF',
+                    backgroundColor: colors.primaryBackground,
                     paddingHorizontal: 12,
                     paddingVertical: 6,
                     borderRadius: 8,
@@ -496,7 +496,7 @@ export default function AppLayout() {
                     flexDirection: 'row',
                     alignItems: 'center',
                     gap: 4,
-                    backgroundColor: '#F3E8FF',
+                    backgroundColor: colors.primaryBackground,
                     paddingHorizontal: 12,
                     paddingVertical: 6,
                     borderRadius: 8,
@@ -522,7 +522,7 @@ export default function AppLayout() {
                   flexDirection: 'row',
                   alignItems: 'center',
                   gap: 4,
-                  backgroundColor: '#F3E8FF',
+                  backgroundColor: colors.primaryBackground,
                   paddingHorizontal: 12,
                   paddingVertical: 6,
                   borderRadius: 8,
