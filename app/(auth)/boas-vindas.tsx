@@ -8,12 +8,13 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
 import { logger } from '../../utils/logger';
-import { theme } from '@utils/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const { width, height } = Dimensions.get('window');
 
 export default function BoasVindas() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
 
   const irParaLogin = async () => {
@@ -40,7 +41,7 @@ export default function BoasVindas() {
       <StatusBar style="light" />
       
       <LinearGradient
-        colors={[theme.colors.primary, theme.colors.primaryDark]}
+        colors={[colors.primary, colors.primaryDark]}
         style={styles.gradient}
       >
         <ScrollView 
@@ -59,7 +60,7 @@ export default function BoasVindas() {
 
           <Animated.View 
             entering={FadeInUp.duration(1000).springify()}
-            style={styles.content}
+            style={[styles.content, { backgroundColor: colors.surface }]}
           >
             <LottieView
               source={require('../../assets/animations/welcome.json')}
@@ -69,31 +70,31 @@ export default function BoasVindas() {
             />
 
             <View style={styles.cardsContainer}>
-              <View style={styles.card}>
-                <Ionicons name="calendar-outline" size={24} color={theme.colors.primary} />
+              <View style={[styles.card, { backgroundColor: colors.background, borderColor: colors.borderLight }] }>
+                <Ionicons name="calendar-outline" size={24} color={colors.primary} />
                 <View style={styles.cardTextContainer}>
-                  <Text style={styles.cardTitle}>Agenda Inteligente</Text>
-                  <Text style={styles.cardText}>
+                  <Text style={[styles.cardTitle, { color: colors.text }]}>Agenda Inteligente</Text>
+                  <Text style={[styles.cardText, { color: colors.textSecondary }]}>
                     Organize seus horários de forma eficiente e evite conflitos
                   </Text>
                 </View>
               </View>
 
-              <View style={styles.card}>
-                <Ionicons name="people-outline" size={24} color={theme.colors.primary} />
+              <View style={[styles.card, { backgroundColor: colors.background, borderColor: colors.borderLight }] }>
+                <Ionicons name="people-outline" size={24} color={colors.primary} />
                 <View style={styles.cardTextContainer}>
-                  <Text style={styles.cardTitle}>Gestão de Clientes</Text>
-                  <Text style={styles.cardText}>
+                  <Text style={[styles.cardTitle, { color: colors.text }]}>Gestão de Clientes</Text>
+                  <Text style={[styles.cardText, { color: colors.textSecondary }]}>
                     Cadastre e acompanhe o histórico de seus clientes
                   </Text>
                 </View>
               </View>
 
-              <View style={styles.card}>
-                <Ionicons name="cash-outline" size={24} color={theme.colors.primary} />
+              <View style={[styles.card, { backgroundColor: colors.background, borderColor: colors.borderLight }] }>
+                <Ionicons name="cash-outline" size={24} color={colors.primary} />
                 <View style={styles.cardTextContainer}>
-                  <Text style={styles.cardTitle}>Controle Financeiro</Text>
-                  <Text style={styles.cardText}>
+                  <Text style={[styles.cardTitle, { color: colors.text }]}>Controle Financeiro</Text>
+                  <Text style={[styles.cardText, { color: colors.textSecondary }]}>
                     Acompanhe suas receitas e despesas em tempo real
                   </Text>
                 </View>
@@ -101,7 +102,7 @@ export default function BoasVindas() {
             </View>
 
             <TouchableOpacity 
-              style={[styles.button, isLoading && styles.buttonDisabled]} 
+              style={[styles.button, { backgroundColor: colors.primary, shadowColor: colors.primary }, isLoading && styles.buttonDisabled]} 
               onPress={irParaLogin}
               disabled={isLoading}
               activeOpacity={0.7}
@@ -154,7 +155,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    backgroundColor: '#fff',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     padding: 20,
@@ -204,9 +204,9 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   card: {
-    backgroundColor: '#fff',
     padding: 16,
     borderRadius: 12,
+    borderWidth: 1,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: {
@@ -234,7 +234,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   button: {
-    backgroundColor: '#7C3AED',
     paddingVertical: 16,
     borderRadius: 12,
     flexDirection: 'row',
