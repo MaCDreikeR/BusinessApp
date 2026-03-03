@@ -6,6 +6,7 @@ import { usePathname , router , Stack , useRouter } from 'expo-router';
 import { TouchableOpacity, View, Text, StyleSheet, Image, Alert, ActivityIndicator, Dimensions, Platform , DeviceEventEmitter, Switch } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { DrawerContentScrollView, DrawerItemList , DrawerContentComponentProps } from '@react-navigation/drawer';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useAuth } from '../../contexts/AuthContext';
@@ -42,6 +43,7 @@ const getDrawerWidth = (): number | `${number}%` => {
 };
 
 export default function AppLayout() {
+  const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const isEstoque = pathname?.startsWith('/estoque');
   const isOrcamentos = pathname.startsWith('/orcamentos');
@@ -255,7 +257,7 @@ export default function AppLayout() {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <TouchableOpacity 
-          style={dynamicStyles.drawerHeader}
+          style={[dynamicStyles.drawerHeader, { paddingTop: 20 + insets.top }]}
           onPress={() => {
             props.navigation.closeDrawer();
             router.push('/usuarios');
