@@ -61,19 +61,22 @@ export const colors = {
   
   // Cores Neutras (Tema Escuro)
   dark: {
-    background: '#0A0A0A',        // Fundo principal (quase preto)
-    backgroundSecondary: '#1C1C1E', // Cards e seções
-    surface: '#2C2C2E',            // Inputs, modais (mais claro)
-    surfaceHighlight: '#3A3A3C',   // Hover, selecionado
+    // Fundos - Material Design Dark Theme otimizado
+    background: '#121212',         // Fundo principal (mais confortável que preto puro)
+    backgroundSecondary: '#1E1E1E', // Cards e seções (melhor separação visual)
+    surface: '#2A2A2C',            // Inputs, modais (contraste adequado)
+    surfaceHighlight: '#3E3E40',   // Hover, selecionado (mais visível)
     
-    text: '#FFFFFF',               // Texto principal (branco puro)
-    textSecondary: '#E5E5E7',      // Texto secundário (mais legível)
-    textTertiary: '#A1A1A6',       // Texto terciário (mais claro)
-    textDisabled: '#636366',       // Desabilitado (mais visível)
+    // Textos - Otimizados para legibilidade no escuro
+    text: '#F5F5F5',               // Texto principal (menos cansativo que branco puro)
+    textSecondary: '#B3B3B3',      // Texto secundário (suavizado)
+    textTertiary: '#8A8A8F',       // Texto terciário (contraste mantido)
+    textDisabled: '#5A5A5F',       // Desabilitado (mais sutil)
     
-    border: '#48484A',             // Bordas principais (mais claras)
-    borderLight: '#38383A',        // Bordas sutis
-    separator: '#48484A',          // Separadores
+    // Bordas e Separadores - Melhor visibilidade
+    border: '#404040',             // Bordas principais (mais neutro)
+    borderLight: '#2A2A2A',        // Bordas sutis (refinado)
+    separator: '#3A3A3A',          // Separadores (entre border e borderLight)
   },
   
   // Cores de Status
