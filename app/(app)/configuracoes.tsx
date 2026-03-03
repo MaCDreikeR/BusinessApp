@@ -314,7 +314,7 @@ export default function ConfiguracoesScreen() {
           style={[styles.tab, tab === 'notificacoes' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]} 
           onPress={() => setTab('notificacoes')}
         >
-          <Text style=[styles.tabText, { color: tab === 'notificacoes' ? colors.primaryContrast : colors.textSecondary }]}>
+          <Text style={[styles.tabText, { color: tab === 'notificacoes' ? colors.primaryContrast : colors.textSecondary }]}>
             Notificações
           </Text>
         </TouchableOpacity>
