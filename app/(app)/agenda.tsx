@@ -277,7 +277,7 @@ export default function AgendaScreen() {
     
     // Marcar a data selecionada
     const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
-    marked[selectedDateStr] = { selected: true, selectedColor: theme.colors.primary };
+    marked[selectedDateStr] = { selected: true, selectedColor: colors.primary };
     
     // Marcar datas com agendamentos
     agendamentosValidos.forEach(ag => {
@@ -291,13 +291,13 @@ export default function AgendaScreen() {
           marked[dataStr] = { 
             ...marked[dataStr],
             marked: true, 
-            dotColor: theme.colors.primary
+            dotColor: colors.primary
           };
         } else {
           marked[dataStr] = { 
             ...marked[dataStr],
             marked: true, 
-            dotColor: theme.colors.primary
+            dotColor: colors.primary
           };
         }
       } catch (e) {
@@ -311,7 +311,7 @@ export default function AgendaScreen() {
         ...marked[data],
         selected: data === selectedDateStr ? true : false,
         disableTouchEvent: false,
-        selectedColor: data === selectedDateStr ? theme.colors.primary : undefined,
+        selectedColor: data === selectedDateStr ? colors.primary : undefined,
         dotColor: colors.error,
         marked: true
       };
@@ -1749,7 +1749,7 @@ export default function AgendaScreen() {
       case 'concluido': return colors.textSecondary;
       case 'cancelado': return colors.error;
       case 'falta': return colors.error;
-      default: return (colors && (colors.primary as any)) || theme.colors.primary;
+      default: return colors.primary;
     }
   };
 
@@ -1806,9 +1806,9 @@ export default function AgendaScreen() {
               }}
               markedDates={markedDates}
               theme={{
-                selectedDayBackgroundColor: theme.colors.primary,
-                todayTextColor: theme.colors.primary,
-                arrowColor: theme.colors.primary,
+                selectedDayBackgroundColor: colors.primary,
+                todayTextColor: colors.primary,
+                arrowColor: colors.primary,
                 textDayFontSize: 14,
                 textMonthFontSize: 16,
                 textDayHeaderFontSize: 14,
@@ -1873,7 +1873,7 @@ export default function AgendaScreen() {
           ) : (
             horarios.length === 0 ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={theme.colors.primary} />
+                <ActivityIndicator size="large" color={colors.primary} />
                 <Text style={styles.loadingText}>Carregando horários...</Text>
               </View>
             ) : (() => {
@@ -1996,7 +1996,7 @@ export default function AgendaScreen() {
                 case 'concluido': return colors.textSecondary;
                 case 'cancelado': return colors.error;
                 case 'falta': return colors.error;
-                default: return theme.colors.primary;
+                default: return colors.primary;
               }
             };
 
@@ -2421,7 +2421,7 @@ export default function AgendaScreen() {
                       }
                     }}
                   >
-                    <Ionicons name="remove" size={20} color={theme.colors.primary} />
+                    <Ionicons name="remove" size={20} color={colors.primary} />
                   </TouchableOpacity>
                   
                   <Text style={styles.counterValue}>{limiteSimultaneos}</Text>
@@ -2433,7 +2433,7 @@ export default function AgendaScreen() {
                       setLimiteSimultaneos((atual + 1).toString());
                     }}
                   >
-                    <Ionicons name="add" size={20} color={theme.colors.primary} />
+                    <Ionicons name="add" size={20} color={colors.primary} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -2499,7 +2499,7 @@ export default function AgendaScreen() {
                     case 'falta':
                       return { label: 'FALTA', icon: 'alert-circle', color: colors.errorDark };
                     default:
-                      return { label: 'AGENDADO', icon: 'calendar', color: theme.colors.primary };
+                      return { label: 'AGENDADO', icon: 'calendar', color: colors.primary };
                   }
                 };
 
@@ -2536,7 +2536,7 @@ export default function AgendaScreen() {
                           />
                         ) : (
                           <View style={styles.detalhesAvatarPlaceholder}>
-                            <Ionicons name="person" size={40} color={theme.colors.primary} />
+                            <Ionicons name="person" size={40} color={colors.primary} />
                           </View>
                         )}
                       </View>
@@ -2693,7 +2693,7 @@ export default function AgendaScreen() {
                         <Ionicons 
                           name="calendar-outline" 
                           size={20} 
-                          color={item.status === 'agendado' ? theme.colors.primary : '#9CA3AF'} 
+                          color={item.status === 'agendado' ? colors.primary : '#9CA3AF'} 
                         />
                         <Text style={[
                           styles.statusButtonTextLarge,
@@ -2938,6 +2938,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   avatarName: {
     marginTop: 4,
     fontSize: 12,
+    color: colors.text,
   },
   timeGrid: {
     flex: 1,
@@ -3028,12 +3029,12 @@ const createStyles = (colors: any) => StyleSheet.create({
   timeLineMultiplo: {
     backgroundColor: colors.infoBackground,
     borderLeftWidth: 3,
-    borderLeftColor: theme.colors.primary,
+    borderLeftColor: colors.primary,
   },
   timeLineUnico: {
     backgroundColor: colors.primaryBackground,
     borderLeftWidth: 3,
-    borderLeftColor: theme.colors.primary,
+    borderLeftColor: colors.primary,
   },
   agendamentosScroll: {
     flex: 1,
@@ -3051,7 +3052,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     padding: 10,
     width: 180,
     borderLeftWidth: 4,
-    borderLeftColor: theme.colors.primary,
+    borderLeftColor: colors.primary,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: {
@@ -3079,7 +3080,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   agendamentoHorarioCard: {
     fontSize: 10,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: colors.primary,
     marginBottom: 2,
   },
   agendamentoClienteCard: {
@@ -3099,7 +3100,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   agendamentoCliente: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   agendamentoServicos: {
     fontSize: 10,
@@ -3128,11 +3129,11 @@ const createStyles = (colors: any) => StyleSheet.create({
   agendamentoHorario: {
     fontSize: 11,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: colors.primary,
     marginBottom: 2,
   },
   agendamentoCounter: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     paddingHorizontal: 4,
     paddingVertical: 2,
     borderRadius: 8,
@@ -3144,7 +3145,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   agendamentoMultiplo: {
     fontSize: 10,
-    color: theme.colors.primary,
+    color: colors.primaryContrast,
     fontWeight: '500',
   },
   agendamentoMultiploContainer: {
@@ -3319,7 +3320,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     gap: 8,
   },
   statusButtonActive: {
-    borderColor: theme.colors.primary,
+    borderColor: colors.primary,
     backgroundColor: '#F5F3FF',
   },
   statusButtonTextLarge: {
@@ -3476,7 +3477,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginBottom: 8,
   },
   diaSemanaSelected: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
   },
   diaSemanaText: {
     fontSize: 14,
@@ -3500,7 +3501,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginRight: 8,
   },
   dataAddButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     width: 44,
     height: 44,
     borderRadius: 8,
@@ -3528,7 +3529,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     padding: 4,
   },
   salvarButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
@@ -3596,7 +3597,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     padding: 2,
   },
   switchOn: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
   },
   switchOff: {
     backgroundColor: '#D1D5DB',
@@ -3634,7 +3635,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.background,
   },
   selectOptionSelected: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
   },
   selectOptionText: {
     fontSize: 16,
@@ -3673,14 +3674,14 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: theme.colors.primary,
+    color: colors.primary,
     marginTop: 16,
   },
   addButton: {
     position: 'absolute',
     bottom: 20,
     right: 20,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     width: 60,
     height: 60,
     borderRadius: 30,
@@ -3741,7 +3742,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   agendamentoModalNumero: {
     fontSize: 12,
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: '500',
     backgroundColor: colors.primaryBackground,
     paddingHorizontal: 8,
@@ -3769,7 +3770,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   agendamentoModalHorarioText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   agendamentoModalServicos: {
     marginLeft: 4,
@@ -3818,7 +3819,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   agendamentoModalComandaText: {
     fontSize: 12,
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: '500',
   },
   agendamentoModalFooter: {
@@ -3971,7 +3972,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   agendamentoUnicoText: {
     fontSize: 12,
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: '500',
     backgroundColor: colors.primaryLight + '20',
     paddingHorizontal: 8,
