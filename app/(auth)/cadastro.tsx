@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { Link, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Dropdown } from 'react-native-element-dropdown';
@@ -12,6 +12,7 @@ import {
   validarCPF, 
   validarCNPJ, 
   validarTelefone as validarCelular,
+  validarEmail,
   formatarCPF, 
   formatarCNPJ, 
   formatarTelefone as formatarCelular 
@@ -26,8 +27,28 @@ const segmentos = [
   { label: 'Outros', value: 'outros' },
 ];
 
+type FieldErrorKey =
+  | 'nomeEstabelecimento'
+  | 'numeroDocumento'
+  | 'telefone'
+  | 'segmento'
+  | 'nomeCompleto'
+  | 'email'
+  | 'senha'
+  | 'confirmarSenha'
+  | 'aceitaTermos';
+
+type FieldErrors = Partial<Record<FieldErrorKey, string>>;
+
 export default function CadastroScreen() {
   const { colors } = useTheme();
+  const numeroDocumentoRef = useRef<TextInput>(null);
+  const telefoneRef = useRef<TextInput>(null);
+  const nomeCompletoRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
+  const senhaRef = useRef<TextInput>(null);
+  const confirmarSenhaRef = useRef<TextInput>(null);
+
   const [nomeEstabelecimento, setNomeEstabelecimento] = useState('');
   const [tipoDocumento, setTipoDocumento] = useState('CPF');
   const [numeroDocumento, setNumeroDocumento] = useState('');
@@ -42,85 +63,284 @@ export default function CadastroScreen() {
   const [aceitaTutorial, setAceitaTutorial] = useState(false);
   const [aceitaTermos, setAceitaTermos] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'warning'>('error');
 
-  const handleSignUp = async () => {
-    try {
-      setSaving(true);
+  const capitalizarPrimeiraLetraPalavras = (texto: string) => {
+    return texto
+      .split(/(\s+)/)
+      .map(parte => {
+        if (!parte || /^\s+$/.test(parte)) return parte;
+        return parte.charAt(0).toUpperCase() + parte.slice(1);
+      })
+      .join('');
+  };
 
-      // Validações
-      if (!nomeCompleto || !email || !senha || !confirmarSenha || !nomeEstabelecimento || !numeroDocumento || !tipoDocumento || !telefone) {
-        Alert.alert('Erro', 'Por favor, preencha todos os campos');
-        return;
-      }
+  const showToast = (message: string, type: 'success' | 'error' | 'warning' = 'error') => {
+    setToastType(type);
+    setToastMessage(message);
+    setTimeout(() => {
+      setToastMessage('');
+    }, 3200);
+  };
 
-      if (senha !== confirmarSenha) {
-        Alert.alert('Erro', 'As senhas não coincidem');
-        return;
-      }
+  const setFieldError = (field: FieldErrorKey, message: string) => {
+    setFieldErrors((prev) => ({ ...prev, [field]: message }));
+  };
 
-      if (tipoDocumento === 'CPF' && !validarCPF(numeroDocumento)) {
-        Alert.alert('Erro', 'CPF inválido');
-        return;
-      }
+  const clearFieldError = (field: FieldErrorKey) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
 
-      if (tipoDocumento === 'CNPJ' && !validarCNPJ(numeroDocumento)) {
-        Alert.alert('Erro', 'CNPJ inválido');
-        return;
-      }
+  const shouldRetrySignUp = (message?: string) => {
+    if (!message) return false;
+    return /rate limit|too many requests|network|timeout|temporar|fetch/i.test(message);
+  };
 
-      if (!validarCelular(telefone)) {
-        Alert.alert('Erro', 'Celular inválido');
-        return;
-      }
+  const signUpWithRetry = async (emailNormalizado: string, senhaUsuario: string, nomeUsuario: string) => {
+    let lastResult: Awaited<ReturnType<typeof supabase.auth.signUp>> | null = null;
 
-      // Adicionar delay para evitar erro de limite de requisições
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
-      // Criar usuário no Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password: senha,
+    for (let tentativa = 1; tentativa <= 3; tentativa++) {
+      const result = await supabase.auth.signUp({
+        email: emailNormalizado,
+        password: senhaUsuario,
         options: {
           data: {
-            nome: nomeCompleto,
-          }
+            nome: nomeUsuario,
+          },
         },
       });
 
+      lastResult = result;
+
+      if (!result.error) {
+        return result;
+      }
+
+      if (!shouldRetrySignUp(result.error.message) || tentativa === 3) {
+        return result;
+      }
+
+      const backoffMs = 400 * Math.pow(2, tentativa - 1);
+      logger.warn('SignUp com erro temporário, tentando novamente...', {
+        tentativa,
+        backoffMs,
+        mensagem: result.error.message,
+      });
+      await new Promise(resolve => setTimeout(resolve, backoffMs));
+    }
+
+    return lastResult as Awaited<ReturnType<typeof supabase.auth.signUp>>;
+  };
+
+  const validateForm = () => {
+    const errors: FieldErrors = {};
+    const emailNormalizado = email.trim().toLowerCase();
+
+    if (!nomeEstabelecimento.trim()) errors.nomeEstabelecimento = 'Informe o nome do estabelecimento';
+    if (!numeroDocumento.trim()) errors.numeroDocumento = `Informe o ${tipoDocumento}`;
+    if (!telefone.trim()) errors.telefone = 'Informe o celular com WhatsApp';
+    if (!segmento) errors.segmento = 'Selecione o segmento';
+    if (!nomeCompleto.trim()) errors.nomeCompleto = 'Informe o nome completo';
+    if (!emailNormalizado) errors.email = 'Informe o e-mail';
+    if (!senha) errors.senha = 'Informe a senha';
+    if (!confirmarSenha) errors.confirmarSenha = 'Confirme a senha';
+
+    if (emailNormalizado && !validarEmail(emailNormalizado)) {
+      errors.email = 'Email inválido. Verifique o formato e tente novamente.';
+    }
+
+    if (tipoDocumento === 'CPF' && numeroDocumento && !validarCPF(numeroDocumento)) {
+      errors.numeroDocumento = 'CPF inválido';
+    }
+
+    if (tipoDocumento === 'CNPJ' && numeroDocumento && !validarCNPJ(numeroDocumento)) {
+      errors.numeroDocumento = 'CNPJ inválido';
+    }
+
+    if (telefone && !validarCelular(telefone)) {
+      errors.telefone = 'Celular inválido';
+    }
+
+    if (senha && senha.length < 8) {
+      errors.senha = 'A senha deve ter no mínimo 8 caracteres';
+    }
+
+    if (senha && confirmarSenha && senha !== confirmarSenha) {
+      errors.confirmarSenha = 'As senhas não coincidem';
+    }
+
+    if (!aceitaTermos) {
+      errors.aceitaTermos = 'Você precisa aceitar os Termos de Uso e Política de Privacidade';
+    }
+
+    setFieldErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      showToast('Revise os campos obrigatórios para continuar.', 'error');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSignUp = async () => {
+    try {
+      const emailNormalizado = email.trim().toLowerCase();
+
+      if (!validateForm()) {
+        return;
+      }
+
+      setSaving(true);
+
+      const { data: emailJaExiste, error: emailJaExisteError } = await supabase.rpc('email_ja_cadastrado', {
+        p_email: emailNormalizado,
+      });
+
+      if (!emailJaExisteError && emailJaExiste === true) {
+        setFieldError('email', 'Este email já está cadastrado');
+        showToast('Este email já está cadastrado. Tente fazer login ou recuperar a senha.', 'warning');
+        return;
+      }
+
+      if (emailJaExisteError) {
+        logger.warn('Não foi possível validar duplicidade de email antes do signUp:', emailJaExisteError);
+      }
+
+      // Criar usuário no Auth com retry inteligente para erros transitórios
+      const { data: authData, error: authError } = await signUpWithRetry(
+        emailNormalizado,
+        senha,
+        nomeCompleto
+      );
+
       if (authError) {
         logger.error('Erro no cadastro:', authError);
-        Alert.alert('Erro', 'Não foi possível criar o usuário. Tente novamente.');
+        
+        // Mensagens de erro mais específicas
+        let mensagemErro = 'Não foi possível criar o usuário. Tente novamente.';
+        
+        if (authError.message?.includes('Email') || authError.message?.includes('email')) {
+          mensagemErro = 'Email inválido. Verifique o formato (ex: usuario@email.com) e tente novamente.';
+        } else if (authError.message?.includes('already')) {
+          mensagemErro = 'Este email já está cadastrado. Tente fazer login ou use outro email.';
+        } else if (authError.message?.includes('password')) {
+          mensagemErro = 'Senha fraca. Use pelo menos 6 caracteres com letras e números.';
+        }
+        
+        setFieldError('email', mensagemErro.toLowerCase().includes('email') ? mensagemErro : '');
+        showToast(mensagemErro, 'error');
         return;
       }
 
       if (!authData.user) {
-        Alert.alert('Erro', 'Usuário não foi criado corretamente.');
+        showToast('Usuário não foi criado corretamente.', 'error');
         return;
       }
 
-      // Criar a conta e o primeiro usuário usando a função
-      const { data: contaData, error: contaError } = await supabase.rpc('criar_nova_conta', {
+      if (Array.isArray(authData.user.identities) && authData.user.identities.length === 0) {
+        setFieldError('email', 'Este email já está cadastrado');
+        showToast('Este email já está cadastrado. Tente fazer login ou recuperar a senha.', 'warning');
+        return;
+      }
+
+      const userId = authData.user.id;
+      let authUserExiste = false;
+      for (let tentativa = 1; tentativa <= 20; tentativa++) {
+        const { data: authExiste, error: authExisteError } = await supabase.rpc('auth_user_exists', {
+          p_user_id: userId,
+        });
+
+        if (!authExisteError && authExiste === true) {
+          authUserExiste = true;
+          break;
+        }
+
+        if (authExisteError) {
+          logger.warn('Erro ao checar auth_user_exists:', {
+            tentativa,
+            userId,
+            authExisteError,
+          });
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      if (!authUserExiste) {
+        logger.error('Usuário Auth ainda não disponível para FK:', { userId });
+        showToast('Conta criada, mas ainda sincronizando. Aguarde alguns segundos e tente novamente.', 'warning');
+        return;
+      }
+
+      // Usar RPC com SECURITY DEFINER (evita RLS)
+      const { error: contaError } = await supabase.rpc('criar_nova_conta', {
         p_nome_estabelecimento: nomeEstabelecimento,
         p_tipo_documento: tipoDocumento,
         p_numero_documento: numeroDocumento,
         p_telefone: telefone,
-        p_segmento: segmento,
+        p_segmento: segmento || null,
         p_nome_usuario: nomeCompleto,
-        p_email: email,
-        p_usuario_id: authData.user.id
+        p_email: emailNormalizado,
+        p_usuario_id: userId
       });
 
       if (contaError) {
         logger.error('Erro ao criar conta:', contaError);
-        Alert.alert('Erro', 'Não foi possível criar a conta. Tente novamente.');
+        
+        // ============================================================
+        // CLEANUP: Tentar remover usuário órfão de auth.users
+        // Se a RPC falhou, não queremos deixar um usuário sem dados
+        // ============================================================
+        try {
+          const { error: cleanError } = await supabase.rpc('limpar_usuario_orfao', {
+            p_user_id: userId,
+          });
+          
+          if (!cleanError) {
+            logger.info('✅ Usuário órfão removido de auth.users após falha na RPC');
+          } else {
+            logger.warn('Não foi possível remover usuário órfão:', cleanError);
+          }
+        } catch (cleanupError) {
+          logger.warn('Erro ao tentar fazer cleanup de usuário órfão:', cleanupError);
+        }
+        
+        showToast('Não foi possível criar a conta. Tente novamente.', 'error');
         return;
       }
 
-      Alert.alert('Sucesso', 'Cadastro realizado com sucesso! Por favor, verifique o seu e-mail para ativar sua conta.');
-      router.replace('/(auth)/login');
+      // Verificação pós-RPC (best effort): em alguns cenários de confirmação de e-mail,
+      // a sessão pode estar nula e a leitura direta pode retornar falso-negativo por RLS.
+      // Não deve bloquear o sucesso quando a RPC já concluiu sem erro.
+      const { data: usuarioCriado, error: usuarioVerificacaoError } = await supabase
+        .from('usuarios')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (usuarioVerificacaoError || !usuarioCriado) {
+        logger.warn('Verificação pós-RPC inconclusiva (não bloqueante):', {
+          usuarioVerificacaoError,
+          userId,
+          usuarioCriado: !!usuarioCriado,
+        });
+      }
+
+      showToast('Cadastro realizado com sucesso! Verifique seu e-mail para ativar a conta.', 'success');
+      setTimeout(() => {
+        router.replace('/(auth)/login');
+      }, 1200);
     } catch (error) {
       logger.error('Erro no cadastro:', error);
-      Alert.alert('Erro', 'Ocorreu um erro durante o cadastro. Tente novamente.');
+      showToast('Ocorreu um erro durante o cadastro. Tente novamente.', 'error');
     } finally {
       setSaving(false);
     }
@@ -139,6 +359,7 @@ export default function CadastroScreen() {
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           <Animated.View 
             entering={FadeInDown.duration(1000).springify()}
@@ -152,26 +373,63 @@ export default function CadastroScreen() {
             entering={FadeInUp.duration(1000).springify()}
             style={[styles.form, { backgroundColor: colors.surface }]}
           >
+        {toastMessage ? (
+          <View
+            accessibilityLiveRegion="polite"
+            style={[
+              styles.toastContainer,
+              {
+                backgroundColor:
+                  toastType === 'success'
+                    ? colors.success
+                    : toastType === 'warning'
+                      ? colors.warning
+                      : colors.error,
+              },
+            ]}
+          >
+            <Ionicons
+              name={toastType === 'success' ? 'checkmark-circle-outline' : 'alert-circle-outline'}
+              size={16}
+              color="#fff"
+            />
+            <Text style={styles.toastText}>{toastMessage}</Text>
+          </View>
+        ) : null}
+
         <View style={styles.formSection}>
-              <Text style={styles.sectionTitle}>Dados do Estabelecimento</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Dados do Estabelecimento</Text>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Nome do Estabelecimento*</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Nome do Estabelecimento*</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.background, borderColor: colors.borderLight, color: colors.text }, fieldErrors.nomeEstabelecimento && { borderColor: colors.error }]}
               placeholder="Nome da sua empresa"
               value={nomeEstabelecimento}
-              onChangeText={setNomeEstabelecimento}
-                  placeholderTextColor="#9CA3AF"
+              onChangeText={(text) => {
+                setNomeEstabelecimento(capitalizarPrimeiraLetraPalavras(text));
+                clearFieldError('nomeEstabelecimento');
+              }}
+              autoCapitalize={Platform.OS === 'android' ? 'characters' : 'words'}
+              keyboardType="default"
+              placeholderTextColor={colors.textTertiary}
+              autoFocus
+              returnKeyType="next"
+              onSubmitEditing={() => numeroDocumentoRef.current?.focus()}
+              accessibilityLabel="Nome do estabelecimento"
+              accessibilityHint="Digite o nome da empresa"
                 />
+              {fieldErrors.nomeEstabelecimento ? (
+                <Text style={[styles.errorText, { color: colors.error }]}>{fieldErrors.nomeEstabelecimento}</Text>
+              ) : null}
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Tipo de Documento*</Text>
+                <Text style={[styles.label, { color: colors.text }]}>Tipo de Documento*</Text>
                 <Dropdown
-                  style={styles.dropdown}
-                  placeholderStyle={styles.placeholderStyle}
-                  selectedTextStyle={styles.selectedTextStyle}
+                  style={[styles.dropdown, { backgroundColor: colors.background, borderColor: colors.borderLight }]}
+                  placeholderStyle={[styles.placeholderStyle, { color: colors.textTertiary }]}
+                  selectedTextStyle={[styles.selectedTextStyle, { color: colors.text }]}
                   data={[
                     { label: 'CPF', value: 'CPF' },
                     { label: 'CNPJ', value: 'CNPJ' }
@@ -186,169 +444,279 @@ export default function CadastroScreen() {
                     setNumeroDocumento('');
                   }}
                   renderRightIcon={() => (
-                    <Ionicons name="chevron-down" size={20} color="#666" />
+                    <Ionicons name="chevron-down" size={20} color={colors.textTertiary} />
                   )}
             />
           </View>
 
           <View style={styles.inputContainer}>
-                <Text style={styles.label}>{tipoDocumento}*</Text>
+                <Text style={[styles.label, { color: colors.text }]}>{tipoDocumento}*</Text>
             <TextInput
-              style={styles.input}
+              ref={numeroDocumentoRef}
+              style={[styles.input, { backgroundColor: colors.background, borderColor: colors.borderLight, color: colors.text }, fieldErrors.numeroDocumento && { borderColor: colors.error }]}
                   placeholder={tipoDocumento === 'CPF' ? "000.000.000-00" : "00.000.000/0000-00"}
                   value={numeroDocumento}
                   onChangeText={(text) => {
                     const formatted = tipoDocumento === 'CPF' ? formatarCPF(text) : formatarCNPJ(text);
                     setNumeroDocumento(formatted);
+                    clearFieldError('numeroDocumento');
                   }}
               keyboardType="numeric"
                   maxLength={tipoDocumento === 'CPF' ? 14 : 18}
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textTertiary}
+                  returnKeyType="next"
+                  onSubmitEditing={() => telefoneRef.current?.focus()}
+                  accessibilityLabel={`Campo de ${tipoDocumento}`}
             />
+            {fieldErrors.numeroDocumento ? (
+              <Text style={[styles.errorText, { color: colors.error }]}>{fieldErrors.numeroDocumento}</Text>
+            ) : null}
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Celular (Com Whatsapp)*</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Celular (Com Whatsapp)*</Text>
             <TextInput
-              style={styles.input}
+              ref={telefoneRef}
+              style={[styles.input, { backgroundColor: colors.background, borderColor: colors.borderLight, color: colors.text }, fieldErrors.telefone && { borderColor: colors.error }]}
               placeholder="(00) 0 0000-0000"
               value={telefone}
                   onChangeText={(text) => {
                     const formatted = formatarCelular(text);
                     setTelefone(formatted);
+                    clearFieldError('telefone');
                   }}
               keyboardType="phone-pad"
                   maxLength={15}
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textTertiary}
+                  returnKeyType="next"
+                  onSubmitEditing={() => nomeCompletoRef.current?.focus()}
+                  accessibilityLabel="Celular com WhatsApp"
             />
+            {fieldErrors.telefone ? (
+              <Text style={[styles.errorText, { color: colors.error }]}>{fieldErrors.telefone}</Text>
+            ) : null}
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Segmento*</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Segmento*</Text>
             <Dropdown
-              style={styles.dropdown}
-              placeholderStyle={styles.placeholderStyle}
-              selectedTextStyle={styles.selectedTextStyle}
+              style={[styles.dropdown, { backgroundColor: colors.background, borderColor: fieldErrors.segmento ? colors.error : colors.borderLight }]}
+              placeholderStyle={[styles.placeholderStyle, { color: colors.textTertiary }]}
+              selectedTextStyle={[styles.selectedTextStyle, { color: colors.text }]}
               data={segmentos}
               maxHeight={300}
               labelField="label"
               valueField="value"
               placeholder="Selecione o segmento"
               value={segmento}
-              onChange={item => setSegmento(item.value)}
+              onChange={item => {
+                setSegmento(item.value);
+                clearFieldError('segmento');
+              }}
               renderRightIcon={() => (
-                <Ionicons name="chevron-down" size={20} color="#666" />
+                <Ionicons name="chevron-down" size={20} color={colors.textTertiary} />
               )}
             />
+            {fieldErrors.segmento ? (
+              <Text style={[styles.errorText, { color: colors.error }]}>{fieldErrors.segmento}</Text>
+            ) : null}
           </View>
         </View>
 
         <View style={styles.formSection}>
-          <Text style={styles.sectionTitle}>Dados do Responsável</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Dados do Responsável</Text>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Nome Completo*</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Nome Completo*</Text>
             <TextInput
-              style={styles.input}
+              ref={nomeCompletoRef}
+              style={[styles.input, { backgroundColor: colors.background, borderColor: colors.borderLight, color: colors.text }, fieldErrors.nomeCompleto && { borderColor: colors.error }]}
               placeholder="Seu nome completo"
               value={nomeCompleto}
-              onChangeText={setNomeCompleto}
-                  placeholderTextColor="#9CA3AF"
+              onChangeText={(text) => {
+                setNomeCompleto(capitalizarPrimeiraLetraPalavras(text));
+                clearFieldError('nomeCompleto');
+              }}
+                autoCapitalize={Platform.OS === 'android' ? 'characters' : 'words'}
+                keyboardType="default"
+                placeholderTextColor={colors.textTertiary}
+                returnKeyType="next"
+                onSubmitEditing={() => emailRef.current?.focus()}
+                accessibilityLabel="Nome completo do responsável"
             />
+            {fieldErrors.nomeCompleto ? (
+              <Text style={[styles.errorText, { color: colors.error }]}>{fieldErrors.nomeCompleto}</Text>
+            ) : null}
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>E-mail*</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="seu@email.com"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-                  placeholderTextColor="#9CA3AF"
-            />
+            <Text style={[styles.label, { color: colors.text }]}>E-mail*</Text>
+            <View style={styles.inputWithIcon}>
+              <TextInput
+                ref={emailRef}
+                style={[styles.input, { flex: 1, paddingRight: 40, backgroundColor: colors.background, borderColor: colors.borderLight, color: colors.text }, fieldErrors.email && { borderColor: colors.error }]}
+                placeholder="seu@email.com"
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  clearFieldError('email');
+                }}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                placeholderTextColor={colors.textTertiary}
+                returnKeyType="next"
+                onSubmitEditing={() => senhaRef.current?.focus()}
+                autoCorrect={false}
+                accessibilityLabel="E-mail"
+              />
+              {email && (
+                <Ionicons 
+                  name={validarEmail(email) ? "checkmark-circle" : "close-circle"} 
+                  size={20} 
+                  color={validarEmail(email) ? "#10B981" : "#EF4444"}
+                  style={styles.inputIcon}
+                />
+              )}
+            </View>
+            {(fieldErrors.email || (email && !validarEmail(email.trim().toLowerCase()))) && (
+              <Text style={[styles.errorText, { color: colors.error }]}>{fieldErrors.email || 'Email inválido'}</Text>
+            )}
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Senha*</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Senha*</Text>
             <View style={styles.passwordContainer}>
               <TextInput
-                style={[styles.input, styles.passwordInput]}
+                ref={senhaRef}
+                style={[styles.input, styles.passwordInput, { backgroundColor: colors.background, borderColor: colors.borderLight, color: colors.text }, fieldErrors.senha && { borderColor: colors.error }]}
                 placeholder="Mínimo 8 caracteres"
                 value={senha}
-                onChangeText={setSenha}
+                onChangeText={(text) => {
+                  setSenha(text);
+                  clearFieldError('senha');
+                }}
+                autoCapitalize="none"
+                keyboardType={Platform.OS === 'android' ? 'visible-password' : 'default'}
                 secureTextEntry={!showPassword}
-                    placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textTertiary}
+                returnKeyType="next"
+                onSubmitEditing={() => confirmarSenhaRef.current?.focus()}
+                accessibilityLabel="Senha"
               />
               <TouchableOpacity 
                 style={styles.eyeButton}
                 onPress={() => setShowPassword(!showPassword)}
+                accessibilityRole="button"
+                accessibilityLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
               >
                 <Ionicons 
                   name={showPassword ? "eye-outline" : "eye-off-outline"} 
                   size={24} 
-                  color="#666"
+                  color={colors.textTertiary}
                 />
               </TouchableOpacity>
             </View>
+            {fieldErrors.senha ? (
+              <Text style={[styles.errorText, { color: colors.error }]}>{fieldErrors.senha}</Text>
+            ) : null}
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Confirmar Senha*</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Confirmar Senha*</Text>
             <View style={styles.passwordContainer}>
               <TextInput
-                style={[styles.input, styles.passwordInput]}
+                ref={confirmarSenhaRef}
+                style={[styles.input, styles.passwordInput, { backgroundColor: colors.background, borderColor: colors.borderLight, color: colors.text }, fieldErrors.confirmarSenha && { borderColor: colors.error }]}
                 placeholder="Digite a senha novamente"
                 value={confirmarSenha}
-                onChangeText={setConfirmarSenha}
+                onChangeText={(text) => {
+                  setConfirmarSenha(text);
+                  clearFieldError('confirmarSenha');
+                }}
+                autoCapitalize="none"
+                keyboardType={Platform.OS === 'android' ? 'visible-password' : 'default'}
                 secureTextEntry={!showConfirmPassword}
-                    placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textTertiary}
+                returnKeyType="done"
+                onSubmitEditing={handleSignUp}
+                accessibilityLabel="Confirmar senha"
               />
               <TouchableOpacity 
                 style={styles.eyeButton}
                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                accessibilityRole="button"
+                accessibilityLabel={showConfirmPassword ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'}
               >
                 <Ionicons 
                   name={showConfirmPassword ? "eye-outline" : "eye-off-outline"} 
                   size={24} 
-                  color="#666"
+                  color={colors.textTertiary}
                 />
               </TouchableOpacity>
             </View>
+            {fieldErrors.confirmarSenha ? (
+              <Text style={[styles.errorText, { color: colors.error }]}>{fieldErrors.confirmarSenha}</Text>
+            ) : null}
           </View>
         </View>
 
         <View style={styles.checkboxContainer}>
           <TouchableOpacity 
-                style={[styles.checkbox, aceitaTutorial && styles.checkboxChecked]}
+                style={[
+                  styles.checkbox,
+                  { borderColor: '#D1D5DB' },
+                  aceitaTutorial && [styles.checkboxChecked, { backgroundColor: colors.primary, borderColor: colors.primary }],
+                ]}
             onPress={() => setAceitaTutorial(!aceitaTutorial)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: aceitaTutorial }}
+            accessibilityLabel="Receber tutorial no WhatsApp"
           >
                 {aceitaTutorial && <Ionicons name="checkmark" size={16} color="#fff" />}
           </TouchableOpacity>
-          <Text style={styles.checkboxLabel}>
+          <Text style={[styles.checkboxLabel, { color: colors.textSecondary }]}>
             Desejo receber um tutorial via WhatsApp sobre como utilizar o sistema
           </Text>
         </View>
 
         <View style={styles.checkboxContainer}>
           <TouchableOpacity 
-                style={[styles.checkbox, aceitaTermos && styles.checkboxChecked]}
-            onPress={() => setAceitaTermos(!aceitaTermos)}
+                style={[
+                  styles.checkbox,
+                  { borderColor: fieldErrors.aceitaTermos ? colors.error : '#D1D5DB' },
+                  aceitaTermos && [styles.checkboxChecked, { backgroundColor: colors.primary, borderColor: colors.primary }],
+                ]}
+            onPress={() => {
+              setAceitaTermos(!aceitaTermos);
+              clearFieldError('aceitaTermos');
+            }}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: aceitaTermos }}
+            accessibilityLabel="Aceitar termos de uso e política de privacidade"
           >
                 {aceitaTermos && <Ionicons name="checkmark" size={16} color="#fff" />}
           </TouchableOpacity>
-          <Text style={styles.checkboxLabel}>
+          <Text style={[styles.checkboxLabel, { color: colors.textSecondary }]}>
             Li e aceito os{' '}
-            <Text style={styles.link}>Termos de Uso</Text> e a{' '}
-            <Text style={styles.link}>Política de Privacidade</Text>
+            <Text style={[styles.link, { color: colors.link }]}>Termos de Uso</Text> e a{' '}
+            <Text style={[styles.link, { color: colors.link }]}>Política de Privacidade</Text>
           </Text>
         </View>
+        {fieldErrors.aceitaTermos ? (
+          <Text style={[styles.errorText, { color: colors.error, marginBottom: 12 }]}>{fieldErrors.aceitaTermos}</Text>
+        ) : null}
 
             <TouchableOpacity 
-              style={[styles.createButton, saving && styles.createButtonDisabled]}
+              style={[
+                styles.createButton,
+                { backgroundColor: saving ? '#A78BFA' : colors.primary },
+                saving && styles.createButtonDisabled,
+              ]}
               onPress={handleSignUp}
               disabled={saving}
+              accessibilityRole="button"
+              accessibilityLabel="Criar conta"
+              accessibilityHint="Cria uma nova conta para o estabelecimento"
             >
               {saving ? (
                 <ActivityIndicator color="#fff" />
@@ -358,21 +726,21 @@ export default function CadastroScreen() {
         </TouchableOpacity>
 
         <View style={styles.loginContainer}>
-          <Text style={styles.loginText}>Já tem uma conta? </Text>
+          <Text style={[styles.loginText, { color: colors.textSecondary }]}>Já tem uma conta? </Text>
           <Link href="/(auth)/login" asChild>
-            <TouchableOpacity>
-              <Text style={styles.loginLink}>Fazer login</Text>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Ir para login">
+              <Text style={[styles.loginLink, { color: colors.link }]}>Fazer login</Text>
             </TouchableOpacity>
           </Link>
         </View>
 
         <TouchableOpacity style={styles.trialButton}>
-          <Text style={styles.trialText}>Faça o teste grátis por 7 dias!</Text>
+          <Text style={[styles.trialText, { color: colors.successDark }]}>Faça o teste grátis por 7 dias!</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.supportButton}>
-          <Ionicons name="logo-whatsapp" size={20} color="#0066FF" />
-          <Text style={styles.supportText}>Falar com o Suporte</Text>
+          <Ionicons name="logo-whatsapp" size={20} color={colors.link} />
+          <Text style={[styles.supportText, { color: colors.link }]}>Falar com o Suporte</Text>
         </TouchableOpacity>
           </Animated.View>
     </ScrollView>
@@ -461,6 +829,20 @@ const styles = StyleSheet.create({
     right: 12,
     top: 12,
   },
+  inputWithIcon: {
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  inputIcon: {
+    position: 'absolute',
+    right: 12,
+  },
+  errorText: {
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: '500',
+  },
   dropdown: {
     height: 48,
     borderWidth: 1,
@@ -486,12 +868,15 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderWidth: 1,
+    borderColor: '#D1D5DB',
     borderRadius: 4,
     marginRight: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxChecked: {
+    backgroundColor: '#8B5CF6',
+    borderColor: '#8B5CF6',
   },
   checkboxLabel: {
     flex: 1,
@@ -502,6 +887,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   createButton: {
+    backgroundColor: '#8B5CF6',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -553,5 +939,20 @@ const styles = StyleSheet.create({
     color: '#0066FF',
     fontSize: 14,
     fontWeight: '500',
+  },
+  toastContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+    gap: 8,
+  },
+  toastText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '500',
+    flex: 1,
   },
 }); 

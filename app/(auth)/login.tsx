@@ -1,43 +1,368 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions, Alert, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
-import { AuthError } from '@supabase/supabase-js';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeInUp, useSharedValue, withSequence, withTiming, useAnimatedStyle } from 'react-native-reanimated';
 import { logger } from '../../utils/logger';
 import { useTheme } from '../../contexts/ThemeContext';
 import { CacheManager, CacheNamespaces } from '../../utils/cacheManager';
+import * as Haptics from 'expo-haptics';
+import * as SecureStore from 'expo-secure-store';
+import { NativeModulesProxy } from 'expo-modules-core';
 
-const { width } = Dimensions.get('window');
+const MAX_LOGIN_ATTEMPTS = 3;
+const WINDOW_MS = 30 * 60 * 1000;
+const LOCK_MS = 30 * 60 * 1000;
+const BIOMETRIC_ENABLED_KEY = 'biometric_login_enabled';
+const BIOMETRIC_EMAIL_KEY = 'biometric_login_email';
+
+type LoginFieldErrorKey = 'email' | 'password';
+type LoginFieldErrors = Partial<Record<LoginFieldErrorKey, string>>;
+
+type LoginRateLimitData = {
+  attempts: number;
+  windowStartedAt: number;
+  lockUntil?: number;
+};
+
+type BackendRateLimitResponse = {
+  success: boolean;
+  blocked: boolean;
+  attempts?: number;
+  max_attempts?: number;
+  remaining_attempts?: number;
+  retry_after_minutes?: number;
+  lock_until?: string | null;
+};
+
+type LocalAuthenticationModule = typeof import('expo-local-authentication');
+
+const getLocalAuthenticationModule = (): LocalAuthenticationModule | null => {
+  const hasNativeLocalAuth = Boolean(
+    (NativeModulesProxy as Record<string, unknown>)?.ExpoLocalAuthentication
+  );
+
+  if (!hasNativeLocalAuth) {
+    return null;
+  }
+
+  try {
+    // Tenta carregar o módulo de forma segura
+    const module = require('expo-local-authentication') as LocalAuthenticationModule;
+    if (module && typeof module.authenticateAsync === 'function') {
+      return module;
+    }
+    return null;
+  } catch (error) {
+    // Biometria indisponível neste build (ex: Expo Go)
+    return null;
+  }
+};
 
 export default function LoginScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const passwordInputRef = useRef<TextInput>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [biometricLoading, setBiometricLoading] = useState(false);
   const [lembrarMe, setLembrarMe] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [lockUntil, setLockUntil] = useState<number | null>(null);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'error' | 'success' | 'warning'>('error');
+
+  const shakeOffset = useSharedValue(0);
+  const shakeStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: shakeOffset.value }],
+  }));
 
   // Carregar dados salvos ao iniciar
   useEffect(() => {
-    carregarDadosSalvos();
+    (async () => {
+      try {
+        await carregarDadosSalvos();
+        await verificarBiometria();
+        await carregarRateLimit();
+      } catch (error) {
+        logger.warn('Erro durante inicialização da tela de login:', error);
+      }
+    })();
   }, []);
+
+  const showToast = (message: string, type: 'error' | 'success' | 'warning' = 'error') => {
+    setToastMessage(message);
+    setToastType(type);
+    setTimeout(() => {
+      setToastMessage('');
+    }, 3000);
+  };
+
+  const setFieldError = (field: LoginFieldErrorKey, message: string) => {
+    setFieldErrors((prev) => ({ ...prev, [field]: message }));
+  };
+
+  const clearFieldError = (field: LoginFieldErrorKey) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const triggerErrorFeedback = async (message: string) => {
+    showToast(message, 'error');
+    shakeOffset.value = withSequence(
+      withTiming(-10, { duration: 60 }),
+      withTiming(10, { duration: 80 }),
+      withTiming(-8, { duration: 80 }),
+      withTiming(8, { duration: 80 }),
+      withTiming(0, { duration: 60 })
+    );
+
+    try {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } catch (error) {
+      logger.warn('Falha ao executar haptic de erro:', error);
+    }
+  };
+
+  const isValidEmail = (value: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(value);
+  };
+
+  const verificarBiometria = async () => {
+    try {
+      const LocalAuthentication = getLocalAuthenticationModule();
+
+      if (!LocalAuthentication) {
+        setBiometricAvailable(false);
+        setBiometricEnabled(false);
+        return;
+      }
+
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      const enabledFlag = await SecureStore.getItemAsync(BIOMETRIC_ENABLED_KEY);
+
+      setBiometricAvailable(hasHardware && isEnrolled);
+      setBiometricEnabled(enabledFlag === 'true');
+
+      if (enabledFlag === 'true') {
+        const biometricEmail = await SecureStore.getItemAsync(BIOMETRIC_EMAIL_KEY);
+        if (biometricEmail) {
+          setEmail(biometricEmail);
+        }
+      }
+    } catch (error) {
+      logger.warn('Erro ao verificar biometria:', error);
+      setBiometricAvailable(false);
+      setBiometricEnabled(false);
+    }
+  };
+
+  const carregarRateLimit = async () => {
+    try {
+      const rateLimitData = await CacheManager.get<LoginRateLimitData>(
+        CacheNamespaces.USER_PREFS,
+        'login_rate_limit'
+      );
+
+      if (!rateLimitData?.lockUntil) {
+        setLockUntil(null);
+        return;
+      }
+
+      if (rateLimitData.lockUntil > Date.now()) {
+        setLockUntil(rateLimitData.lockUntil);
+      } else {
+        await CacheManager.remove(CacheNamespaces.USER_PREFS, 'login_rate_limit');
+        setLockUntil(null);
+      }
+    } catch (error) {
+      logger.warn('Erro ao carregar rate limit de login:', error);
+    }
+  };
+
+  const limparRateLimit = async () => {
+    setLockUntil(null);
+    await CacheManager.remove(CacheNamespaces.USER_PREFS, 'login_rate_limit');
+  };
+
+  const registrarTentativaFalha = async () => {
+    const now = Date.now();
+
+    try {
+      const current = await CacheManager.get<LoginRateLimitData>(
+        CacheNamespaces.USER_PREFS,
+        'login_rate_limit'
+      );
+
+      let nextData: LoginRateLimitData;
+
+      if (!current || now - current.windowStartedAt > WINDOW_MS) {
+        nextData = {
+          attempts: 1,
+          windowStartedAt: now,
+        };
+      } else {
+        nextData = {
+          attempts: current.attempts + 1,
+          windowStartedAt: current.windowStartedAt,
+        };
+      }
+
+      if (nextData.attempts >= MAX_LOGIN_ATTEMPTS) {
+        nextData.lockUntil = now + LOCK_MS;
+        setLockUntil(nextData.lockUntil);
+      }
+
+      await CacheManager.set(CacheNamespaces.USER_PREFS, 'login_rate_limit', nextData);
+    } catch (error) {
+      logger.warn('Erro ao registrar tentativa de login:', error);
+    }
+  };
+
+  const checkBackendRateLimit = async (normalizedEmail: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke<BackendRateLimitResponse>('auth-rate-limit', {
+        body: { email: normalizedEmail, action: 'check' },
+      });
+
+      if (error) {
+        logger.warn('Falha ao verificar rate limit no backend:', error);
+        return { blocked: false, retryAfterMinutes: 0 };
+      }
+
+      if (data?.blocked) {
+        const lockTimestamp = data.lock_until
+          ? new Date(data.lock_until).getTime()
+          : Date.now() + (data.retry_after_minutes ?? 30) * 60000;
+
+        setLockUntil(lockTimestamp);
+      }
+
+      return {
+        blocked: Boolean(data?.blocked),
+        retryAfterMinutes: data?.retry_after_minutes ?? 0,
+      };
+    } catch (error) {
+      logger.warn('Erro ao consultar rate limit backend:', error);
+      return { blocked: false, retryAfterMinutes: 0 };
+    }
+  };
+
+  const registrarTentativaFalhaBackend = async (normalizedEmail: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke<BackendRateLimitResponse>('auth-rate-limit', {
+        body: { email: normalizedEmail, action: 'failure' },
+      });
+
+      if (error) {
+        logger.warn('Falha ao registrar tentativa falha no backend:', error);
+        return { blocked: false, retryAfterMinutes: 0 };
+      }
+
+      if (data?.blocked) {
+        const lockTimestamp = data.lock_until
+          ? new Date(data.lock_until).getTime()
+          : Date.now() + (data.retry_after_minutes ?? 30) * 60000;
+
+        setLockUntil(lockTimestamp);
+      }
+
+      return {
+        blocked: Boolean(data?.blocked),
+        retryAfterMinutes: data?.retry_after_minutes ?? 0,
+      };
+    } catch (error) {
+      logger.warn('Erro ao registrar tentativa falha backend:', error);
+      return { blocked: false, retryAfterMinutes: 0 };
+    }
+  };
+
+  const limparRateLimitBackend = async (normalizedEmail: string) => {
+    try {
+      const { error } = await supabase.functions.invoke<BackendRateLimitResponse>('auth-rate-limit', {
+        body: { email: normalizedEmail, action: 'success' },
+      });
+
+      if (error) {
+        logger.warn('Falha ao limpar rate limit no backend:', error);
+      }
+    } catch (error) {
+      logger.warn('Erro ao limpar rate limit backend:', error);
+    }
+  };
+
+  const handleBiometricLogin = async () => {
+    if (!biometricAvailable || !biometricEnabled) {
+      await triggerErrorFeedback('Biometria não está disponível neste dispositivo');
+      return;
+    }
+
+    const LocalAuthentication = getLocalAuthenticationModule();
+
+    if (!LocalAuthentication) {
+      await triggerErrorFeedback('Biometria indisponível neste build. Use login com senha.');
+      return;
+    }
+
+    try {
+      setBiometricLoading(true);
+
+      const authResult = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Entrar com biometria',
+        fallbackLabel: 'Usar senha',
+        disableDeviceFallback: false,
+      });
+
+      if (!authResult.success) {
+        await triggerErrorFeedback('Autenticação biométrica cancelada ou falhou');
+        return;
+      }
+
+      const { data, error } = await supabase.auth.getSession();
+
+      if (error || !data.session?.user) {
+        await triggerErrorFeedback('Sessão expirada. Faça login com e-mail e senha.');
+        return;
+      }
+
+      try {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch (hapticError) {
+        logger.warn('Falha ao executar haptic de sucesso (biometria):', hapticError);
+      }
+
+      showToast('Login com biometria realizado!', 'success');
+      router.replace('/(app)');
+    } catch (error) {
+      logger.error('Erro no login biométrico:', error);
+      await triggerErrorFeedback('Não foi possível autenticar com biometria');
+    } finally {
+      setBiometricLoading(false);
+    }
+  };
 
   const carregarDadosSalvos = async () => {
     try {
-      const dadosSalvos = await CacheManager.get<{ email: string; senha: string; lembrarMe: boolean }>(
+      const dadosSalvos = await CacheManager.get<{ email: string; lembrarMe: boolean }>(
         CacheNamespaces.USER_PREFS,
         'login_data'
       );
       
       if (dadosSalvos) {
         setEmail(dadosSalvos.email);
-        setPassword(dadosSalvos.senha || '');
+        setPassword('');
         setLembrarMe(dadosSalvos.lembrarMe);
       }
     } catch (error) {
@@ -48,11 +373,11 @@ export default function LoginScreen() {
   const salvarDados = async () => {
     try {
       if (lembrarMe) {
-        // Salvar sem TTL (permanente até logout)
+        // Segurança: nunca salvar senha localmente
         await CacheManager.set(
           CacheNamespaces.USER_PREFS,
           'login_data',
-          { email, senha: password, lembrarMe }
+          { email, lembrarMe }
         );
       } else {
         await CacheManager.remove(CacheNamespaces.USER_PREFS, 'login_data');
@@ -63,37 +388,101 @@ export default function LoginScreen() {
   };
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      setErrorMessage('Por favor, preencha todos os campos');
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (lockUntil && lockUntil > Date.now()) {
+      const minutesLeft = Math.ceil((lockUntil - Date.now()) / 60000);
+      await triggerErrorFeedback(`Muitas tentativas. Tente novamente em ${minutesLeft} min.`);
+      return;
+    }
+
+    if (!normalizedEmail || !password) {
+      if (!normalizedEmail) setFieldError('email', 'Informe seu e-mail');
+      if (!password) setFieldError('password', 'Informe sua senha');
+      await triggerErrorFeedback('Por favor, preencha todos os campos');
+      return;
+    }
+
+    if (!isValidEmail(normalizedEmail)) {
+      setFieldError('email', 'Digite um e-mail válido');
+      await triggerErrorFeedback('Digite um e-mail válido');
       return;
     }
 
     try {
       setLoading(true);
-      setErrorMessage('');
+      setFieldErrors({});
+
+      const backendCheck = await checkBackendRateLimit(normalizedEmail);
+      if (backendCheck.blocked) {
+        const retry = backendCheck.retryAfterMinutes || 30;
+        await triggerErrorFeedback(`Muitas tentativas. Tente novamente em ${retry} min.`);
+        return;
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: normalizedEmail,
         password
       });
       
       if (error) {
-        setErrorMessage('E-mail ou senha inválidos, por favor verifique!');
+        await registrarTentativaFalha();
+        const backendFailure = await registrarTentativaFalhaBackend(normalizedEmail);
+
+        if (backendFailure.blocked) {
+          const retry = backendFailure.retryAfterMinutes || 30;
+          await triggerErrorFeedback(`Muitas tentativas. Tente novamente em ${retry} min.`);
+          return;
+        }
+
+        setFieldError('email', 'Credenciais inválidas');
+        setFieldError('password', 'Credenciais inválidas');
+        await triggerErrorFeedback('E-mail ou senha inválidos, por favor verifique!');
         return;
       }
 
       if (!data?.user) {
-        setErrorMessage('Usuário não encontrado após login');
+        await registrarTentativaFalha();
+        const backendFailure = await registrarTentativaFalhaBackend(normalizedEmail);
+
+        if (backendFailure.blocked) {
+          const retry = backendFailure.retryAfterMinutes || 30;
+          await triggerErrorFeedback(`Muitas tentativas. Tente novamente em ${retry} min.`);
+          return;
+        }
+
+        setFieldError('email', 'Usuário não encontrado');
+        await triggerErrorFeedback('Usuário não encontrado após login');
         return;
       }
 
+      await limparRateLimit();
+      await limparRateLimitBackend(normalizedEmail);
+
       // Se o login for bem sucedido, salva os dados se "Lembrar-me" estiver marcado
       await salvarDados();
+
+      if (lembrarMe && biometricAvailable) {
+        await SecureStore.setItemAsync(BIOMETRIC_ENABLED_KEY, 'true');
+        await SecureStore.setItemAsync(BIOMETRIC_EMAIL_KEY, normalizedEmail);
+        setBiometricEnabled(true);
+      }
+
+      try {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch (hapticError) {
+        logger.warn('Falha ao executar haptic de sucesso (senha):', hapticError);
+      }
+
+      showToast('Login realizado com sucesso!', 'success');
       
       // Redireciona para a tela inicial após o login bem-sucedido
       router.replace('/(app)');
       
     } catch (error: any) {
-      setErrorMessage('E-mail ou senha inválidos, por favor verifique!');
+      await registrarTentativaFalha();
+      await registrarTentativaFalhaBackend(normalizedEmail);
+      await triggerErrorFeedback('E-mail ou senha inválidos, por favor verifique!');
     } finally {
       setLoading(false);
     }
@@ -112,47 +501,104 @@ export default function LoginScreen() {
           entering={FadeInDown.duration(1000).springify()}
           style={styles.header}
         >
-        <Text style={styles.title}>Bem-vindo ao BusinessApp</Text>
+        <Text
+          style={styles.title}
+          numberOfLines={2}
+          adjustsFontSizeToFit
+          minimumFontScale={0.85}
+        >
+          Bem-vindo ao BusinessApp
+        </Text>
         <Text style={styles.subtitle}>Faça login para continuar</Text>
         </Animated.View>
 
         <Animated.View 
           entering={FadeInUp.duration(1000).springify()}
-          style={[styles.form, { backgroundColor: colors.surface }]}
+          style={[styles.form, shakeStyle, { backgroundColor: colors.surface }]}
         >
+        {toastMessage ? (
+          <View
+            accessible
+            accessibilityLiveRegion="polite"
+            style={[
+              styles.toastContainer,
+              {
+                backgroundColor:
+                  toastType === 'success'
+                    ? colors.success
+                    : toastType === 'warning'
+                      ? colors.warning
+                      : colors.error,
+              },
+            ]}
+          >
+            <Ionicons
+              name={toastType === 'success' ? 'checkmark-circle-outline' : 'alert-circle-outline'}
+              size={16}
+              color="#fff"
+            />
+            <Text style={styles.toastText}>{toastMessage}</Text>
+          </View>
+        ) : null}
+
         <View style={styles.inputContainer}>
           <Text style={[styles.label, { color: colors.text }]}>E-mail</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }, errorMessage && styles.inputError]}
+            style={[
+              styles.input,
+              { backgroundColor: colors.background, borderColor: colors.border, color: colors.text },
+              fieldErrors.email && { borderColor: colors.error },
+            ]}
             placeholder="Digite seu e-mail"
             value={email}
             onChangeText={(text) => {
               setEmail(text);
-              setErrorMessage('');
+              clearFieldError('email');
             }}
             autoCapitalize="none"
             keyboardType="email-address"
-              placeholderTextColor={colors.textTertiary}
+            placeholderTextColor={colors.textTertiary}
+            returnKeyType="next"
+            onSubmitEditing={() => passwordInputRef.current?.focus()}
+            autoCorrect={false}
+            textContentType="emailAddress"
+            accessibilityLabel="Campo de e-mail"
+            accessibilityHint="Digite seu e-mail para entrar"
           />
+          {fieldErrors.email ? <Text style={[styles.inlineErrorText, { color: colors.error }]}>{fieldErrors.email}</Text> : null}
         </View>
 
         <View style={styles.inputContainer}>
           <Text style={[styles.label, { color: colors.text }]}>Senha</Text>
           <View style={styles.passwordContainer}>
             <TextInput
-              style={[styles.input, styles.passwordInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }, errorMessage && styles.inputError]}
+              ref={passwordInputRef}
+              style={[
+                styles.input,
+                styles.passwordInput,
+                { backgroundColor: colors.background, borderColor: colors.border, color: colors.text },
+                fieldErrors.password && { borderColor: colors.error },
+              ]}
               placeholder="Digite sua senha"
               value={password}
               onChangeText={(text) => {
                 setPassword(text);
-                setErrorMessage('');
+                clearFieldError('password');
               }}
               secureTextEntry={!showPassword}
-                placeholderTextColor={colors.textTertiary}
+              placeholderTextColor={colors.textTertiary}
+              returnKeyType="done"
+              onSubmitEditing={handleLogin}
+              textContentType="password"
+              accessibilityLabel="Campo de senha"
+              accessibilityHint="Digite sua senha para entrar"
             />
             <TouchableOpacity 
               style={styles.eyeButton}
               onPress={() => setShowPassword(!showPassword)}
+              accessibilityRole="button"
+              accessibilityLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+              accessibilityHint="Alterna a visibilidade da senha"
             >
               <Ionicons 
                 name={showPassword ? "eye-outline" : "eye-off-outline"} 
@@ -161,34 +607,59 @@ export default function LoginScreen() {
               />
             </TouchableOpacity>
           </View>
+          {fieldErrors.password ? <Text style={[styles.inlineErrorText, { color: colors.error }]}>{fieldErrors.password}</Text> : null}
         </View>
-
-        {errorMessage ? (
-          <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle-outline" size={16} color="#EF4444" />
-            <Text style={styles.errorText}>{errorMessage}</Text>
-          </View>
-        ) : null}
 
         <View style={styles.rememberContainer}>
           <View style={styles.checkboxContainer}>
               <TouchableOpacity 
                 style={[styles.checkbox, { backgroundColor: colors.background, borderColor: colors.border }, lembrarMe && { backgroundColor: colors.primary, borderColor: colors.primary }]}
                 onPress={() => setLembrarMe(!lembrarMe)}
+                accessibilityRole="checkbox"
+                accessibilityLabel="Lembrar de mim"
+                accessibilityState={{ checked: lembrarMe }}
+                accessibilityHint="Ative para lembrar seu e-mail neste dispositivo"
               >
                 {lembrarMe && <Ionicons name="checkmark" size={16} color="#fff" />}
               </TouchableOpacity>
             <Text style={[styles.rememberText, { color: colors.textSecondary }]}>Lembrar-me</Text>
           </View>
-          <TouchableOpacity>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Esqueci minha senha"
+            accessibilityHint="Abre recuperação de senha"
+          >
             <Text style={[styles.forgotText, { color: colors.primary }]}>Esqueceu a senha?</Text>
           </TouchableOpacity>
         </View>
+
+        {biometricAvailable && biometricEnabled ? (
+          <TouchableOpacity
+            style={[styles.biometricButton, { borderColor: colors.primary }]}
+            onPress={handleBiometricLogin}
+            disabled={biometricLoading || loading}
+            accessibilityRole="button"
+            accessibilityLabel="Entrar com biometria"
+            accessibilityHint="Autentica usando impressão digital ou reconhecimento facial"
+          >
+            {biometricLoading ? (
+              <ActivityIndicator color={colors.primary} />
+            ) : (
+              <>
+                <Ionicons name="finger-print-outline" size={20} color={colors.primary} />
+                <Text style={[styles.biometricButtonText, { color: colors.primary }]}>Entrar com biometria</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        ) : null}
 
         <TouchableOpacity 
           style={[styles.loginButton, { backgroundColor: colors.primary, shadowColor: colors.primary }, loading && styles.loginButtonDisabled]}
           onPress={handleLogin}
           disabled={loading}
+          accessibilityRole="button"
+          accessibilityLabel="Entrar"
+          accessibilityHint="Faz login com e-mail e senha"
         >
             {loading ? (
               <ActivityIndicator color="#fff" />
@@ -200,19 +671,31 @@ export default function LoginScreen() {
         <View style={styles.signupContainer}>
           <Text style={[styles.signupText, { color: colors.textSecondary }]}>Ainda não tem uma conta? </Text>
           <Link href="/(auth)/cadastro" asChild>
-            <TouchableOpacity>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Criar conta"
+              accessibilityHint="Abre a tela de cadastro"
+            >
               <Text style={[styles.signupLink, { color: colors.primary }]}>Criar conta</Text>
             </TouchableOpacity>
           </Link>
         </View>
 
-        <TouchableOpacity style={styles.trialButton}>
-          <Text style={styles.trialText}>Faça seu teste grátis agora!</Text>
+        <TouchableOpacity
+          style={styles.trialButton}
+          accessibilityRole="button"
+          accessibilityLabel="Fazer teste grátis"
+        >
+          <Text style={[styles.trialText, { color: colors.successDark }]}>Faça seu teste grátis agora!</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.supportButton}>
-          <Ionicons name="logo-whatsapp" size={20} color="#0066FF" />
-          <Text style={styles.supportText}>Falar com o Suporte</Text>
+        <TouchableOpacity
+          style={styles.supportButton}
+          accessibilityRole="button"
+          accessibilityLabel="Falar com o suporte"
+        >
+          <Ionicons name="logo-whatsapp" size={20} color={colors.link} />
+          <Text style={[styles.supportText, { color: colors.link }]}>Falar com o Suporte</Text>
         </TouchableOpacity>
 
         <Text style={[styles.termsText, { color: colors.textSecondary }]}>
@@ -241,10 +724,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
+    lineHeight: 34,
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
     marginBottom: 8,
+    width: '100%',
+    flexShrink: 1,
   },
   subtitle: {
     fontSize: 16,
@@ -313,9 +799,27 @@ const styles = StyleSheet.create({
   rememberText: {
     fontSize: 14,
   },
+  inlineErrorText: {
+    marginTop: 6,
+    fontSize: 12,
+  },
   forgotText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  biometricButton: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 12,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  biometricButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   loginButton: {
     borderRadius: 8,
@@ -370,6 +874,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+  toastContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+    gap: 8,
+  },
+  toastText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '500',
+    flex: 1,
+  },
   termsText: {
     fontSize: 12,
     textAlign: 'center',
@@ -380,19 +899,5 @@ const styles = StyleSheet.create({
   },
   inputError: {
     borderColor: '#EF4444',
-  },
-  errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    backgroundColor: '#FEE2E2',
-    padding: 12,
-    borderRadius: 8,
-    gap: 8,
-  },
-  errorText: {
-    color: '#EF4444',
-    fontSize: 14,
-    flex: 1,
   },
 }); 
