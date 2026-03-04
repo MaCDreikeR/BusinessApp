@@ -1,19 +1,10 @@
-﻿import React, { useEffect, useState , useMemo} from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useCreateStyles, ColorTheme } from '../../utils/accentTheme';
 import { getHistoricoNotificacoes } from '../../services/notifications';
 import { logger } from '../../utils/logger';
-
-// removido import estático de theme; usar colors via useTheme
-
-type Notificacao = {
-  id: string;
-  titulo: string;
-  mensagem: string;
-  tipo: string;
-  data_envio: string;
-};
 
 // Função para formatar a data
 function formatarData(dataString: string) {
@@ -26,11 +17,18 @@ function formatarData(dataString: string) {
   return `${dia} de ${mes} às ${hora}:${minuto}`;
 }
 
+type Notificacao = {
+  id: string;
+  titulo: string;
+  mensagem: string;
+  tipo: string;
+  data_envio: string;
+};
+
 export default function NotificacoesScreen() {
-  const { colors } = useTheme();
-  
-  // Estilos dinâmicos baseados no tema
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  // Melhoria #2: useCreateStyles elimina repetição de useMemo + useTheme
+  // Combina ambos em uma única chamada com acesso a colors e design tokens
+  const styles = useCreateStyles(({ colors, design }) => createStyles(colors, design));
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -104,25 +102,27 @@ export default function NotificacoesScreen() {
 }
 
 // Função auxiliar para criar estilos dinâmicos
-const createStyles = (colors: any) => StyleSheet.create({
+// Melhoria #1: Type safety com ColorTheme em vez de any
+// Melhoria #4: Usando DESIGN_TOKENS para spacing e typography
+const createStyles = (colors: ColorTheme, design: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
   },
   listContainer: {
-    padding: 16,
+    padding: design.spacing.lg,
   },
   refreshButton: {
     alignSelf: 'flex-end',
-    padding: 8,
-    marginBottom: 16,
+    padding: design.spacing.md,
+    marginBottom: design.spacing.lg,
   },
   notificacaoItem: {
     flexDirection: 'row',
     backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: design.radius.md,
+    padding: design.spacing.lg,
+    marginBottom: design.spacing.md,
     shadowColor: colors.shadow,
     shadowOffset: {
       width: 0,
@@ -139,24 +139,24 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: design.spacing.md,
   },
   notificacaoConteudo: {
     flex: 1,
   },
   notificacaoTitulo: {
-    fontSize: 16,
+    fontSize: design.typography.base,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: design.spacing.xs,
   },
   notificacaoMensagem: {
-    fontSize: 14,
+    fontSize: design.typography.sm,
     color: colors.textSecondary,
-    marginBottom: 8,
+    marginBottom: design.spacing.sm,
   },
   notificacaoData: {
-    fontSize: 12,
+    fontSize: design.typography.xs,
     color: colors.textSecondary,
   },
   loadingContainer: {
@@ -168,11 +168,11 @@ const createStyles = (colors: any) => StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
+    padding: design.spacing.lg,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: design.typography.base,
     color: colors.textSecondary,
-    marginTop: 8,
+    marginTop: design.spacing.md,
   },
 });

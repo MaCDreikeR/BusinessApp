@@ -8,21 +8,44 @@ import {
   DEFAULT_ACCENT_COLOR,
   getColorTheme,
   isAccentColorId,
+  ColorTheme,
 } from '@utils/accentTheme';
 
+/**
+ * Modo de tema do aplicativo
+ * 
+ * @type {'light'} - Força modo claro
+ * @type {'dark'} - Força modo escuro
+ * @type {'auto'} - Segue preferência do dispositivo (padrão)
+ */
 type ThemeMode = 'light' | 'dark' | 'auto';
 
+/**
+ * Interface do contexto de tema
+ * 
+ * Fornece:
+ * - **colors**: Todos os tokens de cor (semânticas + marca)
+ * - **accentColor**: Cor de marca atual
+ * - **isDark**: Indicador de modo escuro
+ * - **mode**: Modo de tema (light/dark/auto)
+ * - **setTheme()**: Muda modo de tema
+ * - **setAccentColor()**: Muda cor de marca
+ * - **toggleTheme()**: Alterna light/dark
+ */
 interface ThemeContextType {
   mode: ThemeMode;
   accentColor: AccentColorId;
   isDark: boolean;
-  colors: typeof themeConfig.colors & { primaryContrast: string };
+  colors: ColorTheme & { primaryContrast: string };
   spacing: typeof themeConfig.spacing;
   typography: typeof themeConfig.typography;
   borders: typeof themeConfig.borders;
   shadows: typeof themeConfig.shadows;
+  /** Muda o modo de tema: 'light' | 'dark' | 'auto' (padrão: auto) */
   setTheme: (mode: ThemeMode) => void;
+  /** Muda a cor de marca do app (roxo, azul, verde, etc.) */
   setAccentColor: (accentColor: AccentColorId) => void;
+  /** Alterna entre light e dark mode */
   toggleTheme: () => void;
 }
 
@@ -30,13 +53,32 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const THEME_STORAGE_KEY = '@theme_mode';
 
+/**
+ * Provedor de tema do aplicativo
+ * 
+ * Gerencia:
+ * - **Modo de tema**: light/dark/auto (com persistência em AsyncStorage)
+ * - **Cor de marca**: Escolhida pelo usuário (com persistência em AsyncStorage)
+ * - **Cores dinâmicas**: Recomputa toda vez que tema/acento muda
+ * 
+ * ## Melhoria #5: Override de tema
+ * Use `setTheme('light')` ou `setTheme('dark')` para forçar modo específico.
+ * Voltará a 'auto' se desejar seguir sistema novamente.
+ * 
+ * @example
+ * <ThemeProvider>
+ *   <App />
+ * </ThemeProvider>
+ */
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const deviceColorScheme = useDeviceColorScheme();
   const [mode, setMode] = useState<ThemeMode>('auto');
   const [accentColor, setAccentColorState] = useState<AccentColorId>(DEFAULT_ACCENT_COLOR);
   const [isReady, setIsReady] = useState(false);
 
-  // Determina se deve usar dark mode
+  // Determina se deve usar dark mode baseado em:
+  // 1. Se modo for 'auto' → segue preferência do dispositivo
+  // 2. Caso contrário → usa o modo explícito
   const isDark = mode === 'auto' 
     ? deviceColorScheme === 'dark' 
     : mode === 'dark';
@@ -121,6 +163,38 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Hook para acessar o tema do aplicativo
+ * 
+ * Retorna objeto com:
+ * - `colors` - Todos os tokens de cor (semânticos + marca)
+ * - `accentColor` - Cor de marca atual
+ * - `isDark` - Se está em dark mode
+ * - `mode` - Modo ('light' | 'dark' | 'auto')
+ * - `setTheme()` - Mudar modo
+ * - `setAccentColor()` - Mudar cor de marca
+ * - `toggleTheme()` - Alternar light/dark
+ * - `spacing`, `typography`, `borders`, `shadows` - Tokens de design
+ * 
+ * ## Melhoria #2: useCreateStyles hook
+ * Em vez de usar useTheme + useMemo em toda tela, use:
+ * 
+ * ```tsx
+ * import { useCreateStyles } from '@utils/accentTheme';
+ * 
+ * const styles = useCreateStyles(({ colors, design }) => StyleSheet.create({
+ *   container: { backgroundColor: colors.surface, padding: design.spacing.md },
+ *   text: { color: colors.text, fontSize: design.typography.base },
+ * }));
+ * ```
+ * 
+ * @throws Erro se usado fora de ThemeProvider
+ * @example
+ * function MyComponent() {
+ *   const { colors, isDark, setTheme } = useTheme();
+ *   return <View style={{ backgroundColor: colors.surface }} />;
+ * }
+ */
 export function useTheme() {
   const context = useContext(ThemeContext);
   if (!context) {

@@ -1,13 +1,25 @@
 /**
- * Sistema de Cores Centralizado - BusinessApp
+ * # Sistema de Design Centralizado - BusinessApp
  * 
- * Consolidação única de TODAS as cores do app.
- * - Cores semânticas (texto, fundos, bordas, status) que não mudam
- * - Cores de marca (primary + variações) que mudam com acento escolhido
+ * Consolidação única de TODOS os tokens de design do app:
+ * - **Cores semânticas**: texto, fundos, bordas, status (fixas)
+ * - **Cores de marca**: primary + variações (mudam com acento)
+ * - **Spacing**: espaçamento padronizado
+ * - **Typography**: tamanhos de fonte
+ * - **Border Radius**: raios de borda
  * 
- * Uso: import { getColorTheme, ACCENT_COLORS } from '@utils/accentTheme'
- * const colors = getColorTheme('purple', false) // light mode com roxo
- * const colors = getColorTheme('blue', true)    // dark mode com azul
+ * @example
+ * import { getColorTheme, DESIGN_TOKENS } from '@utils/accentTheme'
+ * 
+ * // Obter tema completo de cores
+ * const colors = getColorTheme('purple', false) // light mode + roxo
+ * const colors = getColorTheme('blue', true)    // dark mode + azul
+ * 
+ * // Usar spacing global
+ * <View style={{ padding: DESIGN_TOKENS.spacing.md }} />
+ * 
+ * @author BusinessApp Team
+ * @version 2.0 - Centralizado com spacing, typography e radius
  */
 
 export type AccentColorId = 'purple' | 'blue' | 'green' | 'orange' | 'pink' | 'red';
@@ -311,11 +323,60 @@ const ACCENT_PALETTES: Record<AccentColorId, AccentPalette> = {
 };
 
 // ============================================================================
-// FUNÇÕES PÚBLICAS
+// DESIGN TOKENS (Spacing, Typography, Border Radius)
 // ============================================================================
 
 /**
+ * Tokens de espaçamento reutilizáveis
+ * Use para padding, margin, gap, etc.
+ * 
+ * @example
+ * <View style={{ padding: DESIGN_TOKENS.spacing.md, gap: DESIGN_TOKENS.spacing.xs }} />
+ */
+export const DESIGN_TOKENS = {
+  /** Espaçamento em pixels */
+  spacing: {
+    xs: 4,    // Pequeno
+    sm: 8,    // Pequeno-médio
+    md: 12,   // Médio
+    lg: 16,   // Grande
+    xl: 20,   // Extra grande
+    xxl: 24,  // Duplo extra grande
+  },
+  
+  /** Tamanhos de fonte em pixels */
+  typography: {
+    xs: 12,   // Extra pequeno (labels, badges)
+    sm: 14,   // Pequeno (descrições)
+    base: 16, // Normal (padrão)
+    lg: 18,   // Grande (subtítulos)
+    xl: 20,   // Extra grande
+    xxl: 24,  // Duplo extra grande
+    xxxl: 28, // Títulos grandes
+  },
+  
+  /** Raios de borda em pixels */
+  radius: {
+    sm: 4,    // Botões pequenos, inputs
+    md: 8,    // Cards, inputs grandes
+    lg: 12,   // Modals, sheets
+    xl: 16,   // Grandes seções arredondadas
+    full: 999, // Círculos
+  },
+} as const;
+
+
+
+/**
  * Valida se um valor é um ID de cor de acento válido
+ * 
+ * @param value - Valor a validar
+ * @returns true se é um AccentColorId válido ('purple' | 'blue' | 'green' | 'orange' | 'pink' | 'red')
+ * 
+ * @example
+ * if (isAccentColorId('purple')) {
+ *   const colors = getColorTheme('purple', false);
+ * }
  */
 export function isAccentColorId(value: string): value is AccentColorId {
   return ACCENT_COLORS.some((item) => item.id === value);
@@ -323,7 +384,15 @@ export function isAccentColorId(value: string): value is AccentColorId {
 
 /**
  * Retorna apenas os tokens de marca (primary e variações)
- * para fins de compatibilidade com código antigo
+ * Para compatibilidade com código que só precisa de cores primárias
+ * 
+ * @param accentColor - ID da cor de marca escolhida
+ * @param isDark - Se é modo escuro
+ * @returns Objeto com primary, primaryDark, primaryLight, primaryLighter, primaryBackground
+ * 
+ * @example
+ * const brand = getAccentTokens('blue', false);
+ * <View style={{ backgroundColor: brand.primaryBackground }} />
  */
 export function getAccentTokens(accentColor: AccentColorId, isDark: boolean): AccentTokens {
   const palette = ACCENT_PALETTES[accentColor] || ACCENT_PALETTES[DEFAULT_ACCENT_COLOR];
@@ -337,9 +406,9 @@ export function getAccentTokens(accentColor: AccentColorId, isDark: boolean): Ac
  * @param isDark - modo escuro (true) ou modo claro (false)
  * @returns Objeto com TODAS as cores para usar no app
  * 
- * Exemplo:
- *   const colors = getColorTheme('purple', false);
- *   <View style={{ backgroundColor: colors.surface, color: colors.text }} />
+ * @example
+ * const colors = getColorTheme('purple', false);
+ * <View style={{ backgroundColor: colors.surface, color: colors.text }} />
  */
 export function getColorTheme(accentColor: AccentColorId, isDark: boolean): ColorTheme {
   const semanticColors = isDark ? SEMANTIC_COLORS_DARK : SEMANTIC_COLORS_LIGHT;
@@ -350,3 +419,43 @@ export function getColorTheme(accentColor: AccentColorId, isDark: boolean): Colo
     ...accentTokens,
   };
 }
+
+// ============================================================================
+// HOOK: useCreateStyles (eliminates repeated useMemo + useTheme)
+// ============================================================================
+
+import { useMemo } from 'react';
+import { useTheme } from '../contexts/ThemeContext';
+
+/**
+ * Hook customizado para criar estilos dinâmicos com suporte a tema
+ * 
+ * Elimina a necessidade de repetir `useMemo` em toda tela.
+ * Combina `useTheme()` + `useMemo()` em uma única chamada.
+ * 
+ * @param createStylesFn - Função que recebe `{ colors, design }` e retorna StyleSheet
+ * @returns Objeto de estilos reativo ao tema
+ * 
+ * @example
+ * // Antes (repetitivo):
+ * const { colors } = useTheme();
+ * const styles = useMemo(() => createStyles(colors), [colors]);
+ * const createStyles = (colors: ColorTheme) => StyleSheet.create({...});
+ * 
+ * // Depois (com hook):
+ * const styles = useCreateStyles((c) => StyleSheet.create({
+ *   container: { backgroundColor: c.colors.surface },
+ *   text: { color: c.colors.text, fontSize: c.design.typography.base },
+ * }));
+ */
+export function useCreateStyles<T extends Record<string, any>>(
+  createStylesFn: (context: { colors: ColorTheme; design: typeof DESIGN_TOKENS }) => T
+): T {
+  const { colors } = useTheme();
+  
+  return useMemo(
+    () => createStylesFn({ colors, design: DESIGN_TOKENS }),
+    [colors]
+  );
+}
+
