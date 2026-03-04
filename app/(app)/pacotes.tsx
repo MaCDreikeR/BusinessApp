@@ -10,7 +10,6 @@ import { logger } from '../../utils/logger';
 import { Produto as ProdutoBase, Servico as ServicoBase, Pacote as PacoteBase } from '@types';
 import { theme } from '@utils/theme';
 import { Button } from '../../components/Button2';
-import { Button } from '../../components/Button2';
 
 type ProdutoPacote = {
   id: string;
