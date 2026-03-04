@@ -100,8 +100,8 @@ export default function HomeScreen() {
       color: colors.textSecondary,
     },
     cardPrimary: { borderLeftWidth: 4 },
-    cardSuccess: { borderLeftWidth: 4, borderLeftColor: '#22C55E' },
-    cardInfo: { borderLeftWidth: 4, borderLeftColor: '#0066FF' },
+    cardSuccess: { borderLeftWidth: 4, borderLeftColor: colors.success },
+    cardInfo: { borderLeftWidth: 4, borderLeftColor: colors.info },
     cardDanger: { borderLeftWidth: 4, borderLeftColor: colors.error },
     section: {
       backgroundColor: colors.surface,
@@ -155,7 +155,7 @@ export default function HomeScreen() {
     vendaValor: {
       fontSize: 16,
       fontWeight: '600' as const,
-      color: '#22C55E',
+      color: colors.success,
     },
     produtoItem: {
       flexDirection: 'row' as const,
@@ -903,7 +903,7 @@ export default function HomeScreen() {
               accessibilityHint="Toque duas vezes para ver a lista de clientes"
             >
               <View style={styles.cardIconContainer}>
-                <FontAwesome5 name="users" size={24} color="#0066FF" />
+                <FontAwesome5 name="users" size={24} color={colors.info} />
               </View>
               <Text style={styles.cardTitle}>Clientes Ativos</Text>
               <Text style={styles.cardValue}>{clientesAtivos}</Text>
