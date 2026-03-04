@@ -20,6 +20,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { logger } from '../../utils/logger';
 import { Usuario as UsuarioBase } from '@types';
+import { Button } from '../../components/Button2';
 
 type UsuarioComissao = Pick<UsuarioBase, 'id' | 'nome_completo' | 'email' | 'role'> & {
   avatar_url?: string;
@@ -427,13 +428,15 @@ export default function ComissoesScreen() {
 
         {/* Botão Pagar (só aparece se houver saldo) */}
         {totalAPagar > 0 && (
-          <TouchableOpacity
-            style={styles.botaoPagar}
+          <Button
+            variant="primary"
+            size="small"
+            icon="cash"
             onPress={() => pagarComissao(item)}
+            style={styles.botaoPagar}
           >
-            <Ionicons name="cash" size={20} color={colors.white} />
-            <Text style={styles.botaoPagarTexto}>Pagar</Text>
-          </TouchableOpacity>
+            Pagar
+          </Button>
         )}
 
         <View style={styles.cardBody}>
@@ -451,13 +454,15 @@ export default function ComissoesScreen() {
                 }}
               />
             </View>
-            <TouchableOpacity
-              style={styles.botaoRegistrar}
+            <Button
+              variant="primary"
+              size="small"
+              icon="add-circle"
               onPress={() => registrarComissao(item)}
+              style={styles.botaoRegistrar}
             >
-              <Ionicons name="add-circle" size={20} color={colors.white} />
-              <Text style={styles.botaoRegistrarTexto}>Adicionar</Text>
-            </TouchableOpacity>
+              Adicionar
+            </Button>
           </View>
 
           <View style={styles.descricaoContainer}>
@@ -474,13 +479,15 @@ export default function ComissoesScreen() {
           </View>
         </View>
 
-        <TouchableOpacity
-          style={styles.botaoDetalhes}
+        <Button
+          variant="ghost"
+          size="small"
+          icon="chevron-forward"
           onPress={() => abrirDetalhes(item)}
+          style={styles.botaoDetalhes}
         >
-          <Text style={styles.botaoDetalhesTexto}>Ver histórico</Text>
-          <Ionicons name="chevron-forward" size={18} color={colors.primary} />
-        </TouchableOpacity>
+          Ver histórico
+        </Button>
       </View>
     );
   };
@@ -555,12 +562,13 @@ export default function ComissoesScreen() {
               <Text style={styles.modalTitle}>
                 Histórico - {usuarioSelecionado?.nome_completo}
               </Text>
-              <TouchableOpacity
+              <Button
+                variant="ghost"
+                size="small"
+                icon="close"
                 onPress={() => setModalDetalhesVisible(false)}
                 style={styles.modalCloseButton}
-              >
-                <Ionicons name="close" size={24} color={colors.textSecondary} />
-              </TouchableOpacity>
+              />
             </View>
 
             <View style={styles.resumoContainer}>
@@ -611,12 +619,13 @@ export default function ComissoesScreen() {
           <View style={styles.modalConfigCenter}>
             <View style={styles.modalHeaderCenter}>
               <Text style={styles.modalTitleCenter}>Quem recebe comissão?</Text>
-              <TouchableOpacity 
+              <Button 
+                variant="ghost"
+                size="small"
+                icon="close"
                 onPress={() => setModalConfigVisible(false)}
                 style={styles.closeButtonCenter}
-              >
-                <Ionicons name="close" size={20} color={colors.text} />
-              </TouchableOpacity>
+              />
             </View>
 
             <ScrollView style={styles.configListCenter} showsVerticalScrollIndicator={false}>

@@ -9,6 +9,8 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { logger } from '../../utils/logger';
 import { Produto as ProdutoBase, Servico as ServicoBase, Pacote as PacoteBase } from '@types';
 import { theme } from '@utils/theme';
+import { Button } from '../../components/Button2';
+import { Button } from '../../components/Button2';
 
 type ProdutoPacote = {
   id: string;
@@ -916,13 +918,15 @@ export default function PacotesScreen() {
 
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>Produtos</Text>
-                    <TouchableOpacity
-                      style={styles.addButton}
+                    <Button
+                      variant="outline"
+                      size="medium"
+                      icon="add-circle-outline"
                       onPress={handleMostrarModalProdutos}
+                      style={styles.addButton}
                     >
-                      <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
-                      <Text style={styles.addButtonText}>Adicionar Produtos</Text>
-                    </TouchableOpacity>
+                      Adicionar Produtos
+                    </Button>
                     {novoPacote.produtos.map((produto, index) => (
                       <View key={produto.id} style={styles.itemLista}>
                         <View style={styles.itemInfo}>
@@ -947,13 +951,15 @@ export default function PacotesScreen() {
 
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>Servi�os</Text>
-                    <TouchableOpacity
-                      style={styles.addButton}
+                    <Button
+                      variant="outline"
+                      size="medium"
+                      icon="add-circle-outline"
                       onPress={handleMostrarModalServicos}
+                      style={styles.addButton}
                     >
-                      <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
-                      <Text style={styles.addButtonText}>Adicionar Servi�os</Text>
-                    </TouchableOpacity>
+                      Adicionar Serviços
+                    </Button>
                     {novoPacote.servicos.map((servico, index) => (
                       <View key={servico.id} style={styles.itemLista}>
                         <View style={styles.itemInfo}>
@@ -1035,18 +1041,22 @@ export default function PacotesScreen() {
               </ScrollView>
 
               <View style={[styles.modalFooter, { position: 'absolute', bottom: 0, left: 0, right: 0 }]}>
-                <TouchableOpacity
-                  style={[styles.button, styles.cancelButton]}
+                <Button
+                  variant="secondary"
+                  size="medium"
                   onPress={() => setMostrarModal(false)}
+                  style={[styles.button, styles.cancelButton]}
                 >
-                  <Text style={[styles.buttonText, styles.cancelButtonText]}>Cancelar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.button}
+                  Cancelar
+                </Button>
+                <Button
+                  variant="primary"
+                  size="medium"
                   onPress={handleSalvarPacote}
+                  style={styles.button}
                 >
-                  <Text style={styles.buttonText}>Salvar</Text>
-                </TouchableOpacity>
+                  Salvar
+                </Button>
               </View>
             </View>
           </Animated.View>
@@ -1184,15 +1194,16 @@ export default function PacotesScreen() {
               </ScrollView>
 
               <View style={styles.modalFooter}>
-                <TouchableOpacity
-                  style={[styles.button, produtosSelecionados.length === 0 && styles.buttonDisabled]}
+                <Button
+                  variant="primary"
+                  size="large"
                   onPress={handleAdicionarProdutos}
                   disabled={produtosSelecionados.length === 0}
+                  style={styles.button}
+                  fullWidth
                 >
-                  <Text style={[styles.buttonText, produtosSelecionados.length === 0 && styles.buttonTextDisabled]}>
-                    Adicionar ao Pacote ({produtosSelecionados.length})
-                  </Text>
-                </TouchableOpacity>
+                  Adicionar ao Pacote ({produtosSelecionados.length})
+                </Button>
               </View>
             </View>
           </View>
@@ -1326,15 +1337,16 @@ export default function PacotesScreen() {
               </ScrollView>
 
               <View style={styles.modalFooter}>
-                <TouchableOpacity
-                  style={[styles.button, servicosSelecionados.length === 0 && styles.buttonDisabled]}
+                <Button
+                  variant="primary"
+                  size="large"
                   onPress={handleAdicionarServicos}
                   disabled={servicosSelecionados.length === 0}
+                  style={styles.button}
+                  fullWidth
                 >
-                  <Text style={[styles.buttonText, servicosSelecionados.length === 0 && styles.buttonTextDisabled]}>
-                    Adicionar ao Pacote ({servicosSelecionados.length})
-                  </Text>
-                </TouchableOpacity>
+                  Adicionar ao Pacote ({servicosSelecionados.length})
+                </Button>
               </View>
             </View>
           </View>

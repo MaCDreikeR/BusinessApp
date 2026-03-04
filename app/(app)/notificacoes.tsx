@@ -5,6 +5,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useCreateStyles, ColorTheme } from '../../utils/accentTheme';
 import { getHistoricoNotificacoes } from '../../services/notifications';
 import { logger } from '../../utils/logger';
+import { Button } from '../../components/Button2';
 
 // Função para formatar a data
 function formatarData(dataString: string) {
@@ -88,12 +89,13 @@ export default function NotificacoesScreen() {
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContainer}
           ListHeaderComponent={
-            <TouchableOpacity 
-              style={styles.refreshButton}
+            <Button 
+              variant="ghost"
+              size="medium"
+              icon="refresh"
               onPress={carregarNotificacoes}
-            >
-              <Ionicons name="refresh" size={24} color={colors.primary} />
-            </TouchableOpacity>
+              style={styles.refreshButton}
+            />
           }
         />
       )}

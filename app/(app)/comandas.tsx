@@ -28,6 +28,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { logger } from '../../utils/logger';
 import { Cliente as ClienteBase, Produto as ProdutoBase, Servico as ServicoBase, Pacote as PacoteBase, Comanda as ComandaBase } from '@types';
 import { offlineInsert, offlineUpdate, offlineDelete, getOfflineFeedback } from '../../services/offlineSupabase';
+import { Button } from '../../components/Button2';
 
 // Tipos específicos para comandas
 type ClienteComanda = Pick<ClienteBase, 'id' | 'nome' | 'telefone' | 'email' | 'estabelecimento_id' | 'created_at'> & {
@@ -2409,16 +2410,16 @@ export default function ComandasScreen() {
                 <Text style={styles.cancelButtonText}>Cancelar</Text>
               </TouchableOpacity>
               
-              <TouchableOpacity 
-                style={[
-                  styles.saveButton,
-                  !selectedCliente && styles.saveButtonDisabled
-                ]}
+              <Button
+                variant="primary"
+                size="large"
                 onPress={criarNovaComanda}
                 disabled={!selectedCliente}
+                style={styles.saveButton}
+                fullWidth
               >
-                <Text style={styles.saveButtonText}>Criar Comanda</Text>
-              </TouchableOpacity>
+                Criar Comanda
+              </Button>
             </View>
           </Animated.View>
         </View>
@@ -2450,18 +2451,22 @@ export default function ComandasScreen() {
               Deseja aplicar este saldo na comanda atual?
             </Text>
             <View style={{ flexDirection: 'row' }}>
-              <TouchableOpacity
-                style={[styles.cancelButton, { flex: 1, marginRight: 8 }]}
+              <Button
+                variant="secondary"
+                size="medium"
                 onPress={ignorarSaldoCrediario}
+                style={{ flex: 1, marginRight: 8 }}
               >
-                <Text style={styles.cancelButtonText}>Não usar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalConfirmButton, { flex: 1, marginLeft: 8 }]}
+                Não usar
+              </Button>
+              <Button
+                variant="primary"
+                size="medium"
                 onPress={aplicarSaldoCrediario}
+                style={{ flex: 1, marginLeft: 8 }}
               >
-                <Text style={styles.modalConfirmButtonText}>Usar Saldo</Text>
-              </TouchableOpacity>
+                Usar Saldo
+              </Button>
             </View>
           </View>
         </View>
@@ -2485,9 +2490,12 @@ export default function ComandasScreen() {
               <View style={styles.modalDragIndicator} />
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Detalhes da Comanda</Text>
-                <TouchableOpacity onPress={fecharModal}>
-                  <Ionicons name="close" size={24} color={colors.text} />
-                </TouchableOpacity>
+                <Button
+                  variant="ghost"
+                  size="small"
+                  icon="close"
+                  onPress={fecharModal}
+                />
               </View>
             </View>
             
@@ -3016,9 +3024,12 @@ export default function ComandasScreen() {
                   Selecionar {tipoItem === 'produto' ? 'Produtos' : 
                               tipoItem === 'servico' ? 'Serviços' : 'Pacotes'}
                 </Text>
-                <TouchableOpacity onPress={fecharModalItens}>
-                  <Ionicons name="close" size={24} color={colors.text} />
-                </TouchableOpacity>
+                <Button
+                  variant="ghost"
+                  size="small"
+                  icon="close"
+                  onPress={fecharModalItens}
+                />
               </View>
             </View>
             
@@ -3144,24 +3155,23 @@ export default function ComandasScreen() {
             </ScrollView>
             
             <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={styles.modalCancelButton}
+              <Button
+                variant="secondary"
+                size="medium"
                 onPress={fecharModalItens}
+                style={styles.modalCancelButton}
               >
-                <Text style={styles.modalCancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.modalConfirmButton,
-                  itensSelecionados.filter(item => item.tipo === tipoItem).length === 0 && styles.modalConfirmButtonDisabled
-                ]}
+                Cancelar
+              </Button>
+              <Button
+                variant="primary"
+                size="medium"
                 onPress={adicionarItensSelecionados}
                 disabled={itensSelecionados.filter(item => item.tipo === tipoItem).length === 0}
+                style={styles.modalConfirmButton}
               >
-                <Text style={styles.modalConfirmButtonText}>
-                  Adicionar ({itensSelecionados.filter(item => item.tipo === tipoItem).length})
-                </Text>
-              </TouchableOpacity>
+                Adicionar ({itensSelecionados.filter(item => item.tipo === tipoItem).length})
+              </Button>
             </View>
           </Animated.View>
         </View>
@@ -3178,9 +3188,12 @@ export default function ComandasScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Pagamento</Text>
-              <TouchableOpacity onPress={() => setModalPagamentoVisible(false)}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
+              <Button
+                variant="ghost"
+                size="small"
+                icon="close"
+                onPress={() => setModalPagamentoVisible(false)}
+              />
             </View>
 
             <ScrollView 
@@ -3520,38 +3533,18 @@ export default function ComandasScreen() {
             </ScrollView>
 
             <View style={styles.modalFooter}>
-              <TouchableOpacity 
-                style={styles.cancelButton}
+              <Button
+                variant="secondary"
+                size="medium"
                 onPress={() => setModalPagamentoVisible(false)}
+                style={styles.cancelButton}
               >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
+                Cancelar
+              </Button>
               
-              <TouchableOpacity 
-                style={[
-                  styles.modalConfirmButton,
-                  (() => {
-                    // Se nenhuma forma de pagamento selecionada
-                    if (formasPagamentoSelecionadas.length === 0) {
-                      return styles.modalConfirmButtonDisabled;
-                    }
-                    
-                    // Se crediário está selecionado, sempre habilita (não precisa preencher valor)
-                    if (formasPagamentoSelecionadas.includes('crediario')) {
-                      return null;
-                    }
-                    
-                    // Para outras formas, verifica se há valores preenchidos
-                    const totalPagamentos = pagamentosMultiplos.reduce((sum, p) => sum + (p.valor || 0), 0);
-                    
-                    // Se não há valor total preenchido, desabilita
-                    if (totalPagamentos === 0) {
-                      return styles.modalConfirmButtonDisabled;
-                    }
-                    
-                    return null;
-                  })()
-                ]}
+              <Button
+                variant="primary"
+                size="medium"
                 onPress={() => {
                   // Validações
                   if (formasPagamentoSelecionadas.length === 0) {
@@ -3588,8 +3581,10 @@ export default function ComandasScreen() {
                   const totalPagamentos = pagamentosMultiplos.reduce((sum, p) => sum + (p.valor || 0), 0);
                   return totalPagamentos === 0;
                 })()}
+                style={styles.modalConfirmButton}
               >
-                <Text style={styles.modalConfirmButtonText}>Finalizar Pagamento</Text>
+                Finalizar Pagamento
+              </Button>
               </TouchableOpacity>
             </View>
           </View>

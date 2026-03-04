@@ -12,6 +12,7 @@ import { Cliente as ClienteBase } from '@types';
 import { formatarTelefoneInput, formatarDataInput, somenteNumeros } from '../../../utils/validators';
 import { offlineUpdate, offlineDelete, getOfflineFeedback } from '../../../services/offlineSupabase';
 import { CacheManager, CacheNamespaces } from '../../../utils/cacheManager';
+import { Button } from '../../../components/Button2';
 
 type ClienteDetalhes = Pick<ClienteBase, 'id' | 'nome' | 'telefone' | 'email' | 'observacoes' | 'estabelecimento_id'> & {
   foto_url: string | null;
@@ -871,12 +872,14 @@ export default function EditarClienteScreen() {
                       </View>
                     ))}
                   </ScrollView>
-                  <TouchableOpacity
-                    style={{ marginTop: 18, alignSelf: 'center', backgroundColor: '#E5E7EB', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 32 }}
+                  <Button
+                    variant="ghost"
+                    size="medium"
                     onPress={() => setModalExtratoVisible(false)}
+                    style={{ marginTop: 18, alignSelf: 'center' }}
                   >
-                    <Text style={{ color: colors.text, fontWeight: '500', fontSize: 16 }}>Fechar</Text>
-                  </TouchableOpacity>
+                    Fechar
+                  </Button>
                 </View>
               </View>
             </Modal>
@@ -992,9 +995,10 @@ export default function EditarClienteScreen() {
                       maxLength={10}
                     />
                   </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-                    <TouchableOpacity
-                      style={[styles.footerButton, { marginRight: 8 }]}
+                  <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+                    <Button
+                      variant="secondary"
+                      size="medium"
                       onPress={() => {
                         setModalCreditoVisible(false);
                         setValorCredito('');
@@ -1002,10 +1006,11 @@ export default function EditarClienteScreen() {
                         setTipoCredito('credito');
                       }}
                     >
-                      <Text style={styles.footerButtonText}>Cancelar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.footerButton, styles.footerButtonSalvar, { opacity: !valorCredito.trim() || salvandoCredito ? 0.6 : 1 }]}
+                      Cancelar
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="medium"
                       onPress={async () => {
                         if (!valorCredito.trim()) {
                           Alert.alert('Atenção', 'Informe o valor do crédito/débito.');
@@ -1092,12 +1097,11 @@ export default function EditarClienteScreen() {
                           setSalvandoCredito(false);
                         }
                       }}
-                      disabled={!valorCredito.trim() || salvandoCredito}
+                      loading={salvandoCredito}
+                      disabled={!valorCredito.trim()}
                     >
-                      <Text style={[styles.footerButtonText, styles.footerButtonTextSalvar]}>
-                        {salvandoCredito ? 'Salvando...' : 'Salvar'}
-                      </Text>
-                    </TouchableOpacity>
+                      Salvar
+                    </Button>
                   </View>
                 </View>
               </KeyboardAvoidingView>
@@ -2218,22 +2222,24 @@ export default function EditarClienteScreen() {
         </Modal>
 
         <View style={styles.footer}>
-          <TouchableOpacity 
-            style={styles.footerButton}
+          <Button
+            variant="secondary"
+            size="medium"
             onPress={() => router.back()}
+            style={{ flex: 1, marginRight: 8 }}
           >
-            <Text style={styles.footerButtonText}>Voltar</Text>
-          </TouchableOpacity>
+            Voltar
+          </Button>
 
-          <TouchableOpacity 
-            style={[styles.footerButton, styles.footerButtonSalvar]}
+          <Button
+            variant="primary"
+            size="medium"
             onPress={salvarCliente}
-            disabled={salvando}
+            loading={salvando}
+            style={{ flex: 1 }}
           >
-            <Text style={[styles.footerButtonText, styles.footerButtonTextSalvar]}>
-              {salvando ? 'Salvando...' : 'Salvar'}
-            </Text>
-          </TouchableOpacity>
+            Salvar
+          </Button>
         </View>
       </View>
     </>

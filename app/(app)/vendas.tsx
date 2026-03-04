@@ -11,6 +11,7 @@ import { logger } from '../../utils/logger';
 import { Cliente as ClienteBase, Comanda as ComandaBase } from '@types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { CacheManager, CacheNamespaces, CacheTTL } from '../../utils/cacheManager';
+import { Button } from '../../components/Button2';
 
 // Tipos específicos da tela de vendas
 type VendaItem = {
@@ -648,12 +649,14 @@ const VendasScreen = () => {
                   textDayHeaderFontSize: 14,
                 }}
               />
-              <TouchableOpacity
-                style={styles.closeButton}
+              <Button
+                variant="secondary"
+                size="medium"
                 onPress={() => setShowCalendarInicio(false)}
+                style={styles.closeButton}
               >
-                <Text style={styles.closeButtonText}>Fechar</Text>
-              </TouchableOpacity>
+                Fechar
+              </Button>
             </TouchableOpacity>
           </TouchableOpacity>
         </Modal>
@@ -692,12 +695,14 @@ const VendasScreen = () => {
                   textDayHeaderFontSize: 14,
                 }}
               />
-              <TouchableOpacity
-                style={styles.closeButton}
+              <Button
+                variant="secondary"
+                size="medium"
                 onPress={() => setShowCalendarFim(false)}
+                style={styles.closeButton}
               >
-                <Text style={styles.closeButtonText}>Fechar</Text>
-              </TouchableOpacity>
+                Fechar
+              </Button>
             </TouchableOpacity>
           </TouchableOpacity>
         </Modal>
@@ -713,9 +718,12 @@ const VendasScreen = () => {
             <View style={styles.detalhesContainer}>
               <View style={styles.detalhesHeader}>
                 <Text style={styles.detalhesTitle}>Detalhamento por Forma de Pagamento</Text>
-                <TouchableOpacity onPress={() => setModalDetalhesVisible(false)}>
-                  <Ionicons name="close" size={24} color={colors.text} />
-                </TouchableOpacity>
+                <Button
+                  variant="ghost"
+                  size="small"
+                  icon="close"
+                  onPress={() => setModalDetalhesVisible(false)}
+                />
               </View>
 
               {loadingDetalhes ? (
@@ -937,12 +945,15 @@ const VendasScreen = () => {
                 </Text>
               )}
 
-              <TouchableOpacity
-                style={[styles.detalhesFecharButton, { backgroundColor: colors.primary }]}
+              <Button
+                variant="primary"
+                size="large"
                 onPress={() => setModalDetalhesVisible(false)}
+                style={styles.detalhesFecharButton}
+                fullWidth
               >
-                <Text style={styles.detalhesFecharText}>Fechar</Text>
-              </TouchableOpacity>
+                Fechar
+              </Button>
             </View>
           </View>
         </Modal>

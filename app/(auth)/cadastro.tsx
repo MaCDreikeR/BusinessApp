@@ -17,6 +17,7 @@ import {
   formatarCNPJ, 
   formatarTelefone as formatarCelular 
 } from '../../utils/validators';
+import { Button } from '../../components/Button2';
 
 const segmentos = [
   { label: 'Varejo', value: 'varejo' },
@@ -707,24 +708,17 @@ export default function CadastroScreen() {
           <Text style={[styles.errorText, { color: colors.error, marginBottom: 12 }]}>{fieldErrors.aceitaTermos}</Text>
         ) : null}
 
-            <TouchableOpacity 
-              style={[
-                styles.createButton,
-                { backgroundColor: saving ? '#A78BFA' : colors.primary },
-                saving && styles.createButtonDisabled,
-              ]}
-              onPress={handleSignUp}
-              disabled={saving}
-              accessibilityRole="button"
-              accessibilityLabel="Criar conta"
-              accessibilityHint="Cria uma nova conta para o estabelecimento"
-            >
-              {saving ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-          <Text style={styles.createButtonText}>Criar Conta</Text>
-              )}
-        </TouchableOpacity>
+        <Button
+          variant="primary"
+          size="large"
+          onPress={handleSignUp}
+          disabled={saving}
+          loading={saving}
+          fullWidth
+          style={{ marginBottom: 16 }}
+        >
+          Criar Conta
+        </Button>
 
         <View style={styles.loginContainer}>
           <Text style={[styles.loginText, { color: colors.textSecondary }]}>Já tem uma conta? </Text>
@@ -887,28 +881,6 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   link: {
     textDecorationLine: 'underline',
-  },
-  createButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 16,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  createButtonDisabled: {
-    opacity: 0.7,
-  },
-  createButtonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '600',
   },
   loginContainer: {
     flexDirection: 'row',

@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
 import { logger } from '../../utils/logger';
 import { useTheme } from '../../contexts/ThemeContext';
+import { Button } from '../../components/Button2';
 
 const { width, height } = Dimensions.get('window');
 
@@ -103,21 +104,17 @@ export default function BoasVindas() {
               </View>
             </View>
 
-            <TouchableOpacity 
-              style={[styles.button, { backgroundColor: colors.primary, shadowColor: colors.primary }, isLoading && styles.buttonDisabled]} 
+            <Button
+              variant="primary"
+              size="large"
               onPress={irParaLogin}
-              disabled={isLoading}
-              activeOpacity={0.7}
+              loading={isLoading}
+              icon="arrow-forward"
+              fullWidth
+              style={{ marginTop: 8 }}
             >
-              {isLoading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <>
-                  <Text style={styles.buttonText}>Começar Agora</Text>
-                  <Ionicons name="arrow-forward" size={20} color="#fff" />
-                </>
-              )}
-            </TouchableOpacity>
+              Começar Agora
+            </Button>
           </Animated.View>
         </ScrollView>
       </LinearGradient>
@@ -237,30 +234,5 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     lineHeight: 20,
-  },
-  button: {
-    paddingVertical: 16,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  buttonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  buttonDisabled: {
-    opacity: 0.7,
   },
 }); 

@@ -13,6 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '../../utils/logger';
 import { Servico, CategoriaServico } from '@types';
 import { CacheManager, CacheNamespaces, CacheTTL } from '../../utils/cacheManager';
+import { Button } from '../../components/Button2';
 
 interface ServicoComCategoria extends Servico {
   descricaoServico?: string;
@@ -702,9 +703,10 @@ export default function ServicosScreen() {
             </View>
 
             <View style={styles.modalButtons}>
-                <TouchableOpacity 
-                style={[styles.modalButton, styles.cancelButton]}
-                            onPress={() => {
+              <Button
+                variant="secondary"
+                size="medium"
+                onPress={() => {
                   setModalVisible(false);
                   setServicoEditando(null);
                   setNomeServico('');
@@ -713,19 +715,23 @@ export default function ServicosScreen() {
                   setDescricaoServico('');
                   setDuracaoServico('');
                 }}
+                fullWidth
               >
-                <Text style={styles.modalButtonText}>Cancelar</Text>
-                          </TouchableOpacity>
+                Cancelar
+              </Button>
 
-                <TouchableOpacity
-                style={[styles.modalButton, styles.saveButton]}
+              <Button
+                variant="primary"
+                size="medium"
                 onPress={handleSalvarServico}
+                fullWidth
+                style={{ marginLeft: 8 }}
               >
-                <Text style={styles.modalButtonText}>Salvar</Text>
-                </TouchableOpacity>
-              </View>
+                Salvar
+              </Button>
             </View>
           </View>
+        </View>
       </Modal>
 
       <Modal
@@ -751,23 +757,28 @@ export default function ServicosScreen() {
             </View>
 
             <View style={styles.modalButtons}>
-                  <TouchableOpacity 
-                style={[styles.modalButton, styles.cancelButton]}
+              <Button
+                variant="secondary"
+                size="medium"
                 onPress={() => {
                   setMostrarModalCategorias(false);
                   setCategoriaEditando(null);
                   setNomeCategoria('');
                 }}
+                fullWidth
               >
-                <Text style={styles.modalButtonText}>Cancelar</Text>
-                  </TouchableOpacity>
+                Cancelar
+              </Button>
 
-                        <TouchableOpacity 
-                style={[styles.modalButton, styles.saveButton]}
+              <Button
+                variant="primary"
+                size="medium"
                 onPress={handleSalvarCategoria}
+                fullWidth
+                style={{ marginLeft: 8 }}
               >
-                <Text style={styles.modalButtonText}>Salvar</Text>
-              </TouchableOpacity>
+                Salvar
+              </Button>
             </View>
 
             <View style={styles.categoriasListContainer}>

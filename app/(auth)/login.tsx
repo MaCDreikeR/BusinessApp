@@ -11,6 +11,7 @@ import { CacheManager, CacheNamespaces } from '../../utils/cacheManager';
 import * as Haptics from 'expo-haptics';
 import * as SecureStore from 'expo-secure-store';
 import { NativeModulesProxy } from 'expo-modules-core';
+import { Button } from '../../components/Button2';
 
 const MAX_LOGIN_ATTEMPTS = 3;
 const WINDOW_MS = 30 * 60 * 1000;
@@ -635,39 +636,31 @@ export default function LoginScreen() {
         </View>
 
         {biometricAvailable && biometricEnabled ? (
-          <TouchableOpacity
-            style={[styles.biometricButton, { borderColor: colors.primary }]}
+          <Button
+            variant="outline"
+            size="medium"
             onPress={handleBiometricLogin}
             disabled={biometricLoading || loading}
-            accessibilityRole="button"
-            accessibilityLabel="Entrar com biometria"
-            accessibilityHint="Autentica usando impressão digital ou reconhecimento facial"
+            loading={biometricLoading}
+            icon="finger-print-outline"
+            fullWidth
+            style={{ marginBottom: 12 }}
           >
-            {biometricLoading ? (
-              <ActivityIndicator color={colors.primary} />
-            ) : (
-              <>
-                <Ionicons name="finger-print-outline" size={20} color={colors.primary} />
-                <Text style={[styles.biometricButtonText, { color: colors.primary }]}>Entrar com biometria</Text>
-              </>
-            )}
-          </TouchableOpacity>
+            Entrar com biometria
+          </Button>
         ) : null}
 
-        <TouchableOpacity 
-          style={[styles.loginButton, { backgroundColor: colors.primary, shadowColor: colors.primary }, loading && styles.loginButtonDisabled]}
+        <Button
+          variant="primary"
+          size="large"
           onPress={handleLogin}
           disabled={loading}
-          accessibilityRole="button"
-          accessibilityLabel="Entrar"
-          accessibilityHint="Faz login com e-mail e senha"
+          loading={loading}
+          fullWidth
+          style={{ marginBottom: 16 }}
         >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.loginButtonText}>Entrar</Text>
-            )}
-        </TouchableOpacity>
+          Entrar
+        </Button>
 
         <View style={styles.signupContainer}>
           <Text style={[styles.signupText, { color: colors.textSecondary }]}>Ainda não tem uma conta? </Text>
@@ -807,41 +800,6 @@ const createStyles = (colors: any) => StyleSheet.create({
   forgotText: {
     fontSize: 14,
     fontWeight: '500',
-  },
-  biometricButton: {
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingVertical: 12,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  biometricButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  loginButton: {
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 16,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  loginButtonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  loginButtonDisabled: {
-    opacity: 0.7,
   },
   signupContainer: {
     flexDirection: 'row',

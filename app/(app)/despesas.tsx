@@ -21,6 +21,7 @@ import { ExpenseFilters } from '../../components/ExpenseFilters';
 import { ExpenseCard } from '../../components/ExpenseCard';
 import { ExpenseForm } from '../../components/ExpenseForm';
 import { Expense, CreateExpenseInput, PeriodFilter } from '../../types/Expense';
+import { Button } from '../../components/Button2';
 
 export default function DespesasScreen() {
   const insets = useSafeAreaInsets();
@@ -273,13 +274,16 @@ export default function DespesasScreen() {
           <Text style={styles.emptyDescription}>
             Comece registrando suas despesas para ter controle financeiro
           </Text>
-          <TouchableOpacity
-            style={styles.emptyButton}
+          <Button
+            variant="primary"
+            size="large"
+            icon="plus"
             onPress={handleOpenForm}
+            fullWidth
+            style={{ marginTop: 24, maxWidth: 280 }}
           >
-            <FontAwesome5 name="plus" size={16} color={colors.white} />
-            <Text style={styles.emptyButtonText}>Registrar Primeira Despesa</Text>
-          </TouchableOpacity>
+            Registrar Primeira Despesa
+          </Button>
         </View>
       ) : (
         <FlatList

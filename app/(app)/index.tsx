@@ -2,6 +2,7 @@
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
+import { Button } from '../../components/Button2';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useRouter } from 'expo-router';
@@ -954,17 +955,16 @@ export default function HomeScreen() {
           <View style={styles.errorState} accessibilityRole="alert">
             <FontAwesome5 name="exclamation-circle" size={32} color={colors.error} />
             <Text style={styles.errorText}>{errors.agendamentos}</Text>
-            <TouchableOpacity
-              style={styles.retryButton}
+            <Button
+              variant="primary"
+              size="medium"
               onPress={async () => {
                 setErrors(prev => ({ ...prev, agendamentos: undefined }));
                 await carregarDados();
               }}
-              accessibilityRole="button"
-              accessibilityLabel="Tentar carregar agendamentos novamente"
             >
-              <Text style={styles.retryButtonText}>Tentar novamente</Text>
-            </TouchableOpacity>
+              Tentar novamente
+            </Button>
           </View>
         ) : /* Content */
         proximosAgendamentos.length > 0 ? (
