@@ -3585,7 +3585,6 @@ export default function ComandasScreen() {
               >
                 Finalizar Pagamento
               </Button>
-              </TouchableOpacity>
             </View>
           </View>
         </View>
