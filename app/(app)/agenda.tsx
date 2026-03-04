@@ -2260,7 +2260,7 @@ export default function AgendaScreen() {
                         style={styles.dataRemoveButton}
                         onPress={() => removerDataBloqueada(data)}
                       >
-                        <Ionicons name="trash-outline" size={20} color="#C62828" />
+                        <Ionicons name="trash-outline" size={20} color={colors.error} />
                       </TouchableOpacity>
                     </View>
                   );
@@ -3322,7 +3322,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   statusButtonActive: {
     borderColor: colors.primary,
-    backgroundColor: '#F5F3FF',
+    backgroundColor: colors.primaryBackground,
   },
   statusButtonTextLarge: {
     fontSize: 14,
@@ -3363,7 +3363,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: colors.border,
   },
   modalTitle: {
     fontSize: 18,
@@ -3374,7 +3374,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     padding: 4,
   },
   modalList: {
-    backgroundColor: '#F5F7FA',
+    backgroundColor: colors.surface,
     flexGrow: 1,
   },
   modalListContent: {
@@ -3387,7 +3387,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: colors.border,
   },
   presencaUserInfo: {
     flexDirection: 'row',
@@ -3418,20 +3418,20 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
   },
   presente: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: colors.successBackground,
   },
   ausente: {
-    backgroundColor: '#FFEBEE',
+    backgroundColor: colors.errorBackground,
   },
   presencaStatusText: {
     fontSize: 14,
     fontWeight: '500',
   },
   presenteText: {
-    color: '#2E7D32',
+    color: colors.success,
   },
   ausenteText: {
-    color: '#C62828',
+    color: colors.error,
   },
   calendarOverlay: {
     flex: 1,
