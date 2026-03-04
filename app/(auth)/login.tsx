@@ -728,7 +728,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: colors.primaryLight,
+    color: colors.textOnPrimarySecondary,
     textAlign: 'center',
   },
   form: {
