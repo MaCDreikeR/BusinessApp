@@ -98,7 +98,7 @@ type SemanticTokens = {
   shadowDark: string;
 };
 
-type AccentTokens = {
+export type AccentTokens = {
   primary: string;
   primaryDark: string;
   primaryLight: string;
@@ -106,7 +106,7 @@ type AccentTokens = {
   primaryBackground: string;
 };
 
-type ColorTheme = SemanticTokens & AccentTokens;
+export type ColorTheme = SemanticTokens & AccentTokens;
 
 type AccentPalette = {
   light: AccentTokens;
@@ -365,7 +365,127 @@ export const DESIGN_TOKENS = {
   },
 } as const;
 
+// ============================================================================
+// COMPONENT TOKENS (Variantes de Componentes)
+// ============================================================================
 
+/**
+ * Tokens de componentes reutilizáveis
+ * 
+ * Define variantes de tamanho para componentes comuns.
+ * Estes tokens servem como FUNDAÇÃO para os componentes React.
+ * 
+ * ⚠️ NÃO use diretamente nas telas - use os componentes (Button, Card, Input, etc)
+ * 
+ * @example
+ * // ❌ Não fazer (repetitivo):
+ * <TouchableOpacity style={COMPONENT_TOKENS.button.large}>
+ * 
+ * // ✅ Fazer (componente):
+ * import { Button } from '@/components/Button';
+ * <Button size="large" variant="primary" onPress={handleSave}>Salvar</Button>
+ */
+export const COMPONENT_TOKENS = {
+  /** Variantes de botão */
+  button: {
+    large: {
+      paddingVertical: DESIGN_TOKENS.spacing.lg,
+      paddingHorizontal: DESIGN_TOKENS.spacing.xl,
+      borderRadius: DESIGN_TOKENS.radius.md,
+      minHeight: 56,
+      fontSize: DESIGN_TOKENS.typography.lg,
+    },
+    medium: {
+      paddingVertical: DESIGN_TOKENS.spacing.md,
+      paddingHorizontal: DESIGN_TOKENS.spacing.lg,
+      borderRadius: DESIGN_TOKENS.radius.md,
+      minHeight: 48,
+      fontSize: DESIGN_TOKENS.typography.base,
+    },
+    small: {
+      paddingVertical: DESIGN_TOKENS.spacing.sm,
+      paddingHorizontal: DESIGN_TOKENS.spacing.md,
+      borderRadius: DESIGN_TOKENS.radius.sm,
+      minHeight: 40,
+      fontSize: DESIGN_TOKENS.typography.sm,
+    },
+  },
+  
+  /** Variantes de card */
+  card: {
+    default: {
+      borderRadius: DESIGN_TOKENS.radius.lg,
+      padding: DESIGN_TOKENS.spacing.lg,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    elevated: {
+      borderRadius: DESIGN_TOKENS.radius.lg,
+      padding: DESIGN_TOKENS.spacing.xl,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 6,
+    },
+    flat: {
+      borderRadius: DESIGN_TOKENS.radius.md,
+      padding: DESIGN_TOKENS.spacing.md,
+      borderWidth: 1,
+      shadowOpacity: 0,
+      elevation: 0,
+    },
+  },
+  
+  /** Variantes de input */
+  input: {
+    default: {
+      borderRadius: DESIGN_TOKENS.radius.md,
+      paddingHorizontal: DESIGN_TOKENS.spacing.md,
+      paddingVertical: DESIGN_TOKENS.spacing.md,
+      fontSize: DESIGN_TOKENS.typography.base,
+      minHeight: 48,
+      borderWidth: 1,
+    },
+    large: {
+      borderRadius: DESIGN_TOKENS.radius.lg,
+      paddingHorizontal: DESIGN_TOKENS.spacing.lg,
+      paddingVertical: DESIGN_TOKENS.spacing.lg,
+      fontSize: DESIGN_TOKENS.typography.lg,
+      minHeight: 56,
+      borderWidth: 1,
+    },
+    small: {
+      borderRadius: DESIGN_TOKENS.radius.sm,
+      paddingHorizontal: DESIGN_TOKENS.spacing.sm,
+      paddingVertical: DESIGN_TOKENS.spacing.sm,
+      fontSize: DESIGN_TOKENS.typography.sm,
+      minHeight: 40,
+      borderWidth: 1,
+    },
+  },
+  
+  /** Variantes de badge */
+  badge: {
+    small: {
+      paddingHorizontal: DESIGN_TOKENS.spacing.sm,
+      paddingVertical: DESIGN_TOKENS.spacing.xs,
+      borderRadius: DESIGN_TOKENS.radius.full,
+      fontSize: DESIGN_TOKENS.typography.xs,
+    },
+    medium: {
+      paddingHorizontal: DESIGN_TOKENS.spacing.md,
+      paddingVertical: DESIGN_TOKENS.spacing.sm,
+      borderRadius: DESIGN_TOKENS.radius.full,
+      fontSize: DESIGN_TOKENS.typography.sm,
+    },
+  },
+} as const;
+
+// ============================================================================
+// FUNÇÕES PÚBLICAS
+// ============================================================================
 
 /**
  * Valida se um valor é um ID de cor de acento válido
