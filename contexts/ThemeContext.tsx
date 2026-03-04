@@ -2,11 +2,19 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useColorScheme as useDeviceColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme as themeConfig } from '@utils/theme';
+import {
+  ACCENT_STORAGE_KEY,
+  AccentColorId,
+  DEFAULT_ACCENT_COLOR,
+  getAccentTokens,
+  isAccentColorId,
+} from '@utils/accentTheme';
 
 type ThemeMode = 'light' | 'dark' | 'auto';
 
 interface ThemeContextType {
   mode: ThemeMode;
+  accentColor: AccentColorId;
   isDark: boolean;
   colors: typeof themeConfig.colors & { primaryContrast: string };
   spacing: typeof themeConfig.spacing;
@@ -14,6 +22,7 @@ interface ThemeContextType {
   borders: typeof themeConfig.borders;
   shadows: typeof themeConfig.shadows;
   setTheme: (mode: ThemeMode) => void;
+  setAccentColor: (accentColor: AccentColorId) => void;
   toggleTheme: () => void;
 }
 
@@ -24,6 +33,7 @@ const THEME_STORAGE_KEY = '@theme_mode';
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const deviceColorScheme = useDeviceColorScheme();
   const [mode, setMode] = useState<ThemeMode>('auto');
+  const [accentColor, setAccentColorState] = useState<AccentColorId>(DEFAULT_ACCENT_COLOR);
   const [isReady, setIsReady] = useState(false);
 
   // Determina se deve usar dark mode
@@ -41,6 +51,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const saved = await AsyncStorage.getItem(THEME_STORAGE_KEY);
       if (saved && ['light', 'dark', 'auto'].includes(saved)) {
         setMode(saved as ThemeMode);
+      }
+
+      const savedAccent = await AsyncStorage.getItem(ACCENT_STORAGE_KEY);
+      if (savedAccent && isAccentColorId(savedAccent)) {
+        setAccentColorState(savedAccent);
       }
     } catch (error) {
       console.error('Erro ao carregar preferência de tema:', error);
@@ -63,7 +78,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setTheme(newMode);
   };
 
+  const setAccentColor = async (newAccentColor: AccentColorId) => {
+    try {
+      setAccentColorState(newAccentColor);
+      await AsyncStorage.setItem(ACCENT_STORAGE_KEY, newAccentColor);
+    } catch (error) {
+      console.error('Erro ao salvar cor de destaque:', error);
+    }
+  };
+
   // Monta cores baseado no tema atual
+  const accentTokens = getAccentTokens(accentColor, isDark);
+
   const colors = isDark ? {
     ...themeConfig.colors,
     // Sobrescreve TODAS as cores com versões dark
@@ -115,9 +141,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     online: themeConfig.colors.dark.online,
     offline: themeConfig.colors.dark.offline,
     busy: themeConfig.colors.dark.busy,
+    ...accentTokens,
   } : {
     ...themeConfig.colors,
-    primaryContrast: themeConfig.colors.primary, // Roxo sobre fundos claros no light mode
+    ...accentTokens,
+    primaryContrast: accentTokens.primary,
   };
 
   if (!isReady) {
@@ -128,6 +156,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     <ThemeContext.Provider
       value={{
         mode,
+        accentColor,
         isDark,
         colors,
         spacing: themeConfig.spacing,
@@ -135,6 +164,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         borders: themeConfig.borders,
         shadows: themeConfig.shadows,
         setTheme,
+        setAccentColor,
         toggleTheme,
       }}
     >

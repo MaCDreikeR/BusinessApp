@@ -9,18 +9,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../lib/supabase';
 import { logger } from '../../utils/logger';
 import { CacheManager } from '../../utils/cacheManager';
+import { ACCENT_COLORS, AccentColorId } from '../../utils/accentTheme';
 
 type TabType = 'aparencia' | 'notificacoes' | 'negocio' | 'sobre';
-
-// Cores de destaque disponíveis
-const ACCENT_COLORS = [
-  { id: 'purple', name: 'Roxo', color: '#7C3AED' },
-  { id: 'blue', name: 'Azul', color: '#3B82F6' },
-  { id: 'green', name: 'Verde', color: '#10B981' },
-  { id: 'orange', name: 'Laranja', color: '#F59E0B' },
-  { id: 'pink', name: 'Rosa', color: '#EC4899' },
-  { id: 'red', name: 'Vermelho', color: '#EF4444' },
-];
 
 interface NotificationSettings {
   agendamentos: boolean;
@@ -44,7 +35,7 @@ interface EmpresaStats {
 }
 
 export default function ConfiguracoesScreen() {
-  const { colors, spacing, isDark } = useTheme();
+  const { colors, spacing, isDark, accentColor, setAccentColor } = useTheme();
   
   // Estilos dinâmicos baseados no tema
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -73,13 +64,11 @@ export default function ConfiguracoesScreen() {
     espacoUsado: 0,
     ultimaSync: null,
   });
-  const [selectedAccentColor, setSelectedAccentColor] = useState('purple');
   
   const isAdmin = role === 'admin' || role === 'super_admin';
 
   useEffect(() => {
     loadNotificationSettings();
-    loadAccentColor();
     if (isAdmin) {
       loadEmpresaData();
       loadEmpresaStats();
@@ -106,20 +95,10 @@ export default function ConfiguracoesScreen() {
     }
   };
 
-  const loadAccentColor = async () => {
+  const saveAccentColor = async (colorId: AccentColorId) => {
     try {
-      const saved = await AsyncStorage.getItem('@accent_color');
-      if (saved) setSelectedAccentColor(saved);
-    } catch (error) {
-      logger.error('Erro ao carregar cor de destaque:', error);
-    }
-  };
-
-  const saveAccentColor = async (colorId: string) => {
-    try {
-      await AsyncStorage.setItem('@accent_color', colorId);
-      setSelectedAccentColor(colorId);
-      Alert.alert('Sucesso', 'Cor de destaque salva! Reinicie o app para aplicar.');
+      await setAccentColor(colorId);
+      Alert.alert('Sucesso', 'Cor de destaque aplicada!');
     } catch (error) {
       logger.error('Erro ao salvar cor:', error);
       Alert.alert('Erro', 'Não foi possível salvar a cor');
@@ -373,10 +352,10 @@ export default function ConfiguracoesScreen() {
                       style={[
                         styles.colorCircle,
                         { backgroundColor: item.color },
-                        selectedAccentColor === item.id && styles.colorCircleSelected,
+                        accentColor === item.id && styles.colorCircleSelected,
                       ]}
                     >
-                      {selectedAccentColor === item.id && (
+                      {accentColor === item.id && (
                         <Ionicons name="checkmark" size={20} color={colors.white} />
                       )}
                     </View>
