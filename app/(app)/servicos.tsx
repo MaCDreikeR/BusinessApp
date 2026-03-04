@@ -519,7 +519,7 @@ export default function ServicosScreen() {
           style={styles.actionButton}
           onPress={() => handleExcluirServico(item)}
         >
-          <Ionicons name="trash" size={24} color="#FF3B30" />
+          <Ionicons name="trash" size={24} color={colors.error} />
         </TouchableOpacity>
       </View>
     </View>
@@ -794,7 +794,7 @@ export default function ServicosScreen() {
                         style={styles.categoriaActionButton}
                               onPress={() => handleExcluirCategoria(item)}
                             >
-                        <Ionicons name="trash" size={20} color="#FF3B30" />
+                        <Ionicons name="trash" size={20} color={colors.error} />
                             </TouchableOpacity>
                           </View>
                   </View>
@@ -955,7 +955,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.text,
   },
   saveButtonText: {
-    color: '#FFFFFF',
+    color: colors.white,
   },
   textArea: {
     height: 100,
@@ -997,7 +997,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   filtrosContainer: {
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    borderBottomColor: colors.border,
     backgroundColor: colors.surface,
   },
   filtrosScroll: {
@@ -1008,9 +1008,9 @@ const createStyles = (colors: any) => StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#f2f2f2',
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.border,
   },
   filtroButtonSelected: {
     backgroundColor: colors.primary,
