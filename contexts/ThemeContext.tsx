@@ -6,7 +6,7 @@ import {
   ACCENT_STORAGE_KEY,
   AccentColorId,
   DEFAULT_ACCENT_COLOR,
-  getAccentTokens,
+  getColorTheme,
   isAccentColorId,
 } from '@utils/accentTheme';
 
@@ -87,65 +87,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Monta cores baseado no tema atual
-  const accentTokens = getAccentTokens(accentColor, isDark);
-
-  const colors = isDark ? {
-    ...themeConfig.colors,
-    // Sobrescreve TODAS as cores com versões dark
-    // Cores primárias
-    primary: themeConfig.colors.dark.primary,
-    primaryDark: themeConfig.colors.dark.primaryDark,
-    primaryLight: themeConfig.colors.dark.primaryLight,
-    primaryLighter: themeConfig.colors.dark.primaryLighter,
-    primaryContrast: themeConfig.colors.dark.white, // Branco para contrastar com fundos roxos
-    // Cores secundárias
-    secondary: themeConfig.colors.dark.secondary,
-    secondaryDark: themeConfig.colors.dark.secondaryDark,
-    secondaryLight: themeConfig.colors.dark.secondaryLight,
-    // Cores de status
-    success: themeConfig.colors.dark.success,
-    successLight: themeConfig.colors.dark.successLight,
-    successDark: themeConfig.colors.dark.successDark,
-    error: themeConfig.colors.dark.error,
-    errorLight: themeConfig.colors.dark.errorLight,
-    errorDark: themeConfig.colors.dark.errorDark,
-    warning: themeConfig.colors.dark.warning,
-    warningLight: themeConfig.colors.dark.warningLight,
-    warningDark: themeConfig.colors.dark.warningDark,
-    info: themeConfig.colors.dark.info,
-    infoLight: themeConfig.colors.dark.infoLight,
-    infoDark: themeConfig.colors.dark.infoDark,
-    // Fundos
-    background: themeConfig.colors.dark.background,
-    backgroundSecondary: themeConfig.colors.dark.backgroundSecondary,
-    surface: themeConfig.colors.dark.surface,
-    surfaceHighlight: themeConfig.colors.dark.surfaceHighlight,
-    // Textos
-    text: themeConfig.colors.dark.text,
-    textSecondary: themeConfig.colors.dark.textSecondary,
-    textTertiary: themeConfig.colors.dark.textTertiary,
-    textDisabled: themeConfig.colors.dark.textDisabled,
-    // Bordas
-    border: themeConfig.colors.dark.border,
-    borderLight: themeConfig.colors.dark.borderLight,
-    separator: themeConfig.colors.dark.separator,
-    // Backgrounds de status
-    successBackground: themeConfig.colors.dark.successBackground,
-    errorBackground: themeConfig.colors.dark.errorBackground,
-    warningBackground: themeConfig.colors.dark.warningBackground,
-    infoBackground: themeConfig.colors.dark.infoBackground,
-    primaryBackground: themeConfig.colors.dark.primaryBackground,
-    // Cores especiais
-    white: themeConfig.colors.dark.white,
-    online: themeConfig.colors.dark.online,
-    offline: themeConfig.colors.dark.offline,
-    busy: themeConfig.colors.dark.busy,
-    ...accentTokens,
-  } : {
-    ...themeConfig.colors,
-    ...accentTokens,
-    primaryContrast: accentTokens.primary,
+  // Monta cores baseado no tema e cor de destaque atual
+  // getColorTheme() retorna TODAS as cores (semânticas + marca)
+  const colorTheme = getColorTheme(accentColor, isDark);
+  
+  const colors = {
+    ...colorTheme,
+    primaryContrast: isDark ? '#FFFFFF' : colorTheme.primary,
   };
 
   if (!isReady) {
