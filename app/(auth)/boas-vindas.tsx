@@ -147,7 +147,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   subtitle: {
     fontSize: Math.min(width * 0.04, 16),
-    color: colors.primaryLight,
+    color: colors.textOnPrimarySecondary,
     textAlign: 'center',
     lineHeight: 24,
     paddingHorizontal: 10,

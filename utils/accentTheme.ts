@@ -59,6 +59,8 @@ type SemanticTokens = {
   textSecondary: string;
   textTertiary: string;
   textDisabled: string;
+  textOnPrimary: string;          // Texto sobre fundos primary (ex: gradient)
+  textOnPrimarySecondary: string; // Texto secundário sobre fundos primary
   
   // Bordas e separadores
   border: string;
@@ -129,6 +131,8 @@ const SEMANTIC_COLORS_LIGHT: SemanticTokens = {
   textSecondary: '#3C3C43',
   textTertiary: '#8E8E93',
   textDisabled: '#C7C7CC',
+  textOnPrimary: '#FFFFFF',
+  textOnPrimarySecondary: 'rgba(255, 255, 255, 0.9)',
   
   // Bordas e Separadores
   border: '#C6C6C8',
@@ -180,6 +184,8 @@ const SEMANTIC_COLORS_DARK: SemanticTokens = {
   textSecondary: '#B3B3B3',
   textTertiary: '#8A8A8F',
   textDisabled: '#5A5A5F',
+  textOnPrimary: '#FFFFFF',
+  textOnPrimarySecondary: 'rgba(255, 255, 255, 0.9)',
   
   // Bordas e Separadores
   border: '#404040',
