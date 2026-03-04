@@ -3269,7 +3269,7 @@ export default function ComandasScreen() {
                     <Ionicons 
                       name="cash-outline" 
                       size={24} 
-                      color={formasPagamentoSelecionadas.includes('dinheiro') ? '#FFFFFF' : colors.textSecondary} 
+                      color={formasPagamentoSelecionadas.includes('dinheiro') ? colors.white : colors.textSecondary} 
                     />
                     <Text style={[
                       styles.pagamentoOpcaoTexto,
@@ -3287,7 +3287,7 @@ export default function ComandasScreen() {
                     <Ionicons 
                       name="card-outline" 
                       size={24} 
-                      color={formasPagamentoSelecionadas.includes('cartao_credito') ? '#FFFFFF' : colors.textSecondary} 
+                      color={formasPagamentoSelecionadas.includes('cartao_credito') ? colors.white : colors.textSecondary} 
                     />
                     <Text style={[
                       styles.pagamentoOpcaoTexto,
@@ -3305,7 +3305,7 @@ export default function ComandasScreen() {
                     <Ionicons 
                       name="card-outline" 
                       size={24} 
-                      color={formasPagamentoSelecionadas.includes('cartao_debito') ? '#FFFFFF' : colors.textSecondary} 
+                      color={formasPagamentoSelecionadas.includes('cartao_debito') ? colors.white : colors.textSecondary} 
                     />
                     <Text style={[
                       styles.pagamentoOpcaoTexto,
@@ -3323,7 +3323,7 @@ export default function ComandasScreen() {
                     <Ionicons 
                       name="qr-code-outline" 
                       size={24} 
-                      color={formasPagamentoSelecionadas.includes('pix') ? '#FFFFFF' : colors.textSecondary} 
+                      color={formasPagamentoSelecionadas.includes('pix') ? colors.white : colors.textSecondary} 
                     />
                     <Text style={[
                       styles.pagamentoOpcaoTexto,
@@ -3354,7 +3354,7 @@ export default function ComandasScreen() {
                     <Ionicons 
                       name="wallet-outline" 
                       size={24} 
-                      color={formasPagamentoSelecionadas.includes('crediario') ? '#FFFFFF' : colors.textSecondary} 
+                      color={formasPagamentoSelecionadas.includes('crediario') ? colors.white : colors.textSecondary} 
                     />
                     <Text style={[
                       styles.pagamentoOpcaoTexto,
@@ -3458,7 +3458,7 @@ export default function ComandasScreen() {
               
               {formasPagamentoSelecionadas.includes('crediario') && (
                 <View style={{
-                  backgroundColor: '#FFF1F2',
+                  backgroundColor: colors.errorBackground,
                   borderRadius: 12,
                   padding: 16,
                   marginTop: 16,
@@ -3698,7 +3698,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     paddingBottom: 25,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -3715,7 +3715,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: {
       width: 0,
       height: 1,
@@ -3738,7 +3738,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginTop: -10,
     marginBottom: 16,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: {
       width: 0,
       height: 1,
@@ -3774,7 +3774,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -4135,7 +4135,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     height: 48,
     borderRadius: 8,
     marginRight: 8,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: {
       width: 0,
       height: 1,
@@ -4161,7 +4161,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginHorizontal: 8,
     borderWidth: 1,
     borderColor: colors.primary,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: {
       width: 0,
       height: 1,
@@ -4185,7 +4185,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     height: 48,
     borderRadius: 8,
     marginLeft: 8,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: {
       width: 0,
       height: 1,
@@ -4197,7 +4197,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   fecharComandaText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.white,
     marginLeft: 8,
   },
   emptyContainer: {
@@ -4238,7 +4238,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -4247,7 +4247,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     shadowRadius: 4,
   },
   refreshButtonText: {
-    color: '#FFFFFF',
+    color: colors.white,
     fontWeight: 'bold',
   },
   modalContainer: {
@@ -4307,7 +4307,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 8,
     marginRight: 8,
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 1,
@@ -4325,7 +4325,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 8,
     marginLeft: 8,
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
@@ -4335,7 +4335,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.border,
   },
   saveButtonText: {
-    color: '#FFFFFF',
+    color: colors.white,
     fontWeight: 'bold',
     fontSize: 15,
   },
@@ -4380,7 +4380,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 8,
     marginTop: 4,
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -4481,14 +4481,14 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1.5,
     elevation: 2,
   },
   novoClienteButtonText: {
-    color: '#FFFFFF',
+    color: colors.white,
     fontSize: 14,
     fontWeight: '500',
     marginLeft: 4,
@@ -4509,7 +4509,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#E0E7FF',
+    backgroundColor: colors.infoBackground,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -4517,7 +4517,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   itemBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#4F46E5',
+    color: colors.primary,
   },
   itemsEmpty: {
     backgroundColor: colors.background,
@@ -4544,7 +4544,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   comandaObservacoesText: {
     fontSize: 14,
-    color: '#4B5563',
+    color: colors.textSecondary,
     lineHeight: 20,
   },
   comandaObservacoesSemTexto: {
@@ -4592,7 +4592,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -4608,7 +4608,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 12,
   },
   badgeFechada: {
-    backgroundColor: '#DCFCE7',
+    backgroundColor: colors.successBackground,
   },
   badgeCancelada: {
     backgroundColor: colors.errorBackground,
@@ -4616,7 +4616,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   badgeText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#166534',
+    color: colors.success,
   },
   textArea: {
     height: 100,
@@ -4653,7 +4653,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.primary,
   },
   tipoItemButtonTextActive: {
-    color: '#FFFFFF',
+    color: colors.white,
   },
   itensList: {
     marginTop: 16,

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { Link, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,6 +42,7 @@ type FieldErrors = Partial<Record<FieldErrorKey, string>>;
 
 export default function CadastroScreen() {
   const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const numeroDocumentoRef = useRef<TextInput>(null);
   const telefoneRef = useRef<TextInput>(null);
   const nomeCompletoRef = useRef<TextInput>(null);
@@ -749,7 +750,7 @@ export default function CadastroScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -771,20 +772,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.white,
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#E9D5FF',
+    color: colors.primaryLight,
     textAlign: 'center',
   },
   form: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 16,
     padding: 24,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -799,7 +800,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: colors.text,
     marginBottom: 16,
   },
   inputContainer: {
@@ -807,17 +808,17 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    color: '#1A1A1A',
+    color: colors.text,
     marginBottom: 8,
     fontWeight: '500',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#E5E5E5',
+    borderColor: colors.border,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
   },
   passwordContainer: {
     position: 'relative',
@@ -847,18 +848,18 @@ const styles = StyleSheet.create({
   dropdown: {
     height: 48,
     borderWidth: 1,
-    borderColor: '#E5E5E5',
+    borderColor: colors.border,
     borderRadius: 8,
     paddingHorizontal: 12,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
   },
   placeholderStyle: {
     fontSize: 16,
-    color: '#9CA3AF',
+    color: colors.textTertiary,
   },
   selectedTextStyle: {
     fontSize: 16,
-    color: '#1A1A1A',
+    color: colors.text,
   },
   checkboxContainer: {
     flexDirection: 'row',
@@ -869,15 +870,15 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: colors.borderLight,
     borderRadius: 4,
     marginRight: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#8B5CF6',
-    borderColor: '#8B5CF6',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   checkboxLabel: {
     flex: 1,
@@ -888,7 +889,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   createButton: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: colors.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -905,7 +906,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   createButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -925,7 +926,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   trialText: {
-    color: '#22C55E',
+    color: colors.success,
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',
@@ -937,7 +938,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   supportText: {
-    color: '#0066FF',
+    color: colors.info,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -951,7 +952,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   toastText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 13,
     fontWeight: '500',
     flex: 1,

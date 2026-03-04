@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, Image, Dimensions, TouchableOpacity, ActivityIn
 import { Link, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +16,8 @@ export default function BoasVindas() {
   const router = useRouter();
   const { colors } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
+  
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const irParaLogin = async () => {
     if (isLoading) return;
@@ -123,7 +125,7 @@ export default function BoasVindas() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -142,13 +144,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: Math.min(width * 0.1, 42),
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.white,
     marginBottom: 12,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: Math.min(width * 0.04, 16),
-    color: '#E9D5FF',
+    color: colors.primaryLight,
     textAlign: 'center',
     lineHeight: 24,
     paddingHorizontal: 10,
@@ -159,6 +161,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 32,
     padding: 20,
     paddingTop: 24,
+    backgroundColor: colors.surface,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -193,7 +196,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: '#000',
+    backgroundColor: colors.text,
   },
   video: {
     width: '100%',
@@ -207,6 +210,8 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceHighlight,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: {
@@ -225,12 +230,12 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: colors.text,
     marginBottom: 4,
   },
   cardText: {
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
     lineHeight: 20,
   },
   button: {
@@ -240,7 +245,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    shadowColor: '#7C3AED',
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
     shadowOffset: {
       width: 0,
       height: 4,
@@ -250,7 +256,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },

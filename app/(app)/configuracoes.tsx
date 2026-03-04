@@ -626,7 +626,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   settingCard: {
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -647,7 +647,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 8,
   },
-  colorCircleSelected: { borderWidth: 3, borderColor: '#000' },
+  colorCircleSelected: { borderWidth: 3, borderColor: colors.text },
   colorName: { fontSize: 12, textAlign: 'center' },
   infoRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
   infoLabel: { fontSize: 12, marginBottom: 4 },

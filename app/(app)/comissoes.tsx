@@ -536,7 +536,7 @@ export default function ComissoesScreen() {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="people-outline" size={64} color="#D1D5DB" />
+            <Ionicons name="people-outline" size={64} color={colors.borderLight} />
             <Text style={styles.emptyText}>Nenhum usuário encontrado</Text>
           </View>
         }
@@ -633,7 +633,7 @@ export default function ComissoesScreen() {
                       value={isAtivo}
                       onValueChange={(valor) => alternarComissao(usuario.id, valor)}
                       trackColor={{ false: colors.background, true: colors.primary + '80' }}
-                      thumbColor={isAtivo ? colors.primary : '#f4f3f4'}
+                      thumbColor={isAtivo ? colors.primary : colors.background}
                       ios_backgroundColor={colors.background}
                     />
                   </View>
@@ -666,7 +666,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,

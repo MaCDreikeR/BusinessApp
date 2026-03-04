@@ -2303,13 +2303,13 @@ const createStyles = (colors: any) => StyleSheet.create({
     height: 56,
   },
   tabActive: {
-    backgroundColor: '#EDE9FE',
+    backgroundColor: colors.primaryBackground,
     borderBottomWidth: 2,
     borderBottomColor: colors.primary,
   },
   tabText: {
     fontSize: 12,
-    color: '#666',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 4,
   },
@@ -2364,7 +2364,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     flex: 1,
     padding: 12,
     fontSize: 14,
-    color: '#111827',
+    color: colors.text,
   },
   textArea: {
     height: 100,
@@ -2395,7 +2395,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 8,
   },
   footerButtonSalvar: {
-    backgroundColor: '#E8FFF3',
+    backgroundColor: colors.successBackground,
   },
   footerButtonText: {
     fontSize: 16,
@@ -2797,7 +2797,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   comandaValor: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#10B981',
+    color: colors.success,
     marginBottom: 6,
   },
   comandaStatusBadge: {
@@ -2806,10 +2806,10 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 12,
   },
   comandaAberta: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: colors.warningBackground,
   },
   comandaFechada: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: colors.successBackground,
   },
   comandaStatusText: {
     fontSize: 11,
@@ -2843,7 +2843,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   galeriaData: {
     fontSize: 11,
-    color: '#fff',
+    color: colors.white,
   },
   // Estilos para o header com múltiplas ações
   headerActions: {
@@ -2873,7 +2873,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     width: '100%',
     maxWidth: 400,
     maxHeight: '85%',
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -2890,7 +2890,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   modalTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
     flex: 1,
   },
   closeButton: {
@@ -2967,7 +2967,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   statValue: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
   },
   statSubValue: {
     fontSize: 11,

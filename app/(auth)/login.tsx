@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -64,6 +64,7 @@ const getLocalAuthenticationModule = (): LocalAuthenticationModule | null => {
 export default function LoginScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const passwordInputRef = useRef<TextInput>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -709,7 +710,7 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -726,7 +727,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 34,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.white,
     textAlign: 'center',
     marginBottom: 8,
     width: '100%',
@@ -734,14 +735,14 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: '#E9D5FF',
+    color: colors.primaryLight,
     textAlign: 'center',
   },
   form: {
     borderRadius: 16,
     padding: 24,
     marginHorizontal: 20,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -835,7 +836,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   loginButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -858,7 +859,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   trialText: {
-    color: '#22C55E',
+    color: colors.success,
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',
@@ -870,7 +871,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   supportText: {
-    color: '#0066FF',
+    color: colors.info,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -884,7 +885,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   toastText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 13,
     fontWeight: '500',
     flex: 1,
@@ -898,6 +899,6 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   inputError: {
-    borderColor: '#EF4444',
+    borderColor: colors.error,
   },
 }); 

@@ -1113,7 +1113,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -1157,7 +1157,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   itemFooter: {
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: colors.border,
     paddingTop: 12,
   },
   itemInfo: {
@@ -1252,7 +1252,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   comandaTexto: {
     fontSize: 13,
-    color: '#4B5563',
+    color: colors.textSecondary,
     flex: 1,
   },
   comandaValor: {
