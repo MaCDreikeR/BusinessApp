@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -27,6 +27,8 @@ export default function DespesasScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const { colors } = useTheme();
+  
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const {
     expenses,
@@ -207,10 +209,10 @@ export default function DespesasScreen() {
       <View style={styles.cardsContainer}>
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <FontAwesome5 name="wallet" size={18} color="#FF4444" />
+            <FontAwesome5 name="wallet" size={18} color={colors.error} />
             <Text style={styles.cardTitle}>Total</Text>
           </View>
-          <Text style={[styles.cardValue, { color: '#FF4444' }]}>
+          <Text style={[styles.cardValue, { color: colors.error }]}>
             {formatCurrency(summary.total)}
           </Text>
         </View>
@@ -266,7 +268,7 @@ export default function DespesasScreen() {
         </View>
       ) : isEmpty ? (
         <View style={styles.emptyContainer}>
-          <FontAwesome5 name="inbox" size={64} color="#ccc" />
+          <FontAwesome5 name="inbox" size={64} color={colors.borderLight} />
           <Text style={styles.emptyTitle}>Nenhuma despesa registrada</Text>
           <Text style={styles.emptyDescription}>
             Comece registrando suas despesas para ter controle financeiro
@@ -479,21 +481,21 @@ export default function DespesasScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   
   // Header
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -509,14 +511,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1a1a1a',
+    color: colors.text,
   },
 
   // Filtros (Abas)
   filtrosWrapper: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
   },
   filtrosContainer: {
     paddingVertical: 12,
@@ -529,10 +531,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     marginHorizontal: 4,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   filtroAtivo: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: colors.successBackground,
   },
   filtroIcone: {
     width: 28,
@@ -540,26 +542,26 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
   },
   filtroIconeAtivo: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
   },
   filtroTexto: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: colors.textSecondary,
   },
   filtroTextoAtivo: {
-    color: '#2e7d32',
+    color: colors.success,
   },
 
   // Seletor de Data Personalizada
   customDateContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
   },
   datePickerRow: {
     flexDirection: 'row',
@@ -571,7 +573,7 @@ const styles = StyleSheet.create({
   dateLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 8,
   },
   dateButton: {
@@ -579,14 +581,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     padding: 12,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: colors.border,
   },
   dateButtonText: {
     fontSize: 14,
-    color: '#1a1a1a',
+    color: colors.text,
     flex: 1,
   },
 
@@ -595,15 +597,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 16,
     gap: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
   },
   card: {
     flex: 1,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: colors.surfaceHighlight,
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: colors.border,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -614,22 +616,22 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#666',
+    color: colors.textSecondary,
     textTransform: 'uppercase',
   },
   cardValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1a1a1a',
+    color: colors.text,
     marginBottom: 2,
   },
   cardSubtitle: {
     fontSize: 11,
-    color: '#999',
+    color: colors.textTertiary,
   },
   cardEmpty: {
     fontSize: 14,
-    color: '#999',
+    color: colors.textTertiary,
     fontStyle: 'italic',
   },
 
@@ -637,14 +639,14 @@ const styles = StyleSheet.create({
   contadorContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.border,
   },
   contadorTexto: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: colors.textSecondary,
   },
 
   // Lista
@@ -659,7 +661,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: '#999',
+    color: colors.textTertiary,
   },
 
   // Empty State
@@ -668,20 +670,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     margin: 16,
     borderRadius: 12,
   },
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1a1a1a',
+    color: colors.text,
     marginTop: 16,
     textAlign: 'center',
   },
   emptyDescription: {
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 8,
     textAlign: 'center',
     lineHeight: 20,
@@ -694,10 +696,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     marginTop: 24,
-    backgroundColor: '#2e7d32',
+    backgroundColor: colors.success,
   },
   emptyButtonText: {
-    color: '#FFFFFF',
+    color: colors.white,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -705,13 +707,13 @@ const styles = StyleSheet.create({
   // Modal de Detalhes
   detailsOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   detailsCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 24,
     width: 320,
@@ -725,7 +727,7 @@ const styles = StyleSheet.create({
   detailsAmount: {
     fontSize: 36,
     fontWeight: '700',
-    color: '#FF4444',
+    color: colors.error,
     textAlign: 'center',
     marginBottom: 20,
   },
@@ -737,7 +739,7 @@ const styles = StyleSheet.create({
   },
   detailsInfoText: {
     fontSize: 14,
-    color: '#1a1a1a',
+    color: colors.text,
   },
   detailsCategoryIcon: {
     width: 24,
@@ -748,18 +750,18 @@ const styles = StyleSheet.create({
   },
   detailsCategoryText: {
     fontSize: 14,
-    color: '#1a1a1a',
+    color: colors.text,
     fontWeight: '500',
   },
   detailsDescriptionBox: {
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: colors.border,
   },
   detailsDescriptionText: {
     fontSize: 13,
-    color: '#666',
+    color: colors.textSecondary,
     lineHeight: 18,
   },
 });
