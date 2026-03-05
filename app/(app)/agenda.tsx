@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, DeviceEventEmitter, Modal, TextInput, ActivityIndicator, FlatList, SectionList, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, DeviceEventEmitter, Modal, TextInput, ActivityIndicator, FlatList, SectionList, Alert, Pressable } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { format, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
