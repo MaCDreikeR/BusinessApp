@@ -402,8 +402,7 @@ export const ModalGerenciarBloqueios: React.FC<ModalGerenciarBloqueiosProps> = (
               style={styles.botaoSalvar}
               onPress={salvarBloqueios}
             >
-              <Ionicons name="checkmark" size={20} color={colors.white} style={{ marginRight: 8 }} />
-              <Text style={styles.botaoSalvarText}>Salvar Bloqueios</Text>
+              <Text style={styles.botaoSalvarText}>Salvar</Text>
             </TouchableOpacity>
           </View>
         </Pressable>
