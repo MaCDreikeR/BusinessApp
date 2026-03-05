@@ -1,19 +1,20 @@
 import React, { useState, useEffect, useRef, useCallback , useMemo} from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, PanResponder, Animated, Platform, ActivityIndicator, Image, DeviceEventEmitter, FlatList, BackHandler, KeyboardAvoidingView, GestureResponderEvent, NativeSyntheticEvent, Switch, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, Platform, ActivityIndicator, Image, DeviceEventEmitter, FlatList, BackHandler, KeyboardAvoidingView, GestureResponderEvent, NativeSyntheticEvent, Switch, TouchableWithoutFeedback, Pressable } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import { format } from 'date-fns';
 import { useRouter, useNavigation, useFocusEffect } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import MaskInput from 'react-native-mask-input';
-import { toISOStringWithTimezone, createLocalISOString, parseISOStringLocal } from '../../../lib/timezone';
+import { toISOStringWithTimezone, createLocalISOString, parseISOStringLocal, converterHoraParaMinutos, converterMinutosParaHora } from '../../../lib/timezone';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { logger } from '../../../utils/logger';
 import { formatarDataInput, formatarTelefoneInput } from '@utils/validators';
 import { theme } from '@utils/theme';
 import { CacheManager, CacheNamespaces } from '../../../utils/cacheManager';
-// [CACHE-BUSTER-2025-11-05-14:30] Import condicional: DateTimePicker s� � importado no mobile
+import { SelectionButton, SELECTION_BUTTON_CONTAINER_STYLE } from '../../../components/Buttons';
+// [CACHE-BUSTER-2025-11-05-14:30] Import condicional: DateTimePicker s• • importado no mobile
 let DateTimePicker: any = null;
 if (Platform.OS !== 'web') {
   DateTimePicker = require('@react-native-community/datetimepicker').default;
@@ -86,15 +87,15 @@ export default function NovoAgendamentoScreen() {
   const { estabelecimentoId, role, user } = useAuth();
   const { colors } = useTheme();
   
-  // Estilos din�micos baseados no tema
+  // Estilos dinâmicos baseados no tema
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [loading, setLoading] = useState(false);
   const [cliente, setCliente] = useState('');
   const [telefone, setTelefone] = useState('');
   const [data, setData] = useState('');
   const [hora, setHora] = useState('');
-  const [horaTermino, setHoraTermino] = useState(''); // Novo campo para hor�rio de t�rmino
-  const [criarComandaAutomatica, setCriarComandaAutomatica] = useState(true); // Padr�o: Sim
+  const [horaTermino, setHoraTermino] = useState(''); // Novo campo para horário de término
+  const [criarComandaAutomatica, setCriarComandaAutomatica] = useState(true); // Padrão: Sim
   const [servico, setServico] = useState('');
   const [servicosAgendamento, setServicosAgendamento] = useState<string>('');
   const [valorTotal, setValorTotal] = useState(0);
@@ -107,14 +108,14 @@ export default function NovoAgendamentoScreen() {
   const [buscandoClientes, setBuscandoClientes] = useState(false);
   const [mostrarLista, setMostrarLista] = useState(false);
 
-  // Novos estados para busca de servi�os
+  // Novos estados para busca de serviços
   const [servicosEncontrados, setServicosEncontrados] = useState<Servico[]>([]);
   const [todosServicos, setTodosServicos] = useState<Servico[]>([]);
   const [servicoSelecionado, setServicoSelecionado] = useState<Servico | null>(null);
   const [buscandoServicos, setBuscandoServicos] = useState(false);
   const [mostrarListaServicos, setMostrarListaServicos] = useState(false);
 
-  // Estados para o modal de servi�os
+  // Estados para o modal de serviços
   const [modalVisible, setModalVisible] = useState(false);
   const [pesquisaServico, setPesquisaServico] = useState('');
 
@@ -127,72 +128,6 @@ export default function NovoAgendamentoScreen() {
   const [pesquisaPacote, setPesquisaPacote] = useState('');
   const [buscandoPacotes, setBuscandoPacotes] = useState(false);
 
-  // Anima��es separadas para cada modal
-  const translateYServicos = useRef(new Animated.Value(500)).current;
-  const translateYPacotes = useRef(new Animated.Value(500)).current;
-  
-  // PanResponder para o modal de servi�os
-  const panResponderServicos = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy > 0) {
-          translateYServicos.setValue(gestureState.dy);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > 100) {
-          Animated.timing(translateYServicos, {
-            toValue: 500,
-            duration: 200,
-            useNativeDriver: true,
-          }).start(() => {
-            setModalVisible(false);
-            translateYServicos.setValue(500);
-          });
-        } else {
-          Animated.spring(translateYServicos, {
-            toValue: 0,
-            tension: 40,
-            friction: 8,
-            useNativeDriver: true,
-          }).start();
-        }
-      },
-    })
-  ).current;
-
-  // PanResponder para o modal de pacotes
-  const panResponderPacotes = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy > 0) {
-          translateYPacotes.setValue(gestureState.dy);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > 100) {
-          Animated.timing(translateYPacotes, {
-            toValue: 500,
-            duration: 200,
-            useNativeDriver: true,
-          }).start(() => {
-            setModalPacotesVisible(false);
-            translateYPacotes.setValue(500);
-          });
-        } else {
-          Animated.spring(translateYPacotes, {
-            toValue: 0,
-            tension: 40,
-            friction: 8,
-            useNativeDriver: true,
-          }).start();
-        }
-      },
-    })
-  ).current;
-
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dateValue, setDateValue] = useState(new Date());
 
@@ -201,7 +136,7 @@ export default function NovoAgendamentoScreen() {
     logger.debug('??? [STATE] showDatePicker mudou para:', showDatePicker, 'Platform:', Platform.OS);
   }, [showDatePicker]);
 
-  // Estados para usu�rios
+  // Estados para usuários
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [usuarioSelecionado, setUsuarioSelecionado] = useState<Usuario | null>(null);
   const [presencaUsuarios, setPresencaUsuarios] = useState<Record<string, boolean>>({});
@@ -210,8 +145,12 @@ export default function NovoAgendamentoScreen() {
   // Adicionar estados para controle de dias bloqueados
   const [diasSemanaBloqueados, setDiasSemanaBloqueados] = useState<number[]>([]);
   const [datasBloqueadas, setDatasBloqueadas] = useState<string[]>([]);
+  const [showBloqueioModal, setShowBloqueioModal] = useState(false);
+  const [novaDataBloqueada, setNovaDataBloqueada] = useState('');
+  const [diasSemanaBloqueadosPendentes, setDiasSemanaBloqueadosPendentes] = useState<number[]>([]);
+  const [datasBloqueadasPendentes, setDatasBloqueadasPendentes] = useState<string[]>([]);
 
-  // Adicionar estado para armazenar o limite de agendamentos simult�neos
+  // Adicionar estado para armazenar o limite de agendamentos simultâneos
   const [limiteSimultaneos, setLimiteSimultaneos] = useState('1');
 
   // Adicionar novos estados
@@ -225,7 +164,7 @@ export default function NovoAgendamentoScreen() {
   const [horarioIntervaloInicio, setHorarioIntervaloInicio] = useState('12:00');
   const [horarioIntervaloFim, setHorarioIntervaloFim] = useState('13:00');
 
-  // Fun��o para calcular a dura��o total dos servi�os selecionados
+  // Função para calcular a duração total dos serviços selecionados
   const calcularDuracaoTotal = useCallback((): number | null => {
     if (servicosSelecionados.length === 0) return null;
     
@@ -242,7 +181,7 @@ export default function NovoAgendamentoScreen() {
     return temDuracao ? duracaoTotal : null;
   }, [servicosSelecionados]);
 
-  // Fun��o para calcular hor�rio de t�rmino baseado no hor�rio de in�cio e dura��o
+  // Função para calcular horário de término baseado no horário de início e duração
   const calcularHorarioTermino = useCallback((horarioInicio: string, duracaoMinutos: number): string => {
     const [horas, minutos] = horarioInicio.split(':').map(Number);
     
@@ -254,29 +193,29 @@ export default function NovoAgendamentoScreen() {
     const horasFim = Math.floor(minutosFim / 60);
     const minutosFim2 = minutosFim % 60;
     
-    // Formata com zero � esquerda
+    // Formata com zero • esquerda
     const horaFormatada = String(horasFim).padStart(2, '0');
     const minutoFormatado = String(minutosFim2).padStart(2, '0');
     
     return `${horaFormatada}:${minutoFormatado}`;
   }, []);
 
-  // Calcular dura��o total considerando servi�os e pacotes
+  // Calcular duração total considerando serviços e pacotes
   const calcularDuracaoTotalCompleta = useCallback((): number | null => {
     let duracaoTotal = 0;
     let temDuracao = false;
     
-    // Dura��o dos servi�os
+    // Duração dos serviços
     for (const servico of servicosSelecionados) {
       if (servico.duracao) {
         const duracaoServico = servico.duracao * (servico.quantidade || 1);
         duracaoTotal += duracaoServico;
         temDuracao = true;
-        logger.debug(`?? Servi�o "${servico.nome}": ${servico.duracao} min x ${servico.quantidade} = ${duracaoServico} min`);
+        logger.debug(`?? Serviço "${servico.nome}": ${servico.duracao} min x ${servico.quantidade} = ${duracaoServico} min`);
       }
     }
     
-    // Dura��o dos pacotes
+    // Duração dos pacotes
     for (const pacote of pacotesSelecionados) {
       if (pacote.duracao_total) {
         const duracaoPacote = pacote.duracao_total * (pacote.quantidade || 1);
@@ -284,7 +223,7 @@ export default function NovoAgendamentoScreen() {
         temDuracao = true;
         logger.debug(`?? Pacote "${pacote.nome}": ${pacote.duracao_total} min x ${pacote.quantidade} = ${duracaoPacote} min`);
       } else {
-        logger.warn(`?? Pacote "${pacote.nome}" N�O tem duracao_total definida!`);
+        logger.warn(`?? Pacote "${pacote.nome}" NÃO tem duracao_total definida!`);
       }
     }
     
@@ -292,49 +231,49 @@ export default function NovoAgendamentoScreen() {
     return temDuracao ? duracaoTotal : null;
   }, [servicosSelecionados, pacotesSelecionados]);
 
-  // Effect para atualizar hor�rio de t�rmino automaticamente quando hora de in�cio ou servi�os/pacotes mudam
+  // Effect para atualizar horário de término automaticamente quando hora de início ou serviços/pacotes mudam
   useEffect(() => {
     logger.debug('-------------------------------------------------------');
-    logger.debug('?? useEffect DISPARADO - Verificando c�lculo de t�rmino');
-    logger.debug(`?? Hora in�cio: ${hora}`);
-    logger.debug(`?? Servi�os selecionados: ${servicosSelecionados.length}`);
+    logger.debug('?? useEffect DISPARADO - Verificando cálculo de término');
+    logger.debug(`?? Hora início: ${hora}`);
+    logger.debug(`?? Serviços selecionados: ${servicosSelecionados.length}`);
     logger.debug(`?? Pacotes selecionados: ${pacotesSelecionados.length}`);
     
     if (hora && (servicosSelecionados.length > 0 || pacotesSelecionados.length > 0)) {
-      logger.debug('? Condi��es atendidas - calculando dura��o...');
+      logger.debug('? Condições atendidas - calculando duração...');
       
       const duracaoTotal = calcularDuracaoTotalCompleta();
       
-      logger.debug(`??  Dura��o total calculada: ${duracaoTotal} min`);
+      logger.debug(`??  Duração total calculada: ${duracaoTotal} min`);
       
       if (duracaoTotal) {
         const horarioTerminoCalculado = calcularHorarioTermino(hora, duracaoTotal);
-        logger.debug(`?? Hor�rio de t�rmino calculado: ${horarioTerminoCalculado}`);
+        logger.debug(`?? Horário de término calculado: ${horarioTerminoCalculado}`);
         logger.debug(`?? Atualizando estado horaTermino para: ${horarioTerminoCalculado}`);
         setHoraTermino(horarioTerminoCalculado);
         logger.debug(`? Estado horaTermino atualizado!`);
       } else {
-        logger.warn('??  duracaoTotal retornou NULL - sem dura��o definida');
+        logger.warn('??  duracaoTotal retornou NULL - sem duração definida');
         if (horaTermino) {
-          logger.debug('?? Mantendo hor�rio de t�rmino manual');
+          logger.debug('?? Mantendo horário de término manual');
         }
       }
     } else {
-      logger.warn('? Condi��es N�O atendidas:');
-      if (!hora) logger.warn('  - Hora de in�cio n�o definida');
+      logger.warn('? Condições NÃO atendidas:');
+      if (!hora) logger.warn('  - Hora de início não definida');
       if (servicosSelecionados.length === 0 && pacotesSelecionados.length === 0) {
-        logger.warn('  - Nenhum servi�o ou pacote selecionado');
+        logger.warn('  - Nenhum serviço ou pacote selecionado');
       }
     }
     logger.debug('-------------------------------------------------------');
   }, [hora, servicosSelecionados, pacotesSelecionados, calcularDuracaoTotalCompleta, calcularHorarioTermino]);
 
-  // Sincroniza��o com o estado de presen�a da tela de agenda
+  // Sincronização com o estado de presença da tela de agenda
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener('atualizarPresencaUsuarios', (novoEstado: Record<string, boolean>) => {
       setPresencaUsuarios(novoEstado);
       
-      // Se o usu�rio selecionado foi marcado como ausente, desseleciona ele
+      // Se o usuário selecionado foi marcado como ausente, desseleciona ele
       if (usuarioSelecionado && !novoEstado[usuarioSelecionado.id]) {
         setUsuarioSelecionado(null);
       }
@@ -346,16 +285,16 @@ export default function NovoAgendamentoScreen() {
   }, [usuarioSelecionado]);
 
   // Garantir que o loading seja resetado quando a tela for focada
-  // E limpar o formul�rio quando sair da tela
+  // E limpar o formulário quando sair da tela
   useFocusEffect(
     useCallback(() => {
       // Resetar loading ao entrar na tela
       setLoading(false);
       logger.debug('Tela de novo agendamento focada - loading resetado');
       
-      // Fun��o de cleanup quando sair da tela
+      // Função de cleanup quando sair da tela
       return () => {
-        logger.debug('Saindo da tela de novo agendamento - limpando formul�rio');
+        logger.debug('Saindo da tela de novo agendamento - limpando formulário');
         // Limpar todos os campos
         setCliente('');
         setTelefone('');
@@ -402,26 +341,25 @@ export default function NovoAgendamentoScreen() {
 
   const carregarUsuarios = async () => {
     try {
-      logger.debug('Carregando usu�rios para novo agendamento - estabelecimento:', estabelecimentoId);
+      logger.debug('Carregando usuários para novo agendamento - estabelecimento:', estabelecimentoId);
       
       if (!estabelecimentoId) {
-        logger.error('ID do estabelecimento n�o dispon�vel');
+        logger.error('ID do estabelecimento não disponível');
         return;
       }
 
-      // Tenta usar RPC function primeiro (pode n�o existir j�)
+      // Tenta usar RPC function primeiro (pode não existir já)
       const { data: usuariosRpc, error: rpcError } = await supabase
         .rpc('get_usuarios_estabelecimento', { estabelecimento_uuid: estabelecimentoId });
 
       if (!rpcError && usuariosRpc) {
-        logger.debug('? Usu�rios carregados via RPC:', usuariosRpc.length);
-        logger.debug('?? Lista completa de usu�rios RPC:', JSON.stringify(usuariosRpc, null, 2));
+        logger.debug('? Usuários carregados via RPC:', usuariosRpc.length);
         
         // REGRA: Profissionais veem apenas a si mesmos
         let usuariosFiltrados = usuariosRpc || [];
         if (role === 'profissional' && user?.id) {
           usuariosFiltrados = usuariosRpc.filter((u: any) => u.id === user.id);
-          logger.debug('?? Profissional - mostrando apenas pr�prio usu�rio:', usuariosFiltrados);
+          logger.debug('?? Profissional - mostrando apenas próprio usuário:', usuariosFiltrados);
           
           // Auto-selecionar o profissional
           if (usuariosFiltrados.length > 0) {
@@ -431,13 +369,13 @@ export default function NovoAgendamentoScreen() {
         
         setUsuarios(usuariosFiltrados);
         
-        // Inicializa o estado de presen�a para todos os usu�rios
+        // Inicializa o estado de presença para todos os usuários
         const presencaInicial = usuariosFiltrados.reduce((acc: Record<string, boolean>, usuario: any) => {
-          acc[usuario.id] = true; // Por padr�o, todos est�o presentes
+          acc[usuario.id] = true; // Por padrão, todos estáo presentes
           return acc;
         }, {} as Record<string, boolean>);
         setPresencaUsuarios(presencaInicial);
-        logger.debug('? Total de usu�rios carregados:', usuariosFiltrados.length);
+        logger.debug('? Total de usuários carregados:', usuariosFiltrados.length);
         return;
       }
 
@@ -446,7 +384,7 @@ export default function NovoAgendamentoScreen() {
       logger.debug('?? Erro RPC ou dados vazios, tentando fallback...');
 
       // Fallback para consulta direta
-      logger.debug('?? RPC n�o dispon�vel, usando consulta direta...');
+      logger.debug('?? RPC não disponível, usando consulta direta...');
       const { data, error } = await supabase
         .from('usuarios')
         .select('id, nome_completo, email, avatar_url, faz_atendimento')
@@ -455,14 +393,13 @@ export default function NovoAgendamentoScreen() {
 
       if (error) throw error;
 
-      logger.debug('? Usu�rios encontrados via consulta direta:', data?.length);
-      logger.debug('?? Lista completa de usu�rios (fallback):', JSON.stringify(data, null, 2));
+      logger.debug('? Usuários encontrados via consulta direta:', data?.length);
       
       // REGRA: Profissionais veem apenas a si mesmos
       let usuariosFiltrados = data || [];
       if (role === 'profissional' && user?.id) {
         usuariosFiltrados = data?.filter((u: any) => u.id === user.id) || [];
-        logger.debug('?? Profissional - mostrando apenas pr�prio usu�rio:', usuariosFiltrados);
+        logger.debug('?? Profissional - mostrando apenas próprio usuário:', usuariosFiltrados);
         
         // Auto-selecionar o profissional
         if (usuariosFiltrados.length > 0) {
@@ -472,15 +409,15 @@ export default function NovoAgendamentoScreen() {
       
       setUsuarios(usuariosFiltrados);
       
-      // Inicializa o estado de presen�a para todos os usu�rios
+      // Inicializa o estado de presença para todos os usuários
       const presencaInicial = usuariosFiltrados.reduce((acc, usuario) => {
-        acc[usuario.id] = true; // Por padr�o, todos est�o presentes
+        acc[usuario.id] = true; // Por padrão, todos estáo presentes
         return acc;
       }, {} as Record<string, boolean>);
       setPresencaUsuarios(presencaInicial);
     } catch (error) {
-      logger.error('Erro ao carregar usu�rios:', error);
-      Alert.alert('Erro', 'N�o foi poss�vel carregar a lista de usu�rios');
+      logger.error('Erro ao carregar usuários:', error);
+      Alert.alert('Erro', 'Não foi possível carregar a lista de usuários');
     }
   };
 
@@ -503,7 +440,7 @@ export default function NovoAgendamentoScreen() {
       setTodosServicos(data || []);
       setServicosEncontrados(data || []);
     } catch (error) {
-      logger.error('Erro ao carregar servi�os:', error);
+      logger.error('Erro ao carregar serviços:', error);
     }
   };
 
@@ -512,14 +449,14 @@ export default function NovoAgendamentoScreen() {
       logger.debug('Iniciando carregamento de pacotes...', { estabelecimentoId });
       
       if (!estabelecimentoId) {
-        logger.warn('estabelecimentoId n�o dispon�vel para carregar pacotes');
+        logger.warn('estabelecimentoId não disponível para carregar pacotes');
         return;
       }
       
       setBuscandoPacotes(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        logger.warn('Usu�rio n�o autenticado');
+        logger.warn('Usuário não autenticado');
         return;
       }
 
@@ -554,23 +491,23 @@ export default function NovoAgendamentoScreen() {
         throw error;
       }
       
-      // Calcular duracao_total para cada pacote se n�o existir
+      // Calcular duracao_total para cada pacote se não existir
       const pacotesComDuracao = (data || []).map(pacote => {
         logger.debug(`\n?? Processando pacote: "${pacote.nome}"`);
         logger.debug(`   duracao_total do banco: ${pacote.duracao_total}`);
         logger.debug(`   Tem servicos? ${!!pacote.servicos} (${pacote.servicos?.length || 0} itens)`);
         
         if (!pacote.duracao_total && pacote.servicos) {
-          // Calcular dura��o total somando os servi�os
+          // Calcular duração total somando os serviços
           const duracaoCalculada = pacote.servicos.reduce((total: number, item: any) => {
             const duracao = item.servico?.duracao || 0;
             const quantidade = item.quantidade || 1;
             const subtotal = duracao * quantidade;
-            logger.debug(`   - Servi�o "${item.servico?.nome}": ${duracao} min x ${quantidade} = ${subtotal} min`);
+            logger.debug(`   - Serviço "${item.servico?.nome}": ${duracao} min x ${quantidade} = ${subtotal} min`);
             return total + subtotal;
           }, 0);
           
-          logger.debug(`   ? Dura��o CALCULADA: ${duracaoCalculada} min`);
+          logger.debug(`   ? Duração CALCULADA: ${duracaoCalculada} min`);
           
           return {
             ...pacote,
@@ -590,7 +527,7 @@ export default function NovoAgendamentoScreen() {
       setTodosPacotes(pacotesComDuracao);
     } catch (error) {
       logger.error('Erro ao carregar pacotes:', error);
-      Alert.alert('Erro', 'N�o foi poss�vel carregar os pacotes');
+      Alert.alert('Erro', 'Não foi possível carregar os pacotes');
     } finally {
       setBuscandoPacotes(false);
     }
@@ -610,7 +547,7 @@ export default function NovoAgendamentoScreen() {
         setDiasSemanaBloqueados(JSON.parse(diasData[0].valor));
       }
       
-      // Carregar datas espec�ficas bloqueadas
+      // Carregar datas específicas bloqueadas
       const { data: datasData, error: datasError } = await supabase
         .from('configuracoes')
         .select('valor')
@@ -622,7 +559,7 @@ export default function NovoAgendamentoScreen() {
         setDatasBloqueadas(JSON.parse(datasData[0].valor));
       }
       
-      // Carregar limite de agendamentos simult�neos
+      // Carregar limite de agendamentos simultâneos
       const { data: limiteData, error: limiteError } = await supabase
         .from('configuracoes')
         .select('valor')
@@ -635,11 +572,11 @@ export default function NovoAgendamentoScreen() {
       }
       
     } catch (error) {
-      logger.error('Erro ao carregar configura��es:', error);
+      logger.error('Erro ao carregar configurações:', error);
     }
   };
 
-  // Fun��o para verificar se uma data est� bloqueada
+  // Função para verificar se uma data está bloqueada
   const isDataBloqueada = (dataStr: string) => {
     try {
       const dataParts = dataStr.split('/');
@@ -651,13 +588,13 @@ export default function NovoAgendamentoScreen() {
       
       const data = new Date(ano, mes, dia);
       
-      // Verifica se o dia da semana est� bloqueado
+      // Verifica se o dia da semana está bloqueado
       const diaSemana = data.getDay(); // 0 = Domingo, 1 = Segunda, etc.
       if (diasSemanaBloqueados.includes(diaSemana)) {
         return true;
       }
       
-      // Verifica se a data espec�fica est� bloqueada
+      // Verifica se a data específica está bloqueada
       const formattedDate = format(data, 'yyyy-MM-dd');
       return datasBloqueadas.includes(formattedDate);
     } catch (error) {
@@ -666,46 +603,157 @@ export default function NovoAgendamentoScreen() {
     }
   };
 
+  // Funções para gerenciar bloqueios
+  const abrirModalBloqueios = () => {
+    setDiasSemanaBloqueadosPendentes([...diasSemanaBloqueados]);
+    setDatasBloqueadasPendentes([...datasBloqueadas]);
+    setNovaDataBloqueada('');
+    setShowBloqueioModal(true);
+  };
+
+  const fecharModalBloqueios = () => {
+    setShowBloqueioModal(false);
+  };
+
+  const toggleDiaSemana = (diaSemana: number) => {
+    setDiasSemanaBloqueadosPendentes(prev => 
+      prev.includes(diaSemana)
+        ? prev.filter(d => d !== diaSemana)
+        : [...prev, diaSemana].sort()
+    );
+  };
+
+  const removerDataBloqueada = (data: string) => {
+    setDatasBloqueadasPendentes(prev => 
+      prev.filter(d => d !== data)
+    );
+  };
+
+  const adicionarDataBloqueada = () => {
+    if (!novaDataBloqueada.trim()) {
+      Alert.alert('Aviso', 'Digite uma data válida (DD/MM/AAAA)');
+      return;
+    }
+
+    if (!validarData(novaDataBloqueada)) {
+      Alert.alert('Erro', 'Data inválida. Use o formato DD/MM/AAAA');
+      return;
+    }
+
+    if (datasBloqueadasPendentes.includes(novaDataBloqueada)) {
+      Alert.alert('Aviso', 'Esta data já está bloqueada');
+      return;
+    }
+
+    setDatasBloqueadasPendentes([...datasBloqueadasPendentes, novaDataBloqueada].sort());
+    setNovaDataBloqueada('');
+  };
+
+  const salvarBloqueios = async () => {
+    try {
+      if (!estabelecimentoId) return;
+
+      // Atualizar dias da semana bloqueados
+      const diasUpdate = await supabase
+        .from('configuracoes')
+        .upsert(
+          { 
+            estabelecimento_id: estabelecimentoId, 
+            chave: 'dias_semana_bloqueados', 
+            valor: JSON.stringify(diasSemanaBloqueadosPendentes) 
+          },
+          { onConflict: 'estabelecimento_id,chave' }
+        );
+
+      if (diasUpdate.error) throw diasUpdate.error;
+
+      // Atualizar datas bloqueadas
+      const datasUpdate = await supabase
+        .from('configuracoes')
+        .upsert(
+          { 
+            estabelecimento_id: estabelecimentoId, 
+            chave: 'datas_bloqueadas', 
+            valor: JSON.stringify(datasBloqueadasPendentes) 
+          },
+          { onConflict: 'estabelecimento_id,chave' }
+        );
+
+      if (datasUpdate.error) throw datasUpdate.error;
+
+      // Atualizar estados
+      setDiasSemanaBloqueados(diasSemanaBloqueadosPendentes);
+      setDatasBloqueadas(datasBloqueadasPendentes);
+
+      Alert.alert('Sucesso', 'Bloqueios atualizados com sucesso');
+      fecharModalBloqueios();
+    } catch (error) {
+      logger.error('Erro ao salvar bloqueios:', error);
+      Alert.alert('Erro', 'Falha ao salvar bloqueios');
+    }
+  };
+
   const validarFormulario = () => {
     const novosErros: {[key: string]: string} = {};
 
     if (!cliente.trim()) {
-      novosErros.cliente = 'Nome do cliente � obrigat�rio';
+      novosErros.cliente = 'Nome do cliente é obrigatório';
     }
 
     if (!telefone.trim()) {
-      novosErros.telefone = 'Telefone � obrigat�rio';
+      novosErros.telefone = 'Telefone é obrigatório';
     } else if (telefone.replace(/\D/g, '').length < 10) {
-      novosErros.telefone = 'Telefone inv�lido';
+      novosErros.telefone = 'Telefone inválido';
     }
 
     if (!data.trim()) {
-      novosErros.data = 'Data � obrigat�ria';
+      novosErros.data = 'Data é obrigatória';
     } else if (!validarData(data)) {
-      novosErros.data = 'Data inv�lida';
+      novosErros.data = 'Data inválida';
     } else if (isDataBloqueada(data)) {
-      novosErros.data = 'Esta data est� bloqueada para agendamentos';
+      novosErros.data = 'Esta data está bloqueada para agendamentos';
     }
 
     if (!hora.trim()) {
-      novosErros.hora = 'Hora � obrigat�ria';
+      novosErros.hora = 'Hora é obrigatória';
     } else if (!validarHora(hora)) {
-      novosErros.hora = 'Hora inv�lida';
+      novosErros.hora = 'Hora inválida';
     }
 
     if (!horaTermino.trim()) {
-      novosErros.horaTermino = 'Hor�rio de t�rmino � obrigat�rio';
+      novosErros.horaTermino = 'Horário de término é obrigatório';
     } else if (!validarHora(horaTermino)) {
-      novosErros.horaTermino = 'Hor�rio de t�rmino inv�lido';
+      novosErros.horaTermino = 'Horário de término inválido';
     } else if (hora && horaTermino) {
-      // Validar que t�rmino seja ap�s in�cio
+      // Validar que término seja após início
       const [horaIni, minIni] = hora.split(':').map(Number);
       const [horaTerm, minTerm] = horaTermino.split(':').map(Number);
       const minutosInicio = horaIni * 60 + minIni;
       const minutosTermino = horaTerm * 60 + minTerm;
       
       if (minutosTermino <= minutosInicio) {
-        novosErros.horaTermino = 'Hor�rio de t�rmino deve ser ap�s o in�cio';
+        novosErros.horaTermino = 'Horário de término deve ser após o início';
+      }
+      
+      // 🔧 MELHORIA: Validar se horário final está dentro do funcionamento
+      const [horaFimInt, minFimInt] = horarioFim.split(':').map(Number);
+      const minutosFim = horaFimInt * 60 + minFimInt;
+      
+      if (minutosTermino > minutosFim) {
+        novosErros.horaTermino = `Horário de término não pode ultrapassar ${horarioFim}`;
+      }
+      
+      // 🔧 MELHORIA: Validar se não cai completamente em intervalo de almoço
+      if (temIntervalo && horarioIntervaloInicio && horarioIntervaloFim) {
+        const [horaIntIni, minIntIni] = horarioIntervaloInicio.split(':').map(Number);
+        const [horaIntFim, minIntFim] = horarioIntervaloFim.split(':').map(Number);
+        const minutosIntIni = horaIntIni * 60 + minIntIni;
+        const minutosIntFim = horaIntFim * 60 + minIntFim;
+        
+        // Se início está no intervalo de almoço, erro
+        if (minutosInicio >= minutosIntIni && minutosInicio < minutosIntFim) {
+          novosErros.horaTermino = `Horário ${hora} está no intervalo de almoço (${horarioIntervaloInicio} - ${horarioIntervaloFim})`;
+        }
       }
     }
 
@@ -713,9 +761,9 @@ export default function NovoAgendamentoScreen() {
       novosErros.usuario = 'Selecione um profissional';
     }
 
-    // Remover valida��o obrigat�ria de servi�os
+    // Remover validação obrigatória de serviços
     // if (servicosSelecionados.length === 0) {
-    //   novosErros.servico = 'Selecione pelo menos um servi�o';
+    //   novosErros.servico = 'Selecione pelo menos um serviço';
     // }
 
     setErrors(novosErros);
@@ -732,17 +780,17 @@ export default function NovoAgendamentoScreen() {
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        Alert.alert('Erro', 'Usu�rio n�o autenticado');
+        Alert.alert('Erro', 'Usuário não autenticado');
         return;
       }
 
       const [dia, mes, ano] = data.split('/');
       const [hora_agendamento, minuto] = hora.split(':');
       
-      // ?? CORRE��O: Criar data/hora SEM convers�o de timezone
-      // Usar formato ISO local ao inv�s de UTC
+      // ?? CORREÇÃO: Criar data/hora SEM conversão de timezone
+      // Usar formato ISO local ao invés de UTC
       const anoInt = parseInt(ano);
-      const mesInt = parseInt(mes) - 1; // JavaScript: m�s come�a em 0
+      const mesInt = parseInt(mes) - 1; // JavaScript: mês começa em 0
       const diaInt = parseInt(dia);
       const horaInt = parseInt(hora_agendamento);
       const minInt = parseInt(minuto);
@@ -751,15 +799,15 @@ export default function NovoAgendamentoScreen() {
       logger.debug(`   Data: ${diaInt}/${mesInt + 1}/${anoInt}`);
       logger.debug(`   Hora: ${horaInt}:${minInt}`);
       
-      // ?? CORRE��O: Criar string ISO com offset de timezone local usando fun��o utilit�ria
+      // ?? CORREÇÃO: Criar string ISO com offset de timezone local usando função utilitária
       const dataHoraLocal = createLocalISOString(anoInt, mesInt + 1, diaInt, horaInt, minInt);
       
       logger.debug(`   ISO Local com offset: ${dataHoraLocal}`);
       
-      // Criar objeto Date para compara��es
+      // Criar objeto Date para comparações
       const dataHoraAgendamento = new Date(anoInt, mesInt, diaInt, horaInt, minInt);
 
-      // Buscar agendamentos para o mesmo hor�rio usando timezone local
+      // Buscar agendamentos para o mesmo horário usando timezone local
       const dataInicio = new Date(anoInt, mesInt, diaInt, horaInt, minInt - 15);
       const dataFim = new Date(anoInt, mesInt, diaInt, horaInt, minInt + 15);
       
@@ -771,14 +819,14 @@ export default function NovoAgendamentoScreen() {
         
       if (erroConsulta) throw erroConsulta;
 
-      logger.debug(`Encontrados ${agendamentosExistentes?.length || 0} agendamentos no mesmo hor�rio`);
+      logger.debug(`Encontrados ${agendamentosExistentes?.length || 0} agendamentos no mesmo horário`);
 
       // Verificar se atingiu o limite
       const limiteTotal = parseInt(limiteSimultaneos || '1');
       if (agendamentosExistentes && agendamentosExistentes.length >= limiteTotal) {
         Alert.alert(
-          'Hor�rio Indispon�vel', 
-          `Este hor�rio j� atingiu o limite de ${limiteTotal} agendamento(s) simult�neo(s).\n\nJ� agendado para: ${
+          'Horário Indisponível', 
+          `Este horário já atingiu o limite de ${limiteTotal} agendamento(s) simultâneo(s).\n\nJ• agendado para: ${
             agendamentosExistentes.map(a => a.cliente).join(', ')
           }`
         );
@@ -786,7 +834,7 @@ export default function NovoAgendamentoScreen() {
         return;
       }
 
-      // Preparar os detalhes dos servi�os (incluir servi�os avulsos + servi�os dos pacotes)
+      // Preparar os detalhes dos serviços (incluir serviços avulsos + serviços dos pacotes)
       let detalhesServicos = servicosSelecionados.map(s => ({
         nome: s.nome,
         quantidade: s.quantidade,
@@ -794,14 +842,14 @@ export default function NovoAgendamentoScreen() {
         servico_id: s.id
       }));
 
-      // Adicionar servi�os dos pacotes selecionados
+      // Adicionar serviços dos pacotes selecionados
       pacotesSelecionados.forEach(pacote => {
         if (pacote.servicos && Array.isArray(pacote.servicos)) {
           pacote.servicos.forEach((servicoPacote: any) => {
             detalhesServicos.push({
-              nome: servicoPacote.servico?.nome || servicoPacote.nome || 'Servi�o do pacote',
+              nome: servicoPacote.servico?.nome || servicoPacote.nome || 'Serviço do pacote',
               quantidade: 1,
-              preco: 0, // Pre�o j� est� no valor do pacote
+              preco: 0, // Preço já está no valor do pacote
               servico_id: servicoPacote.servico_id
             });
           });
@@ -815,27 +863,27 @@ export default function NovoAgendamentoScreen() {
       const valorTotalPacotes = pacotesSelecionados.reduce((total, p) => total + (p.valor || 0), 0);
       const valorTotalFinal = valorTotalAgendamento + valorTotalPacotes;
 
-      // Preparar hor�rio de t�rmino no formato TIME (HH:MM:SS)
+      // Preparar horário de término no formato TIME (HH:MM:SS)
       let horarioTerminoFormatado = null;
       if (horaTermino) {
         horarioTerminoFormatado = `${horaTermino}:00`; // Adiciona segundos ao formato HH:MM
-        logger.debug(`   Hor�rio T�rmino: ${horarioTerminoFormatado}`);
+        logger.debug(`   Horário Término: ${horarioTerminoFormatado}`);
       }
 
-      logger.debug(`\n?? ========== SALVANDO NO BANCO [C�DIGO NOVO v2.0] ==========`);
+      logger.debug(`\n?? ========== SALVANDO NO BANCO [CÓDIGO NOVO v2.0] ==========`);
       logger.debug(`   ? data_hora COM TIMEZONE: ${dataHoraLocal}`);
       logger.debug(`   ? horario_termino: ${horarioTerminoFormatado}`);
-      logger.debug(`   ?? Usando createLocalISOString() - C�DIGO ATUALIZADO!`);
+      logger.debug(`   ?? Usando createLocalISOString() - CÓDIGO ATUALIZADO!`);
 
       const { error } = await supabase
         .from('agendamentos')
         .insert({
           cliente,
           telefone: telefone.replace(/\D/g, ''),
-          data_hora: dataHoraLocal, // ?? Usar string ISO local ao inv�s de toISOString()
+          data_hora: dataHoraLocal, // ?? Usar string ISO local ao invés de toISOString()
           horario_termino: horarioTerminoFormatado,
           servicos: detalhesServicos,
-          valor_total: valorTotalFinal, // Valor total incluindo servi�os + pacotes
+          valor_total: valorTotalFinal, // Valor total incluindo serviços + pacotes
           observacoes: observacoes.trim() || null,
           estabelecimento_id: estabelecimentoId,
           status: 'agendado',
@@ -869,14 +917,14 @@ export default function NovoAgendamentoScreen() {
       );
     } catch (error) {
       logger.error('Erro ao criar agendamento:', error);
-      Alert.alert('Erro', 'N�o foi poss�vel criar o agendamento');
+      Alert.alert('Erro', 'Não foi possível criar o agendamento');
     } finally {
       // Sempre resetar loading, independente de sucesso ou erro
       setLoading(false);
     }
   };
 
-  // Atualizar a fun��o limparFormulario
+  // Atualizar a função limparFormulario
   const limparFormulario = () => {
     // Limpar campos de texto
     setCliente('');
@@ -888,14 +936,14 @@ export default function NovoAgendamentoScreen() {
     setObservacoes('');
     setValorTotal(0);
     
-    // Limpar sele��es
+    // Limpar seleções
     setClienteSelecionado(null);
     setServicosSelecionados([]);
     setPacotesSelecionados([]);
     setUsuarioSelecionado(null);
     
     // Resetar flags
-    setCriarComandaAutomatica(true); // Voltar ao padr�o
+    setCriarComandaAutomatica(true); // Voltar ao padrão
     
     // Limpar erros
     setErrors({});
@@ -917,13 +965,13 @@ export default function NovoAgendamentoScreen() {
     // Resetar data
     setDateValue(new Date());
     
-    // Resetar hor�rios dispon�veis
+    // Resetar horários disponíveis
     atualizarHorariosDisponiveis();
     
-    // Resetar loading (importante para destravar o bot�o)
+    // Resetar loading (importante para destravar o botão)
     setLoading(false);
     
-    logger.debug('Formul�rio limpo com sucesso');
+    logger.debug('Formulário limpo com sucesso');
   };
 
   const buscarClientes = async (nome: string) => {
@@ -998,7 +1046,11 @@ export default function NovoAgendamentoScreen() {
     const jaExiste = servicosSelecionados.find(s => s.id === servico.id);
     
     if (!jaExiste) {
+      // Adiciona serviço se não estava selecionado
       setServicosSelecionados([...servicosSelecionados, { ...servico, quantidade: 1 }]);
+    } else {
+      // Remove serviço se já estava selecionado (toggle)
+      setServicosSelecionados(servicosSelecionados.filter(s => s.id !== servico.id));
     }
   };
 
@@ -1023,7 +1075,7 @@ export default function NovoAgendamentoScreen() {
   };
 
   const atualizarServicosSelecionados = () => {
-    // Calcula valor total combinando servi�os e pacotes
+    // Calcula valor total combinando serviços e pacotes
     const totalServicos = servicosSelecionados.reduce(
       (sum, s) => sum + (s.preco * s.quantidade), 
       0
@@ -1037,13 +1089,13 @@ export default function NovoAgendamentoScreen() {
     const total = totalServicos + totalPacotes;
     setValorTotal(total);
     
-    // Limpa erro de servi�o se houver algo selecionado
+    // Limpa erro de serviço se houver algo selecionado
     if (servicosSelecionados.length > 0 || pacotesSelecionados.length > 0) {
       setErrors(prev => ({ ...prev, servico: '' }));
     }
   };
 
-  // Fun��es para manipula��o de pacotes
+  // Funções para manipulação de pacotes
   const buscarPacotes = (nome: string) => {
     setPesquisaPacote(nome);
   };
@@ -1052,15 +1104,12 @@ export default function NovoAgendamentoScreen() {
     const jaExiste = pacotesSelecionados.find(p => p.id === pacote.id);
     
     if (!jaExiste) {
-      logger.debug('-------------------------------------------------------');
-      logger.debug(`?? PACOTE SELECIONADO: "${pacote.nome}"`);
-      logger.debug(`?? Dados do pacote:`, JSON.stringify(pacote, null, 2));
-      logger.debug(`??  duracao_total: ${pacote.duracao_total} min`);
-      logger.debug(`?? Quantidade: 1`);
-      logger.debug(`?? Hor�rio de in�cio atual: ${hora}`);
-      logger.debug('-------------------------------------------------------');
+      logger.debug(`?? PACOTE SELECIONADO: "${pacote.nome}" (ID: ${pacote.id}, Duração: ${pacote.duracao_total}min)`);
       
       setPacotesSelecionados([...pacotesSelecionados, { ...pacote, quantidade: 1 }]);
+    } else {
+      // Remove pacote se já estava selecionado (toggle)
+      setPacotesSelecionados(pacotesSelecionados.filter(p => p.id !== pacote.id));
     }
   };
 
@@ -1085,8 +1134,8 @@ export default function NovoAgendamentoScreen() {
   };
 
   const atualizarPacotesSelecionados = () => {
-    // Esta fun��o agora apenas dispara a atualiza��o
-    // O c�lculo real � feito em atualizarServicosSelecionados
+    // Esta função agora apenas dispara a atualização
+    // O cálculo real • feito em atualizarServicosSelecionados
     atualizarServicosSelecionados();
   };
 
@@ -1100,41 +1149,29 @@ export default function NovoAgendamentoScreen() {
   }, [pacotesSelecionados]);
 
   useEffect(() => {
-    if (modalVisible) {
-      carregarServicos();
-    }
-  }, [modalVisible]);
-
-  useEffect(() => {
-    if (modalPacotesVisible) {
-      carregarPacotes();
-    }
-  }, [modalPacotesVisible]);
-
-  useEffect(() => {
     carregarUsuarios();
     carregarServicos();
     carregarPacotes();
     carregarBloqueios();
   }, []);
 
-  // Debug: Monitorar mudan�as no estado horaTermino
+  // Debug: Monitorar mudanças no estado horaTermino
   useEffect(() => {
     logger.debug(`?? [MONITOR] horaTermino mudou para: "${horaTermino}"`);
   }, [horaTermino]);
 
-  // Adicionar fun��o para carregar configura��es de hor�rios
+  // Adicionar função para carregar configurações de horários
   const carregarConfiguracoesHorarios = async () => {
     try {
-      // Obter o usu�rio atual
+      // Obter o usuário atual
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        logger.error('Usu�rio n�o autenticado ao carregar configura��es de hor�rios');
+        logger.error('Usuário não autenticado ao carregar configurações de horários');
         inicializarHorariosPadrao();
         return;
       }
       
-      // Carregar configura��es de hor�rios
+      // Carregar configurações de horários
       const { data, error } = await supabase
         .from('configuracoes')
         .select('chave, valor')
@@ -1148,14 +1185,14 @@ export default function NovoAgendamentoScreen() {
         .eq('estabelecimento_id', estabelecimentoId);
         
       if (error) {
-        logger.error('Erro ao carregar configura��es de hor�rios:', error);
+        logger.error('Erro ao carregar configurações de horários:', error);
         inicializarHorariosPadrao();
         return;
       }
       
       let foiAtualizado = false;
       
-      // Mapear os valores das configura��es para os estados
+      // Mapear os valores das configurações para os estados
       if (data && data.length > 0) {
         foiAtualizado = true;
         data.forEach(config => {
@@ -1184,45 +1221,32 @@ export default function NovoAgendamentoScreen() {
         });
       }
       
-      // Se n�o houve atualiza��o, inicializar com valores padr�o
+      // Se não houve atualização, inicializar com valores padrão
       if (!foiAtualizado) {
         inicializarHorariosPadrao();
       } else {
-        // Atualizar a lista de hor�rios dispon�veis
+        // Atualizar a lista de horários disponíveis
         atualizarHorariosDisponiveis();
       }
     } catch (error) {
-      logger.error('Erro ao carregar configura��es de hor�rios:', error);
+      logger.error('Erro ao carregar configurações de horários:', error);
       inicializarHorariosPadrao();
     }
   };
 
-  // Fun��o para inicializar hor�rios com valores padr�o
+  // Função para inicializar horários com valores padrão
   const inicializarHorariosPadrao = () => {
     setHorarioInicio('08:00');
     setHorarioFim('18:00');
     setIntervaloAgendamentos('30');
     setTemIntervalo(false);
     
-    // Gerar hor�rios dispon�veis com valores padr�o
+    // Gerar horários disponíveis com valores padrão
     const horariosIniciais = gerarHorarios('08:00', '18:00', 30, false, '', '');
     setHorariosDisponiveis(horariosIniciais.map(h => ({ horario: h, ocupado: false, quantidade: 0 })));
   };
 
-  // Fun��o para converter hora no formato "HH:MM" para minutos
-  const converterHoraParaMinutos = (hora: string) => {
-    const [horas, minutos] = hora.split(':').map(Number);
-    return horas * 60 + minutos;
-  };
-
-  // Fun��o para converter minutos para hora no formato "HH:MM"
-  const converterMinutosParaHora = (minutos: number) => {
-    const horas = Math.floor(minutos / 60);
-    const mins = minutos % 60;
-    return `${horas.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-  };
-
-  // Fun��o para gerar lista de hor�rios dispon�veis
+  // Função para gerar lista de horários disponíveis
   const gerarHorarios = (inicio: string, fim: string, intervalo: number, temIntervalo: boolean, intervaloInicio: string, intervaloFim: string) => {
     try {
       const inicioMinutos = converterHoraParaMinutos(inicio);
@@ -1238,7 +1262,7 @@ export default function NovoAgendamentoScreen() {
       
       const horarios: string[] = [];
       
-      // Verificar se a data selecionada � hoje
+      // Verificar se a data selecionada • hoje
       const hoje = new Date();
       let horaAtualMinutos = -1;
       
@@ -1252,25 +1276,25 @@ export default function NovoAgendamentoScreen() {
                        dataSelecionada.getFullYear() === hoje.getFullYear();
         
         if (ehHoje) {
-          // Arredondar para o pr�ximo intervalo
+          // Arredondar para o próximo intervalo
           const horaAtual = hoje.getHours();
           const minutoAtual = hoje.getMinutes();
           horaAtualMinutos = horaAtual * 60 + minutoAtual;
           
-          // Arredondar para o pr�ximo m�ltiplo do intervalo
+          // Arredondar para o próximo múltiplo do intervalo
           horaAtualMinutos = Math.ceil(horaAtualMinutos / intervalo) * intervalo;
           
-          logger.debug(`?? Data selecionada � HOJE. Hora atual: ${horaAtual}:${minutoAtual} ? Pr�ximo hor�rio: ${converterMinutosParaHora(horaAtualMinutos)}`);
+          logger.debug(`?? Data selecionada • HOJE. Hora atual: ${horaAtual}:${minutoAtual} ? Próximo horário: ${converterMinutosParaHora(horaAtualMinutos)}`);
         }
       }
       
       for (let i = inicioMinutos; i < fimMinutos; i += intervalo) {
-        // Pular hor�rios durante o intervalo de almo�o
+        // Pular horários durante o intervalo de almoço
         if (temIntervalo && i >= intervaloInicioMinutos && i < intervaloFimMinutos) {
           continue;
         }
         
-        // Pular hor�rios que j� passaram (se for hoje)
+        // Pular horários que já passaram (se for hoje)
         if (horaAtualMinutos !== -1 && i < horaAtualMinutos) {
           continue;
         }
@@ -1280,20 +1304,20 @@ export default function NovoAgendamentoScreen() {
       
       return horarios;
     } catch (error) {
-      logger.error('Erro ao gerar hor�rios:', error);
+      logger.error('Erro ao gerar horários:', error);
       return [];
     }
   };
 
-  // Fun��o para atualizar a lista de hor�rios dispon�veis
+  // Função para atualizar a lista de horários disponíveis
   const atualizarHorariosDisponiveis = () => {
     try {
-      logger.debug('Atualizando hor�rios dispon�veis com as configura��es:');
-      logger.debug(`- Hor�rio in�cio: ${horarioInicio}`);
-      logger.debug(`- Hor�rio fim: ${horarioFim}`);
+      logger.debug('Atualizando horários disponíveis com as configurações:');
+      logger.debug(`- Horário início: ${horarioInicio}`);
+      logger.debug(`- Horário fim: ${horarioFim}`);
       logger.debug(`- Tem intervalo: ${temIntervalo}`);
       if (temIntervalo) {
-        logger.debug(`- Intervalo in�cio: ${horarioIntervaloInicio}`);
+        logger.debug(`- Intervalo início: ${horarioIntervaloInicio}`);
         logger.debug(`- Intervalo fim: ${horarioIntervaloFim}`);
       }
       logger.debug(`- Intervalo entre agendamentos: ${intervaloAgendamentos} minutos`);
@@ -1308,79 +1332,79 @@ export default function NovoAgendamentoScreen() {
         horarioIntervaloFim
       );
       
-      // Checar disponibilidade dos hor�rios (quando uma data estiver selecionada)
+      // Checar disponibilidade dos horários (quando uma data estiver selecionada)
       if (data && validarData(data)) {
         verificarDisponibilidadeHorarios(novosHorarios);
       } else {
         setHorariosDisponiveis(novosHorarios.map(h => ({ horario: h, ocupado: false, quantidade: 0 })));
       }
       
-      logger.debug('Lista de hor�rios atualizada:', novosHorarios.length);
-      logger.debug('Hor�rios gerados:', novosHorarios.join(', '));
+      logger.debug('Lista de horários atualizada:', novosHorarios.length);
+      logger.debug('Horários gerados:', novosHorarios.join(', '));
     } catch (error) {
-      logger.error('Erro ao atualizar lista de hor�rios:', error);
+      logger.error('Erro ao atualizar lista de horários:', error);
       inicializarHorariosPadrao();
     }
   };
 
-  // Fun��o para selecionar hor�rio com valida��o simples
+  // Função para selecionar horário com validação simples
   const selecionarHorario = (horarioSelecionado: string) => {
     try {
-      // 1?? Calcular dura��o total
+      // 1?? Calcular duração total
       const duracaoTotal = calcularDuracaoTotalCompleta();
       
       if (!duracaoTotal) {
-        // Se n�o tem dura��o, apenas selecionar
+        // Se não tem duração, apenas selecionar
         setHora(horarioSelecionado);
         setMostrarSeletorHorario(false);
         setErrors({...errors, hora: ''});
-        logger.debug(`? Hor�rio ${horarioSelecionado} selecionado (sem dura��o)`);
+        logger.debug(`? Horário ${horarioSelecionado} selecionado (sem duração)`);
         return;
       }
 
-      // 2?? Calcular hor�rio de t�rmino
+      // 2?? Calcular horário de término
       const horarioTerminoCalculado = calcularHorarioTermino(horarioSelecionado, duracaoTotal);
-      logger.debug(`?? Verificando per�odo: ${horarioSelecionado} at� ${horarioTerminoCalculado} (dura��o: ${duracaoTotal}min)`);
+      logger.debug(`?? Verificando período: ${horarioSelecionado} até ${horarioTerminoCalculado} (duração: ${duracaoTotal}min)`);
 
-      // 3?? Converter horas para minutos para compara��o
+      // 3?? Converter horas para minutos para comparação
       const [hInicio, mInicio] = horarioSelecionado.split(':').map(Number);
       const minutosInicio = hInicio * 60 + mInicio;
 
       const [hFim, mFim] = horarioTerminoCalculado.split(':').map(Number);
       const minutosFim = hFim * 60 + mFim;
 
-      // 4?? Verificar se algum slot entre in�cio e fim est� ocupado
+      // 4?? Verificar se algum slot entre início e fim está ocupado
       const slotsOcupados = horariosDisponiveis.filter(slot => {
         const [h, m] = slot.horario.split(':').map(Number);
         const minutosSlot = h * 60 + m;
         
-        // Verificar se este slot est� dentro do intervalo [minutosInicio, minutosFim)
+        // Verificar se este slot está dentro do intervalo [minutosInicio, minutosFim)
         return minutosSlot >= minutosInicio && minutosSlot < minutosFim && slot.ocupado;
       });
 
       if (slotsOcupados.length > 0) {
-        logger.error(`? Hor�rio indispon�vel! Slots ocupados: ${slotsOcupados.map(s => s.horario).join(', ')}`);
+        logger.error(`? Horário indisponível! Slots ocupados: ${slotsOcupados.map(s => s.horario).join(', ')}`);
         Alert.alert(
-          'Hor�rio Indispon�vel',
-          `N�o � poss�vel agendar de ${horarioSelecionado} at� ${horarioTerminoCalculado} (${duracaoTotal} minutos).\n\nOs hor�rios ${slotsOcupados.map(s => s.horario).join(', ')} j� est�o ocupados.\n\nEscolha outro hor�rio ou servi�o com dura��o menor.`
+          'Horário Indisponível',
+          `Não • possível agendar de ${horarioSelecionado} até ${horarioTerminoCalculado} (${duracaoTotal} minutos).\n\nOs horários ${slotsOcupados.map(s => s.horario).join(', ')} já estáo ocupados.\n\nEscolha outro horário ou serviço com duração menor.`
         );
         return;
       }
 
-      // 5?? Se passou na valida��o, selecionar o hor�rio
+      // 5?? Se passou na validação, selecionar o horário
       setHora(horarioSelecionado);
       setHoraTermino(horarioTerminoCalculado);
       setMostrarSeletorHorario(false);
       setErrors({...errors, hora: ''});
       
-      logger.success(`? Hor�rio ${horarioSelecionado}-${horarioTerminoCalculado} selecionado com sucesso!`);
+      logger.success(`? Horário ${horarioSelecionado}-${horarioTerminoCalculado} selecionado com sucesso!`);
     } catch (error) {
-      logger.error('Erro ao selecionar hor�rio:', error);
-      Alert.alert('Erro', 'Ocorreu um erro ao validar o hor�rio. Tente novamente.');
+      logger.error('Erro ao selecionar horário:', error);
+      Alert.alert('Erro', 'Ocorreu um erro ao validar o horário. Tente novamente.');
     }
   };
 
-  // Fun��o para verificar disponibilidade de hor�rios para a data selecionada
+  // Função para verificar disponibilidade de horários para a data selecionada
   const verificarDisponibilidadeHorarios = async (horarios: string[]) => {
     try {
       if (!data || !validarData(data)) {
@@ -1395,7 +1419,7 @@ export default function NovoAgendamentoScreen() {
         parseInt(dia)
       );
       
-      // ?? CORRE��O: Usar timezone local para buscar agendamentos do dia
+      // ?? CORREÇÃO: Usar timezone local para buscar agendamentos do dia
       const inicioDia = createLocalISOString(parseInt(ano), parseInt(mes), parseInt(dia), 0, 0, 0);
       const fimDia = createLocalISOString(parseInt(ano), parseInt(mes), parseInt(dia), 23, 59, 59);
       
@@ -1407,43 +1431,43 @@ export default function NovoAgendamentoScreen() {
         .lte('data_hora', fimDia);
         
       if (error) {
-        logger.error('Erro ao verificar disponibilidade de hor�rios:', error);
+        logger.error('Erro ao verificar disponibilidade de horários:', error);
         setHorariosDisponiveis(horarios.map(h => ({ horario: h, ocupado: false, quantidade: 0 })));
         return;
       }
       
       logger.debug(`Encontrados ${agendamentosDia?.length || 0} agendamentos para o dia ${data}`);
       
-      // Verificar disponibilidade de cada hor�rio
+      // Verificar disponibilidade de cada horário
       const horariosComStatus = horarios.map(horario => {
         const [horas, minutos] = horario.split(':').map(Number);
         const minutosDoSlot = horas * 60 + minutos;
         
-        // Contar agendamentos que OCUPAM este hor�rio
+        // Contar agendamentos que OCUPAM este horário
         const agendamentosNoHorario = agendamentosDia?.filter(agendamento => {
-          // ?? CORRE��O: Usar parseISOStringLocal para converter UTC ? BRT corretamente
+          // ?? CORREÇÃO: Usar parseISOStringLocal para converter UTC ? BRT corretamente
           const dataParsada = parseISOStringLocal(agendamento.data_hora);
           const horaInicio = dataParsada.getHours();
           const minutoInicio = dataParsada.getMinutes();
           const minutosInicio = horaInicio * 60 + minutoInicio;
           
-          // Calcular minutos de t�rmino
+          // Calcular minutos de término
           let minutosTermino = 0;
           if (agendamento.horario_termino) {
             const [hTerm, mTerm] = agendamento.horario_termino.split(':').map(Number);
             minutosTermino = hTerm * 60 + mTerm;
           } else {
-            // Se n�o tem t�rmino, assume que ocupa pelo menos o hor�rio atual
+            // Se não tem término, assume que ocupa pelo menos o horário atual
             minutosTermino = minutosInicio + 15;
           }
           
-          // Se atravessa meia-noite (ex: 23:00 at� 01:00)
+          // Se atravessa meia-noite (ex: 23:00 até 01:00)
           if (minutosTermino < minutosInicio) {
             minutosTermino += 24 * 60;
           }
           
-          // Verificar se este slot est� dentro do intervalo do agendamento
-          // O agendamento ocupa todos os 15min a partir da hora de in�cio at� (mas n�o incluindo) a hora de t�rmino
+          // Verificar se este slot está dentro do intervalo do agendamento
+          // O agendamento ocupa todos os 15min a partir da hora de início até (mas não incluindo) a hora de término
           return minutosDoSlot >= minutosInicio && minutosDoSlot < minutosTermino;
         });
         
@@ -1460,7 +1484,7 @@ export default function NovoAgendamentoScreen() {
       
       setHorariosDisponiveis(horariosComStatus);
       
-      // Se o hor�rio atual n�o est� dispon�vel, limpar a sele��o
+      // Se o horário atual não está disponível, limpar a seleção
       if (hora) {
         const horarioAtual = horariosComStatus.find(h => h.horario === hora);
         if (horarioAtual?.ocupado) {
@@ -1468,12 +1492,12 @@ export default function NovoAgendamentoScreen() {
         }
       }
     } catch (error) {
-      logger.error('Erro ao verificar disponibilidade de hor�rios:', error);
+      logger.error('Erro ao verificar disponibilidade de horários:', error);
       setHorariosDisponiveis(horarios.map(h => ({ horario: h, ocupado: false, quantidade: 0 })));
     }
   };
 
-  // Atualizar useEffect para carregar configura��es de hor�rios
+  // Atualizar useEffect para carregar configurações de horários
   useEffect(() => {
     carregarUsuarios();
     carregarServicos();
@@ -1481,14 +1505,14 @@ export default function NovoAgendamentoScreen() {
     carregarConfiguracoesHorarios();
   }, []);
 
-  // Adicionar useEffect para atualizar hor�rios quando a data mudar
+  // Adicionar useEffect para atualizar horários quando a data mudar
   useEffect(() => {
     if (data && validarData(data)) {
       atualizarHorariosDisponiveis();
     }
   }, [data]);
 
-  // Extrair uma fun��o para verificar se h� dados preenchidos
+  // Extrair uma função para verificar se há dados preenchidos
   const temDadosPreenchidos = () => 
     cliente.trim() !== '' || 
     telefone.trim() !== '' || 
@@ -1497,12 +1521,12 @@ export default function NovoAgendamentoScreen() {
     servicosSelecionados.length > 0 ||
     observacoes.trim() !== '';
 
-  // Fun��o para confirmar se o usu�rio quer descartar as altera��es
+  // Função para confirmar se o usuário quer descartar as alterações
   const confirmarDescarte = () => {
     return new Promise<boolean>((resolve) => {
       Alert.alert(
-        'Descartar altera��es',
-        'Voc� tem dados n�o salvos. Deseja descartar as altera��es?',
+        'Descartar alterações',
+        'Voc• tem dados não salvos. Deseja descartar as alterações?',
         [
           {
             text: 'Cancelar',
@@ -1522,9 +1546,9 @@ export default function NovoAgendamentoScreen() {
     });
   };
 
-  // Modificar o useEffect que trata o bot�o de voltar
+  // Modificar o useEffect que trata o botão de voltar
   useEffect(() => {
-    // Adicionar um listener para o evento de hardware back (Android)
+    // Memoizar a função para evitar re-criação a cada render
     const backHandler = () => {
       if (temDadosPreenchidos()) {
         confirmarDescarte().then((descartar) => {
@@ -1537,26 +1561,26 @@ export default function NovoAgendamentoScreen() {
       return false;
     };
     
-    // Adicionar o handler para o bot�o voltar no Android
+    // Adicionar o handler para o botão voltar no Android
     const backSubscription = BackHandler && BackHandler.addEventListener('hardwareBackPress', backHandler);
     
     // Limpar o listener quando o componente for desmontado
     return () => {
       backSubscription && backSubscription.remove();
     };
-  }, [cliente, telefone, data, hora, servicosSelecionados, observacoes]);
+  }, []); // Dependências vazias - temDadosPreenchidos e confirmarDescarte capturam estado via closure
 
-  // Modificar o handleFecharModal para fechar o modal e aplicar servi�os
+  // Modificar o handleFecharModal para fechar o modal e aplicar serviços
   const handleFecharModal = (confirmar?: boolean) => {
     if (confirmar === false) {
-      // Cancelar - limpar sele��es e fechar modal
+      // Cancelar - limpar seleções e fechar modal
       setServicosSelecionados([]);
       setModalVisible(false);
     } else if (confirmar === true) {
-      // Adicionar - manter sele��es e fechar modal
+      // Adicionar - manter seleções e fechar modal
       setModalVisible(false);
     } else {
-      // Fechar modal sem par�metro - apenas fechar
+      // Fechar modal sem parâmetro - apenas fechar
       setModalVisible(false);
     }
     setMostrarSeletorHorario(false);
@@ -1571,45 +1595,16 @@ export default function NovoAgendamentoScreen() {
 
   const abrirModal = () => {
     setModalVisible(true);
-    Animated.spring(translateYServicos, {
-      toValue: 0,
-      tension: 40,
-      friction: 8,
-      useNativeDriver: true,
-    }).start();
   };
 
   const abrirModalPacotes = () => {
     setModalPacotesVisible(true);
-    Animated.spring(translateYPacotes, {
-      toValue: 0,
-      tension: 40,
-      friction: 8,
-      useNativeDriver: true,
-    }).start();
   };
 
   const fecharModalComAnimacao = () => {
-    Animated.timing(translateYServicos, {
-      toValue: 500,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      setModalVisible(false);
-      translateYServicos.setValue(500);
-    });
+    setModalVisible(false);
   };
 
-  const fecharModalPacotesComAnimacao = () => {
-    Animated.timing(translateYPacotes, {
-      toValue: 500,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      setModalPacotesVisible(false);
-      translateYPacotes.setValue(500);
-    });
-  };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
     setShowDatePicker(false);
@@ -1618,13 +1613,13 @@ export default function NovoAgendamentoScreen() {
       const formattedDate = format(selectedDate, 'dd/MM/yyyy');
       setData(formattedDate);
       
-      // Verifica se a data selecionada est� bloqueada
+      // Verifica se a data selecionada está bloqueada
       if (isDataBloqueada(formattedDate)) {
-        setErrors({ ...errors, data: 'Esta data est� bloqueada para agendamentos' });
-        Alert.alert('Data Bloqueada', 'Esta data n�o est� dispon�vel para agendamentos.');
+        setErrors({ ...errors, data: 'Esta data está bloqueada para agendamentos' });
+        Alert.alert('Data Bloqueada', 'Esta data não está disponível para agendamentos.');
       } else {
         setErrors({ ...errors, data: '' });
-        // Atualiza os hor�rios dispon�veis para a nova data
+        // Atualiza os horários disponíveis para a nova data
         setTimeout(() => {
           const intervalo = parseInt(intervaloAgendamentos);
           const novosHorarios = gerarHorarios(
@@ -1662,7 +1657,7 @@ export default function NovoAgendamentoScreen() {
     <View style={styles.container}>
       <ScrollView style={styles.formContainer}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Informa��es do Cliente</Text>
+          <Text style={styles.sectionTitle}>Informações do Cliente</Text>
           
           <View style={styles.clienteContainer}>
             <View style={styles.inputGroup}>
@@ -1687,10 +1682,12 @@ export default function NovoAgendamentoScreen() {
                   mode="flat"
                   style={[styles.input, clienteSelecionado ? styles.inputWithFoto : null]}
                   error={!!errors.cliente}
+                  textColor={colors.text}
                   right={
                     clienteSelecionado ? (
                       <TextInput.Icon
                         icon="close"
+                        color={colors.textSecondary}
                         onPress={handleLimparCliente}
                       />
                     ) : null
@@ -1771,7 +1768,7 @@ export default function NovoAgendamentoScreen() {
           </View>
         </View>
 
-        {/* Se��o Profissional - oculta para profissionais (j� est� auto-selecionado) */}
+        {/* Seção Profissional - oculta para profissionais (já está auto-selecionado) */}
         {role !== 'profissional' && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Profissional</Text>
@@ -1844,95 +1841,42 @@ export default function NovoAgendamentoScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Detalhes do Agendamento</Text>
 
-          {/* CAMPO DE SERVI�O/PACOTE - MOVIDO PARA CIMA DA DATA */}
+          {/* CAMPO DE SERVIÇO/PACOTE - MOVIDO PARA CIMA DA DATA */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Servi�os / Pacotes *</Text>
-            <View style={styles.servicoPacoteContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.servicoButton,
-                  styles.servicoButtonMetade,
-                  servicosSelecionados.length > 0 ? styles.servicoButtonSelecionado : null
-                ]}
+            <Text style={styles.label}>Serviços / Pacotes *</Text>
+            <View style={SELECTION_BUTTON_CONTAINER_STYLE}>
+              <SelectionButton
+                label="Serviços"
+                icon="cut-outline"
+                count={servicosSelecionados.length}
+                selected={servicosSelecionados.length > 0}
+                value={servicosSelecionados.reduce((sum, s) => sum + (s.preco * s.quantidade), 0)}
                 onPress={abrirModal}
-              >
-                <View style={styles.servicoButtonContent}>
-                  <FontAwesome5 
-                    name="cut" 
-                    size={16} 
-                    color={servicosSelecionados.length > 0 ? colors.primary : colors.textSecondary} 
-                    style={styles.servicoIcon} 
-                  />
-                  <Text 
-                    style={[
-                      styles.servicoButtonText,
-                      servicosSelecionados.length > 0 ? styles.servicoButtonTextSelecionado : null
-                    ]}
-                  >
-                    {servicosSelecionados.length > 0 
-                      ? `Servi�os (${servicosSelecionados.length})` 
-                      : 'Servi�os'}
-                  </Text>
-                </View>
-                {servicosSelecionados.length > 0 && (
-                  <Text style={styles.servicoPrecoButton}>
-                    R$ {servicosSelecionados.reduce((sum, s) => sum + (s.preco * s.quantidade), 0).toLocaleString('pt-BR', { 
-                      minimumFractionDigits: 2, 
-                      maximumFractionDigits: 2 
-                    })}
-                  </Text>
-                )}
-              </TouchableOpacity>
+              />
 
-              <TouchableOpacity
-                style={[
-                  styles.servicoButton,
-                  styles.servicoButtonMetade,
-                  styles.pacoteButton,
-                  pacotesSelecionados.length > 0 && styles.servicoButtonSelecionado
-                ]}
+              <SelectionButton
+                label="Pacotes"
+                icon="gift-outline"
+                count={pacotesSelecionados.length}
+                selected={pacotesSelecionados.length > 0}
+                value={pacotesSelecionados.reduce((sum, p) => sum + (p.valor * p.quantidade), 0)}
                 onPress={abrirModalPacotes}
-              >
-                <View style={styles.servicoButtonContent}>
-                  <FontAwesome5 
-                    name="box" 
-                    size={16} 
-                    color={pacotesSelecionados.length > 0 ? colors.primary : colors.textSecondary} 
-                    style={styles.servicoIcon} 
-                  />
-                  <Text style={[
-                    styles.servicoButtonText,
-                    pacotesSelecionados.length > 0 ? styles.servicoButtonTextSelecionado : null
-                  ]}>
-                    {pacotesSelecionados.length > 0 
-                      ? `Pacotes (${pacotesSelecionados.length})` 
-                      : 'Pacotes'}
-                  </Text>
-                </View>
-                {pacotesSelecionados.length > 0 && (
-                  <Text style={styles.servicoPrecoButton}>
-                    R$ {pacotesSelecionados.reduce((sum, p) => sum + (p.valor * p.quantidade), 0).toLocaleString('pt-BR', { 
-                      minimumFractionDigits: 2, 
-                      maximumFractionDigits: 2 
-                    })}
-                  </Text>
-                )}
-              </TouchableOpacity>
+              />
             </View>
             {renderError('servico')}
             {servicosSelecionados.length === 0 && pacotesSelecionados.length === 0 && (
               <Text style={styles.inputHelper}>
-                ?? Selecione um servi�o ou pacote antes de escolher a data
+                Selecione um serviço ou pacote antes de escolher a data
               </Text>
             )}
             
             {/* Mostra os itens selecionados */}
             {servicosSelecionados.length > 0 && (
               <View style={styles.itensSelecionadosContainer}>
-                <Text style={styles.itensSelecionadosLabel}>Servi�os:</Text>
+                <Text style={styles.itensSelecionadosLabel}>Serviços:</Text>
                 {servicosSelecionados.map(s => (
                   <Text key={s.id} style={styles.itemSelecionadoTexto}>
-                    � {s.nome} ({s.quantidade}x) - R$ {(s.preco * s.quantidade).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    • {s.nome} ({s.quantidade}x) - R$ {(s.preco * s.quantidade).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </Text>
                 ))}
               </View>
@@ -1943,7 +1887,7 @@ export default function NovoAgendamentoScreen() {
                 <Text style={styles.itensSelecionadosLabel}>Pacotes:</Text>
                 {pacotesSelecionados.map(p => (
                   <Text key={p.id} style={styles.itemSelecionadoTexto}>
-                    � {p.nome} ({p.quantidade}x) - R$ {(p.valor * p.quantidade).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    • {p.nome} ({p.quantidade}x) - R$ {(p.valor * p.quantidade).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </Text>
                 ))}
               </View>
@@ -1974,7 +1918,7 @@ export default function NovoAgendamentoScreen() {
               ]}
               onPress={() => {
                 if (servicosSelecionados.length === 0 && pacotesSelecionados.length === 0) {
-                  Alert.alert('Aten��o', 'Por favor, selecione um servi�o ou pacote antes de escolher a data.');
+                  Alert.alert('Atenção', 'Por favor, selecione um serviço ou pacote antes de escolher a data.');
                   return;
                 }
                 abrirSeletorData();
@@ -2006,16 +1950,16 @@ export default function NovoAgendamentoScreen() {
             {renderError('data')}
             {servicosSelecionados.length === 0 && pacotesSelecionados.length === 0 && (
               <Text style={styles.inputHelper}>
-                ?? Selecione um servi�o ou pacote primeiro
+                Selecione um serviço ou pacote primeiro
               </Text>
             )}
             {isDataBloqueada(data) && !errors.data && (
-              <Text style={styles.inputAlertText}>Esta data est� bloqueada para agendamentos</Text>
+              <Text style={styles.inputAlertText}>Esta data está bloqueada para agendamentos</Text>
             )}
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Hor�rio de In�cio *</Text>
+            <Text style={styles.label}>Horário de Início *</Text>
             <TouchableOpacity
               style={[
                 styles.inputContainer,
@@ -2026,7 +1970,7 @@ export default function NovoAgendamentoScreen() {
                 if (data && validarData(data) && !isDataBloqueada(data)) {
                   setMostrarSeletorHorario(true);
                 } else {
-                  Alert.alert('Selecionar Data', 'Por favor, selecione uma data v�lida primeiro.');
+                  Alert.alert('Selecionar Data', 'Por favor, selecione uma data válida primeiro.');
                 }
               }}
             >
@@ -2035,20 +1979,20 @@ export default function NovoAgendamentoScreen() {
                 styles.inputText,
                 hora ? styles.inputTextPreenchido : null
               ]}>
-                {hora || 'Selecionar Hor�rio de In�cio'}
+                {hora || 'Selecionar Horário de Início'}
               </Text>
             </TouchableOpacity>
             {renderError('hora')}
             {horariosDisponiveis.length === 0 && data && validarData(data) && !isDataBloqueada(data) && (
-              <Text style={styles.infoText}>N�o h� hor�rios dispon�veis para esta data</Text>
+              <Text style={styles.infoText}>Não há horários disponíveis para esta data</Text>
             )}
             {horariosDisponiveis.every(h => h.ocupado) && data && validarData(data) && !isDataBloqueada(data) && (
-              <Text style={styles.infoText}>Todos os hor�rios est�o ocupados para esta data</Text>
+              <Text style={styles.infoText}>Todos os horários estão ocupados para esta data</Text>
             )}
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Hor�rio de T�rmino *</Text>
+            <Text style={styles.label}>Horário de Término *</Text>
             <TouchableOpacity
               style={[
                 styles.inputContainer,
@@ -2057,7 +2001,7 @@ export default function NovoAgendamentoScreen() {
               ]}
               onPress={() => {
                 if (!hora) {
-                  Alert.alert('Aten��o', 'Por favor, selecione o hor�rio de in�cio primeiro.');
+                  Alert.alert('Atenção', 'Por favor, selecione o horário de início primeiro.');
                   return;
                 }
                 setMostrarSeletorHorarioTermino(true);
@@ -2068,7 +2012,7 @@ export default function NovoAgendamentoScreen() {
                 styles.inputText,
                 horaTermino ? styles.inputTextPreenchido : null
               ]}>
-                {horaTermino || 'Selecionar Hor�rio de T�rmino'}
+                {horaTermino || 'Selecionar Horário de Término'}
               </Text>
             </TouchableOpacity>
             {renderError('horaTermino')}
@@ -2087,7 +2031,7 @@ export default function NovoAgendamentoScreen() {
                 }
                 return (
                   <Text style={styles.inputHelper}>
-                    ?? Dura��o total do atendimento: {textoTempo}
+                    ?? Duração total do atendimento: {textoTempo}
                   </Text>
                 );
               }
@@ -2095,174 +2039,162 @@ export default function NovoAgendamentoScreen() {
             })()}
           </View>
 
-          {/* Modal de Sele��o de Servi�os */}
+          {/* Modal de Seleção de Serviços */}
           <Modal
             visible={modalVisible}
             transparent={true}
+            animationType="fade"
             onRequestClose={() => handleFecharModal()}
           >
-            <TouchableOpacity 
-              style={styles.modalContainer} 
-              activeOpacity={1} 
-              onPress={() => handleFecharModal()}
-            >
-              <Animated.View 
-                style={[
-                  styles.modalContent,
-                  {
-                    transform: [{ translateY: translateYServicos }]
-                  }
-                ]}
+            <Pressable style={styles.modalBackdrop} onPress={() => handleFecharModal()}>
+              <Pressable 
+                style={styles.modalCard}
+                onPress={(e) => e.stopPropagation()}
               >
-                <TouchableOpacity 
-                  activeOpacity={1} 
-                  onPress={(e) => e.stopPropagation()}
-                >
-                  <View {...panResponderServicos.panHandlers} style={styles.modalHeader}>
-                    <View style={styles.modalDragIndicator} />
-                    <Text style={styles.modalTitle}>Selecionar Servi�os</Text>
-                  </View>
-                  
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Selecionar Serviços</Text>
+                </View>
+
+                <View style={styles.modalSearch}>
+                  <Ionicons name="search" size={18} color={colors.textSecondary} />
                   <TextInput
-                    style={styles.searchInput}
+                    style={styles.modalSearchInput}
                     value={pesquisaServico}
                     onChangeText={(text) => {
                       setPesquisaServico(text);
                       buscarServicos(text);
                     }}
-                    placeholder="Buscar servi�os..."
-                    placeholderTextColor={colors.textTertiary}
+                    placeholder="Buscar serviços..."
+                    placeholderTextColor={colors.textSecondary}
                     mode="flat"
+                    textColor={colors.text}
                     underlineStyle={{ display: 'none' }}
+                    activeUnderlineColor="transparent"
                   />
+                  {pesquisaServico ? (
+                    <TouchableOpacity onPress={() => {
+                      setPesquisaServico('');
+                      buscarServicos('');
+                    }} style={{ padding: 4 }}>
+                      <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
 
-                  <ScrollView style={styles.modalScrollView}>
-                    {servicosEncontrados.map((servico) => (
-                      <TouchableOpacity
-                        key={servico.id}
-                        style={[
-                          styles.modalServicoItem,
-                          servicosSelecionados.some(s => s.id === servico.id) && styles.modalServicoItemSelecionado
-                        ]}
-                        onPress={() => handleSelecionarServico(servico)}
-                      >
-                        <View style={styles.modalServicoInfo}>
-                          <Text style={styles.modalServicoNome}>{servico.nome}</Text>
-                          <Text style={styles.modalServicoPreco}>
+                <ScrollView style={styles.modalScrollView}>
+                  {servicosEncontrados.map((servico) => (
+                    <TouchableOpacity
+                      key={servico.id}
+                      style={[
+                        styles.modalServicoItem,
+                        servicosSelecionados.some(s => s.id === servico.id) && styles.modalServicoItemSelecionado
+                      ]}
+                      onPress={() => handleSelecionarServico(servico)}
+                    >
+                      <View style={styles.modalServicoInfo}>
+                        <Text style={styles.modalServicoNome}>{servico.nome}</Text>
+                        <Text style={styles.modalServicoPreco}>
+                          R$ {servico.preco.toLocaleString('pt-BR', { 
+                            minimumFractionDigits: 2, 
+                            maximumFractionDigits: 2 
+                          })}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+
+                {servicosSelecionados.length > 0 && (
+                  <View style={styles.servicosSelecionadosContainer}>
+                    <Text style={styles.servicosSelecionadosTitle}>Itens Selecionados</Text>
+                    {servicosSelecionados.map((servico) => (
+                      <View key={servico.id} style={styles.servicoSelecionadoItem}>
+                        <View style={styles.servicoSelecionadoInfo}>
+                          <Text style={styles.servicoSelecionadoNome}>{servico.nome}</Text>
+                          <Text style={styles.servicoSelecionadoPreco}>
                             R$ {servico.preco.toLocaleString('pt-BR', { 
                               minimumFractionDigits: 2, 
                               maximumFractionDigits: 2 
                             })}
                           </Text>
                         </View>
-                        {servicosSelecionados.some(s => s.id === servico.id) && (
-                          <View style={styles.modalServicoCheck}>
-                            <FontAwesome5 name="check" size={16} color={colors.primary} />
-                          </View>
-                        )}
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
+                        <View style={styles.servicoSelecionadoControles}>
+                          <TouchableOpacity
+                            style={styles.quantidadeButton}
+                            onPress={() => handleQuantidade(servico.id, 'diminuir')}
+                          >
+                            <Text style={styles.quantidadeButtonText}>-</Text>
+                          </TouchableOpacity>
+                          
+                          <Text style={styles.quantidadeText}>{servico.quantidade}</Text>
+                          
+                          <TouchableOpacity
+                            style={styles.quantidadeButton}
+                            onPress={() => handleQuantidade(servico.id, 'aumentar')}
+                          >
+                            <Text style={styles.quantidadeButtonText}>+</Text>
+                          </TouchableOpacity>
 
-                  {servicosSelecionados.length > 0 && (
-                    <View style={styles.servicosSelecionadosContainer}>
-                      <Text style={styles.servicosSelecionadosTitle}>Itens Selecionados</Text>
-                      {servicosSelecionados.map((servico) => (
-                        <View key={servico.id} style={styles.servicoSelecionadoItem}>
-                          <View style={styles.servicoSelecionadoInfo}>
-                            <Text style={styles.servicoSelecionadoNome}>{servico.nome}</Text>
-                            <Text style={styles.servicoSelecionadoPreco}>
-                              R$ {servico.preco.toLocaleString('pt-BR', { 
-                                minimumFractionDigits: 2, 
-                                maximumFractionDigits: 2 
-                              })}
-                            </Text>
-                          </View>
-                          <View style={styles.servicoSelecionadoControles}>
-                            <TouchableOpacity
-                              style={styles.quantidadeButton}
-                              onPress={() => handleQuantidade(servico.id, 'diminuir')}
-                            >
-                              <Text style={styles.quantidadeButtonText}>-</Text>
-                            </TouchableOpacity>
-                            
-                            <Text style={styles.quantidadeText}>{servico.quantidade}</Text>
-                            
-                            <TouchableOpacity
-                              style={styles.quantidadeButton}
-                              onPress={() => handleQuantidade(servico.id, 'aumentar')}
-                            >
-                              <Text style={styles.quantidadeButtonText}>+</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                              style={styles.removerButton}
-                              onPress={() => handleRemoverServico(servico.id)}
-                            >
-                              <FontAwesome5 name="trash-alt" size={16} color={colors.text} />
-                            </TouchableOpacity>
-                          </View>
+                          <TouchableOpacity
+                            style={styles.removerButton}
+                            onPress={() => handleRemoverServico(servico.id)}
+                          >
+                            <FontAwesome5 name="trash-alt" size={16} color={colors.text} />
+                          </TouchableOpacity>
                         </View>
-                      ))}
-                    </View>
-                  )}
-
-                  <View style={styles.modalButtons}>
-                    <TouchableOpacity
-                      style={styles.modalCancelarButton}
-                      onPress={() => handleFecharModal(false)}
-                    >
-                      <Text style={styles.modalCancelarButtonText}>Cancelar</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[
-                        styles.modalAdicionarButton,
-                        servicosSelecionados.length === 0 && styles.modalAdicionarButtonDisabled
-                      ]}
-                      onPress={() => handleFecharModal(true)}
-                      disabled={servicosSelecionados.length === 0}
-                    >
-                      <Text style={styles.modalAdicionarButtonText}>
-                        Adicionar ({servicosSelecionados.length})
-                      </Text>
-                    </TouchableOpacity>
+                      </View>
+                    ))}
                   </View>
-                </TouchableOpacity>
-              </Animated.View>
-            </TouchableOpacity>
+                )}
+
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity
+                    style={styles.modalCancelarButton}
+                    onPress={() => handleFecharModal(false)}
+                  >
+                    <Text style={styles.modalCancelarButtonText}>Cancelar</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.modalAdicionarButton,
+                      servicosSelecionados.length === 0 && styles.modalAdicionarButtonDisabled
+                    ]}
+                    onPress={() => handleFecharModal(true)}
+                    disabled={servicosSelecionados.length === 0}
+                  >
+                    <Text style={styles.modalAdicionarButtonText}>
+                      Adicionar ({servicosSelecionados.length})
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </Pressable>
+            </Pressable>
           </Modal>
 
-          {/* Modal de Sele��o de Pacotes */}
+          {/* Modal de Seleção de Pacotes */}
           <Modal
             visible={modalPacotesVisible}
             transparent={true}
+            animationType="fade"
             onRequestClose={() => setModalPacotesVisible(false)}
           >
-            <TouchableOpacity 
-              style={styles.modalContainer} 
-              activeOpacity={1} 
-              onPress={() => fecharModalPacotesComAnimacao()}
+            <Pressable 
+              style={styles.modalBackdrop}
+              onPress={() => setModalPacotesVisible(false)}
             >
-              <Animated.View 
-                style={[
-                  styles.modalContent,
-                  {
-                    transform: [{ translateY: translateYPacotes }]
-                  }
-                ]}
+              <Pressable 
+                style={styles.modalCard}
+                onPress={(e) => e.stopPropagation()}
               >
-                <TouchableOpacity 
-                  activeOpacity={1} 
-                  onPress={(e) => e.stopPropagation()}
-                >
-                  <View {...panResponderPacotes.panHandlers} style={styles.modalHeader}>
-                    <View style={styles.modalDragIndicator} />
-                    <Text style={styles.modalTitle}>Selecionar Pacotes</Text>
-                  </View>
-                  
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Selecionar Pacotes</Text>
+                </View>
+
+                <View style={styles.modalSearch}>
+                  <Ionicons name="search" size={18} color={colors.textSecondary} />
                   <TextInput
-                    style={styles.searchInput}
+                    style={styles.modalSearchInput}
                     value={pesquisaPacote}
                     onChangeText={(text) => {
                       setPesquisaPacote(text);
@@ -2270,7 +2202,20 @@ export default function NovoAgendamentoScreen() {
                     }}
                     placeholder="Buscar pacotes..."
                     placeholderTextColor={colors.textSecondary}
+                    mode="flat"
+                    textColor={colors.text}
+                    underlineStyle={{ display: 'none' }}
+                    activeUnderlineColor="transparent"
                   />
+                  {pesquisaPacote ? (
+                    <TouchableOpacity onPress={() => {
+                      setPesquisaPacote('');
+                      buscarPacotes('');
+                    }} style={{ padding: 4 }}>
+                      <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
 
                   <ScrollView style={styles.modalScrollView}>
                     {buscandoPacotes ? (
@@ -2334,22 +2279,19 @@ export default function NovoAgendamentoScreen() {
                                     })}
                                   </Text>
                                   {pacote.duracao_total && (
-                                    <Text style={styles.servicoDuracao}>
-                                      ?? {pacote.duracao_total} min
-                                    </Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                                      <FontAwesome5 name="clock" size={12} color={colors.textTertiary} style={{ marginRight: 4 }} />
+                                      <Text style={styles.servicoDuracao}>{pacote.duracao_total} min</Text>
+                                    </View>
                                   )}
                                 </View>
                                 {pacote.servicos && pacote.servicos.length > 0 && (
-                                  <Text style={styles.pacoteItens}>
-                                    ?? {pacote.servicos.length} servi�o(s) inclu�do(s)
-                                  </Text>
+                                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                                    <FontAwesome5 name="list" size={12} color={colors.textTertiary} style={{ marginRight: 4 }} />
+                                    <Text style={styles.pacoteItens}>{pacote.servicos.length} serviço(s) incluído(s)</Text>
+                                  </View>
                                 )}
                               </View>
-                              {jaSelecionado && (
-                                <View style={styles.modalServicoCheck}>
-                                  <FontAwesome5 name="check-circle" size={24} color={colors.primary} />
-                                </View>
-                              )}
                             </TouchableOpacity>
                           );
                         })
@@ -2420,9 +2362,8 @@ export default function NovoAgendamentoScreen() {
                       </Text>
                     </TouchableOpacity>
                   </View>
-                </TouchableOpacity>
-              </Animated.View>
-            </TouchableOpacity>
+              </Pressable>
+            </Pressable>
           </Modal>
 
           {showDatePicker && (
@@ -2442,21 +2383,21 @@ export default function NovoAgendamentoScreen() {
                 <FontAwesome5 name="clipboard-list" size={20} color={colors.primary} />
                 <View style={styles.switchTextContainer}>
                   <Text style={styles.switchLabel}>Criar comanda para o dia do agendamento?</Text>
-                  <Text style={styles.switchSubtext}>Uma comanda ser� criada automaticamente no dia marcado</Text>
+                  <Text style={styles.switchSubtext}>Uma comanda será criada automaticamente no dia marcado</Text>
                 </View>
               </View>
               <Switch
                 value={criarComandaAutomatica}
                 onValueChange={setCriarComandaAutomatica}
-                trackColor={{ false: '#D1D5DB', true: '#C4B5FD' }}
-                thumbColor={criarComandaAutomatica ? colors.primary : colors.borderLight}
-                ios_backgroundColor="#D1D5DB"
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor={criarComandaAutomatica ? colors.primaryContrast : colors.borderLight}
+                ios_backgroundColor={colors.border}
               />
             </View>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Observa��es</Text>
+            <Text style={styles.label}>Observações</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               value={observacoes}
@@ -2465,8 +2406,9 @@ export default function NovoAgendamentoScreen() {
                   setObservacoes(text);
                 }
               }}
-              placeholder="Observa��es sobre o agendamento"
+              placeholder="Observações sobre o agendamento"
               mode="outlined"
+              textColor={colors.text}
               multiline
               numberOfLines={4}
               maxLength={500}
@@ -2475,10 +2417,23 @@ export default function NovoAgendamentoScreen() {
               {500 - observacoes.length} caracteres restantes
             </Text>
           </View>
+
+          {/* Botão para Gerenciar Bloqueios - apenas para admins */}
+          {(role !== 'profissional' && role !== 'cliente') && (
+            <View style={styles.inputGroup}>
+              <TouchableOpacity
+                style={styles.botaoGerenciarBloqueios}
+                onPress={abrirModalBloqueios}
+              >
+                <Ionicons name="lock-closed-outline" size={20} color={colors.white} />
+                <Text style={styles.botaoGerenciarBloqueiosText}>Gerenciar Bloqueios</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </ScrollView>
 
-      {/* Bot�o Salvar com KeyboardAvoidingView */}
+      {/* Botão Salvar com KeyboardAvoidingView */}
       <KeyboardAvoidingView 
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardAvoidingView}
@@ -2504,7 +2459,7 @@ export default function NovoAgendamentoScreen() {
         </TouchableOpacity>
       </KeyboardAvoidingView>
 
-      {/* Modal de Sele��o de Hor�rio */}
+      {/* Modal de Seleção de Horário */}
       <Modal
         visible={mostrarSeletorHorario}
         transparent={true}
@@ -2518,7 +2473,7 @@ export default function NovoAgendamentoScreen() {
         >
           <View style={styles.modalHorarioContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Selecionar Hor�rio</Text>
+              <Text style={styles.modalTitle}>Selecionar Horário</Text>
               <TouchableOpacity 
                 onPress={() => setMostrarSeletorHorario(false)}
                 style={styles.fecharModal}
@@ -2531,7 +2486,7 @@ export default function NovoAgendamentoScreen() {
               <Text style={styles.legendaTitulo}>Legenda:</Text>
               <View style={styles.legendaItem}>
                 <View style={styles.legendaCor} />
-                <Text style={styles.legendaTexto}>Hor�rio dispon�vel</Text>
+                <Text style={styles.legendaTexto}>Horário disponível</Text>
               </View>
               <View style={styles.legendaItem}>
                 <View style={[styles.legendaCor, styles.legendaCorParcial]} />
@@ -2539,7 +2494,7 @@ export default function NovoAgendamentoScreen() {
               </View>
               <View style={styles.legendaItem}>
                 <View style={[styles.legendaCor, styles.legendaCorOcupado]} />
-                <Text style={styles.legendaTexto}>Hor�rio esgotado</Text>
+                <Text style={styles.legendaTexto}>Horário esgotado</Text>
               </View>
             </View>
 
@@ -2576,7 +2531,7 @@ export default function NovoAgendamentoScreen() {
                         item.ocupado ? styles.horarioItemStatusOcupado : styles.horarioItemStatusParcial
                       ]}>
                         {item.ocupado 
-                          ? 'Hor�rio esgotado' 
+                          ? 'Horário esgotado' 
                           : `${item.quantidade}/${limiteSimultaneos} agendamentos`}
                       </Text>
                     )}
@@ -2593,7 +2548,7 @@ export default function NovoAgendamentoScreen() {
                 <View style={styles.semHorariosContainer}>
                   <FontAwesome5 name="calendar-times" size={36} color={colors.textTertiary} />
                   <Text style={styles.semHorariosText}>
-                    N�o h� hor�rios dispon�veis para esta data
+                    Não há horários disponíveis para esta data
                   </Text>
                 </View>
               }
@@ -2602,7 +2557,7 @@ export default function NovoAgendamentoScreen() {
         </TouchableOpacity>
       </Modal>
 
-      {/* Modal de Sele��o de Hor�rio de T�rmino */}
+      {/* Modal de Seleção de Horário de Término */}
       <Modal
         visible={mostrarSeletorHorarioTermino}
         transparent={true}
@@ -2616,7 +2571,7 @@ export default function NovoAgendamentoScreen() {
         >
           <View style={styles.modalHorarioContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Selecionar Hor�rio de T�rmino</Text>
+              <Text style={styles.modalTitle}>Selecionar Horário de Término</Text>
               <TouchableOpacity 
                 onPress={() => setMostrarSeletorHorarioTermino(false)}
                 style={styles.fecharModal}
@@ -2631,12 +2586,12 @@ export default function NovoAgendamentoScreen() {
                 const [horaInicio, minutoInicio] = hora.split(':').map(Number);
                 const horarios = [];
                 
-                // Gera hor�rios a partir de 15 minutos ap�s o in�cio
+                // Gera horários a partir de 15 minutos após o início
                 for (let i = horaInicio; i <= 23; i++) {
                   for (let j = 0; j < 60; j += 15) {
                     const horarioAtual = `${String(i).padStart(2, '0')}:${String(j).padStart(2, '0')}`;
                     
-                    // S� adiciona se for ap�s o hor�rio de in�cio (pelo menos 15 min)
+                    // S• adiciona se for após o horário de início (pelo menos 15 min)
                     if (i > horaInicio || (i === horaInicio && j > minutoInicio)) {
                       horarios.push(horarioAtual);
                     }
@@ -2674,7 +2629,7 @@ export default function NovoAgendamentoScreen() {
                 <View style={styles.semHorariosContainer}>
                   <FontAwesome5 name="calendar-times" size={36} color={colors.textTertiary} />
                   <Text style={styles.semHorariosText}>
-                    Selecione um hor�rio de in�cio primeiro
+                    Selecione um horário de início primeiro
                   </Text>
                 </View>
               }
@@ -2682,11 +2637,123 @@ export default function NovoAgendamentoScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* Modal de Gerenciar Bloqueios */}
+      <Modal
+        visible={showBloqueioModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={fecharModalBloqueios}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={fecharModalBloqueios}>
+          <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Gerenciar Bloqueios</Text>
+              <TouchableOpacity 
+                onPress={fecharModalBloqueios}
+                style={styles.closeButton}
+              >
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView 
+              style={styles.modalScrollView}
+              contentContainerStyle={styles.modalScrollContent}
+              showsVerticalScrollIndicator={true}
+            >
+              {/* Dias da Semana Bloqueados */}
+              <View>
+                <Text style={styles.modalSubtitle}>Dias da Semana Bloqueados</Text>
+                <View style={styles.diasSemanaContainer}>
+                  {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((dia, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.diaSemanaItem,
+                        diasSemanaBloqueadosPendentes.includes(index) && styles.diaSemanaSelected
+                      ]}
+                      onPress={() => toggleDiaSemana(index)}
+                    >
+                      <Text style={[
+                        styles.diaSemanaText,
+                        diasSemanaBloqueadosPendentes.includes(index) && styles.diaSemanaTextSelected
+                      ]}>
+                        {dia}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Datas Específicas Bloqueadas */}
+              <View style={{ marginTop: 24 }}>
+                <Text style={styles.modalSubtitle}>Datas Específicas Bloqueadas</Text>
+                
+                {datasBloqueadasPendentes.length > 0 ? (
+                  <View style={styles.datasBloqueadasList}>
+                    {datasBloqueadasPendentes.map((data) => (
+                      <View key={data} style={styles.dataBloqueadaItem}>
+                        <Text style={styles.dataBloqueadaText}>{data}</Text>
+                        <TouchableOpacity
+                          onPress={() => removerDataBloqueada(data)}
+                          style={styles.removerDataButton}
+                        >
+                          <Ionicons name="close-circle" size={20} color={colors.error} />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={styles.nenhumaDataText}>Nenhuma data bloqueada</Text>
+                )}
+
+                {/* Input para adicionar nova data */}
+                <View style={styles.addDataContainer}>
+                  <MaskInput
+                    style={styles.dataInput}
+                    value={novaDataBloqueada}
+                    onChangeText={(text) => setNovaDataBloqueada(formatarDataInput(text))}
+                    placeholder="DD/MM/AAAA"
+                    placeholderTextColor={colors.textTertiary}
+                    keyboardType="numeric"
+                    maxLength={10}
+                  />
+                  <TouchableOpacity
+                    style={styles.addDataButton}
+                    onPress={adicionarDataBloqueada}
+                  >
+                    <Ionicons name="add" size={20} color={colors.white} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </ScrollView>
+
+            {/* Botões de ação */}
+            <View style={styles.modalButtonsContainer}>
+              <TouchableOpacity
+                style={styles.botaoCancelar}
+                onPress={fecharModalBloqueios}
+              >
+                <Text style={styles.botaoCancelarText}>Cancelar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.botaoSalvar}
+                onPress={salvarBloqueios}
+              >
+                <Ionicons name="checkmark" size={20} color={colors.white} style={{ marginRight: 8 }} />
+                <Text style={styles.botaoSalvarText}>Salvar Bloqueios</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
 
-// Fun��o auxiliar para criar estilos din�micos
+// Função auxiliar para criar estilos dinâmicos
 const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
@@ -2749,52 +2816,51 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 24,
+    maxWidth: 500,
+    width: '100%',
+    maxHeight: '85%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 10,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 30,
+    elevation: 20,
+  },
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: 16,
-    maxHeight: '80%',
+    flex: 1,
   },
   modalContentInner: {
     flex: 1,
   },
   modalHeader: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  modalHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: colors.border,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 12,
-  },
-  modalDragIndicator: {
-    width: 40,
-    height: 4,
-    backgroundColor: colors.border,
-    borderRadius: 2,
-    marginBottom: 8,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: colors.text,
-    textAlign: 'center',
-    flex: 1,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -2811,19 +2877,26 @@ const createStyles = (colors: any) => StyleSheet.create({
   searchIcon: {
     marginRight: 8,
   },
-  searchInput: {
+  modalSearch: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.surface,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 12,
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 16,
-    fontSize: 16,
+    marginHorizontal: 24,
+    marginTop: 16,
+    marginBottom: 20,
+  },
+  modalSearchInput: {
+    flex: 1,
+    fontSize: 15,
     color: colors.text,
-    height: 48,
+    backgroundColor: 'transparent',
+    marginLeft: 10,
+    height: 24,
   },
   servicosLista: {
     maxHeight: 350,
@@ -2839,18 +2912,18 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginTop: 12,
   },
   modalScrollView: {
-    maxHeight: 250,
-    paddingHorizontal: 16,
+    maxHeight: 450,
+    paddingHorizontal: 24,
   },
   modalServicoItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    marginHorizontal: 16,
-    marginBottom: 8,
-    borderRadius: 8,
+    marginHorizontal: 0,
+    marginBottom: 9,
+    borderRadius: 12,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
@@ -2882,7 +2955,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    marginHorizontal: 16,
+    marginHorizontal: 24,
   },
   servicosSelecionadosTitle: {
     fontSize: 14,
@@ -2938,31 +3011,30 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   modalButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 16,
     gap: 12,
-    padding: 16,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 24,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    backgroundColor: colors.surface,
   },
   modalCancelarButton: {
     flex: 1,
-    height: 44,
     backgroundColor: colors.background,
+    paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalCancelarButtonText: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '500',
+    color: colors.textSecondary,
+    fontSize: 15,
+    fontWeight: 'bold',
   },
   modalAdicionarButton: {
     flex: 1,
-    height: 44,
     backgroundColor: colors.primary,
+    paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -2972,26 +3044,10 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   modalAdicionarButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: 'bold',
   },
-  servicoButton: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    padding: 12,
-  },
-  servicoPacoteContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  servicoButtonMetade: {
-    flex: 1,
-  },
-  pacoteButton: {
-    // Estilos espec�ficos para o bot�o de pacotes, se necess�rio
-  },
+  // REMOVIDO: usar SELECTION_BUTTON_CONTAINER_STYLE importado de Buttons.tsx
   pacoteDetalhes: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -3087,28 +3143,6 @@ const createStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-  },
-  servicoButtonSelecionado: {
-    backgroundColor: colors.primaryBackground,
-  },
-  servicoButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  servicoIcon: {
-    marginRight: 8,
-  },
-  servicoButtonText: {
-    fontSize: 16,
-    color: colors.text,
-  },
-  servicoButtonTextSelecionado: {
-    color: colors.primary,
-  },
-  servicoPrecoButton: {
-    fontSize: 14,
-    color: colors.primary,
-    fontWeight: '500',
   },
   inputBloqueado: {
     borderColor: colors.error,
@@ -3384,6 +3418,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     paddingTop: 12,
     paddingHorizontal: 16,
     fontSize: 16,
+    color: colors.text,
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.border,
@@ -3565,7 +3600,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
   },
-  modalBackdrop: {
+  datePickerBackdrop: {
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   datePickerWebContainer: {
@@ -3602,4 +3637,155 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '500',
   },
+  // Estilos para Modal de Bloqueios
+  closeButton: {
+    position: 'absolute',
+    right: 20,
+    top: 20,
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  diasSemanaContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 20,
+  },
+  diaSemanaItem: {
+    flex: 1,
+    minWidth: '30%',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  diaSemanaSelected: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryBackground,
+  },
+  diaSemanaText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.text,
+  },
+  diaSemanaTextSelected: {
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  datasBloqueadasList: {
+    marginBottom: 16,
+  },
+  dataBloqueadaItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  dataBloqueadaText: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  removerDataButton: {
+    padding: 4,
+  },
+  nenhumaDataText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+    marginBottom: 16,
+  },
+  addDataContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  dataInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: colors.background,
+    color: colors.text,
+    fontSize: 14,
+  },
+  addDataButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalScrollView: {
+    maxHeight: '60%',
+    paddingHorizontal: 24,
+  },
+  modalScrollContent: {
+    paddingVertical: 20,
+  },
+  modalButtonsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  botaoCancelar: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  botaoCancelarText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  botaoSalvar: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  botaoSalvarText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  botaoGerenciarBloqueios: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: colors.warning,
+    borderRadius: 8,
+    gap: 8,
+  },
+  botaoGerenciarBloqueiosText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.white,
+  },
 });
+
