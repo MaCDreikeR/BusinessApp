@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback , useMemo} from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, Platform, ActivityIndicator, Image, DeviceEventEmitter, FlatList, BackHandler, KeyboardAvoidingView, GestureResponderEvent, NativeSyntheticEvent, Switch, TouchableWithoutFeedback, Pressable, Animated, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, Platform, ActivityIndicator, Image, DeviceEventEmitter, FlatList, BackHandler, KeyboardAvoidingView, GestureResponderEvent, NativeSyntheticEvent, Switch, Pressable, Animated, Dimensions } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import { format } from 'date-fns';
+import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { useRouter, useNavigation, useFocusEffect } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
@@ -19,6 +20,16 @@ let DateTimePicker: any = null;
 if (Platform.OS !== 'web') {
   DateTimePicker = require('@react-native-community/datetimepicker').default;
 }
+
+// Configurar locale pt-BR para o Calendar
+LocaleConfig.locales['pt-BR'] = {
+  monthNames: ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'],
+  monthNamesShort: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
+  dayNames: ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'],
+  dayNamesShort: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'],
+  today: 'Hoje'
+};
+LocaleConfig.defaultLocale = 'pt-BR';
 
 interface Cliente {
   id: string;
@@ -129,6 +140,8 @@ export default function NovoAgendamentoScreen() {
   const [modalPacotesVisible, setModalPacotesVisible] = useState(false);
   const [pesquisaPacote, setPesquisaPacote] = useState('');
   const [buscandoPacotes, setBuscandoPacotes] = useState(false);
+  const pacotesButtonRef = useRef<any>(null);
+  const origemModalPacotesRef = useRef({ x: 0, y: 0 });
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dateValue, setDateValue] = useState(new Date());
@@ -1500,6 +1513,24 @@ export default function NovoAgendamentoScreen() {
   const translateXAnim = useRef(new Animated.Value(0)).current;
   const translateYAnim = useRef(new Animated.Value(0)).current;
 
+  // Referências de animação para o modal de pacotes
+  const scalePacotesAnim = useRef(new Animated.Value(0)).current;
+  const opacityPacotesAnim = useRef(new Animated.Value(0)).current;
+  const translateXPacotesAnim = useRef(new Animated.Value(0)).current;
+  const translateYPacotesAnim = useRef(new Animated.Value(0)).current;
+
+  // Referência de animação para rotação do chevron do profissional
+  const chevronRotation = useRef(new Animated.Value(0)).current;
+
+  // Efeito para animar o chevron do profissional
+  useEffect(() => {
+    Animated.timing(chevronRotation, {
+      toValue: mostrarListaUsuarios ? 180 : 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  }, [mostrarListaUsuarios]);
+
   const calcularDeslocamentoCentro = (origemX: number, origemY: number) => {
     const { width, height } = Dimensions.get('window');
     const centroTelaX = width / 2;
@@ -1573,7 +1604,124 @@ export default function NovoAgendamentoScreen() {
   };
 
   const abrirModalPacotes = () => {
-    setModalPacotesVisible(true);
+    const fallbackOrigem = () => {
+      const { width, height } = Dimensions.get('window');
+      const { deltaX, deltaY } = calcularDeslocamentoCentro(width / 2, height / 2);
+      origemModalPacotesRef.current = { x: width / 2, y: height / 2 };
+
+      scalePacotesAnim.setValue(0.25);
+      opacityPacotesAnim.setValue(0);
+      translateXPacotesAnim.setValue(deltaX);
+      translateYPacotesAnim.setValue(deltaY);
+      setModalPacotesVisible(true);
+
+      requestAnimationFrame(() => {
+        Animated.parallel([
+          Animated.spring(scalePacotesAnim, {
+            toValue: 1,
+            useNativeDriver: true,
+            tension: 50,
+            friction: 7,
+          }),
+          Animated.timing(opacityPacotesAnim, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(translateXPacotesAnim, {
+            toValue: 0,
+            duration: 240,
+            useNativeDriver: true,
+          }),
+          Animated.timing(translateYPacotesAnim, {
+            toValue: 0,
+            duration: 240,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      });
+    };
+
+    if (pacotesButtonRef.current?.measureInWindow) {
+      pacotesButtonRef.current.measureInWindow((x: number, y: number, width: number, height: number) => {
+        if (Number.isFinite(x) && Number.isFinite(y)) {
+          const origemX = x + (width / 2);
+          const origemY = y + (height / 2);
+          const { deltaX, deltaY } = calcularDeslocamentoCentro(origemX, origemY);
+          origemModalPacotesRef.current = { x: origemX, y: origemY };
+
+          scalePacotesAnim.setValue(0.25);
+          opacityPacotesAnim.setValue(0);
+          translateXPacotesAnim.setValue(deltaX);
+          translateYPacotesAnim.setValue(deltaY);
+          setModalPacotesVisible(true);
+
+          requestAnimationFrame(() => {
+            Animated.parallel([
+              Animated.spring(scalePacotesAnim, {
+                toValue: 1,
+                useNativeDriver: true,
+                tension: 50,
+                friction: 7,
+              }),
+              Animated.timing(opacityPacotesAnim, {
+                toValue: 1,
+                duration: 200,
+                useNativeDriver: true,
+              }),
+              Animated.timing(translateXPacotesAnim, {
+                toValue: 0,
+                duration: 240,
+                useNativeDriver: true,
+              }),
+              Animated.timing(translateYPacotesAnim, {
+                toValue: 0,
+                duration: 240,
+                useNativeDriver: true,
+              }),
+            ]).start();
+          });
+          return;
+        }
+        fallbackOrigem();
+      });
+      return;
+    }
+
+    fallbackOrigem();
+  };
+
+  const fecharModalPacotesComAnimacao = () => {
+    const { deltaX, deltaY } = calcularDeslocamentoCentro(origemModalPacotesRef.current.x, origemModalPacotesRef.current.y);
+
+    Animated.parallel([
+      Animated.timing(scalePacotesAnim, {
+        toValue: 0.25,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityPacotesAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateXPacotesAnim, {
+        toValue: deltaX,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateYPacotesAnim, {
+        toValue: deltaY,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setModalPacotesVisible(false);
+      scalePacotesAnim.setValue(0);
+      opacityPacotesAnim.setValue(0);
+      translateXPacotesAnim.setValue(0);
+      translateYPacotesAnim.setValue(0);
+    });
   };
 
   const fecharModalComAnimacao = (confirmar?: boolean) => {
@@ -1651,6 +1799,41 @@ export default function NovoAgendamentoScreen() {
     setShowDatePicker(true);
   };
 
+  const getFormattedDateString = () => {
+    return format(dateValue, 'yyyy-MM-dd');
+  };
+
+  const handleCalendarDateSelect = (day: any) => {
+    const selectedDate = new Date(day.year, day.month - 1, day.day);
+    const formattedDate = format(selectedDate, 'dd/MM/yyyy');
+    
+    // Verifica se a data selecionada está bloqueada
+    if (isDataBloqueada(formattedDate)) {
+      setErrors({ ...errors, data: 'Esta data está bloqueada para agendamentos' });
+      Alert.alert('Data Bloqueada', 'Esta data não está disponível para agendamentos.');
+      return;
+    }
+    
+    setDateValue(selectedDate);
+    setData(formattedDate);
+    setErrors({ ...errors, data: '' });
+    setShowDatePicker(false);
+    
+    // Atualiza os horários disponíveis para a nova data
+    setTimeout(() => {
+      const intervalo = parseInt(intervaloAgendamentos);
+      const novosHorarios = gerarHorarios(
+        horarioInicio, 
+        horarioFim, 
+        intervalo, 
+        temIntervalo, 
+        horarioIntervaloInicio, 
+        horarioIntervaloFim
+      );
+      verificarDisponibilidadeHorarios(novosHorarios);
+    }, 100);
+  };
+
   const handleSelecionarUsuario = (usuario: Usuario) => {
     if (presencaUsuarios[usuario.id]) {
       setUsuarioSelecionado(usuario);
@@ -1660,12 +1843,12 @@ export default function NovoAgendamentoScreen() {
   };
 
   const handleOpenUsuarioModal = () => {
-    setMostrarListaUsuarios(true);
+    setMostrarListaUsuarios((prev) => !prev);
   };
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.formContainer}>
+      <ScrollView style={styles.formContainer} keyboardShouldPersistTaps="handled">
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Informações do Cliente</Text>
           
@@ -1786,66 +1969,80 @@ export default function NovoAgendamentoScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Selecione o Profissional *</Text>
               <TouchableOpacity
-                style={[
-                  styles.input,
-                  styles.select,
-                  errors.usuario ? styles.inputError : null,
-                ]}
-                onPress={handleOpenUsuarioModal}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                  {usuarioSelecionado && usuarioSelecionado.avatar_url ? (
-                    <Image 
-                      source={{ uri: usuarioSelecionado.avatar_url }} 
-                      style={styles.clienteFoto}
-                    />
-                  ) : usuarioSelecionado ? (
-                    <View style={styles.clienteFotoPlaceholder}>
-                      <FontAwesome5 name="user" size={12} color={colors.primary} />
-                    </View>
-                  ) : null}
-                  <Text style={[styles.selectText, !usuarioSelecionado && styles.placeholder]}>
-                    {usuarioSelecionado ? usuarioSelecionado.nome_completo : 'Selecione um Profissional'}
-                  </Text>
-              </View>
-              <FontAwesome5 name="chevron-down" size={16} color={colors.textTertiary} />
-            </TouchableOpacity>
-            {errors.usuario && (
-              <Text style={styles.errorText}>{errors.usuario}</Text>
-            )}
-          </View>
-
-          {mostrarListaUsuarios && (
-            <View style={styles.sugestoesList}>
-              {usuarios
-                .filter(usuario => presencaUsuarios[usuario.id])
-                .map((usuario) => (
-                  <TouchableOpacity
-                    key={usuario.id}
-                    style={styles.sugestaoItem}
-                    onPress={() => handleSelecionarUsuario(usuario)}
-                  >
-                    <View style={styles.sugestaoItemContent}>
-                      {usuario.avatar_url ? (
-                        <Image 
-                          source={{ uri: usuario.avatar_url }} 
-                          style={styles.sugestaoFoto} 
-                        />
-                      ) : (
-                        <View style={styles.sugestaoFotoPlaceholder}>
-                          <FontAwesome5 name="user" size={16} color={colors.primary} />
-                        </View>
-                      )}
-                      <Text style={styles.sugestaoNome}>{usuario.nome_completo}</Text>
-                    </View>
-                    {usuarioSelecionado?.id === usuario.id && (
-                      <FontAwesome5 name="check" size={16} color={colors.primary} />
-                    )}
-                  </TouchableOpacity>
-                ))}
+                  style={[
+                    styles.input,
+                    styles.select,
+                    errors.usuario ? styles.inputError : null,
+                  ]}
+                  onPress={handleOpenUsuarioModal}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                    {usuarioSelecionado && usuarioSelecionado.avatar_url ? (
+                      <Image 
+                        source={{ uri: usuarioSelecionado.avatar_url }} 
+                        style={styles.clienteFoto}
+                      />
+                    ) : usuarioSelecionado ? (
+                      <View style={styles.clienteFotoPlaceholder}>
+                        <FontAwesome5 name="user" size={12} color={colors.primary} />
+                      </View>
+                    ) : null}
+                    <Text style={[styles.selectText, !usuarioSelecionado && styles.placeholder]}>
+                      {usuarioSelecionado ? usuarioSelecionado.nome_completo : 'Selecione um Profissional'}
+                    </Text>
+                </View>
+                <Animated.View
+                  style={{
+                    transform: [
+                      {
+                        rotate: chevronRotation.interpolate({
+                          inputRange: [0, 180],
+                          outputRange: ['0deg', '180deg'],
+                        }),
+                      },
+                    ],
+                  }}
+                >
+                  <FontAwesome5 name="chevron-down" size={16} color={colors.textTertiary} />
+                </Animated.View>
+              </TouchableOpacity>
+              {errors.usuario && (
+                <Text style={styles.errorText}>{errors.usuario}</Text>
+              )}
+              
+              {mostrarListaUsuarios && (
+                <View style={styles.sugestoesList}>
+                    {usuarios
+                      .filter(usuario => presencaUsuarios[usuario.id])
+                      .map((usuario) => (
+                        <TouchableOpacity
+                          key={usuario.id}
+                          style={styles.sugestaoItem}
+                          onPress={() => handleSelecionarUsuario(usuario)}
+                        >
+                          <View style={styles.sugestaoItemContent}>
+                            {usuario.avatar_url ? (
+                              <Image 
+                                source={{ uri: usuario.avatar_url }} 
+                                style={styles.sugestaoFoto} 
+                            />
+                            ) : (
+                              <View style={styles.sugestaoFotoPlaceholder}>
+                                <FontAwesome5 name="user" size={16} color={colors.primary} />
+                              </View>
+                            )}
+                            <Text style={styles.sugestaoNome}>{usuario.nome_completo}</Text>
+                          </View>
+                          {usuarioSelecionado?.id === usuario.id && (
+                            <FontAwesome5 name="check" size={16} color={colors.primary} />
+                          )}
+                        </TouchableOpacity>
+                      ))}
+                </View>
+              )}
             </View>
-          )}
-          </View>
+
+        </View>
         )}
 
         <View style={styles.section}>
@@ -1866,7 +2063,7 @@ export default function NovoAgendamentoScreen() {
                 />
               </View>
 
-              <View style={{ width: '48.5%' }}>
+              <View ref={pacotesButtonRef} collapsable={false} style={{ width: '48.5%' }}>
                 <SelectionButton
                   label="Pacotes"
                   icon="gift-outline"
@@ -2201,15 +2398,27 @@ export default function NovoAgendamentoScreen() {
           <Modal
             visible={modalPacotesVisible}
             transparent={true}
-            animationType="fade"
-            onRequestClose={() => setModalPacotesVisible(false)}
+            animationType="none"
+            onRequestClose={fecharModalPacotesComAnimacao}
           >
             <Pressable 
               style={styles.modalBackdrop}
-              onPress={() => setModalPacotesVisible(false)}
+              onPress={fecharModalPacotesComAnimacao}
             >
-              <Pressable 
-                style={styles.modalCard}
+              <Animated.View
+                style={[
+                  styles.modalCard,
+                  {
+                    transform: [
+                      { translateX: translateXPacotesAnim },
+                      { translateY: translateYPacotesAnim },
+                      { scale: scalePacotesAnim },
+                    ],
+                    opacity: opacityPacotesAnim,
+                  }
+                ]}
+              >
+              <Pressable
                 onPress={(e) => e.stopPropagation()}
               >
                 <View style={styles.modalHeader}>
@@ -2369,7 +2578,7 @@ export default function NovoAgendamentoScreen() {
                   <View style={styles.modalButtons}>
                     <TouchableOpacity
                       style={styles.modalCancelarButton}
-                      onPress={() => setModalPacotesVisible(false)}
+                      onPress={fecharModalPacotesComAnimacao}
                     >
                       <Text style={styles.modalCancelarButtonText}>Cancelar</Text>
                     </TouchableOpacity>
@@ -2379,7 +2588,7 @@ export default function NovoAgendamentoScreen() {
                         styles.modalAdicionarButton,
                         pacotesSelecionados.length === 0 && styles.modalAdicionarButtonDisabled
                       ]}
-                      onPress={() => setModalPacotesVisible(false)}
+                      onPress={fecharModalPacotesComAnimacao}
                       disabled={pacotesSelecionados.length === 0}
                     >
                       <Text style={styles.modalAdicionarButtonText}>
@@ -2388,19 +2597,42 @@ export default function NovoAgendamentoScreen() {
                     </TouchableOpacity>
                   </View>
               </Pressable>
+              </Animated.View>
             </Pressable>
           </Modal>
 
-          {showDatePicker && (
-            <DateTimePicker
-              value={dateValue}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={handleDateChange}
-              minimumDate={new Date()}
-              locale="pt-BR"
-            />
-          )}
+          {/* Modal de Seleção de Data com Calendar */}
+          <Modal
+            visible={showDatePicker}
+            transparent
+            statusBarTranslucent
+            animationType="fade"
+            onRequestClose={() => setShowDatePicker(false)}
+          >
+            <Pressable style={styles.calendarOverlay} onPress={() => setShowDatePicker(false)}>
+              <Pressable style={styles.calendarContainer} onPress={(e) => e.stopPropagation()}>
+                <Calendar
+                  current={getFormattedDateString()}
+                  onDayPress={handleCalendarDateSelect}
+                  minDate={format(new Date(), 'yyyy-MM-dd')}
+                  markedDates={{
+                    [getFormattedDateString()]: {
+                      selected: true,
+                      selectedColor: colors.primary,
+                    },
+                  }}
+                  theme={{
+                    selectedDayBackgroundColor: colors.primary,
+                    todayTextColor: colors.primary,
+                    arrowColor: colors.primary,
+                    textDayFontSize: 14,
+                    textMonthFontSize: 16,
+                    textDayHeaderFontSize: 14,
+                  }}
+                />
+              </Pressable>
+            </Pressable>
+          </Modal>
 
           <View style={styles.inputGroup}>
             <View style={styles.switchContainer}>
@@ -2650,6 +2882,8 @@ export default function NovoAgendamentoScreen() {
         </TouchableOpacity>
       </Modal>
 
+
+
     </View>
   );
 }
@@ -2677,6 +2911,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   inputGroup: {
     marginBottom: 16,
+    position: 'relative',
   },
   label: {
     fontSize: 14,
@@ -3110,7 +3345,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   totalValor: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: colors.primaryContrast,
+    color: colors.text,
   },
   infoText: {
     color: colors.textSecondary,
@@ -3406,6 +3641,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     marginTop: 8,
+    zIndex: 101,
   },
   listLoadingContainer: {
     flexDirection: 'row',
@@ -3672,6 +3908,30 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.white,
+  },
+  calendarOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'flex-start',
+    paddingTop: 80,
+    zIndex: 900,
+  },
+  calendarContainer: {
+    marginHorizontal: 40,
+    maxWidth: 400,
+    alignSelf: 'center',
+    zIndex: 1000,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
 });
 

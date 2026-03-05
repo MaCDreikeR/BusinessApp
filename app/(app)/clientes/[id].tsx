@@ -98,12 +98,22 @@ export default function EditarClienteScreen() {
   useEffect(() => {
     const calcularSaldo = async () => {
       if (!cliente?.id) return;
+      
       const { data, error } = await supabase
         .from('crediario_movimentacoes')
-        .select('valor')
+        .select('valor, tipo')
         .eq('cliente_id', cliente.id);
-      if (!error && data) {
-        const soma = data.reduce((acc, mov) => acc + (typeof mov.valor === 'number' ? mov.valor : parseFloat(mov.valor)), 0);
+      
+      if (error) {
+        console.error('Erro ao buscar movimentações:', error);
+        return;
+      }
+      
+      if (data) {
+        const soma = data.reduce((acc, mov) => {
+          const valor = typeof mov.valor === 'number' ? mov.valor : parseFloat(mov.valor);
+          return acc + valor;
+        }, 0);
         setSaldoAtual(soma.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
       }
     };
@@ -143,6 +153,20 @@ export default function EditarClienteScreen() {
           setDataNascimento(`${dia}/${mes}/${ano}`);
         } else {
           setDataNascimento('');
+        }
+        
+        // Calcular saldo imediatamente após carregar o cliente
+        const { data: movimentacoes, error: saldoError } = await supabase
+          .from('crediario_movimentacoes')
+          .select('valor, tipo')
+          .eq('cliente_id', data.id);
+        
+        if (!saldoError && movimentacoes) {
+          const soma = movimentacoes.reduce((acc, mov) => {
+            const valor = typeof mov.valor === 'number' ? mov.valor : parseFloat(mov.valor);
+            return acc + valor;
+          }, 0);
+          setSaldoAtual(soma.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
         }
       }
     } catch (error) {
@@ -1079,11 +1103,14 @@ export default function EditarClienteScreen() {
                           // Recalcula saldo do banco de dados
                           const { data: movimentacoes, error: saldoError } = await supabase
                             .from('crediario_movimentacoes')
-                            .select('valor')
+                            .select('valor, tipo')
                             .eq('cliente_id', cliente?.id);
                           
                           if (!saldoError && movimentacoes) {
-                            const soma = movimentacoes.reduce((acc, mov) => acc + (typeof mov.valor === 'number' ? mov.valor : parseFloat(mov.valor)), 0);
+                            const soma = movimentacoes.reduce((acc, mov) => {
+                              const valor = typeof mov.valor === 'number' ? mov.valor : parseFloat(mov.valor);
+                              return acc + valor;
+                            }, 0);
                             setSaldoAtual(soma.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
                           }
                           

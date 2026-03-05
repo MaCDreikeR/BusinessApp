@@ -1,6 +1,6 @@
 ﻿import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert, Image, Dimensions, ActivityIndicator } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useReducer } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/Button2';
@@ -42,6 +42,103 @@ type DashboardErrors = {
   agendamentos?: string;
   vendas?: string;
   estoque?: string;
+};
+
+// Estado consolidado com useReducer
+type DashboardState = {
+  agendamentosHoje: number;
+  vendasHoje: number;
+  clientesAtivos: number;
+  proximosAgendamentos: AgendamentoDashboard[];
+  vendasRecentes: VendaDashboard[];
+  produtosBaixoEstoque: ProdutoDashboard[];
+  refreshing: boolean;
+  errors: DashboardErrors;
+  loadingStates: {
+    cards: boolean;
+    agendamentos: boolean;
+    vendas: boolean;
+    estoque: boolean;
+  };
+  toastMessage: string;
+  toastType: 'success' | 'error';
+};
+
+// Actions do reducer
+type DashboardAction =
+  | { type: 'SET_AGENDAMENTOS_HOJE'; payload: number }
+  | { type: 'SET_VENDAS_HOJE'; payload: number }
+  | { type: 'SET_CLIENTES_ATIVOS'; payload: number }
+  | { type: 'SET_PROXIMOS_AGENDAMENTOS'; payload: AgendamentoDashboard[] }
+  | { type: 'SET_VENDAS_RECENTES'; payload: VendaDashboard[] }
+  | { type: 'SET_PRODUTOS_BAIXO_ESTOQUE'; payload: ProdutoDashboard[] }
+  | { type: 'SET_REFRESHING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: { key: keyof DashboardErrors; message?: string } }
+  | { type: 'SET_LOADING'; payload: { key: keyof DashboardState['loadingStates']; value: boolean } }
+  | { type: 'SHOW_TOAST'; payload: { message: string; type: 'success' | 'error' } }
+  | { type: 'HIDE_TOAST' }
+  | { type: 'RESET_STATE' };
+
+// Reducer para gerenciar estado
+const dashboardReducer = (state: DashboardState, action: DashboardAction): DashboardState => {
+  switch (action.type) {
+    case 'SET_AGENDAMENTOS_HOJE':
+      return { ...state, agendamentosHoje: action.payload };
+    case 'SET_VENDAS_HOJE':
+      return { ...state, vendasHoje: action.payload };
+    case 'SET_CLIENTES_ATIVOS':
+      return { ...state, clientesAtivos: action.payload };
+    case 'SET_PROXIMOS_AGENDAMENTOS':
+      return { ...state, proximosAgendamentos: action.payload };
+    case 'SET_VENDAS_RECENTES':
+      return { ...state, vendasRecentes: action.payload };
+    case 'SET_PRODUTOS_BAIXO_ESTOQUE':
+      return { ...state, produtosBaixoEstoque: action.payload };
+    case 'SET_REFRESHING':
+      return { ...state, refreshing: action.payload };
+    case 'SET_ERROR':
+      return {
+        ...state,
+        errors: { ...state.errors, [action.payload.key]: action.payload.message }
+      };
+    case 'SET_LOADING':
+      return {
+        ...state,
+        loadingStates: { ...state.loadingStates, [action.payload.key]: action.payload.value }
+      };
+    case 'SHOW_TOAST':
+      return {
+        ...state,
+        toastMessage: action.payload.message,
+        toastType: action.payload.type
+      };
+    case 'HIDE_TOAST':
+      return { ...state, toastMessage: '' };
+    case 'RESET_STATE':
+      return initialState;
+    default:
+      return state;
+  }
+};
+
+// Estado inicial
+const initialState: DashboardState = {
+  agendamentosHoje: 0,
+  vendasHoje: 0,
+  clientesAtivos: 0,
+  proximosAgendamentos: [],
+  vendasRecentes: [],
+  produtosBaixoEstoque: [],
+  refreshing: false,
+  errors: {},
+  loadingStates: {
+    cards: true,
+    agendamentos: true,
+    vendas: true,
+    estoque: true,
+  },
+  toastMessage: '',
+  toastType: 'success',
 };
 
 export default function HomeScreen() {
@@ -101,6 +198,12 @@ export default function HomeScreen() {
     cardSubtitle: {
       fontSize: 13,
       color: colors.textSecondary,
+    },
+    cardChevron: {
+      position: 'absolute' as const,
+      bottom: 16,
+      right: 16,
+      opacity: 0.5,
     },
     cardPrimary: { borderLeftWidth: 4 },
     cardSuccess: { borderLeftWidth: 4, borderLeftColor: colors.success },
@@ -423,22 +526,8 @@ export default function HomeScreen() {
     },
   }), [colors]);
 
-  const [agendamentosHoje, setAgendamentosHoje] = useState(0);
-  const [vendasHoje, setVendasHoje] = useState(0);
-  const [clientesAtivos, setClientesAtivos] = useState(0);
-  const [proximosAgendamentos, setProximosAgendamentos] = useState<AgendamentoDashboard[]>([]);
-  const [vendasRecentes, setVendasRecentes] = useState<VendaDashboard[]>([]);
-  const [produtosBaixoEstoque, setProdutosBaixoEstoque] = useState<ProdutoDashboard[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
-  const [errors, setErrors] = useState<DashboardErrors>({});
-  const [loadingStates, setLoadingStates] = useState({
-    cards: true,
-    agendamentos: true,
-    vendas: true,
-    estoque: true,
-  });
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastType, setToastType] = useState<'success' | 'error'>('success');
+  // Consolidando estado com useReducer
+  const [state, dispatch] = useReducer(dashboardReducer, initialState);
 
   // Função utilitária para sanitizar valores numéricos
   const formatarValor = (valor: number | null | undefined): string => {
@@ -448,18 +537,49 @@ export default function HomeScreen() {
     return `R$ ${valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
   };
 
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-    setToastMessage(message);
-    setToastType(type);
+  const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
+    dispatch({ type: 'SHOW_TOAST', payload: { message, type } });
     setTimeout(() => {
-      setToastMessage('');
+      dispatch({ type: 'HIDE_TOAST' });
     }, 3000);
-  };
+  }, []);
+
+  // Função de retry com backoff exponencial
+  const retryWithBackoff = useCallback(async <T,>(
+    fn: () => Promise<T>,
+    maxRetries: number = 3,
+    baseDelay: number = 1000
+  ): Promise<T> => {
+    let lastError: any;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error;
+        
+        // Não tentar novamente em erros específicos (permissão, não encontrado, etc)
+        const errMsg = (error as any)?.message || '';
+        const errCode = (error as any)?.code || '';
+        if (errCode === 'PGRST116' || errMsg.includes('permission') || errMsg.includes('not found')) {
+          throw error;
+        }
+        
+        if (attempt < maxRetries) {
+          const delay = baseDelay * Math.pow(2, attempt); // Backoff exponencial
+          logger.debug(`Tentativa ${attempt + 1}/${maxRetries} falhou, aguardando ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    
+    throw lastError;
+  }, []);
 
   const carregarProdutosBaixoEstoque = useCallback(async () => {
     if (!estabelecimentoId) return;
     try {
-      setLoadingStates(prev => ({ ...prev, estoque: true }));
+      dispatch({ type: 'SET_LOADING', payload: { key: 'estoque', value: true } });
       
       // Tentar cache primeiro
       const cacheKey = `baixo_estoque_${estabelecimentoId}`;
@@ -469,73 +589,77 @@ export default function HomeScreen() {
       );
       
       if (cachedData) {
-        setProdutosBaixoEstoque(cachedData);
-        setLoadingStates(prev => ({ ...prev, estoque: false }));
+        dispatch({ type: 'SET_PRODUTOS_BAIXO_ESTOQUE', payload: cachedData });
+        dispatch({ type: 'SET_LOADING', payload: { key: 'estoque', value: false } });
         return;
       }
       
       logger.debug(`Iniciando consulta de produtos com baixo estoque para o estabelecimento: ${estabelecimentoId}`);
-      // Tenta via RPC (pode estar desatualizada no banco)
-      const { data: produtosRpc, error } = await supabase
-        .rpc('get_produtos_baixo_estoque', { p_estabelecimento_id: estabelecimentoId })
-        .limit(5);
+      
+      // Tenta via RPC com retry
+      const fetchProdutos = async () => {
+        const { data: produtosRpc, error } = await supabase
+          .rpc('get_produtos_baixo_estoque', { p_estabelecimento_id: estabelecimentoId })
+          .limit(5);
 
-      if (error) {
-        logger.warn('RPC get_produtos_baixo_estoque falhou, aplicando fallback:', error);
-        // Fallback: buscar produtos e filtrar em JS
-        const { data: produtosRaw, error: errProdutos } = await supabase
-          .from('produtos')
-          .select('id, nome, quantidade, quantidade_minima, estabelecimento_id')
-          .eq('estabelecimento_id', estabelecimentoId)
-          .order('quantidade', { ascending: true })
-          .limit(50);
+        if (error) {
+          logger.warn('RPC get_produtos_baixo_estoque falhou, aplicando fallback:', error);
+          // Fallback: buscar 10 produtos com menor quantidade e filtrar em JS
+          const { data: produtosRaw, error: errProdutos } = await supabase
+            .from('produtos')
+            .select('id, nome, quantidade, quantidade_minima')
+            .eq('estabelecimento_id', estabelecimentoId)
+            .order('quantidade', { ascending: true, nullsFirst: false })
+            .limit(10);
 
-        if (errProdutos) {
-          setErrors(prev => ({ ...prev, estoque: 'Erro ao carregar produtos' }));
-          throw errProdutos;
+          if (errProdutos) {
+            const errorMsg = errProdutos.code === 'PGRST116' 
+              ? 'Tabela de produtos não encontrada'
+              : errProdutos.message?.includes('permission')
+              ? 'Sem permissão para ver produtos'
+              : 'Erro ao carregar produtos';
+            dispatch({ type: 'SET_ERROR', payload: { key: 'estoque', message: errorMsg } });
+            throw errProdutos;
+          }
+
+          // Filtrar produtos onde quantidade <= quantidade_minima ou quantidade é null
+          return (produtosRaw || []).filter(p => 
+            p.quantidade == null || 
+            p.quantidade_minima == null || 
+            p.quantidade <= p.quantidade_minima
+          ).slice(0, 5);
         }
 
-        const filtrados = (produtosRaw || [])
-          .filter(p => (p.quantidade ?? 0) <= (p.quantidade_minima ?? 5))
-          .slice(0, 5);
+        return produtosRpc || [];
+      };
 
-        // Salvar no cache (reutiliza cacheKey já declarado acima)
-        await CacheManager.set(
-          CacheNamespaces.ESTOQUE,
-          cacheKey,
-          filtrados,
-          CacheTTL.TWO_MINUTES
-        );
-        
-        setProdutosBaixoEstoque(filtrados);
-        setErrors(prev => ({ ...prev, estoque: undefined }));
-        setLoadingStates(prev => ({ ...prev, estoque: false }));
-        return;
-      }
-
-      // Salvar no cache (reutiliza cacheKey já declarado acima)
+      const produtos = await retryWithBackoff(fetchProdutos);
+      
+      // Salvar no cache
       await CacheManager.set(
         CacheNamespaces.ESTOQUE,
         cacheKey,
-        produtosRpc || [],
+        produtos,
         CacheTTL.TWO_MINUTES
       );
       
-      setProdutosBaixoEstoque(produtosRpc || []);
-      setErrors(prev => ({ ...prev, estoque: undefined }));
-      setLoadingStates(prev => ({ ...prev, estoque: false }));
+      dispatch({ type: 'SET_PRODUTOS_BAIXO_ESTOQUE', payload: produtos });
+      dispatch({ type: 'SET_ERROR', payload: { key: 'estoque', message: undefined } });
+      dispatch({ type: 'SET_LOADING', payload: { key: 'estoque', value: false } });
     } catch (error) {
       logger.error('Erro inesperado ao carregar produtos baixo estoque:', error);
-      setErrors(prev => ({ ...prev, estoque: 'Erro ao carregar produtos' }));
-      setLoadingStates(prev => ({ ...prev, estoque: false }));
+      dispatch({ type: 'SET_ERROR', payload: { key: 'estoque', message: 'Erro ao carregar produtos' } });
+      dispatch({ type: 'SET_LOADING', payload: { key: 'estoque', value: false } });
     }
-  }, [estabelecimentoId]);
+  }, [estabelecimentoId, retryWithBackoff]);
 
   const carregarDados = useCallback(async () => {
     if (!user || !estabelecimentoId) return;
 
     try {
-      setLoadingStates(prev => ({ ...prev, cards: true, agendamentos: true, vendas: true }));
+      dispatch({ type: 'SET_LOADING', payload: { key: 'cards', value: true } });
+      dispatch({ type: 'SET_LOADING', payload: { key: 'agendamentos', value: true } });
+      dispatch({ type: 'SET_LOADING', payload: { key: 'vendas', value: true } });
       
       // Tentar cache primeiro
       const cacheKey = `dashboard_${estabelecimentoId}_${role || 'all'}`;
@@ -545,12 +669,14 @@ export default function HomeScreen() {
       );
       
       if (cachedData) {
-        setAgendamentosHoje(cachedData.agendamentosHoje);
-        setVendasHoje(cachedData.vendasHoje);
-        setClientesAtivos(cachedData.clientesAtivos);
-        setProximosAgendamentos(cachedData.proximosAgendamentos);
-        setVendasRecentes(cachedData.vendasRecentes);
-        setLoadingStates({ cards: false, agendamentos: false, vendas: false, estoque: false });
+        dispatch({ type: 'SET_AGENDAMENTOS_HOJE', payload: cachedData.agendamentosHoje });
+        dispatch({ type: 'SET_VENDAS_HOJE', payload: cachedData.vendasHoje });
+        dispatch({ type: 'SET_CLIENTES_ATIVOS', payload: cachedData.clientesAtivos });
+        dispatch({ type: 'SET_PROXIMOS_AGENDAMENTOS', payload: cachedData.proximosAgendamentos });
+        dispatch({ type: 'SET_VENDAS_RECENTES', payload: cachedData.vendasRecentes });
+        dispatch({ type: 'SET_LOADING', payload: { key: 'cards', value: false } });
+        dispatch({ type: 'SET_LOADING', payload: { key: 'agendamentos', value: false } });
+        dispatch({ type: 'SET_LOADING', payload: { key: 'vendas', value: false } });
         return;
       }
       
@@ -569,8 +695,8 @@ export default function HomeScreen() {
       ] = await withTimeoutAll([
         // Carregar agendamentos de hoje
         supabase.from('agendamentos').select('*', { count: 'exact' }).eq('estabelecimento_id', estabelecimentoId).gte('data_hora', inicioHoje).lte('data_hora', fimHoje),
-        // Carregar vendas de hoje - SOMENTE COMANDAS FECHADAS HOJE
-        supabase.from('comandas_itens').select(`preco_total, comandas!inner(status, estabelecimento_id, finalized_at)`).eq('comandas.estabelecimento_id', estabelecimentoId).eq('comandas.status', 'fechada').gte('comandas.finalized_at', inicioHoje).lte('comandas.finalized_at', fimHoje),
+        // Carregar vendas de hoje - OTIMIZADO: busca direto da tabela comandas
+        supabase.from('comandas').select('valor_total').eq('estabelecimento_id', estabelecimentoId).eq('status', 'fechada').gte('finalized_at', inicioHoje).lte('finalized_at', fimHoje),
         // Carregar clientes ativos
         supabase.from('clientes').select('*', { count: 'exact', head: true }).eq('estabelecimento_id', estabelecimentoId),
         // Carregar próximos agendamentos com JOIN - elimina N+1
@@ -606,34 +732,41 @@ export default function HomeScreen() {
       // Processar agendamentos
       if (agendamentosError) {
         logger.error('Erro agendamentos:', agendamentosError);
-        setErrors(prev => ({ ...prev, cards: 'Erro ao carregar agendamentos de hoje' }));
+        dispatch({ type: 'SET_ERROR', payload: { key: 'cards', message: 'Erro ao carregar agendamentos de hoje' } });
       } else {
-        setAgendamentosHoje(agendamentos?.length || 0);
-        setErrors(prev => ({ ...prev, cards: undefined }));
+        dispatch({ type: 'SET_AGENDAMENTOS_HOJE', payload: agendamentos?.length || 0 });
+        dispatch({ type: 'SET_ERROR', payload: { key: 'cards', message: undefined } });
       }
 
       // Processar vendas
       if (vendasError) {
         logger.error('Erro vendas hoje:', vendasError);
-        setErrors(prev => ({ ...prev, vendas: 'Erro ao carregar vendas' }));
+        const errorMsg = vendasError.code === 'PGRST116'
+          ? 'Tabela de vendas não encontrada'
+          : vendasError.message?.includes('permission')
+          ? 'Sem permissão para ver vendas'
+          : vendasError.message?.includes('timeout')
+          ? 'Tempo esgotado ao carregar vendas'
+          : 'Erro ao carregar vendas';
+        dispatch({ type: 'SET_ERROR', payload: { key: 'vendas', message: errorMsg } });
       } else {
         logger.debug('Vendas hoje dados:', vendasHojeData);
-        const totalVendas = vendasHojeData?.reduce((total, v) => total + (v.preco_total || 0), 0) || 0;
-        setVendasHoje(totalVendas);
-        setErrors(prev => ({ ...prev, vendas: undefined }));
+        const totalVendas = vendasHojeData?.reduce((total, v) => total + (v.valor_total || 0), 0) || 0;
+        dispatch({ type: 'SET_VENDAS_HOJE', payload: totalVendas });
+        dispatch({ type: 'SET_ERROR', payload: { key: 'vendas', message: undefined } });
       }
 
       // Processar clientes
       if (clientesError) {
         logger.error('Erro clientes:', clientesError);
       } else {
-        setClientesAtivos(clientesCount || 0);
+        dispatch({ type: 'SET_CLIENTES_ATIVOS', payload: clientesCount || 0 });
       }
 
       // Processar próximos agendamentos com dados já incluídos no JOIN
       if (proxError) {
         logger.error('Erro próximos agendamentos:', proxError);
-        setErrors(prev => ({ ...prev, agendamentos: 'Erro ao carregar próximos agendamentos' }));
+        dispatch({ type: 'SET_ERROR', payload: { key: 'agendamentos', message: 'Erro ao carregar próximos agendamentos' } });
       } else if (proxAgendamentos) {
         logger.debug('Próximos agendamentos carregados:', proxAgendamentos);
         
@@ -649,19 +782,22 @@ export default function HomeScreen() {
           status: ag.status
         }));
         
-        setProximosAgendamentos(agendamentosFormatados);
-        setErrors(prev => ({ ...prev, agendamentos: undefined }));
+        dispatch({ type: 'SET_PROXIMOS_AGENDAMENTOS', payload: agendamentosFormatados });
+        dispatch({ type: 'SET_ERROR', payload: { key: 'agendamentos', message: undefined } });
       }
+      
+      const vendasRecentesFormatadas = vendasRecentesData?.map((v: any) => ({ 
+        id: v.id, 
+        cliente_nome: v.cliente_nome || 'Cliente não informado', 
+        valor: v.valor_total || 0, 
+        data: v.finalized_at 
+      })) || [];
+      
       if (vendasRecentesError) {
         logger.error('Erro vendas recentes:', vendasRecentesError);
       } else if (vendasRecentesData) {
         logger.debug('Vendas recentes dados:', vendasRecentesData);
-        setVendasRecentes(vendasRecentesData.map((v: any) => ({ 
-          id: v.id, 
-          cliente_nome: v.cliente_nome || 'Cliente não informado', 
-          valor: v.valor_total || 0, 
-          data: v.finalized_at 
-        })));
+        dispatch({ type: 'SET_VENDAS_RECENTES', payload: vendasRecentesFormatadas });
       }
       
       // Salvar no cache (reutiliza cacheKey já declarado acima)
@@ -670,38 +806,46 @@ export default function HomeScreen() {
         cacheKey,
         {
           agendamentosHoje: agendamentos?.length || 0,
-          vendasHoje: vendasHojeData?.reduce((total, v) => total + (v.preco_total || 0), 0) || 0,
+          vendasHoje: vendasHojeData?.reduce((total, v) => total + (v.valor_total || 0), 0) || 0,
           clientesAtivos: clientesCount || 0,
-          proximosAgendamentos: proximosAgendamentos,
-          vendasRecentes: vendasRecentesData?.map((v: any) => ({ 
-            id: v.id, 
-            cliente_nome: v.cliente_nome || 'Cliente não informado', 
-            valor: v.valor_total || 0, 
-            data: v.finalized_at 
-          })) || []
+          proximosAgendamentos: proxAgendamentos?.map((ag: any) => ({
+            id: ag.id,
+            cliente_nome: ag.cliente || 'Cliente não informado',
+            cliente_foto: ag.cliente_info?.foto_url || null,
+            servico: ag.servicos?.[0]?.nome || ag.servicos?.[0]?.servico?.nome || 'Serviço não especificado',
+            horario: ag.data_hora,
+            horario_termino: ag.horario_termino,
+            usuario_nome: ag.usuario?.nome_completo || 'Não atribuído',
+            status: ag.status
+          })) || [],
+          vendasRecentes: vendasRecentesFormatadas
         },
         CacheTTL.TWO_MINUTES
       );
 
-      setLoadingStates({ cards: false, agendamentos: false, vendas: false, estoque: false });
+      dispatch({ type: 'SET_LOADING', payload: { key: 'cards', value: false } });
+      dispatch({ type: 'SET_LOADING', payload: { key: 'agendamentos', value: false } });
+      dispatch({ type: 'SET_LOADING', payload: { key: 'vendas', value: false } });
 
     } catch (error) {
       logger.error('Erro ao carregar dados:', error);
       
       // Tratamento específico para timeout
       if (error instanceof Error && error.message === 'Timeout ao carregar dados') {
-        setErrors(prev => ({ ...prev, cards: 'Conexão lenta. Tente novamente.' }));
+        dispatch({ type: 'SET_ERROR', payload: { key: 'cards', message: 'Conexão lenta. Tente novamente.' } });
         showToast('Tempo de conexão esgotado', 'error');
       } else {
-        setErrors(prev => ({ ...prev, cards: 'Erro ao carregar dados do dashboard' }));
+        dispatch({ type: 'SET_ERROR', payload: { key: 'cards', message: 'Erro ao carregar dados do dashboard' } });
       }
       
-      setLoadingStates({ cards: false, agendamentos: false, vendas: false, estoque: false });
+      dispatch({ type: 'SET_LOADING', payload: { key: 'cards', value: false } });
+      dispatch({ type: 'SET_LOADING', payload: { key: 'agendamentos', value: false } });
+      dispatch({ type: 'SET_LOADING', payload: { key: 'vendas', value: false } });
     }
-  }, [user, estabelecimentoId, role]);
+  }, [user, estabelecimentoId, role, showToast]);
 
   const onRefresh = useCallback(async () => {
-    setRefreshing(true);
+    dispatch({ type: 'SET_REFRESHING', payload: true });
     
     // Haptic feedback no início
     try {
@@ -716,17 +860,27 @@ export default function HomeScreen() {
     const cacheKeyEstoque = `baixo_estoque_${estabelecimentoId}`;
     await CacheManager.remove(CacheNamespaces.ESTOQUE, cacheKeyEstoque);
     
-    await Promise.all([carregarDados(), carregarProdutosBaixoEstoque()]);
-    
-    // Haptic feedback de sucesso e toast
     try {
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      showToast('Dados atualizados com sucesso', 'success');
+      await Promise.all([carregarDados(), carregarProdutosBaixoEstoque()]);
+      
+      // Haptic feedback de sucesso e toast
+      try {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        showToast('Dados atualizados com sucesso', 'success');
+      } catch (error) {
+        logger.warn('Falha ao executar haptic de sucesso:', error);
+      }
     } catch (error) {
-      logger.warn('Falha ao executar haptic de sucesso:', error);
+      logger.error('Erro ao atualizar dados:', error);
+      showToast('Erro ao atualizar dados', 'error');
+      try {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      } catch (hapticError) {
+        logger.warn('Falha ao executar haptic de erro:', hapticError);
+      }
     }
     
-    setRefreshing(false);
+    dispatch({ type: 'SET_REFRESHING', payload: false });
   }, [carregarDados, carregarProdutosBaixoEstoque, estabelecimentoId, role]);
 
   useFocusEffect(
@@ -747,54 +901,53 @@ export default function HomeScreen() {
   // Layout responsivo baseado no tamanho da tela
   const screenWidth = Dimensions.get('window').width;
   
-  // Debug: verificar largura da tela
-  logger.debug('📱 Largura da tela (dp):', screenWidth);
-  logger.debug('🎯 Cards visíveis:', cardsVisiveis);
-  
-  // Determinar largura dos cards baseado no tamanho da tela e quantidade de cards
-  // Sistema inteligente: sempre usa 2 colunas em smartphones, ajusta largura para ocupar espaço
-  const getCardWidth = () => {
-    const padding = 16; // padding lateral do grid
-    const gap = 16; // gap entre cards
+  // Calcular largura dos cards de forma responsiva e otimizada
+  const cardWidth = useMemo(() => {
+    const padding = 16;
+    const gap = 16;
     const availableWidth = screenWidth - (padding * 2);
     
-    // Smartphones (< 600dp): sempre 2 colunas, independente da quantidade
-    if (screenWidth < 600) {
-      // Calcular largura exata: (largura disponível - gap) / 2
-      const cardWidthPx = (availableWidth - gap) / 2;
-      logger.debug(`💡 Layout: 2 colunas (${cardWidthPx.toFixed(0)}px) - Smartphone`);
-      return cardWidthPx;
+    // Determinar número de colunas baseado no tamanho da tela
+    let cols = 2; // Default: smartphones e tablets pequenos
+    if (screenWidth >= 1200) {
+      cols = Math.min(cardsVisiveis, 4); // Desktop: até 4 colunas
+    } else if (screenWidth >= 900) {
+      cols = cardsVisiveis >= 3 ? 3 : 2; // Tablet grande: 2-3 colunas
     }
     
-    // Tablets pequenos (600-900dp): 2-3 colunas
-    if (screenWidth < 900) {
-      if (cardsVisiveis === 3) {
-        // 3 cards: 2 na primeira linha, 1 na segunda (mas mantém tamanho de 2 colunas)
-        const cardWidthPx = (availableWidth - gap) / 2;
-        logger.debug(`💡 Layout: 2 colunas para 3 cards (${cardWidthPx.toFixed(0)}px) - Tablet pequeno`);
-        return cardWidthPx;
-      }
-      const cardWidthPx = (availableWidth - gap) / 2;
-      logger.debug(`💡 Layout: 2 colunas (${cardWidthPx.toFixed(0)}px) - Tablet pequeno`);
-      return cardWidthPx;
-    }
-    
-    // Tablets grandes (900-1200dp): 3-4 colunas
-    if (screenWidth < 1200) {
-      const cols = cardsVisiveis >= 3 ? 3 : 2;
-      const cardWidthPx = (availableWidth - (gap * (cols - 1))) / cols;
-      logger.debug(`💡 Layout: ${cols} colunas (${cardWidthPx.toFixed(0)}px) - Tablet grande`);
-      return cardWidthPx;
-    }
-    
-    // Desktop/TV: 4 colunas
-    const cols = Math.min(cardsVisiveis, 4);
     const cardWidthPx = (availableWidth - (gap * (cols - 1))) / cols;
-    logger.debug(`💡 Layout: ${cols} colunas (${cardWidthPx.toFixed(0)}px) - Desktop`);
+    logger.debug(`📱 Layout: ${cols} cols, ${cardWidthPx.toFixed(0)}px, screen ${screenWidth}dp`);
+    
     return cardWidthPx;
-  };
+  }, [screenWidth, cardsVisiveis]);
+  
+  // Funções utilitárias de formatação (evita duplicação)
+  const formatarHorario = useCallback((data: string) => {
+    try {
+      const dataLocal = parseISOStringLocal(data);
+      return format(dataLocal, "HH:mm");
+    } catch {
+      return '--:--';
+    }
+  }, []);
+  
+  const formatarDataCurta = useCallback((data: string) => {
+    try {
+      const dataLocal = parseISOStringLocal(data);
+      return format(dataLocal, "dd/MM");
+    } catch {
+      return '--/--';
+    }
+  }, []);
 
-  const cardWidth = getCardWidth();
+  const formatarDataCompleta = useCallback((data: string) => {
+    try {
+      const dataLocal = parseISOStringLocal(data);
+      return format(dataLocal, "dd/MM/yyyy HH:mm");
+    } catch {
+      return 'Data indisponível';
+    }
+  }, []);
 
   // Componente Skeleton Card
   const SkeletonCard = () => (
@@ -809,17 +962,17 @@ export default function HomeScreen() {
   return (
     <>
       {/* Toast */}
-      {toastMessage ? (
+      {state.toastMessage ? (
         <Animated.View
           entering={FadeInDown.duration(300).springify()}
-          style={[styles.toastContainer, toastType === 'error' && styles.toastError]}
+          style={[styles.toastContainer, state.toastType === 'error' && styles.toastError]}
         >
           <FontAwesome5
-            name={toastType === 'success' ? 'check-circle' : 'exclamation-circle'}
+            name={state.toastType === 'success' ? 'check-circle' : 'exclamation-circle'}
             size={20}
             color={colors.white}
           />
-          <Text style={styles.toastText}>{toastMessage}</Text>
+          <Text style={styles.toastText}>{state.toastMessage}</Text>
         </Animated.View>
       ) : null}
 
@@ -829,42 +982,44 @@ export default function HomeScreen() {
         accessibilityRole="scrollbar"
         refreshControl={
         <RefreshControl
-          refreshing={refreshing}
+          refreshing={state.refreshing}
           onRefresh={onRefresh}
           colors={[colors.primary]}
           tintColor={colors.primary}
           title="Atualizando..."
           titleColor={colors.textSecondary}
-          accessibilityLabel={refreshing ? "Atualizando dados do dashboard" : "Arraste para atualizar"}
+          accessibilityLabel={state.refreshing ? "Atualizando dados do dashboard" : "Arraste para atualizar"}
         />
       }
     >
       <View style={styles.grid}>
         {/* Card Agendamentos Hoje */}
         {role !== 'profissional' && (
-          loadingStates.cards ? (
+          state.loadingStates.cards ? (
             <SkeletonCard />
           ) : (
             <TouchableOpacity
               style={[styles.card, styles.cardPrimary, { width: cardWidth, borderLeftColor: colors.primary }]}
               onPress={() => router.push('/agenda')}
               accessibilityRole="button"
-              accessibilityLabel={`${agendamentosHoje} agendamentos hoje`}
+              accessibilityLabel={`${state.agendamentosHoje} agendamentos hoje`}
               accessibilityHint="Toque duas vezes para ver a agenda completa"
             >
               <View style={styles.cardIconContainer}>
                 <FontAwesome5 name="calendar-check" size={24} color={colors.primary} />
               </View>
               <Text style={styles.cardTitle}>Agendamentos Hoje</Text>
-              <Text style={styles.cardValue}>{agendamentosHoje}</Text>
-              <Text style={styles.cardSubtitle}>Ver agenda</Text>
+              <Text style={styles.cardValue}>{state.agendamentosHoje}</Text>
+              <View style={styles.cardChevron}>
+                <FontAwesome5 name="chevron-right" size={16} color={colors.textSecondary} />
+              </View>
             </TouchableOpacity>
           )
         )}
 
         {/* Card Vendas Hoje */}
         {role !== 'profissional' && permissions.pode_ver_vendas && (
-          loadingStates.cards ? (
+          state.loadingStates.cards ? (
             <SkeletonCard />
           ) : (
             <TouchableOpacity
@@ -874,59 +1029,65 @@ export default function HomeScreen() {
                 router.push('/(app)/vendas');
               }}
               accessibilityRole="button"
-              accessibilityLabel={`Vendas hoje: ${vendasHoje.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}
+              accessibilityLabel={`Vendas hoje: ${state.vendasHoje.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}
               accessibilityHint="Toque duas vezes para ver todas as vendas"
             >
               <View style={styles.cardIconContainer}>
                 <FontAwesome5 name="dollar-sign" size={24} color={colors.success} />
               </View>
               <Text style={styles.cardTitle}>Vendas Hoje</Text>
-              <Text style={styles.cardValue}>{formatarValor(vendasHoje)}</Text>
-              <Text style={styles.cardSubtitle}>Total do dia</Text>
+              <Text style={styles.cardValue}>{formatarValor(state.vendasHoje)}</Text>
+              <View style={styles.cardChevron}>
+                <FontAwesome5 name="chevron-right" size={16} color={colors.textSecondary} />
+              </View>
             </TouchableOpacity>
           )
         )}
 
         {/* Card Clientes Ativos */}
         {role !== 'profissional' && (
-          loadingStates.cards ? (
+          state.loadingStates.cards ? (
             <SkeletonCard />
           ) : (
             <TouchableOpacity
               style={[styles.card, styles.cardInfo, { width: cardWidth }]}
               onPress={() => router.push('/clientes')}
               accessibilityRole="button"
-              accessibilityLabel={`${clientesAtivos} clientes ativos`}
+              accessibilityLabel={`${state.clientesAtivos} clientes ativos`}
               accessibilityHint="Toque duas vezes para ver a lista de clientes"
             >
               <View style={styles.cardIconContainer}>
                 <FontAwesome5 name="users" size={24} color={colors.info} />
               </View>
               <Text style={styles.cardTitle}>Clientes Ativos</Text>
-              <Text style={styles.cardValue}>{clientesAtivos}</Text>
-              <Text style={styles.cardSubtitle}>Ver clientes</Text>
+              <Text style={styles.cardValue}>{state.clientesAtivos}</Text>
+              <View style={styles.cardChevron}>
+                <FontAwesome5 name="chevron-right" size={16} color={colors.textSecondary} />
+              </View>
             </TouchableOpacity>
           )
         )}
 
         {/* Card Produtos Baixo Estoque */}
         {role !== 'profissional' && (
-          loadingStates.estoque ? (
+          state.loadingStates.estoque ? (
             <SkeletonCard />
           ) : (
             <TouchableOpacity
               style={[styles.card, styles.cardDanger, { width: cardWidth }]}
               onPress={() => router.push('/estoque')}
               accessibilityRole="button"
-              accessibilityLabel={`${produtosBaixoEstoque?.length || 0} produtos com baixo estoque`}
+              accessibilityLabel={`${state.produtosBaixoEstoque?.length || 0} produtos com baixo estoque`}
               accessibilityHint="Toque duas vezes para ver o estoque completo"
             >
               <View style={styles.cardIconContainer}>
                 <FontAwesome5 name="exclamation-triangle" size={24} color={colors.error} />
               </View>
               <Text style={styles.cardTitle}>Produtos Baixo Estoque</Text>
-              <Text style={styles.cardValue}>{produtosBaixoEstoque?.length || 0}</Text>
-              <Text style={styles.cardSubtitle}>Ver estoque</Text>
+              <Text style={styles.cardValue}>{state.produtosBaixoEstoque?.length || 0}</Text>
+              <View style={styles.cardChevron}>
+                <FontAwesome5 name="chevron-right" size={16} color={colors.textSecondary} />
+              </View>
             </TouchableOpacity>
           )
         )}
@@ -941,21 +1102,21 @@ export default function HomeScreen() {
         </View>
 
         {/* Loading State */}
-        {loadingStates.agendamentos ? (
+        {state.loadingStates.agendamentos ? (
           <View style={styles.emptyAgendamentos}>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={styles.emptyText}>Carregando agendamentos...</Text>
           </View>
         ) : /* Error State */
-        errors.agendamentos ? (
+        state.errors.agendamentos ? (
           <View style={styles.errorState} accessibilityRole="alert">
             <FontAwesome5 name="exclamation-circle" size={32} color={colors.error} />
-            <Text style={styles.errorText}>{errors.agendamentos}</Text>
+            <Text style={styles.errorText}>{state.errors.agendamentos}</Text>
             <Button
               variant="primary"
               size="medium"
               onPress={async () => {
-                setErrors(prev => ({ ...prev, agendamentos: undefined }));
+                dispatch({ type: 'SET_ERROR', payload: { key: 'agendamentos', message: undefined } });
                 await carregarDados();
               }}
             >
@@ -963,15 +1124,15 @@ export default function HomeScreen() {
             </Button>
           </View>
         ) : /* Content */
-        proximosAgendamentos.length > 0 ? (
-          proximosAgendamentos.map((agendamento, index) => (
+        state.proximosAgendamentos.length > 0 ? (
+          state.proximosAgendamentos.map((agendamento, index) => (
             <Animated.View
               key={agendamento.id}
               entering={FadeInDown.delay(index * 100).duration(400).springify()}
               style={[
                 styles.agendamentoItem,
                 index === 0 && styles.primeiroAgendamento,
-                index === proximosAgendamentos.length - 1 && styles.ultimoAgendamento
+                index === state.proximosAgendamentos.length - 1 && styles.ultimoAgendamento
               ]}
             >
               {/* Header com foto e horário */}
@@ -1014,14 +1175,7 @@ export default function HomeScreen() {
                 <View style={styles.agendamentoHorarioContainer}>
                   <FontAwesome5 name="clock" size={12} color={colors.primary} />
                   <Text style={[styles.agendamentoHorarioText, { color: colors.primary }]}>
-                    {agendamento.horario ? (() => {
-                      try {
-                        const dataLocal = parseISOStringLocal(agendamento.horario);
-                        return format(dataLocal, "HH:mm");
-                      } catch {
-                        return '--:--';
-                      }
-                    })() : '--:--'}
+                    {agendamento.horario ? formatarHorario(agendamento.horario) : '--:--'}
                     {agendamento.horario_termino && (
                       <Text style={styles.agendamentoHorarioSeparador}> às </Text>
                     )}
@@ -1034,14 +1188,7 @@ export default function HomeScreen() {
                 <View style={styles.agendamentoData}>
                   <FontAwesome5 name="calendar" size={12} color={colors.textTertiary} />
                   <Text style={styles.agendamentoDia}>
-                    {agendamento.horario ? (() => {
-                      try {
-                        const dataLocal = parseISOStringLocal(agendamento.horario);
-                        return format(dataLocal, "dd/MM");
-                      } catch {
-                        return '--/--';
-                      }
-                    })() : '--/--'}
+                    {agendamento.horario ? formatarDataCurta(agendamento.horario) : '--/--'}
                   </Text>
                 </View>
               </View>
@@ -1068,20 +1215,20 @@ export default function HomeScreen() {
           </View>
 
           {/* Loading State */}
-          {loadingStates.vendas ? (
+          {state.loadingStates.vendas ? (
             <View style={styles.emptyState}>
               <ActivityIndicator size="large" color={colors.primary} />
               <Text style={styles.emptyText}>Carregando vendas...</Text>
             </View>
           ) : /* Error State */
-          errors.vendas ? (
+          state.errors.vendas ? (
             <View style={styles.errorState} accessibilityRole="alert">
               <FontAwesome5 name="exclamation-circle" size={32} color={colors.error} />
-              <Text style={styles.errorText}>{errors.vendas}</Text>
+              <Text style={styles.errorText}>{state.errors.vendas}</Text>
               <TouchableOpacity
                 style={styles.retryButton}
                 onPress={async () => {
-                  setErrors(prev => ({ ...prev, vendas: undefined }));
+                  dispatch({ type: 'SET_ERROR', payload: { key: 'vendas', message: undefined } });
                   await carregarDados();
                 }}
                 accessibilityRole="button"
@@ -1091,8 +1238,8 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
           ) : /* Content */
-          vendasRecentes.length > 0 ? (
-            vendasRecentes.map((venda, index) => (
+          state.vendasRecentes.length > 0 ? (
+            state.vendasRecentes.map((venda, index) => (
               <Animated.View
                 key={venda.id}
                 entering={FadeInDown.delay(index * 80).duration(400).springify()}
@@ -1101,7 +1248,7 @@ export default function HomeScreen() {
                 <View style={styles.vendaContent}>
                   <Text style={styles.vendaCliente}>{venda.cliente_nome}</Text>
                   <Text style={styles.vendaData}>
-                    {venda.data ? new Date(venda.data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Data indisponível'}
+                    {venda.data ? formatarDataCompleta(venda.data) : 'Data indisponível'}
                   </Text>
                 </View>
                 <Text style={styles.vendaValor}>
@@ -1128,20 +1275,20 @@ export default function HomeScreen() {
           </View>
 
           {/* Loading State */}
-          {loadingStates.estoque ? (
+          {state.loadingStates.estoque ? (
             <View style={styles.emptyState}>
               <ActivityIndicator size="large" color={colors.primary} />
               <Text style={styles.emptyText}>Carregando produtos...</Text>
             </View>
           ) : /* Error State */
-          errors.estoque ? (
+          state.errors.estoque ? (
             <View style={styles.errorState} accessibilityRole="alert">
               <FontAwesome5 name="exclamation-circle" size={32} color={colors.error} />
-              <Text style={styles.errorText}>{errors.estoque}</Text>
+              <Text style={styles.errorText}>{state.errors.estoque}</Text>
               <TouchableOpacity
                 style={styles.retryButton}
                 onPress={async () => {
-                  setErrors(prev => ({ ...prev, estoque: undefined }));
+                  dispatch({ type: 'SET_ERROR', payload: { key: 'estoque', message: undefined } });
                   await carregarProdutosBaixoEstoque();
                 }}
                 accessibilityRole="button"
@@ -1151,8 +1298,8 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
           ) : /* Content */
-          produtosBaixoEstoque && produtosBaixoEstoque.length > 0 ? (
-            produtosBaixoEstoque.map((produto, index) => (
+          state.produtosBaixoEstoque && state.produtosBaixoEstoque.length > 0 ? (
+            state.produtosBaixoEstoque.map((produto, index) => (
               <Animated.View
                 key={produto.id}
                 entering={FadeInDown.delay(index * 80).duration(400).springify()}

@@ -473,7 +473,7 @@ export default function AppLayout() {
       <Drawer.Screen
         name="index"
         options={{
-          title: 'Visão Geral',
+          title: '',
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="home" size={20} color={color} />
           ),

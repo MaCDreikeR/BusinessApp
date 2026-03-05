@@ -513,10 +513,10 @@ export default function AgendaScreen() {
           // Calcular saldo agregado
           const movimentacoes = movimentacoesData[ag.cliente_id] || [];
           cliente_saldo = movimentacoes.reduce((total: number, mov: any) => {
-            const valorNumerico = typeof mov.valor === 'string' 
-              ? parseFloat(mov.valor.replace(',', '.')) 
-              : mov.valor;
-            return total + (valorNumerico || 0);
+            const valorNumerico = typeof mov.valor === 'number' 
+              ? mov.valor 
+              : parseFloat(mov.valor);
+            return total + valorNumerico;
           }, 0);
         }
         
@@ -680,10 +680,10 @@ export default function AgendaScreen() {
           // Calcular saldo agregado
           const movimentacoes = movimentacoesData[ag.cliente_id] || [];
           cliente_saldo = movimentacoes.reduce((total: number, mov: any) => {
-            const valorNumerico = typeof mov.valor === 'string' 
-              ? parseFloat(mov.valor.replace(',', '.')) 
-              : mov.valor;
-            return total + (valorNumerico || 0);
+            const valorNumerico = typeof mov.valor === 'number' 
+              ? mov.valor 
+              : parseFloat(mov.valor);
+            return total + valorNumerico;
           }, 0);
         }
         
@@ -1195,7 +1195,22 @@ export default function AgendaScreen() {
         // Se já tem cliente_id E telefone, não precisa buscar
         if (ag.cliente_id && ag.cliente_telefone) {
           logger.debug('✅ [MODAL] Agendamento OK:', ag.id, ag.cliente);
-          return ag;
+          
+          // Calcular saldo do cliente
+          const { data: movimentacoes } = await supabase
+            .from('crediario_movimentacoes')
+            .select('valor')
+            .eq('cliente_id', ag.cliente_id);
+          
+          const saldo = (movimentacoes || []).reduce((total, mov) => {
+            const valorNumerico = typeof mov.valor === 'number' ? mov.valor : parseFloat(mov.valor);
+            return total + valorNumerico;
+          }, 0);
+          
+          return {
+            ...ag,
+            cliente_saldo: saldo
+          };
         }
         
         logger.warn('⚠️ [MODAL] Agendamento sem dados completos, buscando...', {
@@ -1215,11 +1230,24 @@ export default function AgendaScreen() {
           
           if (clienteData) {
             logger.debug('✅ [MODAL] Cliente encontrado por ID:', clienteData);
+            
+            // Calcular saldo do cliente
+            const { data: movimentacoes } = await supabase
+              .from('crediario_movimentacoes')
+              .select('valor')
+              .eq('cliente_id', clienteData.id);
+            
+            const saldo = (movimentacoes || []).reduce((total, mov) => {
+              const valorNumerico = typeof mov.valor === 'number' ? mov.valor : parseFloat(mov.valor);
+              return total + valorNumerico;
+            }, 0);
+            
             return {
               ...ag,
               cliente_id: clienteData.id,
               cliente_telefone: clienteData.telefone,
-              cliente_foto: clienteData.foto_url
+              cliente_foto: clienteData.foto_url,
+              cliente_saldo: saldo
             };
           }
         }
@@ -1236,11 +1264,24 @@ export default function AgendaScreen() {
           
           if (clienteData) {
             logger.debug('✅ [MODAL] Cliente encontrado por nome:', clienteData);
+            
+            // Calcular saldo do cliente
+            const { data: movimentacoes } = await supabase
+              .from('crediario_movimentacoes')
+              .select('valor')
+              .eq('cliente_id', clienteData.id);
+            
+            const saldo = (movimentacoes || []).reduce((total, mov) => {
+              const valorNumerico = typeof mov.valor === 'number' ? mov.valor : parseFloat(mov.valor);
+              return total + valorNumerico;
+            }, 0);
+            
             return {
               ...ag,
               cliente_id: clienteData.id,
               cliente_telefone: clienteData.telefone,
-              cliente_foto: clienteData.foto_url
+              cliente_foto: clienteData.foto_url,
+              cliente_saldo: saldo
             };
           }
         }
@@ -1608,22 +1649,25 @@ export default function AgendaScreen() {
                 logger.warn(`⚠️ Horário atravessa meia-noite: ${duracaoMinutos} min`);
               }
               
-              // 🎯 FÓRMULA CORRIGIDA: Cada slot de 5 minutos = 40px de altura
-              // Exemplo: 45 minutos = (45/5) * 40 = 9 * 40 = 360px
-              const intervaloMinutos = 5; // Intervalo de agendamento configurado
-              const alturaCalculada = (duracaoMinutos / intervaloMinutos) * 40;
+              // 🎯 FÓRMULA CORRIGIDA: Cada hora (60 minutos) = 40px de altura do time slot
+              // Exemplo: 40 minutos = (40/60) * 40 = 26.67px
+              const alturaSlotHora = 40; // Altura de um time slot (1 hora)
+              const alturaCalculada = (duracaoMinutos / 60) * alturaSlotHora;
+              
+              // Garantir uma altura mínima de 60px para conter o conteúdo
+              const alturaFinal = Math.max(alturaCalculada, 60);
               
               logger.debug(`   📊 minutosInicio: ${minutosInicio} (${hora}:${min})`);
               logger.debug(`   📊 minutosTermino: ${minutosTermino}`);
               logger.debug(`   ⏱️  Duração: ${duracaoMinutos} minutos`);
-              logger.debug(`   📐 Altura calculada: ${alturaCalculada}px`);
+              logger.debug(`   📐 Altura calculada: ${alturaCalculada}px, Altura final: ${alturaFinal}px`);
               
               if (duracaoMinutos <= 0) {
                 logger.error(`❌ ERRO: Duração inválida (${duracaoMinutos} min) para "${ag.cliente}"!`);
                 return 60;
               }
               
-              return alturaCalculada;
+              return alturaFinal;
             };
 
             // SISTEMA DE ALOCAÇÃO DE COLUNAS
@@ -1744,10 +1788,10 @@ export default function AgendaScreen() {
                                   </Text>
                                 </View>
                               </View>
-                              <Text style={styles.agendamentoClienteCard} numberOfLines={2}>
+                              <Text style={styles.agendamentoClienteCard} numberOfLines={1} ellipsizeMode="tail">
                                 {ag.cliente}
                               </Text>
-                              <Text style={styles.agendamentoServicosCard} numberOfLines={2}>
+                              <Text style={styles.agendamentoServicosCard} numberOfLines={1} ellipsizeMode="tail">
                                 {JSON.stringify(ag.servicos)?.includes('nome') 
                                   ? ag.servicos.map((s:any) => s.nome).join(', ')
                                   : 'Serviço não especificado'}
@@ -2608,6 +2652,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     zIndex: 100, // Z-index muito alto
+    overflow: 'hidden',
     pointerEvents: 'auto', // Card deve capturar cliques
   },
   agendamentoCardHeader: {
@@ -2686,7 +2731,9 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderBottomLeftRadius: 8,
   },
   agendamentoCardContent: {
+    flex: 1,
     paddingLeft: 6,
+    overflow: 'hidden',
   },
   agendamentoHorarioCard: {
     fontSize: 10,
