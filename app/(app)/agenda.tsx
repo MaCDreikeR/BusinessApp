@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, DeviceEventEmitter, Modal, TextInput, ActivityIndicator, FlatList, SectionList, Alert } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { format, isValid } from 'date-fns';
@@ -7,14 +7,17 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { enviarMensagemWhatsapp, AgendamentoMensagem } from '../../services/whatsapp';
 import { logger } from '../../utils/logger';
 import { Usuario, Agendamento as AgendamentoBase } from '@types';
 import { theme } from '@utils/theme';
 import { CacheManager, CacheNamespaces, CacheTTL } from '../../utils/cacheManager';
 import { offlineInsert, offlineUpdate, offlineDelete, getOfflineFeedback } from '../../services/offlineSupabase';
-import { getStartOfDayLocal, getEndOfDayLocal, getStartOfMonthLocal, getEndOfMonthLocal } from '../../lib/timezone';
+import { getStartOfDayLocal, getEndOfDayLocal, getStartOfMonthLocal, getEndOfMonthLocal, parseDataHoraLocal, converterHoraParaMinutos, converterMinutosParaHora } from '../../lib/timezone';
+import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription';
+import { getInitials, getAvatarColor, isToday } from '../../utils/avatarHelpers';
+import { SkeletonAgendamento } from '../../components/SkeletonLoader';
 
 // Configuração do idioma para o calendário
 LocaleConfig.locales['pt-br'] = {
@@ -108,122 +111,60 @@ export default function AgendaScreen() {
 
   const router = useRouter();
 
-  // 🔧 FUNÇÃO HELPER: Converter string ISO local para Date
-  const parseDataHoraLocal = (dataHoraISO: string): Date => {
-    try {
-      // Validar entrada
-      if (!dataHoraISO || typeof dataHoraISO !== 'string') {
-        logger.warn('⚠️ parseDataHoraLocal: entrada inválida', dataHoraISO);
-        return new Date(); // Retorna data atual como fallback
-      }
+  // � Subscription do Supabase com reconnect automático
+  useRealtimeSubscription(
+    'public:usuarios',
+    'usuarios',
+    () => {
+      logger.debug('Mudança detectada na tabela usuarios, recarregando...');
+      carregarUsuarios();
+    },
+    {
+      event: '*',
+      schema: 'public',
+      reconnectInterval: 5000,
+      heartbeatInterval: 30000,
+    },
+    !!estabelecimentoId
+  );
 
-      // ✅ NOVO: Se vier com offset timezone (±HH:MM ou Z), usar new Date() que faz conversão automática
-      // Isso converte UTC → horário local automaticamente
-      if (dataHoraISO.includes('+') || dataHoraISO.includes('Z') || 
-          (dataHoraISO.includes('-') && dataHoraISO.indexOf('-') > 10)) { // - depois de "YYYY-MM-DD"
-        try {
-          const dataConverted = new Date(dataHoraISO);
-          if (!isNaN(dataConverted.getTime())) {
-            return dataConverted; // ✅ Conversão automática de UTC→local!
-          }
-        } catch (e) {
-          logger.warn('⚠️ parseDataHoraLocal: erro ao converter com timezone', dataHoraISO);
-          // Continuar com parse manual
-        }
-      }
-
-      // Extrair partes da string ISO (formato: "YYYY-MM-DDTHH:MM:SS" ou "YYYY-MM-DDTHH:MM:SS-03:00")
-      const [datePart, timePartRaw] = dataHoraISO.split('T');
-      
-      if (!datePart || !timePartRaw) {
-        logger.warn('⚠️ parseDataHoraLocal: formato inválido', dataHoraISO);
-        return new Date();
-      }
-
-      const [ano, mes, dia] = datePart.split('-').map(Number);
-      
-      // 🔧 CORREÇÃO: Remover APENAS o timezone (tudo após + ou - no final da hora)
-      // Não usar split('-')[0] que destroi a hora!
-      let timeClean = timePartRaw;
-      const plusIndex = timePartRaw.indexOf('+');
-      const minusIndex = timePartRaw.lastIndexOf('-'); // Último - (timezone está no final)
-      
-      if (plusIndex > 0) {
-        timeClean = timePartRaw.substring(0, plusIndex); // Tudo até o +
-      } else if (minusIndex > 5) { // Timezone - está depois de "HH:MM:SS" (>5 caracteres)
-        timeClean = timePartRaw.substring(0, minusIndex);
-      }
-      
-      const [hora, min, seg = 0] = timeClean.split(':').map(Number);
-      
-      // Validar valores extraídos
-      if (isNaN(ano) || isNaN(mes) || isNaN(dia) || isNaN(hora) || isNaN(min)) {
-        logger.warn('⚠️ parseDataHoraLocal: valores NaN', { ano, mes, dia, hora, min });
-        return new Date();
-      }
-      
-      // Criar Date como horário LOCAL
-      const date = new Date(ano, mes - 1, dia, hora, min, seg);
-      
-      // Validar resultado
-      if (isNaN(date.getTime())) {
-        logger.warn('⚠️ parseDataHoraLocal: Date inválida resultante', dataHoraISO);
-        return new Date();
-      }
-      
-      return date;
-    } catch (error) {
-      logger.error('❌ parseDataHoraLocal: erro ao fazer parse', error, dataHoraISO);
-      return new Date(); // Retorna data atual como fallback
-    }
-  };
-
+  // �🔧 FUNÇÃO HELPER: Converter string ISO local para Date
   // Estilos dinâmicos baseados no tema
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  useEffect(() => {
-    carregarUsuarios();
-    
-    const subscriptionPresenca = DeviceEventEmitter.addListener('togglePresencaUsuarios', () => {
-      setShowPresencaModal(true);
-    });
-    
-    const subscriptionBloqueio = DeviceEventEmitter.addListener('toggleBloqueioModal', () => {
-      setShowBloqueioModal(true);
-    });
-
-    const subscriptionHorarios = DeviceEventEmitter.addListener('toggleHorariosModal', () => {
-      setShowHorariosModal(true);
-    });
-
-    const subscriptionUsuario = DeviceEventEmitter.addListener('usuarioAtualizado', () => {
-      logger.debug('Usuário atualizado, recarregando lista...');
+  useFocusEffect(
+    useCallback(() => {
       carregarUsuarios();
-    });
+      carregarAgendamentos(true);
+      carregarAgendamentosMes(true);
+      
+      const subscriptionPresenca = DeviceEventEmitter.addListener('togglePresencaUsuarios', () => {
+        setShowPresencaModal(true);
+      });
+      
+      const subscriptionBloqueio = DeviceEventEmitter.addListener('toggleBloqueioModal', () => {
+        setShowBloqueioModal(true);
+      });
 
-    const subscription = supabase
-      .channel('public:usuarios')
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'usuarios' 
-        }, 
-        () => {
-          logger.debug('Mudança detectada na tabela usuarios, recarregando...');
-          carregarUsuarios();
-        }
-      )
-      .subscribe();
+      const subscriptionHorarios = DeviceEventEmitter.addListener('toggleHorariosModal', () => {
+        setShowHorariosModal(true);
+      });
 
-    return () => {
-      subscriptionPresenca.remove();
-      subscriptionBloqueio.remove();
-      subscriptionHorarios.remove();
-      subscriptionUsuario.remove();
-      subscription.unsubscribe();
-    };
-  }, []);
+      const subscriptionUsuario = DeviceEventEmitter.addListener('usuarioAtualizado', () => {
+        logger.debug('Usuário atualizado, recarregando lista...');
+        carregarUsuarios();
+      });
+
+      // 🔧 Subscription do Supabase movida para useRealtimeSubscription hook (acima)
+
+      return () => {
+        subscriptionPresenca.remove();
+        subscriptionBloqueio.remove();
+        subscriptionHorarios.remove();
+        subscriptionUsuario.remove();
+      };
+    }, [estabelecimentoId, selectedDate, selectedUser, role, user?.id])
+  );
 
   useEffect(() => {
     // Inicializa o estado de presença para todos os usuários
@@ -235,14 +176,6 @@ export default function AgendaScreen() {
       setPresencaUsuarios(presencaInicial);
     }
   }, [usuarios]);
-
-  useEffect(() => {
-    carregarAgendamentos();
-  }, [selectedDate, selectedUser]);
-
-  useEffect(() => {
-    carregarAgendamentosMes();
-  }, [selectedDate, selectedUser]);
 
   // Carregar agendamentos do mês quando estabelecimentoId estiver disponível
   useEffect(() => {
@@ -438,7 +371,7 @@ export default function AgendaScreen() {
     }
   };
 
-  const carregarAgendamentos = async () => {
+  const carregarAgendamentos = async (forceRefresh = false) => {
     try {
       setLoading(true);
       
@@ -455,11 +388,13 @@ export default function AgendaScreen() {
       const cacheKey = `dia_${dataStr}_${usuarioFiltro || 'todos'}`;
       
       // Tentar buscar do cache primeiro
-      const cachedData = await CacheManager.get<AgendamentoAgenda[]>(
-        CacheNamespaces.AGENDAMENTOS,
-        cacheKey
-      );
-      
+      const cachedData = forceRefresh
+        ? null
+        : await CacheManager.get<AgendamentoAgenda[]>(
+            CacheNamespaces.AGENDAMENTOS,
+            cacheKey
+          );
+
       if (cachedData) {
         logger.debug('📦 Agendamentos carregados do cache');
         setAgendamentos(cachedData);
@@ -500,138 +435,100 @@ export default function AgendaScreen() {
 
       logger.debug('Agendamentos carregados:', data?.length || 0);
       
-      // Buscar dados dos clientes separadamente
-      const agendamentosComClientes = await Promise.all(
-        (data || []).map(async (ag: any) => {
-          let clienteFoto = null;
-          let clienteTelefone = null;
-          let clienteSaldo = null;
-          
-          logger.debug('🔍 Processando agendamento:', { 
-            id: ag.id, 
-            cliente: ag.cliente, 
-            cliente_id: ag.cliente_id 
-          });
-          
-          if (ag.cliente_id) {
-            // Buscar por ID (relacionamento direto)
-            const { data: clienteData, error: clienteError } = await supabase
-              .from('clientes')
-              .select('foto_url, telefone')
-              .eq('id', ag.cliente_id)
-              .single();
-            
-            if (clienteError) {
-              logger.error('❌ Erro ao buscar dados do cliente por ID:', clienteError);
-            }
-            
-            if (clienteData) {
-              clienteFoto = clienteData.foto_url;
-              clienteTelefone = clienteData.telefone;
-              
-              logger.debug('📞 TELEFONE ENCONTRADO:', { 
-                cliente_id: ag.cliente_id, 
-                telefone: clienteTelefone,
-                telefone_raw: clienteData.telefone
-              });
-              
-              // Buscar saldo do crediário
-              const { data: movimentacoes } = await supabase
-                .from('crediario_movimentacoes')
-                .select('valor')
-                .eq('cliente_id', ag.cliente_id);
-              
-              if (movimentacoes && movimentacoes.length > 0) {
-                clienteSaldo = movimentacoes.reduce((total, mov) => {
-                  const valorNumerico = typeof mov.valor === 'string' 
-                    ? parseFloat(mov.valor.replace(',', '.')) 
-                    : mov.valor;
-                  return total + (valorNumerico || 0);
-                }, 0);
-              } else {
-                clienteSaldo = 0;
-              }
-              
-              logger.debug('✅ Dados do cliente carregados por ID:', { 
-                clienteId: ag.cliente_id, 
-                foto: clienteFoto, 
-                telefone: clienteTelefone,
-                saldo: clienteSaldo
-              });
-            }
-          } else if (ag.cliente) {
-            // Buscar por nome (fallback quando não há cliente_id)
-            logger.debug('🔎 Tentando buscar cliente por nome:', ag.cliente);
-            const { data: clienteData, error: clienteError } = await supabase
+      // 🚀 OTIMIZAÇÃO: Trazer todos os dados relacionados em DUAS queries ao invés de 60+
+      // Query 1: Buscar todos os clientes únicos
+      const clienteIds = [...new Set((data || []).map((ag: any) => ag.cliente_id).filter(Boolean))];
+      const clienteNomes = [...new Set((data || []).map((ag: any) => ag.cliente).filter(Boolean))];
+      
+      let clientesData: any = {};
+      let movimentacoesData: any = {};
+      
+      if (clienteIds.length > 0) {
+        // Query 2a: Buscar dados dos clientes por ID
+        const { data: searchClientesById } = await supabase
+          .from('clientes')
+          .select('id, foto_url, telefone')
+          .in('id', clienteIds);
+        
+        (searchClientesById || []).forEach(c => {
+          clientesData[c.id] = c;
+        });
+        
+        // Query 2b: Buscar movimentações de crediário para todos os clientes de uma vez
+        const { data: todasMovimentacoes } = await supabase
+          .from('crediario_movimentacoes')
+          .select('valor, cliente_id')
+          .in('cliente_id', clienteIds);
+        
+        // Agrupar movimentações por cliente_id
+        (todasMovimentacoes || []).forEach(mov => {
+          if (!movimentacoesData[mov.cliente_id]) {
+            movimentacoesData[mov.cliente_id] = [];
+          }
+          movimentacoesData[mov.cliente_id].push(mov);
+        });
+      }
+      
+      // Se há nomes de clientes sem ID, buscar por nome (fallback)
+      if (clienteNomes.length > 0) {
+        for (const nome of clienteNomes) {
+          if (!Object.values(clientesData).find(c => c.tooltip_eq === nome)) {
+            const { data: clienteData } = await supabase
               .from('clientes')
               .select('id, foto_url, telefone')
               .eq('estabelecimento_id', estabelecimentoId)
-              .ilike('nome', ag.cliente)
+              .ilike('nome', nome)
               .limit(1)
               .maybeSingle();
             
-            if (clienteError) {
-              logger.debug('❌ Erro ao buscar dados do cliente por nome:', clienteError);
-            }
-            
             if (clienteData) {
-              clienteFoto = clienteData.foto_url;
-              clienteTelefone = clienteData.telefone;
+              clientesData[clienteData.id] = clienteData;
               
-              // Buscar saldo do crediário
-              const { data: movimentacoes } = await supabase
+              // Se encontrou por nome, buscar suas movimentações também
+              const { data: movs } = await supabase
                 .from('crediario_movimentacoes')
-                .select('valor')
+                .select('valor, cliente_id')
                 .eq('cliente_id', clienteData.id);
               
-              if (movimentacoes && movimentacoes.length > 0) {
-                clienteSaldo = movimentacoes.reduce((total, mov) => {
-                  const valorNumerico = typeof mov.valor === 'string' 
-                    ? parseFloat(mov.valor.replace(',', '.')) 
-                    : mov.valor;
-                  return total + (valorNumerico || 0);
-                }, 0);
-              } else {
-                clienteSaldo = 0;
+              if (movs && movs.length > 0) {
+                movimentacoesData[clienteData.id] = movs;
               }
-              
-              logger.debug('✅ Dados do cliente carregados por nome:', { 
-                clienteNome: ag.cliente, 
-                foto: clienteFoto, 
-                telefone: clienteTelefone,
-                saldo: clienteSaldo
-              });
-            } else {
-              logger.debug('⚠️ Cliente não encontrado no banco com nome:', ag.cliente);
             }
-          } else {
-            logger.debug('⚠️ Agendamento sem cliente_id e sem nome:', ag.id);
           }
-          
-          logger.debug('🔚 Resultado final do agendamento:', {
-            agendamento_id: ag.id,
-            cliente: ag.cliente,
-            telefone_final: clienteTelefone,
-            tem_telefone: !!clienteTelefone
-          });
-          
-          return {
-            ...ag,
-            cliente_foto: clienteFoto,
-            cliente_telefone: clienteTelefone,
-            cliente_saldo: clienteSaldo,
-          };
-        })
-      );
+        }
+      }
       
-      logger.debug('🎯 [DIA] Agendamentos processados - RESULTADO FINAL:', agendamentosComClientes.map(ag => ({
-        id: ag.id,
-        cliente: ag.cliente,
-        cliente_id: ag.cliente_id,
-        telefone: ag.cliente_telefone,
-        tem_cliente_id: !!ag.cliente_id,
-        tem_telefone: !!ag.cliente_telefone
-      })));
+      // 📊 Montar resultado combinando agendamentos com dados de clientes
+      const agendamentosComClientes = (data || []).map((ag: any) => {
+        let cliente_foto = null;
+        let cliente_telefone = null;
+        let cliente_saldo = 0;
+        
+        const cliente = ag.cliente_id ? clientesData[ag.cliente_id] : null;
+        
+        if (cliente) {
+          cliente_foto = cliente.foto_url;
+          cliente_telefone = cliente.telefone;
+          
+          // Calcular saldo agregado
+          const movimentacoes = movimentacoesData[ag.cliente_id] || [];
+          cliente_saldo = movimentacoes.reduce((total: number, mov: any) => {
+            const valorNumerico = typeof mov.valor === 'string' 
+              ? parseFloat(mov.valor.replace(',', '.')) 
+              : mov.valor;
+            return total + (valorNumerico || 0);
+          }, 0);
+        }
+        
+        return {
+          ...ag,
+          cliente_foto,
+          cliente_telefone,
+          cliente_saldo,
+        };
+      });
+      
+      logger.debug(`✅ [OTIMIZADO] Agendamentos processados com 3 queries ao invés de ${1 + (data?.length || 0) * 2}`);
       
       // Salvar no cache com TTL de 2 minutos (reutiliza variáveis já declaradas acima)
       await CacheManager.set(
@@ -650,7 +547,7 @@ export default function AgendaScreen() {
     }
   };
 
-  const carregarAgendamentosMes = async () => {
+  const carregarAgendamentosMes = async (forceRefresh = false) => {
     try {
       if (!estabelecimentoId) {
         logger.error('Estabelecimento ID não encontrado');
@@ -674,11 +571,13 @@ export default function AgendaScreen() {
       const cacheKey = `mes_${mesStr}_${selectedUser || 'todos'}`;
       
       // Tentar buscar do cache primeiro
-      const cachedData = await CacheManager.get<AgendamentoAgenda[]>(
-        CacheNamespaces.AGENDAMENTOS,
-        cacheKey
-      );
-      
+      const cachedData = forceRefresh
+        ? null
+        : await CacheManager.get<AgendamentoAgenda[]>(
+            CacheNamespaces.AGENDAMENTOS,
+            cacheKey
+          );
+
       if (cachedData) {
         logger.debug('📦 Agendamentos do mês carregados do cache');
         setAgendamentosMes(cachedData);
@@ -704,125 +603,99 @@ export default function AgendaScreen() {
 
       logger.debug('Agendamentos do mês carregados:', data?.length || 0);
       
-      // Buscar dados dos clientes separadamente (igual ao carregarAgendamentos)
-      const agendamentosComClientes = await Promise.all(
-        (data || []).map(async (ag: any) => {
-          let clienteFoto = null;
-          let clienteTelefone = null;
-          let clienteSaldo = null;
-          let clienteIdFinal = ag.cliente_id;
-          
-          logger.debug('🔍 [MÊS] Processando agendamento:', { 
-            id: ag.id, 
-            cliente: ag.cliente, 
-            cliente_id_original: ag.cliente_id,
-            tem_cliente_id: !!ag.cliente_id
-          });
-          
-          if (ag.cliente_id) {
-            // Buscar por ID (relacionamento direto)
-            const { data: clienteData, error: clienteError } = await supabase
-              .from('clientes')
-              .select('foto_url, telefone')
-              .eq('id', ag.cliente_id)
-              .single();
-            
-            if (clienteError) {
-              logger.error('❌ [MÊS] Erro ao buscar dados do cliente por ID:', clienteError);
-            }
-            
-            if (clienteData) {
-              clienteFoto = clienteData.foto_url;
-              clienteTelefone = clienteData.telefone;
-              
-              logger.debug('📞 [MÊS] TELEFONE ENCONTRADO:', { 
-                cliente_id: ag.cliente_id, 
-                telefone: clienteTelefone,
-                telefone_raw: clienteData.telefone
-              });
-              
-              // Buscar saldo do crediário
-              const { data: movimentacoes } = await supabase
-                .from('crediario_movimentacoes')
-                .select('valor')
-                .eq('cliente_id', ag.cliente_id);
-              
-              if (movimentacoes && movimentacoes.length > 0) {
-                clienteSaldo = movimentacoes.reduce((total, mov) => {
-                  const valorNumerico = typeof mov.valor === 'string' 
-                    ? parseFloat(mov.valor.replace(',', '.')) 
-                    : mov.valor;
-                  return total + (valorNumerico || 0);
-                }, 0);
-              } else {
-                clienteSaldo = 0;
-              }
-            }
-          } else if (ag.cliente) {
-            // FALLBACK: Buscar por nome quando não há cliente_id
-            logger.debug('🔎 [MÊS] Tentando buscar cliente por nome:', ag.cliente);
-            const { data: clienteData, error: clienteError } = await supabase
+      // 🚀 OTIMIZAÇÃO: Trazer todos os dados relacionados em DUAS queries ao invés de N+1
+      const clienteIds = [...new Set((data || []).map((ag: any) => ag.cliente_id).filter(Boolean))];
+      const clienteNomes = [...new Set((data || []).map((ag: any) => ag.cliente).filter(Boolean))];
+      
+      let clientesData: any = {};
+      let movimentacoesData: any = {};
+      
+      if (clienteIds.length > 0) {
+        // Buscar dados dos clientes por ID
+        const { data: searchClientesById } = await supabase
+          .from('clientes')
+          .select('id, foto_url, telefone')
+          .in('id', clienteIds);
+        
+        (searchClientesById || []).forEach(c => {
+          clientesData[c.id] = c;
+        });
+        
+        // Buscar movimentações de crediário para todos os clientes de uma vez
+        const { data: todasMovimentacoes } = await supabase
+          .from('crediario_movimentacoes')
+          .select('valor, cliente_id')
+          .in('cliente_id', clienteIds);
+        
+        // Agrupar movimentações por cliente_id
+        (todasMovimentacoes || []).forEach(mov => {
+          if (!movimentacoesData[mov.cliente_id]) {
+            movimentacoesData[mov.cliente_id] = [];
+          }
+          movimentacoesData[mov.cliente_id].push(mov);
+        });
+      }
+      
+      // Se há nomes de clientes sem ID, buscar por nome (fallback)
+      if (clienteNomes.length > 0) {
+        for (const nome of clienteNomes) {
+          if (!Object.values(clientesData).find(c => c.tooltip_eq === nome)) {
+            const { data: clienteData } = await supabase
               .from('clientes')
               .select('id, foto_url, telefone')
               .eq('estabelecimento_id', estabelecimentoId)
-              .ilike('nome', ag.cliente)
+              .ilike('nome', nome)
               .limit(1)
               .maybeSingle();
             
-            if (clienteError) {
-              logger.debug('❌ [MÊS] Erro ao buscar dados do cliente por nome:', clienteError);
-            }
-            
             if (clienteData) {
-              clienteIdFinal = clienteData.id; // Atualizar o cliente_id
-              clienteFoto = clienteData.foto_url;
-              clienteTelefone = clienteData.telefone;
+              clientesData[clienteData.id] = clienteData;
               
-              logger.debug('✅ [MÊS] Cliente encontrado por nome:', {
-                cliente_id: clienteData.id,
-                telefone: clienteTelefone
-              });
-              
-              // Buscar saldo do crediário
-              const { data: movimentacoes } = await supabase
+              // Se encontrou por nome, buscar suas movimentações também
+              const { data: movs } = await supabase
                 .from('crediario_movimentacoes')
-                .select('valor')
+                .select('valor, cliente_id')
                 .eq('cliente_id', clienteData.id);
               
-              if (movimentacoes && movimentacoes.length > 0) {
-                clienteSaldo = movimentacoes.reduce((total, mov) => {
-                  const valorNumerico = typeof mov.valor === 'string' 
-                    ? parseFloat(mov.valor.replace(',', '.')) 
-                    : mov.valor;
-                  return total + (valorNumerico || 0);
-                }, 0);
-              } else {
-                clienteSaldo = 0;
+              if (movs && movs.length > 0) {
+                movimentacoesData[clienteData.id] = movs;
               }
-            } else {
-              logger.debug('⚠️ [MÊS] Cliente não encontrado no banco com nome:', ag.cliente);
             }
-          } else {
-            logger.debug('⚠️ [MÊS] Agendamento sem cliente_id e sem nome:', ag.id);
           }
+        }
+      }
+      
+      // 📊 Montar resultado combinando agendamentos com dados de clientes
+      const agendamentosComClientes = (data || []).map((ag: any) => {
+        let cliente_foto = null;
+        let cliente_telefone = null;
+        let cliente_saldo = 0;
+        
+        const cliente = ag.cliente_id ? clientesData[ag.cliente_id] : null;
+        
+        if (cliente) {
+          cliente_foto = cliente.foto_url;
+          cliente_telefone = cliente.telefone;
           
-          logger.debug('🔚 [MÊS] Resultado final do agendamento:', {
-            agendamento_id: ag.id,
-            cliente: ag.cliente,
-            cliente_id_final: clienteIdFinal,
-            telefone_final: clienteTelefone,
-            tem_telefone: !!clienteTelefone
-          });
-          
-          return {
-            ...ag,
-            cliente_id: clienteIdFinal, // Garantir que o cliente_id está presente
-            cliente_foto: clienteFoto,
-            cliente_telefone: clienteTelefone,
-            cliente_saldo: clienteSaldo,
-          };
-        })
-      );
+          // Calcular saldo agregado
+          const movimentacoes = movimentacoesData[ag.cliente_id] || [];
+          cliente_saldo = movimentacoes.reduce((total: number, mov: any) => {
+            const valorNumerico = typeof mov.valor === 'string' 
+              ? parseFloat(mov.valor.replace(',', '.')) 
+              : mov.valor;
+            return total + (valorNumerico || 0);
+          }, 0);
+        }
+        
+        return {
+          ...ag,
+          cliente_foto,
+          cliente_telefone,
+          cliente_saldo,
+        };
+      });
+      
+      logger.debug(`✅ [OTIMIZADO MÊS] Agendamentos processados com 3 queries ao invés de ${1 + (data?.length || 0) * 2}`);
       
       // Salvar no cache com TTL de 2 minutos
       await CacheManager.set(
@@ -1273,19 +1146,6 @@ export default function AgendaScreen() {
   useEffect(() => {
     atualizarListaHorarios();
   }, [horarioInicio, horarioFim, intervaloAgendamentos, temIntervalo, horarioIntervaloInicio, horarioIntervaloFim]);
-  
-  // Função para converter hora no formato "HH:MM" para minutos
-  const converterHoraParaMinutos = (hora: string) => {
-    const [horas, minutos] = hora.split(':').map(Number);
-    return horas * 60 + minutos;
-  };
-  
-  // Função para converter minutos para hora no formato "HH:MM"
-  const converterMinutosParaHora = (minutos: number) => {
-    const horas = Math.floor(minutos / 60);
-    const mins = minutos % 60;
-    return `${horas.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-  };
   
   // Função para formatar a entrada de hora
   const formatarHoraInput = (text: string) => {
@@ -1761,26 +1621,27 @@ export default function AgendaScreen() {
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <TouchableOpacity 
-          style={styles.dateContainer}
+          style={[styles.dateContainer, isToday(selectedDate) && styles.dateContainerToday]}
           onPress={() => setShowCalendar(!showCalendar)}
         >
-          <Ionicons name="calendar-outline" size={20} color={colors.text} />
-          <Text style={styles.dateText}>
+          <Ionicons name="calendar-outline" size={20} color={isToday(selectedDate) ? colors.white : colors.text} />
+          <Text style={[styles.dateText, isToday(selectedDate) && styles.dateTodayText]}>
             {selectedDate.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}
+            {isToday(selectedDate) && ' · HOJE'}
           </Text>
-          <Ionicons name={showCalendar ? "chevron-up" : "chevron-down"} size={20} color={colors.text} />
-        </TouchableOpacity>
-
-        {/* Botão que alterna entre grade e lista */}
-        <TouchableOpacity
-          style={{ marginRight: 8, padding: 6 }}
-          onPress={() => setViewMode(prev => prev === 'grid' ? 'list' : 'grid')}
-        >
-          <Ionicons name={viewMode === 'grid' ? 'list' : 'grid'} size={20} color={colors.text} />
+          <Ionicons name={showCalendar ? "chevron-up" : "chevron-down"} size={20} color={isToday(selectedDate) ? colors.white : colors.text} />
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => navegarData('proximo')}>
           <Ionicons name="chevron-forward" size={24} color={colors.text} />
+        </TouchableOpacity>
+
+        {/* Botão que alterna entre grade e lista */}
+        <TouchableOpacity
+          style={{ marginLeft: 8, padding: 6 }}
+          onPress={() => setViewMode(prev => prev === 'grid' ? 'list' : 'grid')}
+        >
+          <Ionicons name={viewMode === 'grid' ? 'list' : 'grid'} size={20} color={colors.text} />
         </TouchableOpacity>
       </View>
 
@@ -1845,7 +1706,11 @@ export default function AgendaScreen() {
                         style={styles.avatarImage} 
                       />
                     ) : (
-                      <Ionicons name="person" size={24} color={colors.textSecondary} />
+                      <View style={[styles.avatarInitials, { backgroundColor: getAvatarColor(usuario.nome_completo) }]}>
+                        <Text style={styles.avatarInitialsText}>
+                          {getInitials(usuario.nome_completo)}
+                        </Text>
+                      </View>
                     )}
                   </View>
                   <Text style={styles.avatarName}>{usuario.nome_completo}</Text>
@@ -1870,11 +1735,11 @@ export default function AgendaScreen() {
               <Text style={styles.diaBloqueadoText}>Dia Bloqueado</Text>
               <Text style={styles.diaBloqueadoSubtext}>Não são permitidos agendamentos para este dia</Text>
             </View>
-          ) : (
-            horarios.length === 0 ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={styles.loadingText}>Carregando horários...</Text>
+          ) : horarios.length === 0 ? (
+              <View style={styles.loadingSkeletonsContainer}>
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <SkeletonAgendamento key={index} />
+                ))}
               </View>
             ) : (() => {
             // Função para converter TIME (HH:MM:SS ou HH:MM) para minutos totais
@@ -2075,25 +1940,31 @@ export default function AgendaScreen() {
                 </View>
               );
             });
-          })()
-        )}
+          })()}
           </ScrollView>
         </View>
       </ScrollView>
 
       {/* SectionList: lista seccionada por data/mês (visível no modo 'list') */}
-      <SectionList
-        sections={listSections}
-        style={{ flex: 1, display: viewMode === 'list' ? 'flex' : 'none' }}
-        keyExtractor={(item) => item.id}
-        renderSectionHeader={({ section }) => (
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionHeaderText}>{section.title}</Text>
-          </View>
-        )}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.listItem}
+      {viewMode === 'list' && loading ? (
+        <View style={{ flex: 1, paddingHorizontal: 16, paddingVertical: 12 }}>
+          {Array.from({ length: 8 }).map((_, index) => (
+            <SkeletonAgendamento key={index} />
+          ))}
+        </View>
+      ) : (
+        <SectionList
+          sections={listSections}
+          style={{ flex: 1, display: viewMode === 'list' ? 'flex' : 'none' }}
+          keyExtractor={(item) => item.id}
+          renderSectionHeader={({ section }) => (
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionHeaderText}>{section.title}</Text>
+            </View>
+          )}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.listItem}
             onPress={() => {
               setAgendamentosDoHorarioSelecionado([item]);
               setShowAgendamentosModal(true);
@@ -2121,6 +1992,7 @@ export default function AgendaScreen() {
           </View>
         )}
       />
+      )}
 
       <Modal
         visible={showPresencaModal}
@@ -2693,7 +2565,7 @@ export default function AgendaScreen() {
                         <Ionicons 
                           name="calendar-outline" 
                           size={20} 
-                          color={item.status === 'agendado' ? colors.primary : '#9CA3AF'} 
+                          color={item.status === 'agendado' ? colors.primaryContrast : '#9CA3AF'} 
                         />
                         <Text style={[
                           styles.statusButtonTextLarge,
@@ -2713,7 +2585,7 @@ export default function AgendaScreen() {
                         <Ionicons 
                           name="checkmark-circle-outline" 
                           size={20} 
-                          color={item.status === 'confirmado' ? colors.success : '#9CA3AF'} 
+                          color={item.status === 'confirmado' ? colors.primaryContrast : '#9CA3AF'} 
                         />
                         <Text style={[
                           styles.statusButtonTextLarge,
@@ -2733,7 +2605,7 @@ export default function AgendaScreen() {
                         <Ionicons 
                           name="close-circle-outline" 
                           size={20} 
-                          color={item.status === 'cancelado' ? colors.error : '#9CA3AF'} 
+                          color={item.status === 'cancelado' ? colors.primaryContrast : '#9CA3AF'} 
                         />
                         <Text style={[
                           styles.statusButtonTextLarge,
@@ -2753,7 +2625,7 @@ export default function AgendaScreen() {
                         <Ionicons 
                           name="checkmark-done-outline" 
                           size={20} 
-                          color={item.status === 'concluido' ? '#6B7280' : '#9CA3AF'} 
+                          color={item.status === 'concluido' ? colors.primaryContrast : '#9CA3AF'} 
                         />
                         <Text style={[
                           styles.statusButtonTextLarge,
@@ -2889,6 +2761,13 @@ const createStyles = (colors: any) => StyleSheet.create({
     flex: 1,
     marginHorizontal: 12,
   },
+  dateContainerToday: {
+    backgroundColor: colors.primary,
+  },
+  dateTodayText: {
+    color: colors.white,
+    fontWeight: '600',
+  },
   dateText: {
     flex: 1,
     marginHorizontal: 8,
@@ -2935,6 +2814,18 @@ const createStyles = (colors: any) => StyleSheet.create({
   avatarImage: {
     width: '100%',
     height: '100%',
+  },
+  avatarInitials: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitialsText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   avatarName: {
     marginTop: 4,
@@ -3322,7 +3213,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   statusButtonActive: {
     borderColor: colors.primary,
-    backgroundColor: colors.primaryBackground,
+    backgroundColor: colors.primary,
   },
   statusButtonTextLarge: {
     fontSize: 14,
@@ -3330,7 +3221,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.textSecondary,
   },
   statusButtonTextActive: {
-    color: colors.text,
+    color: colors.primaryContrast,
     fontWeight: '600',
   },
   detalhesActionsGrid: {
@@ -3672,6 +3563,10 @@ const createStyles = (colors: any) => StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingSkeletonsContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
   loadingText: {
     fontSize: 16,
