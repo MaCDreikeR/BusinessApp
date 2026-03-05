@@ -14,7 +14,6 @@ import { formatarDataInput, formatarTelefoneInput } from '@utils/validators';
 import { theme } from '@utils/theme';
 import { CacheManager, CacheNamespaces } from '../../../utils/cacheManager';
 import { SelectionButton, SELECTION_BUTTON_CONTAINER_STYLE } from '../../../components/Buttons';
-import { ModalGerenciarBloqueios } from '../../../components/ModalGerenciarBloqueios';
 // [CACHE-BUSTER-2025-11-05-14:30] Import condicional: DateTimePicker s• • importado no mobile
 let DateTimePicker: any = null;
 if (Platform.OS !== 'web') {
@@ -146,7 +145,6 @@ export default function NovoAgendamentoScreen() {
   // Adicionar estados para controle de dias bloqueados
   const [diasSemanaBloqueados, setDiasSemanaBloqueados] = useState<number[]>([]);
   const [datasBloqueadas, setDatasBloqueadas] = useState<string[]>([]);
-  const [showBloqueioModal, setShowBloqueioModal] = useState(false);
 
   // Adicionar estado para armazenar o limite de agendamentos simultâneos
   const [limiteSimultaneos, setLimiteSimultaneos] = useState('1');
@@ -2325,19 +2323,6 @@ export default function NovoAgendamentoScreen() {
               {500 - observacoes.length} caracteres restantes
             </Text>
           </View>
-
-          {/* Botão para Gerenciar Bloqueios - apenas para admins */}
-          {(role !== 'profissional' && role !== 'cliente') && (
-            <View style={styles.inputGroup}>
-              <TouchableOpacity
-                style={styles.botaoGerenciarBloqueios}
-                onPress={() => setShowBloqueioModal(true)}
-              >
-                <Ionicons name="lock-closed-outline" size={20} color={colors.white} />
-                <Text style={styles.botaoGerenciarBloqueiosText}>Gerenciar Bloqueios</Text>
-              </TouchableOpacity>
-            </View>
-          )}
         </View>
       </ScrollView>
 
@@ -2546,14 +2531,6 @@ export default function NovoAgendamentoScreen() {
         </TouchableOpacity>
       </Modal>
 
-      {/* Modal de Gerenciar Bloqueios */}
-      <ModalGerenciarBloqueios
-        visible={showBloqueioModal}
-        onClose={() => setShowBloqueioModal(false)}
-        estabelecimentoId={estabelecimentoId}
-        colors={colors}
-        onSave={carregarBloqueios}
-      />
     </View>
   );
 }
@@ -3573,21 +3550,6 @@ const createStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   botaoSalvarText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.white,
-  },
-  botaoGerenciarBloqueios: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: colors.warning,
-    borderRadius: 8,
-    gap: 8,
-  },
-  botaoGerenciarBloqueiosText: {
     fontSize: 14,
     fontWeight: '600',
     color: colors.white,
