@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback , useMemo} from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, Platform, ActivityIndicator, Image, DeviceEventEmitter, FlatList, BackHandler, KeyboardAvoidingView, GestureResponderEvent, NativeSyntheticEvent, Switch, TouchableWithoutFeedback, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, Platform, ActivityIndicator, Image, DeviceEventEmitter, FlatList, BackHandler, KeyboardAvoidingView, GestureResponderEvent, NativeSyntheticEvent, Switch, TouchableWithoutFeedback, Pressable, Animated, Dimensions } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import { format } from 'date-fns';
 import { useRouter, useNavigation, useFocusEffect } from 'expo-router';
@@ -118,6 +118,8 @@ export default function NovoAgendamentoScreen() {
   // Estados para o modal de serviços
   const [modalVisible, setModalVisible] = useState(false);
   const [pesquisaServico, setPesquisaServico] = useState('');
+  const servicosButtonRef = useRef<any>(null);
+  const origemModalRef = useRef({ x: 0, y: 0 });
 
   const [servicosSelecionados, setServicosSelecionados] = useState<ServicoSelecionado[]>([]);
 
@@ -1476,19 +1478,12 @@ export default function NovoAgendamentoScreen() {
     };
   }, []); // Dependências vazias - temDadosPreenchidos e confirmarDescarte capturam estado via closure
 
-  // Modificar o handleFecharModal para fechar o modal e aplicar serviços
-  const handleFecharModal = (confirmar?: boolean) => {
+  const finalizarFechamentoModal = (confirmar?: boolean) => {
     if (confirmar === false) {
-      // Cancelar - limpar seleções e fechar modal
+      // Cancelar - limpar seleções
       setServicosSelecionados([]);
-      setModalVisible(false);
-    } else if (confirmar === true) {
-      // Adicionar - manter seleções e fechar modal
-      setModalVisible(false);
-    } else {
-      // Fechar modal sem parâmetro - apenas fechar
-      setModalVisible(false);
     }
+    setModalVisible(false);
     setMostrarSeletorHorario(false);
   };
 
@@ -1499,16 +1494,125 @@ export default function NovoAgendamentoScreen() {
     return null;
   };
 
-  const abrirModal = () => {
+  // Referências de animação para o modal de serviços
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const translateXAnim = useRef(new Animated.Value(0)).current;
+  const translateYAnim = useRef(new Animated.Value(0)).current;
+
+  const calcularDeslocamentoCentro = (origemX: number, origemY: number) => {
+    const { width, height } = Dimensions.get('window');
+    const centroTelaX = width / 2;
+    const centroTelaY = height / 2;
+
+    return {
+      deltaX: origemX - centroTelaX,
+      deltaY: origemY - centroTelaY,
+    };
+  };
+
+  const iniciarAnimacaoAbertura = (origemX: number, origemY: number) => {
+    const { deltaX, deltaY } = calcularDeslocamentoCentro(origemX, origemY);
+    origemModalRef.current = { x: origemX, y: origemY };
+
+    // Estado inicial saindo da origem do botão
+    scaleAnim.setValue(0.25);
+    opacityAnim.setValue(0);
+    translateXAnim.setValue(deltaX);
+    translateYAnim.setValue(deltaY);
+
     setModalVisible(true);
+
+    requestAnimationFrame(() => {
+      Animated.parallel([
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 7,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateXAnim, {
+          toValue: 0,
+          duration: 240,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateYAnim, {
+          toValue: 0,
+          duration: 240,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+  };
+
+  const abrirModal = () => {
+    const fallbackOrigem = () => {
+      const { width, height } = Dimensions.get('window');
+      iniciarAnimacaoAbertura(width / 2, height / 2);
+    };
+
+    if (servicosButtonRef.current?.measureInWindow) {
+      servicosButtonRef.current.measureInWindow((x: number, y: number, width: number, height: number) => {
+        if (Number.isFinite(x) && Number.isFinite(y)) {
+          const origemX = x + (width / 2);
+          const origemY = y + (height / 2);
+          iniciarAnimacaoAbertura(origemX, origemY);
+          return;
+        }
+        fallbackOrigem();
+      });
+      return;
+    }
+
+    fallbackOrigem();
   };
 
   const abrirModalPacotes = () => {
     setModalPacotesVisible(true);
   };
 
-  const fecharModalComAnimacao = () => {
-    setModalVisible(false);
+  const fecharModalComAnimacao = (confirmar?: boolean) => {
+    const { deltaX, deltaY } = calcularDeslocamentoCentro(origemModalRef.current.x, origemModalRef.current.y);
+
+    // Fecha voltando para a origem do botão
+    Animated.parallel([
+      Animated.timing(scaleAnim, {
+        toValue: 0.25,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateXAnim, {
+        toValue: deltaX,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateYAnim, {
+        toValue: deltaY,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      finalizarFechamentoModal(confirmar);
+      // Reset para garantir próxima abertura consistente
+      scaleAnim.setValue(0);
+      opacityAnim.setValue(0);
+      translateXAnim.setValue(0);
+      translateYAnim.setValue(0);
+    });
+  };
+
+  const handleFecharModal = (confirmar?: boolean) => {
+    fecharModalComAnimacao(confirmar);
   };
 
 
@@ -1750,24 +1854,28 @@ export default function NovoAgendamentoScreen() {
           {/* CAMPO DE SERVIÇO/PACOTE - MOVIDO PARA CIMA DA DATA */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Serviços / Pacotes *</Text>
-            <View style={SELECTION_BUTTON_CONTAINER_STYLE}>
-              <SelectionButton
-                label="Serviços"
-                icon="cut-outline"
-                count={servicosSelecionados.length}
-                selected={servicosSelecionados.length > 0}
-                value={servicosSelecionados.reduce((sum, s) => sum + (s.preco * s.quantidade), 0)}
-                onPress={abrirModal}
-              />
+            <View style={[SELECTION_BUTTON_CONTAINER_STYLE, { paddingHorizontal: 0, justifyContent: 'space-between' }]}>
+              <View ref={servicosButtonRef} collapsable={false} style={{ width: '48.5%' }}>
+                <SelectionButton
+                  label="Serviços"
+                  icon="cut-outline"
+                  count={servicosSelecionados.length}
+                  selected={servicosSelecionados.length > 0}
+                  value={servicosSelecionados.reduce((sum, s) => sum + (s.preco * s.quantidade), 0)}
+                  onPress={abrirModal}
+                />
+              </View>
 
-              <SelectionButton
-                label="Pacotes"
-                icon="gift-outline"
-                count={pacotesSelecionados.length}
-                selected={pacotesSelecionados.length > 0}
-                value={pacotesSelecionados.reduce((sum, p) => sum + (p.valor * p.quantidade), 0)}
-                onPress={abrirModalPacotes}
-              />
+              <View style={{ width: '48.5%' }}>
+                <SelectionButton
+                  label="Pacotes"
+                  icon="gift-outline"
+                  count={pacotesSelecionados.length}
+                  selected={pacotesSelecionados.length > 0}
+                  value={pacotesSelecionados.reduce((sum, p) => sum + (p.valor * p.quantidade), 0)}
+                  onPress={abrirModalPacotes}
+                />
+              </View>
             </View>
             {renderError('servico')}
             {servicosSelecionados.length === 0 && pacotesSelecionados.length === 0 && (
@@ -1949,14 +2057,24 @@ export default function NovoAgendamentoScreen() {
           <Modal
             visible={modalVisible}
             transparent={true}
-            animationType="fade"
+            animationType="none"
             onRequestClose={() => handleFecharModal()}
           >
             <Pressable style={styles.modalBackdrop} onPress={() => handleFecharModal()}>
-              <Pressable 
-                style={styles.modalCard}
-                onPress={(e) => e.stopPropagation()}
+              <Animated.View
+                style={[
+                  styles.modalCard,
+                  {
+                    transform: [
+                      { translateX: translateXAnim },
+                      { translateY: translateYAnim },
+                      { scale: scaleAnim },
+                    ],
+                    opacity: opacityAnim,
+                  }
+                ]}
               >
+                <Pressable onPress={(e) => e.stopPropagation()}>
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>Selecionar Serviços</Text>
                 </View>
@@ -2075,6 +2193,7 @@ export default function NovoAgendamentoScreen() {
                   </TouchableOpacity>
                 </View>
               </Pressable>
+            </Animated.View>
             </Pressable>
           </Modal>
 
@@ -2302,7 +2421,7 @@ export default function NovoAgendamentoScreen() {
             </View>
           </View>
 
-          <View style={styles.inputGroup}>
+          <View style={[styles.inputGroup, { marginBottom: 24 }]}>
             <Text style={styles.label}>Observações</Text>
             <TextInput
               style={[styles.input, styles.textArea]}

@@ -1,5 +1,5 @@
-﻿import React, { useState, useEffect , useMemo, useCallback} from 'react';
-import { StyleSheet, View, FlatList, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator, DeviceEventEmitter, ScrollView, Pressable, Text } from 'react-native';
+﻿import React, { useState, useEffect , useMemo, useCallback, useRef} from 'react';
+import { StyleSheet, View, FlatList, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator, DeviceEventEmitter, ScrollView, Pressable, Text, Animated, Dimensions } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { ThemedText } from '../../components/ThemedText';
 import { ThemedView } from '../../components/ThemedView';
@@ -60,15 +60,68 @@ export default function ServicosScreen() {
   const [duracaoServico, setDuracaoServico] = useState(''); // Duração opcional (vazio por padrão)
   const [loadingCategorias, setLoadingCategorias] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<ServicoFieldErrors>({});
+  const origemModalServicoRef = useRef({ x: 0, y: 0 });
+  const scaleServicoModalAnim = useRef(new Animated.Value(0)).current;
+  const opacityServicoModalAnim = useRef(new Animated.Value(0)).current;
+  const translateXServicoModalAnim = useRef(new Animated.Value(0)).current;
+  const translateYServicoModalAnim = useRef(new Animated.Value(0)).current;
+
+  const calcularDeslocamentoCentroServico = (origemX: number, origemY: number) => {
+    const { width, height } = Dimensions.get('window');
+    return {
+      deltaX: origemX - (width / 2),
+      deltaY: origemY - (height / 2),
+    };
+  };
+
+  const abrirModalServicoComOrigem = (origem?: { x?: number; y?: number }) => {
+    const { width, height } = Dimensions.get('window');
+    const origemX = Number.isFinite(origem?.x) ? Number(origem?.x) : (width / 2);
+    const origemY = Number.isFinite(origem?.y) ? Number(origem?.y) : (height / 2);
+    const { deltaX, deltaY } = calcularDeslocamentoCentroServico(origemX, origemY);
+
+    origemModalServicoRef.current = { x: origemX, y: origemY };
+    scaleServicoModalAnim.setValue(0.25);
+    opacityServicoModalAnim.setValue(0);
+    translateXServicoModalAnim.setValue(deltaX);
+    translateYServicoModalAnim.setValue(deltaY);
+    setModalVisible(true);
+
+    requestAnimationFrame(() => {
+      Animated.parallel([
+        Animated.spring(scaleServicoModalAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 7,
+        }),
+        Animated.timing(opacityServicoModalAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateXServicoModalAnim, {
+          toValue: 0,
+          duration: 240,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateYServicoModalAnim, {
+          toValue: 0,
+          duration: 240,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+  };
 
   useFocusEffect(
     useCallback(() => {
       carregarServicos();
       carregarCategorias();
 
-      const subscription = DeviceEventEmitter.addListener('addServico', () => {
+      const subscription = DeviceEventEmitter.addListener('addServico', (payload?: { x?: number; y?: number }) => {
         resetServicoModal();
-        setModalVisible(true);
+        abrirModalServicoComOrigem(payload);
       });
 
       const subscriptionCategorias = DeviceEventEmitter.addListener('abrirModalCategorias', () => {
@@ -199,8 +252,37 @@ export default function ServicosScreen() {
   };
 
   const fecharModalServico = () => {
-    resetServicoModal();
-    setModalVisible(false);
+    const { deltaX, deltaY } = calcularDeslocamentoCentroServico(origemModalServicoRef.current.x, origemModalServicoRef.current.y);
+
+    Animated.parallel([
+      Animated.timing(scaleServicoModalAnim, {
+        toValue: 0.25,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityServicoModalAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateXServicoModalAnim, {
+        toValue: deltaX,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateYServicoModalAnim, {
+        toValue: deltaY,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      resetServicoModal();
+      setModalVisible(false);
+      scaleServicoModalAnim.setValue(0);
+      opacityServicoModalAnim.setValue(0);
+      translateXServicoModalAnim.setValue(0);
+      translateYServicoModalAnim.setValue(0);
+    });
   };
 
   const validarServico = (): ServicoFieldErrors => {
@@ -503,7 +585,7 @@ export default function ServicosScreen() {
 
   const renderItem = ({ item }: { item: ServicoComCategoria }) => (
     <View style={[styles.servicoItem, { backgroundColor }]}>
-      <TouchableOpacity style={styles.servicoInfo} onPress={() => {
+      <TouchableOpacity style={styles.servicoInfo} onPress={(event) => {
         setFieldErrors({});
         setServicoEditando(item);
         setNomeServico(item.nome);
@@ -511,7 +593,10 @@ export default function ServicosScreen() {
         setCategoriaServico(item.categoria_id || '');
         setDescricaoServico(item.descricao || '');
         setDuracaoServico(item.duracao ? item.duracao.toString() : '');
-        setModalVisible(true);
+        abrirModalServicoComOrigem({
+          x: event.nativeEvent.pageX,
+          y: event.nativeEvent.pageY,
+        });
       }}>
         <ThemedText style={styles.servicoNome}>{item.nome}</ThemedText>
         <ThemedText style={styles.servicoDescricao}>{item.descricao}</ThemedText>
@@ -556,7 +641,7 @@ export default function ServicosScreen() {
     setPreco(servico.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
     setCategoriaId(servico.categoria_id);
     carregarCategorias();
-    setModalVisible(true);
+    abrirModalServicoComOrigem();
   };
 
   const limparFormulario = () => {
@@ -640,14 +725,26 @@ export default function ServicosScreen() {
       />
 
       <Modal
-        animationType="fade"
+        animationType="none"
         transparent={true}
         visible={modalVisible}
         onRequestClose={fecharModalServico}
         >
           <View style={styles.modalBackdrop}>
             <Pressable style={StyleSheet.absoluteFill} onPress={fecharModalServico} />
-            <View style={styles.modalCardLarge}>
+            <Animated.View
+              style={[
+                styles.modalCardLarge,
+                {
+                  transform: [
+                    { translateX: translateXServicoModalAnim },
+                    { translateY: translateYServicoModalAnim },
+                    { scale: scaleServicoModalAnim },
+                  ],
+                  opacity: opacityServicoModalAnim,
+                }
+              ]}
+            >
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>
                   {servicoEditando ? 'Editar Serviço' : 'Novo Serviço'}
@@ -756,7 +853,7 @@ export default function ServicosScreen() {
                   </Button>
                 </View>
               </View>
-            </View>
+            </Animated.View>
           </View>
       </Modal>
 

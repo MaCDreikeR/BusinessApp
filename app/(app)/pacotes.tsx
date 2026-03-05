@@ -1,5 +1,5 @@
-import React, { useState, useEffect , useMemo, useCallback} from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, ScrollView, Modal, Pressable, ActivityIndicator, TextStyle, TouchableWithoutFeedback , DeviceEventEmitter } from 'react-native';
+import React, { useState, useEffect , useMemo, useCallback, useRef} from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, ScrollView, Modal, Pressable, ActivityIndicator, TextStyle, TouchableWithoutFeedback , DeviceEventEmitter, Animated, Dimensions } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { offlineInsert, offlineUpdate, offlineDelete, getOfflineFeedback } from '../../services/offlineSupabase';
@@ -103,13 +103,189 @@ export default function PacotesScreen() {
   const [pacoteId, setPacoteId] = useState<string>('');
   const [fieldErrors, setFieldErrors] = useState<PacoteFieldErrors>({});
   const { session } = useAuth();
+  const produtosButtonRef = useRef<any>(null);
+  const servicosButtonRef = useRef<any>(null);
+  const origemModalSelecaoRef = useRef({ x: 0, y: 0 });
+  const scaleSelecaoAnim = useRef(new Animated.Value(0)).current;
+  const opacitySelecaoAnim = useRef(new Animated.Value(0)).current;
+  const translateXSelecaoAnim = useRef(new Animated.Value(0)).current;
+  const translateYSelecaoAnim = useRef(new Animated.Value(0)).current;
+  const origemModalPacoteRef = useRef({ x: 0, y: 0 });
+  const scalePacoteAnim = useRef(new Animated.Value(0)).current;
+  const opacityPacoteAnim = useRef(new Animated.Value(0)).current;
+  const translateXPacoteAnim = useRef(new Animated.Value(0)).current;
+  const translateYPacoteAnim = useRef(new Animated.Value(0)).current;
+
+  const calcularDeslocamentoCentroSelecao = (origemX: number, origemY: number) => {
+    const { width, height } = Dimensions.get('window');
+    return {
+      deltaX: origemX - (width / 2),
+      deltaY: origemY - (height / 2),
+    };
+  };
+
+  const iniciarAnimacaoAberturaSelecao = (
+    origemX: number,
+    origemY: number,
+    mostrarModal: (visible: boolean) => void
+  ) => {
+    const { deltaX, deltaY } = calcularDeslocamentoCentroSelecao(origemX, origemY);
+    origemModalSelecaoRef.current = { x: origemX, y: origemY };
+
+    scaleSelecaoAnim.setValue(0.25);
+    opacitySelecaoAnim.setValue(0);
+    translateXSelecaoAnim.setValue(deltaX);
+    translateYSelecaoAnim.setValue(deltaY);
+    mostrarModal(true);
+
+    requestAnimationFrame(() => {
+      Animated.parallel([
+        Animated.spring(scaleSelecaoAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 7,
+        }),
+        Animated.timing(opacitySelecaoAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateXSelecaoAnim, {
+          toValue: 0,
+          duration: 240,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateYSelecaoAnim, {
+          toValue: 0,
+          duration: 240,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+  };
+
+  const fecharModalSelecaoComAnimacao = (onAfterClose: () => void) => {
+    const { deltaX, deltaY } = calcularDeslocamentoCentroSelecao(origemModalSelecaoRef.current.x, origemModalSelecaoRef.current.y);
+
+    Animated.parallel([
+      Animated.timing(scaleSelecaoAnim, {
+        toValue: 0.25,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacitySelecaoAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateXSelecaoAnim, {
+        toValue: deltaX,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateYSelecaoAnim, {
+        toValue: deltaY,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      scaleSelecaoAnim.setValue(0);
+      opacitySelecaoAnim.setValue(0);
+      translateXSelecaoAnim.setValue(0);
+      translateYSelecaoAnim.setValue(0);
+      onAfterClose();
+    });
+  };
+
+  const calcularDeslocamentoCentroPacote = (origemX: number, origemY: number) => {
+    const { width, height } = Dimensions.get('window');
+    return {
+      deltaX: origemX - (width / 2),
+      deltaY: origemY - (height / 2),
+    };
+  };
+
+  const abrirModalPacoteComOrigem = (origem?: { x?: number; y?: number }) => {
+    const { width, height } = Dimensions.get('window');
+    const origemX = Number.isFinite(origem?.x) ? Number(origem?.x) : (width / 2);
+    const origemY = Number.isFinite(origem?.y) ? Number(origem?.y) : (height / 2);
+    const { deltaX, deltaY } = calcularDeslocamentoCentroPacote(origemX, origemY);
+
+    origemModalPacoteRef.current = { x: origemX, y: origemY };
+    scalePacoteAnim.setValue(0.25);
+    opacityPacoteAnim.setValue(0);
+    translateXPacoteAnim.setValue(deltaX);
+    translateYPacoteAnim.setValue(deltaY);
+    setMostrarModal(true);
+
+    requestAnimationFrame(() => {
+      Animated.parallel([
+        Animated.spring(scalePacoteAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 7,
+        }),
+        Animated.timing(opacityPacoteAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateXPacoteAnim, {
+          toValue: 0,
+          duration: 240,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateYPacoteAnim, {
+          toValue: 0,
+          duration: 240,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+  };
+
+  const fecharModalPacoteComAnimacao = (onAfterClose?: () => void) => {
+    const { deltaX, deltaY } = calcularDeslocamentoCentroPacote(origemModalPacoteRef.current.x, origemModalPacoteRef.current.y);
+
+    Animated.parallel([
+      Animated.timing(scalePacoteAnim, {
+        toValue: 0.25,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityPacoteAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateXPacoteAnim, {
+        toValue: deltaX,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateYPacoteAnim, {
+        toValue: deltaY,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setMostrarModal(false);
+      scalePacoteAnim.setValue(0);
+      opacityPacoteAnim.setValue(0);
+      translateXPacoteAnim.setValue(0);
+      translateYPacoteAnim.setValue(0);
+      onAfterClose?.();
+    });
+  };
 
   useFocusEffect(
     useCallback(() => {
       carregarPacotes();
       
-      const subscription = DeviceEventEmitter.addListener('addPacote', () => {
-        handleNovoPacote();
+      const subscription = DeviceEventEmitter.addListener('addPacote', (payload?: { x?: number; y?: number }) => {
+        handleNovoPacote(payload);
       });
 
       return () => {
@@ -260,7 +436,7 @@ export default function PacotesScreen() {
     }
   };
 
-  const handleNovoPacote = () => {
+  const handleNovoPacote = (origem?: { x?: number; y?: number }) => {
     setPacoteEmEdicao(null);
     setNovoPacote({
       nome: '',
@@ -270,10 +446,10 @@ export default function PacotesScreen() {
       produtos: [],
       servicos: []
     });
-    setMostrarModal(true);
+    abrirModalPacoteComOrigem(origem);
   };
 
-  const handleEditarPacote = (pacote: PacoteDetalhado) => {
+  const handleEditarPacote = (pacote: PacoteDetalhado, origem?: { x?: number; y?: number }) => {
     setPacoteEmEdicao(pacote);
     
     // Recalcular a soma dos servi�os e produtos (sem desconto)
@@ -295,7 +471,7 @@ export default function PacotesScreen() {
       produtos: pacote.produtos || [],
       servicos: pacote.servicos || []
     });
-    setMostrarModal(true);
+    abrirModalPacoteComOrigem(origem);
   };
 
   const handleExcluirPacote = async (pacote: PacoteDetalhado) => {
@@ -458,15 +634,16 @@ export default function PacotesScreen() {
       }
 
       await carregarPacotes();
-      setMostrarModal(false);
-      setPacoteEmEdicao(null);
-      setNovoPacote({
-        nome: '',
-        descricao: '',
-        valor: '',
-        desconto: '',
-        produtos: [],
-        servicos: []
+      fecharModalPacoteComAnimacao(() => {
+        setPacoteEmEdicao(null);
+        setNovoPacote({
+          nome: '',
+          descricao: '',
+          valor: '',
+          desconto: '',
+          produtos: [],
+          servicos: []
+        });
       });
       
       const feedback = getOfflineFeedback(lastFromCache, pacoteEmEdicao ? 'update' : 'create');
@@ -525,8 +702,9 @@ export default function PacotesScreen() {
   };
 
   const fecharModalPacote = () => {
-    resetPacoteModal();
-    setMostrarModal(false);
+    fecharModalPacoteComAnimacao(() => {
+      resetPacoteModal();
+    });
   };
 
   const handleAdicionarProdutos = async () => {
@@ -561,7 +739,9 @@ export default function PacotesScreen() {
 
       setProdutosSelecionados([]);
       setQuantidadesProdutos({});
-      setMostrarModalProdutos(false);
+      fecharModalSelecaoComAnimacao(() => {
+        setMostrarModalProdutos(false);
+      });
       
       Alert.alert('Sucesso', 'Produtos adicionados com sucesso!');
     } catch (error) {
@@ -602,7 +782,9 @@ export default function PacotesScreen() {
 
     setServicosSelecionados([]);
     setQuantidadesServicos({});
-    setMostrarModalServicos(false);
+    fecharModalSelecaoComAnimacao(() => {
+      setMostrarModalServicos(false);
+    });
   };
 
   const handleRemoverProduto = (index: number) => {
@@ -634,7 +816,24 @@ export default function PacotesScreen() {
     if (produtos.length === 0) {
       await carregarProdutos();
     }
-    setMostrarModalProdutos(true);
+
+    const fallbackOrigem = () => {
+      const { width, height } = Dimensions.get('window');
+      iniciarAnimacaoAberturaSelecao(width / 2, height / 2, setMostrarModalProdutos);
+    };
+
+    if (produtosButtonRef.current?.measureInWindow) {
+      produtosButtonRef.current.measureInWindow((x: number, y: number, width: number, height: number) => {
+        if (Number.isFinite(x) && Number.isFinite(y)) {
+          iniciarAnimacaoAberturaSelecao(x + (width / 2), y + (height / 2), setMostrarModalProdutos);
+          return;
+        }
+        fallbackOrigem();
+      });
+      return;
+    }
+
+    fallbackOrigem();
   };
 
   const handleMostrarModalServicos = async () => {
@@ -642,7 +841,24 @@ export default function PacotesScreen() {
     if (servicos.length === 0) {
       await carregarServicos();
     }
-    setMostrarModalServicos(true);
+
+    const fallbackOrigem = () => {
+      const { width, height } = Dimensions.get('window');
+      iniciarAnimacaoAberturaSelecao(width / 2, height / 2, setMostrarModalServicos);
+    };
+
+    if (servicosButtonRef.current?.measureInWindow) {
+      servicosButtonRef.current.measureInWindow((x: number, y: number, width: number, height: number) => {
+        if (Number.isFinite(x) && Number.isFinite(y)) {
+          iniciarAnimacaoAberturaSelecao(x + (width / 2), y + (height / 2), setMostrarModalServicos);
+          return;
+        }
+        fallbackOrigem();
+      });
+      return;
+    }
+
+    fallbackOrigem();
   };
 
   const renderItem = ({ item }: { item: PacoteDetalhado }) => {
@@ -661,7 +877,10 @@ export default function PacotesScreen() {
     return (
     <TouchableOpacity 
       style={styles.pacoteCard}
-      onPress={() => handleEditarPacote(item)}
+      onPress={(event) => handleEditarPacote(item, {
+        x: event.nativeEvent.pageX,
+        y: event.nativeEvent.pageY,
+      })}
     >
       <View style={styles.pacoteHeader}>
         <View style={styles.pacoteInfo}>
@@ -807,12 +1026,24 @@ export default function PacotesScreen() {
       <Modal
         visible={mostrarModal}
         transparent={true}
-        animationType="fade"
+        animationType="none"
         onRequestClose={fecharModalPacote}
       >
         <View style={styles.modalBackdrop}>
           <Pressable style={StyleSheet.absoluteFill} onPress={fecharModalPacote} />
-          <View style={styles.modalCardLarge}>
+          <Animated.View
+            style={[
+              styles.modalCardLarge,
+              {
+                transform: [
+                  { translateX: translateXPacoteAnim },
+                  { translateY: translateYPacoteAnim },
+                  { scale: scalePacoteAnim },
+                ],
+                opacity: opacityPacoteAnim,
+              }
+            ]}
+          >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {pacoteEmEdicao ? 'Editar Pacote' : 'Novo Pacote'}
@@ -855,23 +1086,27 @@ export default function PacotesScreen() {
                   {/* Seção de itens - botões lado a lado como em Comandas */}
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>Itens do Pacote</Text>
-                    <View style={SELECTION_BUTTON_CONTAINER_STYLE}>
-                      <SelectionButton
-                        label="Produtos"
-                        icon="cube-outline"
-                        count={novoPacote.produtos.length}
-                        selected={novoPacote.produtos.length > 0}
-                        value={novoPacote.produtos.reduce((sum, p) => sum + ((p.produto?.preco || 0) * p.quantidade), 0)}
-                        onPress={handleMostrarModalProdutos}
-                      />
-                      <SelectionButton
-                        label="Serviços"
-                        icon="cut-outline"
-                        count={novoPacote.servicos.length}
-                        selected={novoPacote.servicos.length > 0}
-                        value={novoPacote.servicos.reduce((sum, s) => sum + ((s.servico?.preco || 0) * s.quantidade), 0)}
-                        onPress={handleMostrarModalServicos}
-                      />
+                    <View style={[SELECTION_BUTTON_CONTAINER_STYLE, { paddingHorizontal: 0, justifyContent: 'space-between' }]}>
+                      <View ref={produtosButtonRef} collapsable={false} style={{ width: '48.5%' }}>
+                        <SelectionButton
+                          label="Produtos"
+                          icon="cube-outline"
+                          count={novoPacote.produtos.length}
+                          selected={novoPacote.produtos.length > 0}
+                          value={novoPacote.produtos.reduce((sum, p) => sum + ((p.produto?.preco || 0) * p.quantidade), 0)}
+                          onPress={handleMostrarModalProdutos}
+                        />
+                      </View>
+                      <View ref={servicosButtonRef} collapsable={false} style={{ width: '48.5%' }}>
+                        <SelectionButton
+                          label="Serviços"
+                          icon="cut-outline"
+                          count={novoPacote.servicos.length}
+                          selected={novoPacote.servicos.length > 0}
+                          value={novoPacote.servicos.reduce((sum, s) => sum + ((s.servico?.preco || 0) * s.quantidade), 0)}
+                          onPress={handleMostrarModalServicos}
+                        />
+                      </View>
                     </View>
                   </View>
 
@@ -1007,7 +1242,7 @@ export default function PacotesScreen() {
                 </Button>
               </View>
             </View>
-          </View>
+          </Animated.View>
         </View>
       </Modal>
 
@@ -1015,25 +1250,41 @@ export default function PacotesScreen() {
       <Modal
         visible={mostrarModalProdutos}
         transparent={true}
-        animationType="fade"
+        animationType="none"
         onRequestClose={() => {
-          setMostrarModalProdutos(false);
-          setProdutosSelecionados([]);
-          setQuantidadesProdutos({});
-          setBuscaProduto('');
+          fecharModalSelecaoComAnimacao(() => {
+            setMostrarModalProdutos(false);
+            setProdutosSelecionados([]);
+            setQuantidadesProdutos({});
+            setBuscaProduto('');
+          });
         }}
       >
         <View style={styles.modalBackdrop}>
           <Pressable 
             style={StyleSheet.absoluteFill}
             onPress={() => {
-              setMostrarModalProdutos(false);
-              setProdutosSelecionados([]);
-              setQuantidadesProdutos({});
-              setBuscaProduto('');
+              fecharModalSelecaoComAnimacao(() => {
+                setMostrarModalProdutos(false);
+                setProdutosSelecionados([]);
+                setQuantidadesProdutos({});
+                setBuscaProduto('');
+              });
             }}
           />
-          <View style={styles.modalCard}>
+          <Animated.View
+            style={[
+              styles.modalCard,
+              {
+                transform: [
+                  { translateX: translateXSelecaoAnim },
+                  { translateY: translateYSelecaoAnim },
+                  { scale: scaleSelecaoAnim },
+                ],
+                opacity: opacitySelecaoAnim,
+              }
+            ]}
+          >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Adicionar Produtos</Text>
             </View>
@@ -1141,7 +1392,7 @@ export default function PacotesScreen() {
                 </Button>
               </View>
             </View>
-          </View>
+          </Animated.View>
         </View>
       </Modal>
 
@@ -1149,25 +1400,41 @@ export default function PacotesScreen() {
       <Modal
         visible={mostrarModalServicos}
         transparent={true}
-        animationType="fade"
+        animationType="none"
         onRequestClose={() => {
-          setMostrarModalServicos(false);
-          setServicosSelecionados([]);
-          setQuantidadesServicos({});
-          setBuscaServico('');
+          fecharModalSelecaoComAnimacao(() => {
+            setMostrarModalServicos(false);
+            setServicosSelecionados([]);
+            setQuantidadesServicos({});
+            setBuscaServico('');
+          });
         }}
       >
         <View style={styles.modalBackdrop}>
           <Pressable 
             style={StyleSheet.absoluteFill}
             onPress={() => {
-              setMostrarModalServicos(false);
-              setServicosSelecionados([]);
-              setQuantidadesServicos({});
-              setBuscaServico('');
+              fecharModalSelecaoComAnimacao(() => {
+                setMostrarModalServicos(false);
+                setServicosSelecionados([]);
+                setQuantidadesServicos({});
+                setBuscaServico('');
+              });
             }}
           />
-          <View style={styles.modalCard}>
+          <Animated.View
+            style={[
+              styles.modalCard,
+              {
+                transform: [
+                  { translateX: translateXSelecaoAnim },
+                  { translateY: translateYSelecaoAnim },
+                  { scale: scaleSelecaoAnim },
+                ],
+                opacity: opacitySelecaoAnim,
+              }
+            ]}
+          >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Adicionar Serviços</Text>
             </View>
@@ -1271,7 +1538,7 @@ export default function PacotesScreen() {
                 </Button>
               </View>
             </View>
-          </View>
+          </Animated.View>
         </View>
       </Modal>
     </View>

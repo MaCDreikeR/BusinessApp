@@ -1,6 +1,6 @@
-﻿import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, Modal, Pressable, ActivityIndicator } from 'react-native';
+﻿import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, Modal, Pressable, ActivityIndicator, Animated, Dimensions } from 'react-native';
 import { router } from 'expo-router';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { criarOrcamento, adicionarItemOrcamento, buscarClientes, buscarProdutos, buscarServicos, buscarPacotes, Cliente, Produto, Servico, Pacote } from './utils';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
@@ -89,6 +89,120 @@ export default function NovoOrcamentoScreen() {
   const [termoBusca, setTermoBusca] = useState('');
   const [buscandoItens, setBuscandoItens] = useState(false);
   const [itensEncontrados, setItensEncontrados] = useState<(Produto | Servico | Pacote)[]>([]);
+  const produtoButtonRef = useRef<any>(null);
+  const servicoButtonRef = useRef<any>(null);
+  const pacoteButtonRef = useRef<any>(null);
+  const origemModalRef = useRef({ x: 0, y: 0 });
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const translateXAnim = useRef(new Animated.Value(0)).current;
+  const translateYAnim = useRef(new Animated.Value(0)).current;
+
+  const calcularDeslocamentoCentro = (origemX: number, origemY: number) => {
+    const { width, height } = Dimensions.get('window');
+    return {
+      deltaX: origemX - (width / 2),
+      deltaY: origemY - (height / 2),
+    };
+  };
+
+  const iniciarAnimacaoAberturaModal = (origemX: number, origemY: number) => {
+    const { deltaX, deltaY } = calcularDeslocamentoCentro(origemX, origemY);
+    origemModalRef.current = { x: origemX, y: origemY };
+
+    scaleAnim.setValue(0.25);
+    opacityAnim.setValue(0);
+    translateXAnim.setValue(deltaX);
+    translateYAnim.setValue(deltaY);
+    setModalVisible(true);
+
+    requestAnimationFrame(() => {
+      Animated.parallel([
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 7,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateXAnim, {
+          toValue: 0,
+          duration: 240,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateYAnim, {
+          toValue: 0,
+          duration: 240,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+  };
+
+  const abrirModalItensComOrigem = (
+    tipo: 'produto' | 'servico' | 'pacote',
+    buttonRef: React.RefObject<any>
+  ) => {
+    setTipoItem(tipo);
+    setTermoBusca('');
+    setItensSelecionados([]);
+
+    const fallbackOrigem = () => {
+      const { width, height } = Dimensions.get('window');
+      iniciarAnimacaoAberturaModal(width / 2, height / 2);
+    };
+
+    if (buttonRef.current?.measureInWindow) {
+      buttonRef.current.measureInWindow((x: number, y: number, width: number, height: number) => {
+        if (Number.isFinite(x) && Number.isFinite(y)) {
+          iniciarAnimacaoAberturaModal(x + (width / 2), y + (height / 2));
+          return;
+        }
+        fallbackOrigem();
+      });
+      return;
+    }
+
+    fallbackOrigem();
+  };
+
+  const fecharModalComAnimacao = (onAfterClose?: () => void) => {
+    const { deltaX, deltaY } = calcularDeslocamentoCentro(origemModalRef.current.x, origemModalRef.current.y);
+
+    Animated.parallel([
+      Animated.timing(scaleAnim, {
+        toValue: 0.25,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateXAnim, {
+        toValue: deltaX,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateYAnim, {
+        toValue: deltaY,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setModalVisible(false);
+      scaleAnim.setValue(0);
+      opacityAnim.setValue(0);
+      translateXAnim.setValue(0);
+      translateYAnim.setValue(0);
+      onAfterClose?.();
+    });
+  };
 
   // Função para carregar itens iniciais
   const carregarItensIniciais = useCallback(async () => {
@@ -494,8 +608,8 @@ export default function NovoOrcamentoScreen() {
       return itensAtualizados;
     });
     setItensSelecionados([]);
-    setModalVisible(false);
     setTermoBusca('');
+    fecharModalComAnimacao();
   };
 
   // Adicionar useEffect para monitorar mudanças no estado itens
@@ -723,42 +837,39 @@ export default function NovoOrcamentoScreen() {
           
           <View style={styles.tipoItemContainer}>
             <Text style={styles.label}>Adicionar Item</Text>
-            <View style={SELECTION_BUTTON_CONTAINER_STYLE}>
-              <SelectionButton
-                label="Produto"
-                icon="cube-outline"
-                onPress={() => {
-                  logger.debug('Abrindo modal de produtos');
-                  setTipoItem('produto');
-                  setModalVisible(true);
-                  setTermoBusca('');
-                  setItensSelecionados([]);
-                }}
-              />
+            <View style={[SELECTION_BUTTON_CONTAINER_STYLE, { flexWrap: 'nowrap', paddingHorizontal: 0, gap: 6 }]}>
+              <View ref={produtoButtonRef} collapsable={false} style={{ flex: 1, minWidth: 0 }}>
+                <SelectionButton
+                  label="Produto"
+                  icon="cube-outline"
+                  onPress={() => {
+                    logger.debug('Abrindo modal de produtos');
+                    abrirModalItensComOrigem('produto', produtoButtonRef);
+                  }}
+                />
+              </View>
 
-              <SelectionButton
-                label="Serviço"
-                icon="construct-outline"
-                onPress={() => {
-                  logger.debug('Abrindo modal de serviços');
-                  setTipoItem('servico');
-                  setModalVisible(true);
-                  setTermoBusca('');
-                  setItensSelecionados([]);
-                }}
-              />
+              <View ref={servicoButtonRef} collapsable={false} style={{ flex: 1, minWidth: 0 }}>
+                <SelectionButton
+                  label="Serviço"
+                  icon="construct-outline"
+                  onPress={() => {
+                    logger.debug('Abrindo modal de serviços');
+                    abrirModalItensComOrigem('servico', servicoButtonRef);
+                  }}
+                />
+              </View>
 
-              <SelectionButton
-                label="Pacote"
-                icon="gift-outline"
-                onPress={() => {
-                  logger.debug('Abrindo modal de pacotes');
-                  setTipoItem('pacote');
-                  setModalVisible(true);
-                  setTermoBusca('');
-                  setItensSelecionados([]);
-                }}
-              />
+              <View ref={pacoteButtonRef} collapsable={false} style={{ flex: 1, minWidth: 0 }}>
+                <SelectionButton
+                  label="Pacote"
+                  icon="gift-outline"
+                  onPress={() => {
+                    logger.debug('Abrindo modal de pacotes');
+                    abrirModalItensComOrigem('pacote', pacoteButtonRef);
+                  }}
+                />
+              </View>
             </View>
           </View>
           
@@ -891,13 +1002,26 @@ export default function NovoOrcamentoScreen() {
 
         {/* Modal de Seleção de Itens */}
         <Modal
-          animationType="fade"
+          animationType="none"
           transparent={true}
           visible={modalVisible}
-          onRequestClose={() => setModalVisible(false)}
+          onRequestClose={() => fecharModalComAnimacao()}
         >
-          <Pressable style={styles.modalBackdrop} onPress={() => setModalVisible(false)}>
-            <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+          <Pressable style={styles.modalBackdrop} onPress={() => fecharModalComAnimacao()}>
+            <Animated.View
+              style={[
+                styles.modalCard,
+                {
+                  transform: [
+                    { translateX: translateXAnim },
+                    { translateY: translateYAnim },
+                    { scale: scaleAnim },
+                  ],
+                  opacity: opacityAnim,
+                }
+              ]}
+            >
+            <Pressable onPress={(e) => e.stopPropagation()}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>
                   Selecionar {tipoItem.charAt(0).toUpperCase() + tipoItem.slice(1)}s
@@ -1021,8 +1145,8 @@ export default function NovoOrcamentoScreen() {
                   style={styles.modalCancelButton}
                   onPress={() => {
                     setItensSelecionados([]);
-                    setModalVisible(false);
                     setTermoBusca('');
+                    fecharModalComAnimacao();
                   }}
                 >
                   <Text style={styles.modalCancelButtonText}>Cancelar</Text>
@@ -1041,6 +1165,7 @@ export default function NovoOrcamentoScreen() {
                 </TouchableOpacity>
               </View>
             </Pressable>
+            </Animated.View>
           </Pressable>
         </Modal>
       </View>

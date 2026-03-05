@@ -410,13 +410,14 @@ export default function AppLayout() {
                   <Ionicons name="list" size={24} color={colors.primary} />
                 </TouchableOpacity>
                 <TouchableOpacity 
-                  onPress={() => {
+                  onPress={(event) => {
+                    const origem = { x: event.nativeEvent.pageX, y: event.nativeEvent.pageY };
                     if (pathname === '/servicos') {
-                      DeviceEventEmitter.emit('addServico');
+                      DeviceEventEmitter.emit('addServico', origem);
                     } else {
                       router.push('/servicos');
                       setTimeout(() => {
-                        DeviceEventEmitter.emit('addServico');
+                        DeviceEventEmitter.emit('addServico', origem);
                       }, 100);
                     }
                   }}
@@ -481,13 +482,14 @@ export default function AppLayout() {
             <View style={{ flexDirection: 'row', gap: 8, marginRight: 16 }}>
               {role !== 'profissional' && (
                 <TouchableOpacity
-                  onPress={() => {
+                  onPress={(event) => {
+                    const origem = { x: event.nativeEvent.pageX, y: event.nativeEvent.pageY };
                     if (pathname === '/comandas') {
-                      DeviceEventEmitter.emit('novaComanda');
+                      DeviceEventEmitter.emit('novaComanda', origem);
                     } else {
                       router.push('/comandas');
                       setTimeout(() => {
-                        DeviceEventEmitter.emit('novaComanda');
+                        DeviceEventEmitter.emit('novaComanda', origem);
                       }, 100);
                     }
                   }}
@@ -601,13 +603,14 @@ export default function AppLayout() {
           drawerItemStyle: { display: permissions.pode_ver_comandas ? 'flex' : 'none' },
           headerRight: () => (
             <TouchableOpacity
-              onPress={() => {
+              onPress={(event) => {
+                const origem = { x: event.nativeEvent.pageX, y: event.nativeEvent.pageY };
                 if (pathname === '/comandas') {
-                  DeviceEventEmitter.emit('novaComanda');
+                  DeviceEventEmitter.emit('novaComanda', origem);
                 } else {
                   router.push('/comandas');
                   setTimeout(() => {
-                    DeviceEventEmitter.emit('novaComanda');
+                    DeviceEventEmitter.emit('novaComanda', origem);
                   }, 100);
                 }
               }}
@@ -660,13 +663,14 @@ export default function AppLayout() {
                 <Ionicons name="list" size={24} color={colors.primary} />
               </TouchableOpacity>
               <TouchableOpacity 
-                onPress={() => {
+                onPress={(event) => {
+                  const origem = { x: event.nativeEvent.pageX, y: event.nativeEvent.pageY };
                   if (pathname === '/servicos') {
-                    DeviceEventEmitter.emit('addServico');
+                    DeviceEventEmitter.emit('addServico', origem);
                   } else {
                     router.push('/servicos');
                     setTimeout(() => {
-                      DeviceEventEmitter.emit('addServico');
+                      DeviceEventEmitter.emit('addServico', origem);
                     }, 100);
                   }
                 }}
@@ -690,13 +694,14 @@ export default function AppLayout() {
           headerRight: () => (
             <TouchableOpacity 
               style={{ marginRight: 16 }}
-              onPress={() => {
+              onPress={(event) => {
+                const origem = { x: event.nativeEvent.pageX, y: event.nativeEvent.pageY };
                 if (pathname === '/pacotes') {
-                  DeviceEventEmitter.emit('addPacote');
+                  DeviceEventEmitter.emit('addPacote', origem);
                 } else {
                   router.push('/pacotes');
                   setTimeout(() => {
-                    DeviceEventEmitter.emit('addPacote');
+                    DeviceEventEmitter.emit('addPacote', origem);
                   }, 100);
                 }
               }}

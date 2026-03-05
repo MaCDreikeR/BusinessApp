@@ -38,6 +38,9 @@ export function useRealtimeSubscription(
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastHeartbeatRef = useRef<number>(Date.now());
   const isSubscribedRef = useRef<boolean>(false);
+  const isSubscribingRef = useRef<boolean>(false);
+  const reconnectAttempts = useRef<number>(0);
+  const maxReconnectAttempts = 3;
 
   const {
     event = '*',
@@ -68,14 +71,25 @@ export function useRealtimeSubscription(
       isSubscribedRef.current = false;
     }
     clearTimers();
+    reconnectAttempts.current = 0; // Reset contador ao desconectar manualmente
   }, [channelName, clearTimers]);
 
   // Função para subscribe/reconnect
   const subscribe = useCallback(() => {
+    // Prevenir chamadas concorrentes
+    if (isSubscribingRef.current) {
+      return;
+    }
+
     // Se já está inscrito, não fazer nada
     if (isSubscribedRef.current && channelRef.current) {
       return;
     }
+
+    isSubscribingRef.current = true;
+
+    // Limpar timers existentes ANTES de criar nova subscription
+    clearTimers();
 
     // Unsubscribe anterior se existir
     if (channelRef.current) {
@@ -106,15 +120,30 @@ export function useRealtimeSubscription(
           
           if (status === 'SUBSCRIBED') {
             isSubscribedRef.current = true;
+            isSubscribingRef.current = false;
             lastHeartbeatRef.current = Date.now();
-          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            logger.warn(`⚠️ Erro na subscription ${channelName}, tentando reconnect em ${reconnectInterval}ms`);
+            reconnectAttempts.current = 0; // Reset contador ao conectar
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
             isSubscribedRef.current = false;
+            isSubscribingRef.current = false;
             
-            // Tentar reconectar após intervalo
+            // Incrementar contador de tentativas
+            reconnectAttempts.current += 1;
+            
+            // Verificar se atingiu o máximo
+            if (reconnectAttempts.current > maxReconnectAttempts) {
+              logger.error(`❌ Máximo de tentativas de reconexão atingido para ${channelName}. Desistindo.`);
+              return;
+            }
+            
+            // Backoff exponencial: 5s, 10s, 20s...
+            const backoffDelay = reconnectInterval * Math.pow(2, reconnectAttempts.current - 1);
+            logger.warn(`⚠️ Erro na subscription ${channelName} (${status}). Tentativa ${reconnectAttempts.current}/${maxReconnectAttempts}. Reconnect em ${backoffDelay}ms`);
+            
+            // Tentar reconectar após intervalo com backoff
             reconnectTimerRef.current = setTimeout(() => {
               subscribe();
-            }, reconnectInterval);
+            }, backoffDelay);
           }
         });
 
@@ -126,20 +155,57 @@ export function useRealtimeSubscription(
           const timeSinceLastHeartbeat = Date.now() - lastHeartbeatRef.current;
           
           if (timeSinceLastHeartbeat > heartbeatInterval * 2) {
-            logger.warn(`💔 Heartbeat perdido para ${channelName} (${Math.round(timeSinceLastHeartbeat / 1000)}s), reconectando...`);
             isSubscribedRef.current = false;
-            subscribe();
+            
+            // Incrementar contador de tentativas
+            reconnectAttempts.current += 1;
+            
+            // Verificar se atingiu o máximo
+            if (reconnectAttempts.current > maxReconnectAttempts) {
+              logger.error(`❌ Máximo de tentativas de reconexão atingido para ${channelName} (heartbeat). Desistindo.`);
+              clearTimers();
+              return;
+            }
+            
+            const backoffDelay = reconnectInterval * Math.pow(2, reconnectAttempts.current - 1);
+            logger.warn(`💔 Heartbeat perdido para ${channelName} (${Math.round(timeSinceLastHeartbeat / 1000)}s). Tentativa ${reconnectAttempts.current}/${maxReconnectAttempts}. Reconnect em ${backoffDelay}ms`);
+            
+            // Unsubscribe e agendar reconexão (evita múltiplas subscriptions simultâneas)
+            if (channelRef.current) {
+              channelRef.current.unsubscribe();
+              channelRef.current = null;
+            }
+            
+            clearTimers();
+            
+            reconnectTimerRef.current = setTimeout(() => {
+              subscribe();
+            }, backoffDelay);
           }
         }, heartbeatInterval);
       }
     } catch (error) {
       logger.error(`❌ Erro ao criar subscription ${channelName}:`, error);
       isSubscribedRef.current = false;
+      isSubscribingRef.current = false;
       
-      // Tentar reconectar após intervalo
+      // Incrementar contador de tentativas
+      reconnectAttempts.current += 1;
+      
+      // Verificar se atingiu o máximo
+      if (reconnectAttempts.current > maxReconnectAttempts) {
+        logger.error(`❌ Máximo de tentativas de reconexão atingido para ${channelName}. Desistindo.`);
+        return;
+      }
+      
+      // Backoff exponencial
+      const backoffDelay = reconnectInterval * Math.pow(2, reconnectAttempts.current - 1);
+      logger.warn(`⚠️ Tentativa ${reconnectAttempts.current}/${maxReconnectAttempts}. Reconnect em ${backoffDelay}ms`);
+      
+      // Tentar reconectar após intervalo com backoff
       reconnectTimerRef.current = setTimeout(() => {
         subscribe();
-      }, reconnectInterval);
+      }, backoffDelay);
     }
   }, [channelName, table, event, schema, filter, callback, reconnectInterval, heartbeatInterval]);
 

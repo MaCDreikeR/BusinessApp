@@ -17,7 +17,8 @@ import {
   RefreshControl,
   Image,
   Platform,
-  Pressable
+  Pressable,
+  Dimensions
 } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
@@ -187,7 +188,149 @@ export default function ComandasScreen() {
 
   // Animações para modais
   const translateY = useRef(new Animated.Value(500)).current;
-  const translateYItens = useRef(new Animated.Value(500)).current;
+  const scaleItensAnim = useRef(new Animated.Value(0)).current;
+  const opacityItensAnim = useRef(new Animated.Value(0)).current;
+  const translateXItensAnim = useRef(new Animated.Value(0)).current;
+  const translateYItensAnim = useRef(new Animated.Value(0)).current;
+  const origemModalItensRef = useRef({ x: 0, y: 0 });
+  const produtoButtonNovaRef = useRef<any>(null);
+  const servicoButtonNovaRef = useRef<any>(null);
+  const pacoteButtonNovaRef = useRef<any>(null);
+  const produtoButtonEditRef = useRef<any>(null);
+  const servicoButtonEditRef = useRef<any>(null);
+  const pacoteButtonEditRef = useRef<any>(null);
+  const origemNovaComandaRef = useRef({ x: 0, y: 0 });
+  const scaleNovaComandaAnim = useRef(new Animated.Value(0)).current;
+  const opacityNovaComandaAnim = useRef(new Animated.Value(0)).current;
+  const translateXNovaComandaAnim = useRef(new Animated.Value(0)).current;
+  const translateYNovaComandaAnim = useRef(new Animated.Value(0)).current;
+
+  const calcularDeslocamentoCentroItens = (origemX: number, origemY: number) => {
+    const { width, height } = Dimensions.get('window');
+    return {
+      deltaX: origemX - (width / 2),
+      deltaY: origemY - (height / 2),
+    };
+  };
+
+  const calcularDeslocamentoCentroNovaComanda = (origemX: number, origemY: number) => {
+    const { width, height } = Dimensions.get('window');
+    return {
+      deltaX: origemX - (width / 2),
+      deltaY: origemY - (height / 2),
+    };
+  };
+
+  const abrirModalNovaComandaComOrigem = (origem?: { x?: number; y?: number }) => {
+    const { width, height } = Dimensions.get('window');
+    const origemX = Number.isFinite(origem?.x) ? Number(origem?.x) : (width / 2);
+    const origemY = Number.isFinite(origem?.y) ? Number(origem?.y) : (height / 2);
+    const { deltaX, deltaY } = calcularDeslocamentoCentroNovaComanda(origemX, origemY);
+
+    origemNovaComandaRef.current = { x: origemX, y: origemY };
+    scaleNovaComandaAnim.setValue(0.25);
+    opacityNovaComandaAnim.setValue(0);
+    translateXNovaComandaAnim.setValue(deltaX);
+    translateYNovaComandaAnim.setValue(deltaY);
+    setModalNovaComandaVisible(true);
+
+    requestAnimationFrame(() => {
+      Animated.parallel([
+        Animated.spring(scaleNovaComandaAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 7,
+        }),
+        Animated.timing(opacityNovaComandaAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateXNovaComandaAnim, {
+          toValue: 0,
+          duration: 240,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateYNovaComandaAnim, {
+          toValue: 0,
+          duration: 240,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+  };
+
+  const fecharModalNovaComandaComAnimacao = (onAfterClose?: () => void) => {
+    const { deltaX, deltaY } = calcularDeslocamentoCentroNovaComanda(origemNovaComandaRef.current.x, origemNovaComandaRef.current.y);
+
+    Animated.parallel([
+      Animated.timing(scaleNovaComandaAnim, {
+        toValue: 0.25,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityNovaComandaAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateXNovaComandaAnim, {
+        toValue: deltaX,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateYNovaComandaAnim, {
+        toValue: deltaY,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setModalNovaComandaVisible(false);
+      scaleNovaComandaAnim.setValue(0);
+      opacityNovaComandaAnim.setValue(0);
+      translateXNovaComandaAnim.setValue(0);
+      translateYNovaComandaAnim.setValue(0);
+      onAfterClose?.();
+    });
+  };
+
+  const iniciarAnimacaoAberturaItens = (origemX: number, origemY: number) => {
+    const { deltaX, deltaY } = calcularDeslocamentoCentroItens(origemX, origemY);
+    origemModalItensRef.current = { x: origemX, y: origemY };
+
+    scaleItensAnim.setValue(0.25);
+    opacityItensAnim.setValue(0);
+    translateXItensAnim.setValue(deltaX);
+    translateYItensAnim.setValue(deltaY);
+    setModalItensVisible(true);
+
+    requestAnimationFrame(() => {
+      Animated.parallel([
+        Animated.spring(scaleItensAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 7,
+        }),
+        Animated.timing(opacityItensAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateXItensAnim, {
+          toValue: 0,
+          duration: 240,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateYItensAnim, {
+          toValue: 0,
+          duration: 240,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+  };
 
   const router = useRouter();
   const { session, estabelecimentoId, role } = useAuth(); // Usando o hook useAuth para pegar a sessão, estabelecimento e role
@@ -204,10 +347,10 @@ export default function ComandasScreen() {
         carregarComandas();
       });
       
-      const subscriptionNovaComanda = DeviceEventEmitter.addListener('novaComanda', () => {
+      const subscriptionNovaComanda = DeviceEventEmitter.addListener('novaComanda', (payload?: { x?: number; y?: number }) => {
         logger.debug("Evento novaComanda recebido");
         // Abrir o modal
-        setModalNovaComandaVisible(true);
+        abrirModalNovaComandaComOrigem(payload);
         
         // Pré-carregar alguns clientes
         carregarClientesIniciais();
@@ -667,9 +810,9 @@ export default function ComandasScreen() {
       }
       
       if (!query.trim()) {
-        // Se a busca for vazia, mostrar a lista de clientes iniciais
+        // Busca vazia: mantém a lista fechada para evitar modal longo ao abrir
         setClientesEncontrados(clientes);
-        setMostrarListaClientes(!!clientes.length);
+        setMostrarListaClientes(false);
         return;
       }
       
@@ -922,8 +1065,9 @@ export default function ComandasScreen() {
       setComandas(prevComandas => [novaComandaCompleta, ...prevComandas]);
 
       // Fechar o modal
-      setModalNovaComandaVisible(false);
-      limparFormularioComanda();
+      fecharModalNovaComandaComAnimacao(() => {
+        limparFormularioComanda();
+      });
       
       // Mostrar mensagem de sucesso
       Alert.alert('Sucesso', 'Comanda criada com sucesso!');
@@ -1525,22 +1669,63 @@ export default function ComandasScreen() {
   };
 
   // Função para abrir o modal de seleção de itens
-  const abrirModalItens = (tipo: 'produto' | 'servico' | 'pacote') => {
+  const abrirModalItens = (
+    tipo: 'produto' | 'servico' | 'pacote',
+    origemRef?: React.RefObject<any>
+  ) => {
     setTipoItem(tipo);
     setTermoBusca('');
-    translateYItens.setValue(500); // Garante que o valor inicial está correto
-    setModalItensVisible(true);
+
+    const fallbackOrigem = () => {
+      const { width, height } = Dimensions.get('window');
+      iniciarAnimacaoAberturaItens(width / 2, height / 2);
+    };
+
+    if (origemRef?.current?.measureInWindow) {
+      origemRef.current.measureInWindow((x: number, y: number, width: number, height: number) => {
+        if (Number.isFinite(x) && Number.isFinite(y)) {
+          iniciarAnimacaoAberturaItens(x + (width / 2), y + (height / 2));
+          return;
+        }
+        fallbackOrigem();
+      });
+      return;
+    }
+
+    fallbackOrigem();
   };
 
   // Função para fechar o modal de seleção de itens
   const fecharModalItens = () => {
-    Animated.timing(translateYItens, {
-      toValue: 500,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => {
+    const { deltaX, deltaY } = calcularDeslocamentoCentroItens(origemModalItensRef.current.x, origemModalItensRef.current.y);
+
+    Animated.parallel([
+      Animated.timing(scaleItensAnim, {
+        toValue: 0.25,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityItensAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateXItensAnim, {
+        toValue: deltaX,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateYItensAnim, {
+        toValue: deltaY,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
       setModalItensVisible(false);
-      translateYItens.setValue(500);
+      scaleItensAnim.setValue(0);
+      opacityItensAnim.setValue(0);
+      translateXItensAnim.setValue(0);
+      translateYItensAnim.setValue(0);
     });
   };
 
@@ -1991,22 +2176,36 @@ export default function ComandasScreen() {
       {/* Modal de Nova Comanda */}
       <Modal
         visible={modalNovaComandaVisible}
-        animationType="fade"
+        animationType="none"
         transparent={true}
         onRequestClose={() => {
-          setModalNovaComandaVisible(false);
-          limparFormularioComanda();
+          fecharModalNovaComandaComAnimacao(() => {
+            limparFormularioComanda();
+          });
         }}
       >
         <View style={styles.modalBackdrop}>
           <Pressable 
             style={StyleSheet.absoluteFill} 
             onPress={() => {
-              setModalNovaComandaVisible(false);
-              limparFormularioComanda();
+              fecharModalNovaComandaComAnimacao(() => {
+                limparFormularioComanda();
+              });
             }} 
           />
-          <View style={styles.modalCardLarge}>
+          <Animated.View
+            style={[
+              styles.modalCardLarge,
+              {
+                transform: [
+                  { translateX: translateXNovaComandaAnim },
+                  { translateY: translateYNovaComandaAnim },
+                  { scale: scaleNovaComandaAnim },
+                ],
+                opacity: opacityNovaComandaAnim,
+              }
+            ]}
+          >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Nova Comanda</Text>
             </View>
@@ -2041,17 +2240,14 @@ export default function ComandasScreen() {
                     value={clienteQuery}
                     onChangeText={(text) => {
                       buscarClientes(text);
-                      if (text.length > 0) {
-                        setMostrarListaClientes(true);
-                      }
+                      setMostrarListaClientes(text.trim().length > 0);
                     }}
                     autoCapitalize="words"
                     onFocus={() => {
-                      if (clienteQuery.trim().length === 0) {
-                        // Se o campo estiver vazio, mostrar os clientes iniciais
-                        setClientesEncontrados(clientes);
+                      // Não abrir automaticamente com campo vazio
+                      if (clienteQuery.trim().length > 0) {
+                        setMostrarListaClientes(true);
                       }
-                      setMostrarListaClientes(true);
                     }}
                     onBlur={() => {
                       // Pequeno atraso para permitir a seleção antes de fechar
@@ -2069,7 +2265,7 @@ export default function ComandasScreen() {
                         setClienteQuery('');
                         setSelectedCliente(null);
                         setClientesEncontrados(clientes);
-                        setMostrarListaClientes(!!clientes.length);
+                        setMostrarListaClientes(false);
                       }}
                     >
                       <Ionicons name="close-circle" size={20} color={colors.textTertiary} />
@@ -2152,71 +2348,79 @@ export default function ComandasScreen() {
                 <Text style={styles.sectionTitle}>Itens da Comanda</Text>
                 
                 <View style={styles.tipoItemContainer}>
-                  <View style={SELECTION_BUTTON_CONTAINER_STYLE}>
-                    <SelectionButton
-                      label="Produto"
-                      icon="cube-outline"
-                      onPress={() => {
-                        setTipoItem('produto');
-                        abrirModalItens('produto');
-                      }}
-                    />
+                  <View style={[SELECTION_BUTTON_CONTAINER_STYLE, { paddingHorizontal: 0, justifyContent: 'space-between' }]}>
+                    <View ref={produtoButtonNovaRef} collapsable={false} style={{ width: '48.5%' }}>
+                      <SelectionButton
+                        label="Produto"
+                        icon="cube-outline"
+                        onPress={() => {
+                          setTipoItem('produto');
+                          abrirModalItens('produto', produtoButtonNovaRef);
+                        }}
+                      />
+                    </View>
 
-                    <SelectionButton
-                      label="Serviço"
-                      icon="construct-outline"
-                      onPress={() => {
-                        setTipoItem('servico');
-                        abrirModalItens('servico');
-                      }}
-                    />
+                    <View ref={servicoButtonNovaRef} collapsable={false} style={{ width: '48.5%' }}>
+                      <SelectionButton
+                        label="Serviço"
+                        icon="construct-outline"
+                        onPress={() => {
+                          setTipoItem('servico');
+                          abrirModalItens('servico', servicoButtonNovaRef);
+                        }}
+                      />
+                    </View>
 
-                    <SelectionButton
-                      label="Pacote"
-                      icon="gift-outline"
-                      onPress={() => {
-                        setTipoItem('pacote');
-                        abrirModalItens('pacote');
-                      }}
-                    />
+                    <View ref={pacoteButtonNovaRef} collapsable={false} style={{ width: '48.5%' }}>
+                      <SelectionButton
+                        label="Pacote"
+                        icon="gift-outline"
+                        onPress={() => {
+                          setTipoItem('pacote');
+                          abrirModalItens('pacote', pacoteButtonNovaRef);
+                        }}
+                      />
+                    </View>
 
-                    <SelectionButton
-                      label="Pagamento"
-                      icon="card-outline"
-                      onPress={() => {
-                        // Validação: cliente deve estar selecionado
-                        if (!selectedCliente) {
-                          Alert.alert('Atenção', 'Selecione um cliente primeiro antes de adicionar um pagamento.');
-                          return;
-                        }
-                        
-                        // Validação: cliente deve ter saldo negativo (débito)
-                        if (!selectedCliente.saldo_crediario || selectedCliente.saldo_crediario >= 0) {
-                          Alert.alert(
-                            'Atenção', 
-                            'Esse cliente não tem débito. O saldo atual é ' + 
-                            (selectedCliente.saldo_crediario 
-                              ? `R$ ${selectedCliente.saldo_crediario.toFixed(2)}` 
-                              : 'R$ 0,00') + 
-                            '. Por favor, verifique!'
-                          );
-                          return;
-                        }
-                        
-                        setTipoItem('pagamento');
-                        // Só adiciona se não houver pagamento já na lista
-                        if (!itensSelecionados.some(item => item.tipo === 'pagamento')) {
-                          const novoItem: ItemSelecionado = {
-                            id: `pagamento_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                            nome: 'Pagamento',
-                            preco: 0,
-                            quantidade: 1,
-                            tipo: 'pagamento'
-                          };
-                          setItensSelecionados([...itensSelecionados, novoItem]);
-                        }
-                      }}
-                    />
+                    <View collapsable={false} style={{ width: '48.5%' }}>
+                      <SelectionButton
+                        label="Pagamento"
+                        icon="card-outline"
+                        onPress={() => {
+                          // Validação: cliente deve estar selecionado
+                          if (!selectedCliente) {
+                            Alert.alert('Atenção', 'Selecione um cliente primeiro antes de adicionar um pagamento.');
+                            return;
+                          }
+
+                          // Validação: cliente deve ter saldo negativo (débito)
+                          if (!selectedCliente.saldo_crediario || selectedCliente.saldo_crediario >= 0) {
+                            Alert.alert(
+                              'Atenção', 
+                              'Esse cliente não tem débito. O saldo atual é ' + 
+                              (selectedCliente.saldo_crediario 
+                                ? `R$ ${selectedCliente.saldo_crediario.toFixed(2)}` 
+                                : 'R$ 0,00') + 
+                              '. Por favor, verifique!'
+                            );
+                            return;
+                          }
+
+                          setTipoItem('pagamento');
+                          // Só adiciona se não houver pagamento já na lista
+                          if (!itensSelecionados.some(item => item.tipo === 'pagamento')) {
+                            const novoItem: ItemSelecionado = {
+                              id: `pagamento_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                              nome: 'Pagamento',
+                              preco: 0,
+                              quantidade: 1,
+                              tipo: 'pagamento'
+                            };
+                            setItensSelecionados([...itensSelecionados, novoItem]);
+                          }
+                        }}
+                      />
+                    </View>
                   </View>
 
 
@@ -2298,8 +2502,9 @@ export default function ComandasScreen() {
                   variant="secondary"
                   size="medium"
                   onPress={() => {
-                    setModalNovaComandaVisible(false);
-                    limparFormularioComanda();
+                    fecharModalNovaComandaComAnimacao(() => {
+                      limparFormularioComanda();
+                    });
                   }}
                 >
                   Cancelar
@@ -2317,7 +2522,7 @@ export default function ComandasScreen() {
                 </Button>
               </View>
             </View>
-          </View>
+          </Animated.View>
         </View>
       </Modal>
 
@@ -2566,33 +2771,39 @@ export default function ComandasScreen() {
                   {editandoComanda && (
                     <View style={styles.adicionarItensContainer}>
                       <Text style={styles.adicionarItensTitle}>Adicionar Itens</Text>
-                      <View style={SELECTION_BUTTON_CONTAINER_STYLE}>
-                        <SelectionButton
-                          label="Produto"
-                          icon="cube-outline"
-                          onPress={() => {
-                            setTipoItem('produto');
-                            abrirModalItens('produto');
-                          }}
-                        />
+                      <View style={[SELECTION_BUTTON_CONTAINER_STYLE, { flexWrap: 'nowrap', paddingHorizontal: 0, gap: 6 }]}>
+                        <View ref={produtoButtonEditRef} collapsable={false} style={{ flex: 1, minWidth: 0 }}>
+                          <SelectionButton
+                            label="Produto"
+                            icon="cube-outline"
+                            onPress={() => {
+                              setTipoItem('produto');
+                              abrirModalItens('produto', produtoButtonEditRef);
+                            }}
+                          />
+                        </View>
 
-                        <SelectionButton
-                          label="Serviço"
-                          icon="cut-outline"
-                          onPress={() => {
-                            setTipoItem('servico');
-                            abrirModalItens('servico');
-                          }}
-                        />
+                        <View ref={servicoButtonEditRef} collapsable={false} style={{ flex: 1, minWidth: 0 }}>
+                          <SelectionButton
+                            label="Serviço"
+                            icon="cut-outline"
+                            onPress={() => {
+                              setTipoItem('servico');
+                              abrirModalItens('servico', servicoButtonEditRef);
+                            }}
+                          />
+                        </View>
 
-                        <SelectionButton
-                          label="Pacote"
-                          icon="gift-outline"
-                          onPress={() => {
-                            setTipoItem('pacote');
-                            abrirModalItens('pacote');
-                          }}
-                        />
+                        <View ref={pacoteButtonEditRef} collapsable={false} style={{ flex: 1, minWidth: 0 }}>
+                          <SelectionButton
+                            label="Pacote"
+                            icon="gift-outline"
+                            onPress={() => {
+                              setTipoItem('pacote');
+                              abrirModalItens('pacote', pacoteButtonEditRef);
+                            }}
+                          />
+                        </View>
                       </View>
                     </View>
                   )}
@@ -2882,12 +3093,25 @@ export default function ComandasScreen() {
       {/* Modal de Seleção de Itens */}
       <Modal
         visible={modalItensVisible}
-        animationType="fade"
+        animationType="none"
         transparent={true}
         onRequestClose={fecharModalItens}
       >
         <Pressable style={styles.modalBackdrop} onPress={fecharModalItens}>
-          <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+          <Animated.View
+            style={[
+              styles.modalCard,
+              {
+                transform: [
+                  { translateX: translateXItensAnim },
+                  { translateY: translateYItensAnim },
+                  { scale: scaleItensAnim },
+                ],
+                opacity: opacityItensAnim,
+              }
+            ]}
+          >
+          <Pressable onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 Selecionar {tipoItem === 'produto' ? 'Produtos' : 
@@ -3047,6 +3271,7 @@ export default function ComandasScreen() {
               </View>
             </View>
           </Pressable>
+          </Animated.View>
         </Pressable>
       </Modal>
 
