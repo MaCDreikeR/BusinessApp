@@ -1,11 +1,11 @@
-﻿import React, { useState, useEffect , useMemo} from 'react';
-import { StyleSheet, View, FlatList, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator, DeviceEventEmitter, ScrollView, Animated, PanResponder, Text } from 'react-native';
+﻿import React, { useState, useEffect , useMemo, useCallback} from 'react';
+import { StyleSheet, View, FlatList, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator, DeviceEventEmitter, ScrollView, Pressable, Text } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { ThemedText } from '../../components/ThemedText';
 import { ThemedView } from '../../components/ThemedView';
 import { supabase } from '../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -21,6 +21,9 @@ interface ServicoComCategoria extends Servico {
     nome: string;
   };
 }
+
+type ServicoFieldErrorKey = 'nomeServico' | 'precoServico' | 'categoriaServico' | 'descricaoServico';
+type ServicoFieldErrors = Partial<Record<ServicoFieldErrorKey, string>>;
 
 export default function ServicosScreen() {
   const { estabelecimentoId } = useAuth();
@@ -47,8 +50,6 @@ export default function ServicosScreen() {
   const router = useRouter();
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
-  const [slideAnimation] = useState(new Animated.Value(400));
-  const [overlayOpacity] = useState(new Animated.Value(0));
   const [servicoEditando, setServicoEditando] = useState<ServicoComCategoria | null>(null);
   const [categoriaEditando, setCategoriaEditando] = useState<CategoriaServico | null>(null);
   const [nomeServico, setNomeServico] = useState('');
@@ -58,97 +59,30 @@ export default function ServicosScreen() {
   const [descricaoServico, setDescricaoServico] = useState('');
   const [duracaoServico, setDuracaoServico] = useState(''); // Duração opcional (vazio por padrão)
   const [loadingCategorias, setLoadingCategorias] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<ServicoFieldErrors>({});
 
-  useEffect(() => {
-    if (mostrarModalCategorias) {
-      Animated.parallel([
-        Animated.spring(slideAnimation, {
-          toValue: 0,
-          tension: 50,
-          friction: 8,
-          useNativeDriver: true,
-        }),
-        Animated.timing(overlayOpacity, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        })
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.spring(slideAnimation, {
-          toValue: 400,
-          tension: 50,
-          friction: 8,
-          useNativeDriver: true,
-        }),
-        Animated.timing(overlayOpacity, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        })
-      ]).start();
-    }
-  }, [mostrarModalCategorias]);
+  useFocusEffect(
+    useCallback(() => {
+      carregarServicos();
+      carregarCategorias();
 
-  const panResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: (_, gestureState) => {
-      return gestureState.dy > 0;
-    },
-    onPanResponderMove: (_, gestureState) => {
-      if (gestureState.dy > 0) {
-        const newValue = gestureState.dy / 400;
-        slideAnimation.setValue(newValue * 400);
-        overlayOpacity.setValue(1 - newValue);
-      }
-    },
-    onPanResponderRelease: (_, gestureState) => {
-      if (gestureState.dy > 50 || gestureState.vy > 0.5) {
-        setMostrarModalCategorias(false);
-      } else {
-        Animated.parallel([
-          Animated.spring(slideAnimation, {
-            toValue: 0,
-            tension: 50,
-            friction: 8,
-            useNativeDriver: true,
-          }),
-          Animated.timing(overlayOpacity, {
-            toValue: 1,
-            duration: 200,
-            useNativeDriver: true,
-          })
-        ]).start();
-      }
-    }
-  });
+      const subscription = DeviceEventEmitter.addListener('addServico', () => {
+        resetServicoModal();
+        setModalVisible(true);
+      });
 
-  useEffect(() => {
-    carregarServicos();
-    carregarCategorias();
+      const subscriptionCategorias = DeviceEventEmitter.addListener('abrirModalCategorias', () => {
+        setCategoriaEditando(null);
+        setNomeCategoria('');
+        setMostrarModalCategorias(true);
+      });
 
-    const subscription = DeviceEventEmitter.addListener('addServico', () => {
-      setServicoEditando(null);
-      setNomeServico('');
-      setPrecoServico('');
-      setCategoriaServico('');
-      setDescricaoServico('');
-      setDuracaoServico('');
-      setModalVisible(true);
-    });
-
-    const subscriptionCategorias = DeviceEventEmitter.addListener('abrirModalCategorias', () => {
-      setCategoriaEditando(null);
-      setNomeCategoria('');
-      setMostrarModalCategorias(true);
-    });
-
-    return () => {
-      subscription.remove();
-      subscriptionCategorias.remove();
-    };
-  }, []);
+      return () => {
+        subscription.remove();
+        subscriptionCategorias.remove();
+      };
+    }, [estabelecimentoId])
+  );
 
   const carregarCategorias = async () => {
     try {
@@ -254,11 +188,48 @@ export default function ServicosScreen() {
     setPrecoServico(numericValue);
   };
 
+  const resetServicoModal = () => {
+    setFieldErrors({});
+    setServicoEditando(null);
+    setNomeServico('');
+    setPrecoServico('');
+    setCategoriaServico('');
+    setDescricaoServico('');
+    setDuracaoServico('');
+  };
+
+  const fecharModalServico = () => {
+    resetServicoModal();
+    setModalVisible(false);
+  };
+
+  const validarServico = (): ServicoFieldErrors => {
+    const erros: ServicoFieldErrors = {};
+
+    if (!nomeServico.trim()) {
+      erros.nomeServico = 'Nome do serviço é obrigatório';
+    }
+
+    if (!precoServico) {
+      erros.precoServico = 'Preço do serviço é obrigatório';
+    }
+
+    if (!categoriaServico) {
+      erros.categoriaServico = 'Categoria do serviço é obrigatória';
+    }
+
+    return erros;
+  };
+
   const handleSalvarServico = async () => {
-    if (!nomeServico || !precoServico || !categoriaServico) {
-      Alert.alert('Erro', 'Preencha todos os campos obrigatórios');
-        return;
-      }
+    const erros = validarServico();
+    
+    if (Object.keys(erros).length > 0) {
+      setFieldErrors(erros);
+      return;
+    }
+
+    setFieldErrors({});
 
     try {
       logger.debug('Iniciando salvamento de serviço...');
@@ -326,7 +297,7 @@ export default function ServicosScreen() {
       }
 
       logger.debug('Serviço salvo com sucesso');
-      setModalVisible(false);
+      fecharModalServico();
       await carregarServicos();
     } catch (error: any) {
       logger.error('Erro ao salvar serviço:', error);
@@ -379,14 +350,76 @@ export default function ServicosScreen() {
     );
   };
 
+  const verificarCategoriaDuplicada = (nome: string, idIgnorar?: string): boolean => {
+    const nomeNormalizado = nome.trim().toLowerCase();
+    return categorias.some(
+      cat => cat.nome.trim().toLowerCase() === nomeNormalizado && cat.id !== idIgnorar
+    );
+  };
+
   const handleSalvarCategoria = async () => {
-    if (!nomeCategoria) {
-      Alert.alert('Erro', 'Preencha o nome da categoria');
+    // Se está editando uma categoria, precisa validar e salvar
+    if (categoriaEditando) {
+      if (!nomeCategoria.trim()) {
+        Alert.alert('Erro', 'Preencha o nome da categoria');
+        return;
+      }
+
+      // Validar duplicata
+      if (verificarCategoriaDuplicada(nomeCategoria, categoriaEditando.id)) {
+        Alert.alert('Categoria já existe', 'Já existe uma categoria com este nome. Por favor, escolha outro nome.');
+        return;
+      }
+
+      try {
+        logger.debug('Atualizando categoria existente:', categoriaEditando.id);
+        
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          throw new Error('Usuário não autenticado');
+        }
+
+        const { data, error } = await supabase
+          .from('categorias_servicos')
+          .update({
+            nome: nomeCategoria.trim(),
+            estabelecimento_id: estabelecimentoId,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', categoriaEditando.id);
+
+        if (error) throw error;
+        logger.debug('Categoria atualizada com sucesso:', data);
+
+        await carregarCategorias();
+      } catch (error) {
+        logger.error('Erro ao salvar categoria:', error);
+        Alert.alert('Erro', 'Não foi possível salvar a categoria');
+        return;
+      }
+    }
+
+    // Fecha o modal (seja após salvar edição ou apenas para fechar)
+    setNomeCategoria('');
+    setCategoriaEditando(null);
+    setMostrarModalCategorias(false);
+  };
+
+  const handleAdicionarCategoriaRapida = async () => {
+    if (!nomeCategoria.trim()) {
+      return;
+    }
+
+    // Validar duplicata
+    if (verificarCategoriaDuplicada(nomeCategoria)) {
+      Alert.alert('Categoria já existe', 'Já existe uma categoria com este nome.');
+      setNomeCategoria('');
       return;
     }
 
     try {
-      logger.debug('Iniciando salvamento de categoria...');
+      logger.debug('Adicionando categoria rápida:', nomeCategoria);
       
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -394,42 +427,27 @@ export default function ServicosScreen() {
         throw new Error('Usuário não autenticado');
       }
 
-      if (categoriaEditando) {
-        logger.debug('Atualizando categoria existente:', categoriaEditando.id);
-        const { data, error } = await supabase
-          .from('categorias_servicos')
-          .update({
-            nome: nomeCategoria,
-               estabelecimento_id: estabelecimentoId,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', categoriaEditando.id);
+      const { data, error } = await supabase
+        .from('categorias_servicos')
+        .insert({
+          nome: nomeCategoria,
+          estabelecimento_id: estabelecimentoId,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select();
 
-        if (error) throw error;
-        logger.debug('Categoria atualizada com sucesso:', data);
-      } else {
-        logger.debug('Criando nova categoria');
-        const { data, error } = await supabase
-          .from('categorias_servicos')
-          .insert({
-            nome: nomeCategoria,
-               estabelecimento_id: estabelecimentoId,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .select();
-
-        if (error) throw error;
-        logger.debug('Categoria criada com sucesso:', data);
-      }
-
+      if (error) throw error;
+      
+      logger.debug('Categoria adicionada com sucesso:', data);
+      
+      // Limpa apenas o campo, mantém o modal aberto
       setNomeCategoria('');
-      setCategoriaEditando(null);
-      setMostrarModalCategorias(false);
-      carregarCategorias();
+      await carregarCategorias();
+      
     } catch (error) {
-      logger.error('Erro ao salvar categoria:', error);
-      Alert.alert('Erro', 'Não foi possível salvar a categoria');
+      logger.error('Erro ao adicionar categoria rápida:', error);
+      Alert.alert('Erro', 'Não foi possível adicionar a categoria');
     }
   };
 
@@ -486,6 +504,7 @@ export default function ServicosScreen() {
   const renderItem = ({ item }: { item: ServicoComCategoria }) => (
     <View style={[styles.servicoItem, { backgroundColor }]}>
       <TouchableOpacity style={styles.servicoInfo} onPress={() => {
+        setFieldErrors({});
         setServicoEditando(item);
         setNomeServico(item.nome);
         setPrecoServico((item.preco * 100).toString());
@@ -621,198 +640,229 @@ export default function ServicosScreen() {
       />
 
       <Modal
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
+        onRequestClose={fecharModalServico}
         >
-          <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {servicoEditando ? 'Editar Serviço' : 'Novo Serviço'}
-            </Text>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Nome do Serviço *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Digite o nome do serviço"
-                value={nomeServico}
-                onChangeText={setNomeServico}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Preço *</Text>
-              <View style={styles.precoContainer}>
-                <Text style={styles.precoSimbolo}>R$</Text>
-              <TextInput
-                  style={[styles.input, styles.precoInput]}
-                  placeholder="0,00"
-                  value={precoServico ? formatarPreco(precoServico) : ''}
-                  onChangeText={handlePrecoChange}
-                keyboardType="numeric"
-                />
+          <View style={styles.modalBackdrop}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={fecharModalServico} />
+            <View style={styles.modalCardLarge}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>
+                  {servicoEditando ? 'Editar Serviço' : 'Novo Serviço'}
+                </Text>
               </View>
-            </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Duração (minutos)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="30"
-                value={duracaoServico}
-                onChangeText={setDuracaoServico}
-                keyboardType="numeric"
-              />
-              <Text style={styles.inputHelper}>
-                Tempo estimado para realizar o serviço (opcional)
-              </Text>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Categoria *</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={categoriaServico}
-                  onValueChange={(itemValue) => setCategoriaServico(itemValue)}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Selecione uma categoria" value="" />
-                  {categorias.map((categoria) => (
-                    <Picker.Item
-                      key={categoria.id}
-                      label={categoria.nome}
-                      value={categoria.id}
+              <ScrollView
+                style={styles.modalContent}
+                contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 20 }}
+                nestedScrollEnabled={true}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Nome do Serviço *</Text>
+                    <TextInput
+                      style={[styles.input, fieldErrors.nomeServico && { borderColor: colors.error, borderWidth: 1 }]}
+                      placeholder="Digite o nome do serviço"
+                      value={nomeServico}
+                      onChangeText={setNomeServico}
                     />
-                  ))}
-                </Picker>
+                    {fieldErrors.nomeServico ? <Text style={[styles.inputHelper, { color: colors.error, marginTop: 4 }]}>{fieldErrors.nomeServico}</Text> : null}
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Preço *</Text>
+                    <View style={[styles.precoContainer, fieldErrors.precoServico && { borderColor: colors.error, borderWidth: 1, borderRadius: 8 }]}>
+                      <Text style={styles.precoSimbolo}>R$</Text>
+                    <TextInput
+                        style={[styles.input, styles.precoInput]}
+                        placeholder="0,00"
+                        value={precoServico ? formatarPreco(precoServico) : ''}
+                        onChangeText={handlePrecoChange}
+                      keyboardType="numeric"
+                      />
+                    </View>
+                    {fieldErrors.precoServico ? <Text style={[styles.inputHelper, { color: colors.error, marginTop: 4 }]}>{fieldErrors.precoServico}</Text> : null}
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Duração (minutos)</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="30"
+                      value={duracaoServico}
+                      onChangeText={setDuracaoServico}
+                      keyboardType="numeric"
+                    />
+                    <Text style={styles.inputHelper}>
+                      Tempo estimado para realizar o serviço (opcional)
+                    </Text>
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Categoria *</Text>
+                    <View style={[styles.pickerContainer, fieldErrors.categoriaServico && { borderColor: colors.error, borderWidth: 1 }]}>
+                      <Picker
+                        selectedValue={categoriaServico}
+                        onValueChange={(itemValue) => setCategoriaServico(itemValue)}
+                        style={styles.picker}
+                      >
+                        <Picker.Item label="Selecione uma categoria" value="" />
+                        {categorias.map((categoria) => (
+                          <Picker.Item
+                            key={categoria.id}
+                            label={categoria.nome}
+                            value={categoria.id}
+                          />
+                        ))}
+                      </Picker>
+                    </View>
+                    {fieldErrors.categoriaServico ? <Text style={[styles.inputHelper, { color: colors.error, marginTop: 4 }]}>{fieldErrors.categoriaServico}</Text> : null}
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Descrição</Text>
+                    <TextInput
+                      style={[styles.input, styles.textArea]}
+                      placeholder="Digite a descrição do serviço (opcional)"
+                      value={descricaoServico}
+                      onChangeText={setDescricaoServico}
+                      multiline
+                      numberOfLines={4}
+                    />
+                  </View>
+              </ScrollView>
+
+              <View style={styles.modalFooter}>
+                <View style={styles.modalFooterButton}>
+                  <Button
+                    variant="secondary"
+                    size="medium"
+                    onPress={fecharModalServico}
+                  >
+                    Cancelar
+                  </Button>
+                </View>
+
+                <View style={styles.modalFooterButton}>
+                  <Button
+                    variant="primary"
+                    size="medium"
+                    onPress={handleSalvarServico}
+                  >
+                    Salvar
+                  </Button>
+                </View>
               </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Descrição</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Digite a descrição do serviço (opcional)"
-                value={descricaoServico}
-                onChangeText={setDescricaoServico}
-                multiline
-                numberOfLines={4}
-              />
-            </View>
-
-            <View style={styles.modalButtons}>
-              <Button
-                variant="secondary"
-                size="medium"
-                onPress={() => {
-                  setModalVisible(false);
-                  setServicoEditando(null);
-                  setNomeServico('');
-                  setPrecoServico('');
-                  setCategoriaServico('');
-                  setDescricaoServico('');
-                  setDuracaoServico('');
-                }}
-                fullWidth
-              >
-                Cancelar
-              </Button>
-
-              <Button
-                variant="primary"
-                size="medium"
-                onPress={handleSalvarServico}
-                fullWidth
-                style={{ marginLeft: 8 }}
-              >
-                Salvar
-              </Button>
             </View>
           </View>
-        </View>
       </Modal>
 
       <Modal
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         visible={mostrarModalCategorias}
         onRequestClose={() => setMostrarModalCategorias(false)}
       >
-        <View style={styles.modalContainer}>
-              <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {categoriaEditando ? 'Editar Categoria' : 'Nova Categoria'}
-            </Text>
+        <View style={styles.modalBackdrop}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setMostrarModalCategorias(false)} />
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {categoriaEditando ? 'Editar Categoria' : 'Nova Categoria'}
+              </Text>
+            </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Nome da Categoria *</Text>
+            <View style={styles.modalContentCompact}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Nome da Categoria *</Text>
+                <View style={styles.inputWithButton}>
                   <TextInput
-                    style={styles.input}
-                placeholder="Digite o nome da categoria"
-                value={nomeCategoria}
-                onChangeText={setNomeCategoria}
-              />
-            </View>
-
-            <View style={styles.modalButtons}>
-              <Button
-                variant="secondary"
-                size="medium"
-                onPress={() => {
-                  setMostrarModalCategorias(false);
-                  setCategoriaEditando(null);
-                  setNomeCategoria('');
-                }}
-                fullWidth
-              >
-                Cancelar
-              </Button>
-
-              <Button
-                variant="primary"
-                size="medium"
-                onPress={handleSalvarCategoria}
-                fullWidth
-                style={{ marginLeft: 8 }}
-              >
-                Salvar
-              </Button>
-            </View>
-
-            <View style={styles.categoriasListContainer}>
-              <Text style={styles.categoriasListTitle}>Categorias Existentes</Text>
-              <FlatList
-                data={categorias}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                  <View style={styles.categoriaItem}>
-                    <View style={styles.categoriaInfo}>
-                      <Text style={styles.categoriaNome}>{item.nome}</Text>
-                    </View>
-                          <View style={styles.categoriaActions}>
-                            <TouchableOpacity 
-                        style={styles.categoriaActionButton}
-                        onPress={() => {
-                          setCategoriaEditando(item);
-                          setNomeCategoria(item.nome);
-                        }}
-                            >
-                              <Ionicons name="pencil" size={20} color={colors.primary} />
-                            </TouchableOpacity>
-                            <TouchableOpacity 
-                        style={styles.categoriaActionButton}
-                              onPress={() => handleExcluirCategoria(item)}
-                            >
-                        <Ionicons name="trash" size={20} color={colors.error} />
-                            </TouchableOpacity>
-                          </View>
-                  </View>
-                    )}
-              />
+                    style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                    placeholder="Digite o nome da categoria"
+                    value={nomeCategoria}
+                    onChangeText={setNomeCategoria}
+                    onSubmitEditing={handleAdicionarCategoriaRapida}
+                  />
+                  {nomeCategoria.trim() && !categoriaEditando && (
+                    <TouchableOpacity
+                      style={styles.addCategoryButton}
+                      onPress={handleAdicionarCategoriaRapida}
+                    >
+                      <Ionicons name="add-circle" size={32} color={colors.primary} />
+                    </TouchableOpacity>
+                  )}
                 </View>
+                {nomeCategoria.trim() && !categoriaEditando && (
+                  <Text style={styles.quickAddHint}>Pressione + para adicionar rapidamente</Text>
+                )}
               </View>
+
+              <Text style={styles.categoriasListTitle}>Categorias Existentes</Text>
+              <View style={styles.categoriasListContainer}>
+                <ScrollView
+                  style={styles.categoriasScroll}
+                  contentContainerStyle={styles.categoriasScrollContent}
+                  nestedScrollEnabled={true}
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                >
+                  {categorias.map((item) => (
+                    <View key={item.id} style={styles.categoriaItem}>
+                      <View style={styles.categoriaInfo}>
+                        <Text style={styles.categoriaNome}>{item.nome}</Text>
+                      </View>
+                      <View style={styles.categoriaActions}>
+                        <TouchableOpacity 
+                          style={styles.categoriaActionButton}
+                          onPress={() => {
+                            setCategoriaEditando(item);
+                            setNomeCategoria(item.nome);
+                          }}
+                        >
+                          <Ionicons name="pencil" size={20} color={colors.primary} />
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          style={styles.categoriaActionButton}
+                          onPress={() => handleExcluirCategoria(item)}
+                        >
+                          <Ionicons name="trash" size={20} color={colors.error} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+
+            <View style={styles.modalFooter}>
+              <View style={styles.modalFooterButton}>
+                <Button
+                  variant="secondary"
+                  size="medium"
+                  onPress={() => {
+                    setMostrarModalCategorias(false);
+                    setCategoriaEditando(null);
+                    setNomeCategoria('');
+                  }}
+                >
+                  Cancelar
+                </Button>
+              </View>
+
+              <View style={styles.modalFooterButton}>
+                <Button
+                  variant="primary"
+                  size="medium"
+                  onPress={handleSalvarCategoria}
+                >
+                  Salvar
+                </Button>
+              </View>
+            </View>
+          </View>
         </View>
       </Modal>
     </View>
@@ -897,27 +947,72 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 16,
     opacity: 0.7,
   },
-  modalContainer: {
+  modalBackdrop: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: 20,
+  },
+  modalCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 24,
+    maxWidth: 500,
+    width: '100%',
+    maxHeight: '74%',
+    minHeight: 380,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 30,
+    elevation: 20,
+  },
+  modalCardLarge: {
+    backgroundColor: colors.surface,
+    borderRadius: 24,
+    maxWidth: 500,
+    width: '100%',
+    maxHeight: '84%',
+    minHeight: 500,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 30,
+    elevation: 20,
+  },
+  modalContainer: {
+    flex: 1,
   },
   modalContent: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 20,
-    width: '90%',
-    maxWidth: 400,
+    flex: 1,
+  },
+  modalContentCompact: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 12,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 20,
+    fontWeight: '700',
     color: colors.text,
   },
+  formContainer: {
+    padding: 20,
+  },
   inputGroup: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   inputLabel: {
     fontSize: 14,
@@ -938,32 +1033,46 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     fontSize: 16,
+    minHeight: 48,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 24,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  modalFooterButton: {
+    flex: 1,
   },
   modalButtons: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     gap: 12,
-    marginTop: 20,
+    width: '100%',
   },
   modalButton: {
+    flex: 1,
     borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    minWidth: 100,
+    paddingVertical: 14,
     alignItems: 'center',
   },
   cancelButton: {
     backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   saveButton: {
     backgroundColor: colors.primary,
   },
   modalButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: 'bold',
   },
   cancelButtonText: {
-    color: colors.text,
+    color: colors.textSecondary,
   },
   saveButtonText: {
     color: colors.white,
@@ -971,6 +1080,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   textArea: {
     height: 100,
     textAlignVertical: 'top',
+    color: colors.text,
   },
   pickerContainer: {
     backgroundColor: colors.background,
@@ -1040,14 +1150,20 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginLeft: 8,
   },
   categoriasListContainer: {
-    marginTop: 20,
-    maxHeight: 300,
+    marginTop: 4,
+    height: 180,
   },
   categoriasListTitle: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 12,
     color: colors.text,
+  },
+  categoriasScroll: {
+    height: '100%',
+  },
+  categoriasScrollContent: {
+    paddingBottom: 8,
   },
   categoriaItem: {
     flexDirection: 'row',
@@ -1077,6 +1193,20 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   categoriaActionButton: {
     padding: 8,
+  },
+  inputWithButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  addCategoryButton: {
+    padding: 4,
+  },
+  quickAddHint: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 6,
+    fontStyle: 'italic',
   },
   precoContainer: {
     flexDirection: 'row',

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useMemo } from 'react';
+﻿import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -16,11 +16,12 @@ import {
   DeviceEventEmitter,
   RefreshControl,
   Image,
-  Platform
+  Platform,
+  Pressable
 } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { format } from 'date-fns';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -29,6 +30,7 @@ import { logger } from '../../utils/logger';
 import { Cliente as ClienteBase, Produto as ProdutoBase, Servico as ServicoBase, Pacote as PacoteBase, Comanda as ComandaBase } from '@types';
 import { offlineInsert, offlineUpdate, offlineDelete, getOfflineFeedback } from '../../services/offlineSupabase';
 import { Button } from '../../components/Button2';
+import { SelectionButton, SELECTION_BUTTON_CONTAINER_STYLE } from '../../components/Buttons';
 
 // Tipos específicos para comandas
 type ClienteComanda = Pick<ClienteBase, 'id' | 'nome' | 'telefone' | 'email' | 'estabelecimento_id' | 'created_at'> & {
@@ -137,6 +139,7 @@ export default function ComandasScreen() {
   const [tipoItem, setTipoItem] = useState<'produto' | 'servico' | 'pacote' | 'pagamento' | null>(null);
   const [valorPagamento, setValorPagamento] = useState('');
   const [termoBusca, setTermoBusca] = useState('');
+  const [isModalSearchFocused, setIsModalSearchFocused] = useState(false);
   const [itensEncontrados, setItensEncontrados] = useState<(ProdutoComanda | ServicoComanda | PacoteComanda)[]>([]);
   const [buscandoItens, setBuscandoItens] = useState(false);
 
@@ -184,69 +187,60 @@ export default function ComandasScreen() {
 
   // Animações para modais
   const translateY = useRef(new Animated.Value(500)).current;
-  const translateYNovaComanda = useRef(new Animated.Value(500)).current;
   const translateYItens = useRef(new Animated.Value(500)).current;
 
   const router = useRouter();
   const { session, estabelecimentoId, role } = useAuth(); // Usando o hook useAuth para pegar a sessão, estabelecimento e role
 
-  useEffect(() => {
-    if (!session?.user?.id) return;
-    
-    carregarComandas();
-    carregarClientesIniciais();
-    verificarPermissoes();
-
-    const subscriptionAtualizar = DeviceEventEmitter.addListener('atualizarComandas', () => {
+  useFocusEffect(
+    useCallback(() => {
+      if (!session?.user?.id) return;
+      
       carregarComandas();
-    });
-    
-    const subscriptionNovaComanda = DeviceEventEmitter.addListener('novaComanda', () => {
-      logger.debug("Evento novaComanda recebido");
-      // Definir a posição inicial da animação
-      translateYNovaComanda.setValue(500);
-      // Abrir o modal
-      setModalNovaComandaVisible(true);
-      
-      // Pré-carregar alguns clientes
       carregarClientesIniciais();
-      
-      // Animar a entrada do modal
-      Animated.spring(translateYNovaComanda, {
-        toValue: 0,
-        tension: 40,
-        friction: 8,
-        useNativeDriver: true,
-      }).start();
-    });
-    
-    // Monitorar evento de navegação para retornar após cadastrar cliente
-    const subscriptionNovoCliente = DeviceEventEmitter.addListener('clienteCadastrado', (data: RouteParams) => {
-      logger.debug("Evento clienteCadastrado recebido", data);
-      
-      if (data.clienteId && data.clienteNome && data.returnTo === 'comandas') {
-        // Selecionar o cliente recém-cadastrado
-        const novoCliente: ClienteComanda = {
-          id: data.clienteId,
-          nome: data.clienteNome,
-          estabelecimento_id: ''
-        };
-        
-        selecionarCliente(novoCliente);
-        
-        // Atualizar lista de clientes
-        carregarClientesIniciais();
-      }
-    });
-    
-    return () => {
-      subscriptionAtualizar.remove();
-      subscriptionNovaComanda.remove();
-      subscriptionNovoCliente.remove();
-    };
-  }, [session?.user?.id]);
+      verificarPermissoes();
 
-  // useEffect para carregar comandas quando a tela é montada ou quando há mudança de aba
+      const subscriptionAtualizar = DeviceEventEmitter.addListener('atualizarComandas', () => {
+        carregarComandas();
+      });
+      
+      const subscriptionNovaComanda = DeviceEventEmitter.addListener('novaComanda', () => {
+        logger.debug("Evento novaComanda recebido");
+        // Abrir o modal
+        setModalNovaComandaVisible(true);
+        
+        // Pré-carregar alguns clientes
+        carregarClientesIniciais();
+      });
+      
+      // Monitorar evento de navegação para retornar após cadastrar cliente
+      const subscriptionNovoCliente = DeviceEventEmitter.addListener('clienteCadastrado', (data: RouteParams) => {
+        logger.debug("Evento clienteCadastrado recebido", data);
+        
+        if (data.clienteId && data.clienteNome && data.returnTo === 'comandas') {
+          // Selecionar o cliente recém-cadastrado
+          const novoCliente: ClienteComanda = {
+            id: data.clienteId,
+            nome: data.clienteNome,
+            estabelecimento_id: ''
+          };
+          
+          selecionarCliente(novoCliente);
+          
+          // Atualizar lista de clientes
+          carregarClientesIniciais();
+        }
+      });
+      
+      return () => {
+        subscriptionAtualizar.remove();
+        subscriptionNovaComanda.remove();
+        subscriptionNovoCliente.remove();
+      };
+    }, [session?.user?.id, estabelecimentoId, role])
+  );
+
+  // useEffect para carregar comandas quando a aba ativa muda
   useEffect(() => {
     carregarComandas();
   }, [abaAtiva]);
@@ -310,38 +304,6 @@ export default function ComandasScreen() {
     setItensEditados([]);
     setObservacoesEditadas('');
   };
-
-  const panResponderNovaComanda = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy > 0) {
-          translateYNovaComanda.setValue(gestureState.dy);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > 100) {
-          // Fechar o modal se arrastar para baixo mais de 100px
-          Animated.timing(translateYNovaComanda, {
-            toValue: 500,
-            duration: 300,
-            useNativeDriver: true,
-          }).start(() => {
-            setModalNovaComandaVisible(false);
-            translateYNovaComanda.setValue(500);
-          });
-        } else {
-          // Retornar à posição original
-          Animated.spring(translateYNovaComanda, {
-            toValue: 0,
-            tension: 40,
-            friction: 8,
-            useNativeDriver: true,
-          }).start();
-        }
-      },
-    })
-  ).current;
   
   const panResponderItens = useRef(
     PanResponder.create({
@@ -960,22 +922,16 @@ export default function ComandasScreen() {
       setComandas(prevComandas => [novaComandaCompleta, ...prevComandas]);
 
       // Fechar o modal
-      Animated.timing(translateYNovaComanda, {
-        toValue: 500,
-        duration: 300,
-        useNativeDriver: true,
-      }).start(() => {
-        setModalNovaComandaVisible(false);
-        limparFormularioComanda();
-        
-        // Mostrar mensagem de sucesso
-        Alert.alert('Sucesso', 'Comanda criada com sucesso!');
-        
-        // Recarregar comandas para garantir que todos os dados estejam atualizados
-        setTimeout(() => {
-          carregarComandas();
-        }, 1000);
-      });
+      setModalNovaComandaVisible(false);
+      limparFormularioComanda();
+      
+      // Mostrar mensagem de sucesso
+      Alert.alert('Sucesso', 'Comanda criada com sucesso!');
+      
+      // Recarregar comandas para garantir que todos os dados estejam atualizados
+      setTimeout(() => {
+        carregarComandas();
+      }, 1000);
     } catch (error) {
       logger.error('Erro ao criar comanda:', error);
       Alert.alert('Erro', 'Ocorreu um erro ao criar a comanda. Tente novamente.');
@@ -1905,7 +1861,7 @@ export default function ComandasScreen() {
             placeholder="Buscar comandas..."
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholderTextColor={colors.textTertiary}
+            placeholderTextColor={colors.textSecondary}
           />
           {searchQuery ? (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
@@ -1924,7 +1880,7 @@ export default function ComandasScreen() {
           <Ionicons 
             name="ellipsis-horizontal-circle" 
             size={24} 
-            color={abaAtiva === 'abertas' ? colors.primaryContrast : colors.textSecondary} 
+            color={abaAtiva === 'abertas' ? colors.white : colors.textSecondary} 
           />
           <Text style={[styles.tabText, abaAtiva === 'abertas' && styles.tabTextActive]}>
             Abertas
@@ -1938,7 +1894,7 @@ export default function ComandasScreen() {
           <Ionicons 
             name="checkmark-circle" 
             size={24} 
-            color={abaAtiva === 'fechadas' ? colors.primaryContrast : colors.textSecondary}
+            color={abaAtiva === 'fechadas' ? colors.white : colors.textSecondary}
           />
           <Text style={[styles.tabText, abaAtiva === 'fechadas' && styles.tabTextActive]}>
             Fechadas
@@ -1952,7 +1908,7 @@ export default function ComandasScreen() {
           <Ionicons 
             name="close-circle" 
             size={24} 
-            color={abaAtiva === 'canceladas' ? colors.primaryContrast : colors.textSecondary}
+            color={abaAtiva === 'canceladas' ? colors.white : colors.textSecondary}
           />
           <Text style={[styles.tabText, abaAtiva === 'canceladas' && styles.tabTextActive]}>
             Canceladas
@@ -2035,42 +1991,32 @@ export default function ComandasScreen() {
       {/* Modal de Nova Comanda */}
       <Modal
         visible={modalNovaComandaVisible}
-        animationType="none"
+        animationType="fade"
         transparent={true}
-        onRequestClose={() => setModalNovaComandaVisible(false)}
+        onRequestClose={() => {
+          setModalNovaComandaVisible(false);
+          limparFormularioComanda();
+        }}
       >
-        <View style={styles.modalContainer}>
-          <Animated.View 
-            style={[
-              styles.modalContent,
-              { transform: [{ translateY: translateYNovaComanda }] }
-            ]}
-          >
-            <View {...panResponderNovaComanda.panHandlers}>
-              <View style={styles.modalDragIndicator} />
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Nova Comanda</Text>
-                <TouchableOpacity onPress={() => {
-                  Animated.timing(translateYNovaComanda, {
-                    toValue: 500,
-                    duration: 300,
-                    useNativeDriver: true,
-                  }).start(() => {
-                    setModalNovaComandaVisible(false);
-                    limparFormularioComanda();
-                  });
-                }}>
-                  <Ionicons name="close" size={24} color={colors.text} />
-                </TouchableOpacity>
-              </View>
+        <View style={styles.modalBackdrop}>
+          <Pressable 
+            style={StyleSheet.absoluteFill} 
+            onPress={() => {
+              setModalNovaComandaVisible(false);
+              limparFormularioComanda();
+            }} 
+          />
+          <View style={styles.modalCardLarge}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Nova Comanda</Text>
             </View>
             
             <ScrollView 
-              style={styles.modalBody}
-              contentContainerStyle={{paddingTop: 16, paddingBottom: 24}}
+              style={styles.modalContent}
+              contentContainerStyle={styles.modalScrollContent}
               nestedScrollEnabled={true}
-              disableScrollViewPanResponder={true}
               keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
             >
               {/* Seleção de Cliente */}
               <View style={{marginBottom: 24}}>
@@ -2091,6 +2037,7 @@ export default function ComandasScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder="Buscar cliente por nome..."
+                    placeholderTextColor={colors.textSecondary}
                     value={clienteQuery}
                     onChangeText={(text) => {
                       buscarClientes(text);
@@ -2205,75 +2152,37 @@ export default function ComandasScreen() {
                 <Text style={styles.sectionTitle}>Itens da Comanda</Text>
                 
                 <View style={styles.tipoItemContainer}>
-                  <View style={styles.tipoItemButtons}>
-                    <TouchableOpacity 
-                      style={[
-                        styles.tipoItemButton,
-                        tipoItem === 'produto' && styles.tipoItemButtonActive
-                      ]}
+                  <View style={SELECTION_BUTTON_CONTAINER_STYLE}>
+                    <SelectionButton
+                      label="Produto"
+                      icon="cube-outline"
                       onPress={() => {
                         setTipoItem('produto');
                         abrirModalItens('produto');
                       }}
-                    >
-                      <Ionicons 
-                        name="cube-outline" 
-                        size={24} 
-                        color={tipoItem === 'produto' ? colors.white : colors.primary} 
-                      />
-                      <Text style={[
-                        styles.tipoItemButtonText,
-                        tipoItem === 'produto' && styles.tipoItemButtonTextActive
-                      ]}>Produto</Text>
-                    </TouchableOpacity>
+                    />
 
-                    <TouchableOpacity 
-                      style={[
-                        styles.tipoItemButton,
-                        tipoItem === 'servico' && styles.tipoItemButtonActive
-                      ]}
+                    <SelectionButton
+                      label="Serviço"
+                      icon="construct-outline"
                       onPress={() => {
                         setTipoItem('servico');
                         abrirModalItens('servico');
                       }}
-                    >
-                      <Ionicons 
-                        name="construct-outline" 
-                        size={24} 
-                        color={tipoItem === 'servico' ? colors.white : colors.primary} 
-                      />
-                      <Text style={[
-                        styles.tipoItemButtonText,
-                        tipoItem === 'servico' && styles.tipoItemButtonTextActive
-                      ]}>Serviço</Text>
-                    </TouchableOpacity>
+                    />
 
-                    <TouchableOpacity 
-                      style={[
-                        styles.tipoItemButton,
-                        tipoItem === 'pacote' && styles.tipoItemButtonActive
-                      ]}
+                    <SelectionButton
+                      label="Pacote"
+                      icon="gift-outline"
                       onPress={() => {
                         setTipoItem('pacote');
                         abrirModalItens('pacote');
                       }}
-                    >
-                      <Ionicons 
-                        name="gift-outline" 
-                        size={24} 
-                        color={tipoItem === 'pacote' ? colors.white : colors.primary} 
-                      />
-                      <Text style={[
-                        styles.tipoItemButtonText,
-                        tipoItem === 'pacote' && styles.tipoItemButtonTextActive
-                      ]}>Pacote</Text>
-                    </TouchableOpacity>
+                    />
 
-                    <TouchableOpacity 
-                      style={[ 
-                        styles.tipoItemButton,
-                        tipoItem === 'pagamento' && styles.tipoItemButtonActive
-                      ]}
+                    <SelectionButton
+                      label="Pagamento"
+                      icon="card-outline"
                       onPress={() => {
                         // Validação: cliente deve estar selecionado
                         if (!selectedCliente) {
@@ -2307,17 +2216,7 @@ export default function ComandasScreen() {
                           setItensSelecionados([...itensSelecionados, novoItem]);
                         }
                       }}
-                    >
-                      <Ionicons 
-                        name="card-outline" 
-                        size={24} 
-                        color={tipoItem === 'pagamento' ? colors.white : colors.primary} 
-                      />
-                      <Text style={[ 
-                        styles.tipoItemButtonText,
-                        tipoItem === 'pagamento' && styles.tipoItemButtonTextActive
-                      ]}>Pagamento</Text>
-                    </TouchableOpacity>
+                    />
                   </View>
 
 
@@ -2383,6 +2282,7 @@ export default function ComandasScreen() {
                 <TextInput
                   style={styles.observacoesInput}
                   placeholder="Observações adicionais..."
+                  placeholderTextColor={colors.textSecondary}
                   value={observacoes}
                   onChangeText={setObservacoes}
                   multiline
@@ -2393,35 +2293,31 @@ export default function ComandasScreen() {
             </ScrollView>
             
             <View style={styles.modalFooter}>
-              <TouchableOpacity 
-                style={styles.cancelButton}
-                onPress={() => {
-                  // Animar saída do modal
-                  Animated.timing(translateYNovaComanda, {
-                    toValue: 500,
-                    duration: 300,
-                    useNativeDriver: true,
-                  }).start(() => {
+              <View style={styles.modalFooterButton}>
+                <Button
+                  variant="secondary"
+                  size="medium"
+                  onPress={() => {
                     setModalNovaComandaVisible(false);
                     limparFormularioComanda();
-                  });
-                }}
-              >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
+                  }}
+                >
+                  Cancelar
+                </Button>
+              </View>
               
-              <Button
-                variant="primary"
-                size="large"
-                onPress={criarNovaComanda}
-                disabled={!selectedCliente}
-                style={styles.saveButton}
-                fullWidth
-              >
-                Criar Comanda
-              </Button>
+              <View style={styles.modalFooterButton}>
+                <Button
+                  variant="primary"
+                  size="medium"
+                  onPress={criarNovaComanda}
+                  disabled={!selectedCliente}
+                >
+                  Criar Comanda
+                </Button>
+              </View>
             </View>
-          </Animated.View>
+          </View>
         </View>
       </Modal>
 
@@ -2490,12 +2386,6 @@ export default function ComandasScreen() {
               <View style={styles.modalDragIndicator} />
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Detalhes da Comanda</Text>
-                <Button
-                  variant="ghost"
-                  size="small"
-                  icon="close"
-                  onPress={fecharModal}
-                />
               </View>
             </View>
             
@@ -2676,39 +2566,33 @@ export default function ComandasScreen() {
                   {editandoComanda && (
                     <View style={styles.adicionarItensContainer}>
                       <Text style={styles.adicionarItensTitle}>Adicionar Itens</Text>
-                      <View style={styles.tipoItemButtonsContainer}>
-                        <TouchableOpacity 
-                          style={styles.adicionarItemButton}
+                      <View style={SELECTION_BUTTON_CONTAINER_STYLE}>
+                        <SelectionButton
+                          label="Produto"
+                          icon="cube-outline"
                           onPress={() => {
                             setTipoItem('produto');
                             abrirModalItens('produto');
                           }}
-                        >
-                          <Ionicons name="cube-outline" size={20} color={colors.primary} />
-                          <Text style={styles.adicionarItemButtonText}>Produto</Text>
-                        </TouchableOpacity>
+                        />
 
-                        <TouchableOpacity 
-                          style={styles.adicionarItemButton}
+                        <SelectionButton
+                          label="Serviço"
+                          icon="cut-outline"
                           onPress={() => {
                             setTipoItem('servico');
                             abrirModalItens('servico');
                           }}
-                        >
-                          <Ionicons name="cut-outline" size={20} color={colors.primary} />
-                          <Text style={styles.adicionarItemButtonText}>Serviço</Text>
-                        </TouchableOpacity>
+                        />
 
-                        <TouchableOpacity 
-                          style={styles.adicionarItemButton}
+                        <SelectionButton
+                          label="Pacote"
+                          icon="gift-outline"
                           onPress={() => {
                             setTipoItem('pacote');
                             abrirModalItens('pacote');
                           }}
-                        >
-                          <Ionicons name="gift-outline" size={20} color={colors.primary} />
-                          <Text style={styles.adicionarItemButtonText}>Pacote</Text>
-                        </TouchableOpacity>
+                        />
                       </View>
                     </View>
                   )}
@@ -2721,6 +2605,7 @@ export default function ComandasScreen() {
                     <TextInput
                       style={styles.observacoesInput}
                       placeholder="Adicione observações sobre a comanda..."
+                      placeholderTextColor={colors.textSecondary}
                       value={observacoesEditadas}
                       onChangeText={setObservacoesEditadas}
                       multiline
@@ -2997,55 +2882,38 @@ export default function ComandasScreen() {
       {/* Modal de Seleção de Itens */}
       <Modal
         visible={modalItensVisible}
-        animationType="none"
+        animationType="fade"
         transparent={true}
         onRequestClose={fecharModalItens}
-        onShow={() => {
-          // Iniciar a animação quando o modal é mostrado
-          Animated.spring(translateYItens, {
-            toValue: 0,
-            tension: 50,
-            friction: 9,
-            useNativeDriver: true,
-          }).start();
-        }}
       >
-        <View style={styles.modalContainer}>
-          <Animated.View 
-            style={[
-              styles.modalContent,
-              { transform: [{ translateY: translateYItens }] }
-            ]}
-          >
-            <View {...panResponderItens.panHandlers}>
-              <View style={styles.modalDragIndicator} />
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
-                  Selecionar {tipoItem === 'produto' ? 'Produtos' : 
-                              tipoItem === 'servico' ? 'Serviços' : 'Pacotes'}
-                </Text>
-                <Button
-                  variant="ghost"
-                  size="small"
-                  icon="close"
-                  onPress={fecharModalItens}
-                />
-              </View>
+        <Pressable style={styles.modalBackdrop} onPress={fecharModalItens}>
+          <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                Selecionar {tipoItem === 'produto' ? 'Produtos' : 
+                            tipoItem === 'servico' ? 'Serviços' : 'Pacotes'}
+              </Text>
             </View>
             
-            <View style={styles.modalSearch}>
-              <Ionicons name="search" size={20} color={colors.textSecondary} style={{marginRight: 8}} />
+            <View style={[styles.modalSearch, isModalSearchFocused && styles.modalSearchFocused]}>
+              <Ionicons
+                name="search"
+                size={18}
+                color={isModalSearchFocused ? colors.primary : colors.textSecondary}
+              />
               <TextInput
                 style={styles.modalSearchInput}
                 value={termoBusca}
                 onChangeText={setTermoBusca}
+                onFocus={() => setIsModalSearchFocused(true)}
+                onBlur={() => setIsModalSearchFocused(false)}
                 placeholder={`Buscar ${tipoItem === 'produto' ? 'produtos' : 
                               tipoItem === 'servico' ? 'serviços' : 'pacotes'}...`}
-                placeholderTextColor={colors.textTertiary}
+                placeholderTextColor={colors.textSecondary}
               />
               {termoBusca ? (
-                <TouchableOpacity onPress={() => setTermoBusca('')}>
-                  <Ionicons name="close-circle" size={20} color={colors.textTertiary} />
+                <TouchableOpacity onPress={() => setTermoBusca('')} style={{padding: 4}}>
+                  <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -3082,7 +2950,10 @@ export default function ComandasScreen() {
                             {item.nome}
                           </Text>
                           <View style={styles.modalItemDetalhes}>
-                            <Text style={styles.modalItemPreco}>
+                            <Text style={[
+                              styles.modalItemPreco,
+                              itemSelecionado && styles.modalItemPrecoSelecionado
+                            ]}>
                               R$ {(() => {
                                 if ('valor' in item && 'desconto' in item) {
                                   // Para pacotes, usar valor final (valor - desconto)
@@ -3094,15 +2965,15 @@ export default function ComandasScreen() {
                               })()}
                             </Text>
                             {'quantidade' in item && (
-                              <Text style={styles.modalItemEstoque}>
-                                Disponível: {item.quantidade}
+                              <Text style={[
+                                styles.modalItemEstoque,
+                                itemSelecionado && {color: colors.primary}
+                              ]}>
+                                {item.quantidade} disponível
                               </Text>
                             )}
                           </View>
                         </View>
-                        {itemSelecionado && (
-                          <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
-                        )}
                       </TouchableOpacity>
                     );
                   })}
@@ -3132,21 +3003,21 @@ export default function ComandasScreen() {
                           onPress={() => alterarQuantidadeItem(item.id, Math.max(1, item.quantidade - 1))}
                           style={styles.modalQuantidadeButton}
                         >
-                          <Ionicons name="remove" size={20} color={colors.primary} />
+                          <Ionicons name="remove" size={14} color={colors.text} />
                         </TouchableOpacity>
                         <Text style={styles.modalQuantidadeText}>{item.quantidade}</Text>
                         <TouchableOpacity
                           onPress={() => alterarQuantidadeItem(item.id, item.quantidade + 1)}
                           style={styles.modalQuantidadeButton}
                         >
-                          <Ionicons name="add" size={20} color={colors.primary} />
+                          <Ionicons name="add" size={14} color={colors.text} />
                         </TouchableOpacity>
                       </View>
                       <TouchableOpacity
                         onPress={() => removerItemSelecionado(item.id)}
                         style={styles.modalRemoverButton}
                       >
-                        <Ionicons name="trash-outline" size={20} color={colors.error} />
+                        <Ionicons name="trash-outline" size={14} color={colors.white} />
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -3155,26 +3026,28 @@ export default function ComandasScreen() {
             </ScrollView>
             
             <View style={styles.modalFooter}>
-              <Button
-                variant="secondary"
-                size="medium"
-                onPress={fecharModalItens}
-                style={styles.modalCancelButton}
-              >
-                Cancelar
-              </Button>
-              <Button
-                variant="primary"
-                size="medium"
-                onPress={adicionarItensSelecionados}
-                disabled={itensSelecionados.filter(item => item.tipo === tipoItem).length === 0}
-                style={styles.modalConfirmButton}
-              >
-                Adicionar ({itensSelecionados.filter(item => item.tipo === tipoItem).length})
-              </Button>
+              <View style={styles.modalFooterButton}>
+                <Button
+                  variant="secondary"
+                  size="medium"
+                  onPress={fecharModalItens}
+                >
+                  Cancelar
+                </Button>
+              </View>
+              <View style={styles.modalFooterButton}>
+                <Button
+                  variant="primary"
+                  size="medium"
+                  onPress={adicionarItensSelecionados}
+                  disabled={itensSelecionados.filter(item => item.tipo === tipoItem).length === 0}
+                >
+                  {`Adicionar (${itensSelecionados.filter(item => item.tipo === tipoItem).length})`}
+                </Button>
+              </View>
             </View>
-          </Animated.View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       {/* Modal de Pagamento */}
@@ -3188,12 +3061,6 @@ export default function ComandasScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Pagamento</Text>
-              <Button
-                variant="ghost"
-                size="small"
-                icon="close"
-                onPress={() => setModalPagamentoVisible(false)}
-              />
             </View>
 
             <ScrollView 
@@ -3533,58 +3400,60 @@ export default function ComandasScreen() {
             </ScrollView>
 
             <View style={styles.modalFooter}>
-              <Button
-                variant="secondary"
-                size="medium"
-                onPress={() => setModalPagamentoVisible(false)}
-                style={styles.cancelButton}
-              >
-                Cancelar
-              </Button>
+              <View style={styles.modalFooterButton}>
+                <Button
+                  variant="secondary"
+                  size="medium"
+                  onPress={() => setModalPagamentoVisible(false)}
+                >
+                  Cancelar
+                </Button>
+              </View>
               
-              <Button
-                variant="primary"
-                size="medium"
-                onPress={() => {
-                  // Validações
-                  if (formasPagamentoSelecionadas.length === 0) {
-                    Alert.alert('Erro', 'Selecione uma forma de pagamento!');
-                    return;
-                  }
-                  
-                  // Se não for crediário, valida valores
-                  if (!formasPagamentoSelecionadas.includes('crediario')) {
-                    const totalPagamentos = pagamentosMultiplos.reduce((sum, p) => sum + (p.valor || 0), 0);
-                    
-                    if (totalPagamentos === 0) {
-                      Alert.alert('Erro', 'É necessário informar os valores dos pagamentos!');
+              <View style={styles.modalFooterButton}>
+                <Button
+                  variant="primary"
+                  size="medium"
+                  onPress={() => {
+                    // Validações
+                    if (formasPagamentoSelecionadas.length === 0) {
+                      Alert.alert('Erro', 'Selecione uma forma de pagamento!');
                       return;
                     }
-                  }
-                  
-                  if (comandaEmEdicao) {
-                    fecharComanda(comandaEmEdicao.id);
-                  }
-                }}
-                disabled={(() => {
-                  // Se nenhuma forma selecionada
-                  if (formasPagamentoSelecionadas.length === 0) {
-                    return true;
-                  }
-                  
-                  // Se crediário está selecionado, sempre habilita
-                  if (formasPagamentoSelecionadas.includes('crediario')) {
-                    return false;
-                  }
-                  
-                  // Para outras formas, verifica se há valores
-                  const totalPagamentos = pagamentosMultiplos.reduce((sum, p) => sum + (p.valor || 0), 0);
-                  return totalPagamentos === 0;
-                })()}
-                style={styles.modalConfirmButton}
-              >
-                Finalizar Pagamento
-              </Button>
+                    
+                    // Se não for crediário, valida valores
+                    if (!formasPagamentoSelecionadas.includes('crediario')) {
+                      const totalPagamentos = pagamentosMultiplos.reduce((sum, p) => sum + (p.valor || 0), 0);
+                      
+                      if (totalPagamentos === 0) {
+                        Alert.alert('Erro', 'É necessário informar os valores dos pagamentos!');
+                        return;
+                      }
+                    }
+                    
+                    if (comandaEmEdicao) {
+                      fecharComanda(comandaEmEdicao.id);
+                    }
+                  }}
+                  disabled={(() => {
+                    // Se nenhuma forma selecionada
+                    if (formasPagamentoSelecionadas.length === 0) {
+                      return true;
+                    }
+                    
+                    // Se crediário está selecionado, sempre habilita
+                    if (formasPagamentoSelecionadas.includes('crediario')) {
+                      return false;
+                    }
+                    
+                    // Para outras formas, verifica se há valores
+                    const totalPagamentos = pagamentosMultiplos.reduce((sum, p) => sum + (p.valor || 0), 0);
+                    return totalPagamentos === 0;
+                  })()}
+                >
+                  Finalizar Pagamento
+                </Button>
+              </View>
             </View>
           </View>
         </View>
@@ -3658,19 +3527,25 @@ export default function ComandasScreen() {
                 ? 'Deseja adicionar este valor como crédito no crediário do cliente?'
                 : 'Deseja adicionar este valor como débito no crediário do cliente?'}
             </Text>
-            <View style={{ flexDirection: 'row' }}>
-              <TouchableOpacity
-                style={[styles.cancelButton, { flex: 1, marginRight: 8 }]}
-                onPress={ignorarTrocoFalta}
-              >
-                <Text style={styles.cancelButtonText}>Não adicionar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalConfirmButton, { flex: 1, marginLeft: 8 }]}
-                onPress={adicionarTrocoFaltaCrediario}
-              >
-                <Text style={styles.modalConfirmButtonText}>Adicionar</Text>
-              </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Button
+                  variant="secondary"
+                  size="medium"
+                  onPress={ignorarTrocoFalta}
+                >
+                  Não adicionar
+                </Button>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button
+                  variant="primary"
+                  size="medium"
+                  onPress={adicionarTrocoFaltaCrediario}
+                >
+                  Adicionar
+                </Button>
+              </View>
             </View>
           </View>
         </View>
@@ -3746,7 +3621,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
   },
   tabActive: {
-    backgroundColor: colors.primaryBackground,
+    backgroundColor: colors.primary,
     borderRadius: 12,
   },
   tabText: {
@@ -3756,7 +3631,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginTop: 4,
   },
   tabTextActive: {
-    color: colors.primaryContrast,
+    color: colors.white,
     fontWeight: 'bold',
   },
   comandasList: {
@@ -3767,6 +3642,8 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
     elevation: 2,
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 2 },
@@ -3774,10 +3651,11 @@ const createStyles = (colors: any) => StyleSheet.create({
     shadowRadius: 4,
   },
   comandaFechada: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface,
   },
   comandaCancelada: {
     backgroundColor: colors.errorBackground,
+    borderColor: colors.error,
   },
   comandaCardHeader: {
     marginBottom: 12,
@@ -4090,29 +3968,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: 12,
   },
-  tipoItemButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  adicionarItemButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  adicionarItemButtonText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: colors.primary,
-    marginLeft: 6,
-  },
+  // REMOVIDO: usar SELECTION_BUTTON_CONTAINER_STYLE importado de Buttons.tsx
   comandaActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -4244,55 +4100,78 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.white,
     fontWeight: 'bold',
   },
-  modalContainer: {
+  modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 24,
+    maxWidth: 500,
+    width: '100%',
+    maxHeight: '74%',
+    minHeight: 380,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 30,
+    elevation: 20,
+  },
+  modalCardLarge: {
+    backgroundColor: colors.surface,
+    borderRadius: 24,
+    maxWidth: 500,
+    width: '100%',
+    maxHeight: '84%',
+    minHeight: 500,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 30,
+    elevation: 20,
   },
   modalContent: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingBottom: 16,
-    height: '90%',
-  },
-  modalDragIndicator: {
-    width: 40,
-    height: 5,
-    backgroundColor: colors.border,
-    borderRadius: 2.5,
-    alignSelf: 'center',
-    marginTop: 10,
-    marginBottom: 10,
+    flex: 1,
   },
   modalHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
+    paddingTop: 24,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '700',
     color: colors.text,
   },
   modalBody: {
-    maxHeight: '70%',
-    paddingHorizontal: 16,
+    flex: 1,
   },
   modalScrollContent: {
-    paddingBottom: 16,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 20,
   },
   modalFooter: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    gap: 12,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 24,
     borderTopWidth: 1,
     borderTopColor: colors.border,
+  },
+  modalFooterButton: {
+    flex: 1,
   },
   cancelButton: {
     flex: 1,
@@ -4620,35 +4499,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   tipoItemContainer: {
     marginBottom: 16,
   },
-  tipoItemButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-    marginTop: 8,
-  },
-  tipoItemButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    backgroundColor: colors.surface,
-  },
-  tipoItemButtonActive: {
-    backgroundColor: colors.primary,
-  },
-  tipoItemButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  tipoItemButtonTextActive: {
-    color: colors.white,
-  },
+  // REMOVIDO: usar SELECTION_BUTTON_CONTAINER_STYLE importado de Buttons.tsx
   itensList: {
     marginTop: 16,
   },
@@ -4719,47 +4570,63 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
   },
-  // Estilos para o modal de seleção de itens
+  // Estilos para o modal de seleção de itens - Minimalista
   modalSearch: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 12,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginHorizontal: 24,
+    marginTop: 16,
+    marginBottom: 20,
+  },
+  modalSearchFocused: {
+    borderColor: colors.primary,
   },
   modalSearchInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     color: colors.text,
+    marginLeft: 10,
   },
   modalList: {
-    paddingHorizontal: 16,
+    gap: 0,
+    paddingHorizontal: 20,
   },
   modalItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    marginBottom: 9,
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   modalItemSelecionado: {
     backgroundColor: colors.primaryBackground,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    borderLeftWidth: 4,
+    shadowOpacity: 0.08,
+    elevation: 3,
   },
   modalItemInfo: {
     flex: 1,
   },
   modalItemNome: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '500',
     color: colors.text,
+    marginBottom: 3,
   },
   modalItemNomeSelecionado: {
     color: colors.primary,
@@ -4768,100 +4635,124 @@ const createStyles = (colors: any) => StyleSheet.create({
   modalItemDetalhes: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 4,
+    alignItems: 'center',
+    gap: 10,
   },
   modalItemPreco: {
     fontSize: 14,
     color: colors.primary,
-    fontWeight: '600',
+    fontWeight: '700',
+  },
+  modalItemPrecoSelecionado: {
+    color: colors.primary,
+    fontWeight: '700',
   },
   modalItemEstoque: {
-    fontSize: 14,
+    fontSize: 12,
     color: colors.textSecondary,
+    fontWeight: '500',
   },
   modalSelecionados: {
-    marginTop: 24,
-    paddingTop: 16,
+    marginTop: 16,
+    marginHorizontal: 20,
+    marginBottom: 0,
     paddingHorizontal: 16,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    paddingVertical: 14,
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   modalSelecionadosTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textSecondary,
     marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
   },
   modalSelecionadoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background,
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+    paddingVertical: 11,
+    paddingHorizontal: 13,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   modalSelecionadoInfo: {
     flex: 1,
   },
   modalSelecionadoNome: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '600',
     color: colors.text,
+    marginBottom: 2,
   },
   modalSelecionadoPreco: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 2,
+    fontSize: 12,
+    color: colors.primary,
+    fontWeight: '600',
   },
   modalSelecionadoQuantidade: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
     marginRight: 8,
   },
   modalQuantidadeButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 26,
+    height: 26,
+    borderRadius: 6,
     backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalQuantidadeText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: colors.text,
-    paddingHorizontal: 8,
+    minWidth: 22,
+    textAlign: 'center',
   },
   modalRemoverButton: {
-    padding: 8,
-    backgroundColor: 'transparent',
+    width: 26,
+    height: 26,
+    borderRadius: 6,
+    backgroundColor: colors.errorBackground,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalCancelButton: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingVertical: 14,
-    borderRadius: 8,
-    marginRight: 8,
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   modalCancelButtonText: {
-    color: '#4B5563',
+    color: colors.text,
     fontWeight: '600',
     fontSize: 15,
   },
   modalConfirmButton: {
     flex: 1,
     backgroundColor: colors.primary,
-    paddingVertical: 14,
-    borderRadius: 8,
-    marginLeft: 8,
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: 'center',
   },
   modalConfirmButtonDisabled: {
     backgroundColor: colors.border,
   },
   modalConfirmButtonText: {
-    color: '#FFFFFF',
+    color: colors.primary,
     fontWeight: '600',
     fontSize: 15,
   },

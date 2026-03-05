@@ -56,7 +56,7 @@ export type Pacote = Pick<PacoteBase, 'id' | 'nome' | 'descricao' | 'valor'> & {
   desconto: number;
 };
 
-export async function carregarOrcamentos() {
+export async function carregarOrcamentos(forceRefresh = false) {
   try {
     logger.debug('Verificando autenticação...');
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -73,10 +73,12 @@ export async function carregarOrcamentos() {
     
     // Tentar cache primeiro
     const cacheKey = `lista_${user.id}`;
-    const cachedData = await CacheManager.get<Orcamento[]>(
-      CacheNamespaces.RELATORIOS,
-      cacheKey
-    );
+    const cachedData = forceRefresh
+      ? null
+      : await CacheManager.get<Orcamento[]>(
+          CacheNamespaces.RELATORIOS,
+          cacheKey
+        );
     
     if (cachedData) {
       logger.debug('📦 Orçamentos carregados do cache');

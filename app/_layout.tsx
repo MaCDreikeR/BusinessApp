@@ -38,16 +38,9 @@ const MainLayout = () => {
       logger.warn('⏱️ Iniciando timeout de segurança...');
       
       timeoutRef.current = setTimeout(() => {
-        logger.error('❌ Timeout absoluto atingido! Forçando navegação para login...');
+        logger.error('❌ Timeout absoluto atingido! Mostrando tela de timeout...');
         setLoadingTimeout(true);
-        setShouldForceLogin(true);
-        
-        // 🔥 FALLBACK GARANTIDO: Força navegação após 2 segundos
-        setTimeout(() => {
-          logger.error('🚑 Executando fallback de emergência...');
-          setHasBootRendered(true); // Força renderização
-          router.replace('/(auth)/login' as any);
-        }, 2000);
+        setHasBootRendered(true); // Sai da splash para mostrar tela de timeout
       }, ABSOLUTE_TIMEOUT);
       
       return () => {
@@ -57,13 +50,12 @@ const MainLayout = () => {
         }
       };
     } else {
-      setLoadingTimeout(false);
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
     }
-  }, [authLoading, hasBootRendered, router]);
+  }, [authLoading, hasBootRendered]);
 
   const safeReplace = (path: string) => {
     if (lastRedirectRef.current !== path) {
@@ -224,7 +216,7 @@ const MainLayout = () => {
     return null;
   }
 
-  // Tela de erro de timeout de conexão
+  // Tela de erro de timeout de conexão com logo do app
   if (loadingTimeout) {
     return (
       <View style={{ 
@@ -297,7 +289,13 @@ const MainLayout = () => {
               </Text>
             </View>
             <TouchableOpacity 
-              onPress={() => router.replace('/(auth)/login' as any)}
+              onPress={() => {
+                // Reset do estado para tentar novamente
+                setShouldForceLogin(false);
+                setLoadingTimeout(false);
+                setHasBootRendered(false);
+                router.replace('/(auth)/login' as any);
+              }}
               style={{ 
                 marginTop: 24, 
                 backgroundColor: '#7C3AED', 

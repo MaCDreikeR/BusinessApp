@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
-import { router, useLocalSearchParams, Stack } from 'expo-router';
+import { router, useLocalSearchParams, Stack, useFocusEffect } from 'expo-router';
 import MaskInput from 'react-native-mask-input';
 import { logger } from '../../../utils/logger';
 import { Produto as ProdutoBase, Fornecedor as FornecedorBase } from '@types';
@@ -79,12 +79,14 @@ export default function EditarProdutoScreen() {
     observacoes: '',
   });
 
-  useEffect(() => {
-    carregarProduto();
-    carregarCategorias();
-    carregarFornecedores();
-    carregarMarcas();
-  }, [id]);
+  useFocusEffect(
+    useCallback(() => {
+      carregarProduto();
+      carregarCategorias();
+      carregarFornecedores();
+      carregarMarcas();
+    }, [id, estabelecimentoId])
+  );
 
   const carregarCategorias = async () => {
     try {
@@ -623,6 +625,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   textArea: {
     height: 100,
     textAlignVertical: 'top',
+    color: colors.text,
   },
   buttonContainer: {
     marginTop: 8,

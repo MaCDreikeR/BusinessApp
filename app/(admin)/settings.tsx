@@ -200,8 +200,8 @@ export default function SettingsScreen() {
             <Switch
               value={value}
               onValueChange={(val) => setFormData({ ...formData, [config.chave]: val })}
-              trackColor={{ false: '#374151', true: '#a78bfa' }}
-              thumbColor={value ? '#fff' : '#9ca3af'}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor={value ? colors.primaryContrast : colors.borderLight}
             />
           </View>
         );

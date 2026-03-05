@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect, useCallback, useRef , useMemo} from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, RefreshControl, ActivityIndicator, Animated, Modal, ScrollView } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { format } from 'date-fns';
@@ -106,10 +107,12 @@ const VendasScreen = () => {
     }, 500) as unknown as NodeJS.Timeout;
   }, [filtros]);
 
-  useEffect(() => {
-    setPage(1);
-    carregarVendas(1, true);
-  }, [debouncedFiltros]);
+  useFocusEffect(
+    useCallback(() => {
+      setPage(1);
+      carregarVendas(1, true);
+    }, [debouncedFiltros, estabelecimentoId])
+  );
 
   useEffect(() => {
     logger.debug('🎭 modalDetalhesVisible mudou:', modalDetalhesVisible);

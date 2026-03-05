@@ -1,11 +1,11 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
   Alert, ActivityIndicator, TextInput, Linking
 } from 'react-native';
 import * as Contacts from 'expo-contacts';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from 'expo-router';
+import { useNavigation, useFocusEffect } from 'expo-router';
 import { logger } from '../../../utils/logger';
 import { useTheme } from '../../../contexts/ThemeContext';
 
@@ -27,13 +27,15 @@ export default function SelecionarContatoScreen() {
   const [permissaoConcedida, setPermissaoConcedida] = useState(true); // Novo estado
   const navigation = useNavigation();
 
-  useEffect(() => {
-    navigation.setOptions({
-      headerShown: true,
-      title: 'Selecionar Contato',
-    });
-    carregarContatos();
-  }, [navigation]);
+  useFocusEffect(
+    useCallback(() => {
+      navigation.setOptions({
+        headerShown: true,
+        title: 'Selecionar Contato',
+      });
+      carregarContatos();
+    }, [navigation])
+  );
 
   const carregarContatos = async () => {
     setLoading(true);

@@ -1,8 +1,8 @@
-﻿import React, { useState, useEffect , useMemo} from 'react';
+﻿import React, { useState, useEffect , useMemo, useCallback} from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
-import { router, usePathname } from 'expo-router';
+import { router, usePathname, useFocusEffect } from 'expo-router';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { logger } from '../../../utils/logger';
@@ -31,11 +31,13 @@ export default function FornecedoresScreen() {
 
   const { estabelecimentoId } = useAuth();
 
-  useEffect(() => {
-    if (estabelecimentoId) {
-      carregarFornecedores();
-    }
-  }, [pathname, estabelecimentoId]);
+  useFocusEffect(
+    useCallback(() => {
+      if (estabelecimentoId) {
+        carregarFornecedores();
+      }
+    }, [estabelecimentoId])
+  );
 
   const carregarFornecedores = async () => {
     try {

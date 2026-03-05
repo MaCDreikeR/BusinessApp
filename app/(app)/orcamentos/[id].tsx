@@ -1,12 +1,12 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Platform, Modal, Pressable } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { logger } from '../../../utils/logger';
 import { theme } from '@utils/theme';
+import { useFocusEffect } from 'expo-router';
 import { 
   Orcamento, 
   carregarOrcamentoPorId,
@@ -38,9 +38,11 @@ export default function DetalhesOrcamentoScreen() {
   const [loading, setLoading] = useState(true);
   const [statusModalVisible, setStatusModalVisible] = useState(false);
 
-  useEffect(() => {
-    carregarDados();
-  }, [id]);
+  useFocusEffect(
+    useCallback(() => {
+      carregarDados();
+    }, [id])
+  );
 
   async function carregarDados() {
     try {

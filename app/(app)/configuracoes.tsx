@@ -1,7 +1,7 @@
-﻿import React, { useState, useEffect , useMemo} from 'react';
+﻿import React, { useState, useEffect , useMemo, useCallback} from 'react';
 import { StyleSheet, View, ScrollView, TouchableOpacity, Text, Switch, Alert, Clipboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import ThemeToggle from '../../components/ThemeToggle';
@@ -67,13 +67,15 @@ export default function ConfiguracoesScreen() {
   
   const isAdmin = role === 'admin' || role === 'super_admin';
 
-  useEffect(() => {
-    loadNotificationSettings();
-    if (isAdmin) {
-      loadEmpresaData();
-      loadEmpresaStats();
-    }
-  }, [isAdmin, estabelecimentoId]);
+  useFocusEffect(
+    useCallback(() => {
+      loadNotificationSettings();
+      if (isAdmin) {
+        loadEmpresaData();
+        loadEmpresaStats();
+      }
+    }, [isAdmin, estabelecimentoId])
+  );
 
   const loadNotificationSettings = async () => {
     try {

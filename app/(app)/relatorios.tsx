@@ -83,7 +83,7 @@ export default function RelatoriosScreen() {
       height: 56,
     },
     tabActive: {
-      backgroundColor: colors.primaryBackground,
+      backgroundColor: colors.primary,
       borderBottomWidth: 2,
       borderBottomColor: colors.primary,
     },
@@ -142,7 +142,7 @@ export default function RelatoriosScreen() {
               <FontAwesome5
                 name={tab.icon as any}
                 size={16}
-                color={activeTab === tab.id ? colors.primary : colors.textSecondary}
+                color={activeTab === tab.id ? colors.primaryContrast : colors.textSecondary}
               />
               <ThemedText
                 style={[styles.tabText, activeTab === tab.id && styles.tabTextActive]}

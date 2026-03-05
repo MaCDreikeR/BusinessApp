@@ -1,4 +1,4 @@
-﻿import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, Modal, PanResponder, Animated } from 'react-native';
+﻿import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, Modal, Pressable, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { criarOrcamento, adicionarItemOrcamento, buscarClientes, buscarProdutos, buscarServicos, buscarPacotes, Cliente, Produto, Servico, Pacote } from './utils';
@@ -8,6 +8,7 @@ import { useTheme } from '../../../contexts/ThemeContext';
 import { logger } from '../../../utils/logger';
 import { formatarDataInput, formatarMoedaInput, formatarTelefoneInput } from '@utils/validators';
 import { theme } from '@utils/theme';
+import { SelectionButton, SELECTION_BUTTON_CONTAINER_STYLE } from '../../../components/Buttons';
 
 interface ItemOrcamento {
   id: string;
@@ -31,6 +32,9 @@ interface ItemSelecionado {
   validade_dias?: number;
 }
 
+type OrcamentoFieldErrorKey = 'cliente';
+type OrcamentoFieldErrors = Partial<Record<OrcamentoFieldErrorKey, string>>;
+
 export default function NovoOrcamentoScreen() {
   const { colors } = useTheme();
   // Estilos dinâmicos baseados no tema
@@ -39,6 +43,7 @@ export default function NovoOrcamentoScreen() {
   const [telefone, setTelefone] = useState('');
   const [clienteSelecionado, setClienteSelecionado] = useState<Cliente | null>(null);
   const [clientesEncontrados, setClientesEncontrados] = useState<Cliente[]>([]);
+  const [fieldErrors, setFieldErrors] = useState<OrcamentoFieldErrors>({});
   const [loading, setLoading] = useState(false);
   const [buscandoClientes, setBuscandoClientes] = useState(false);
   const [mostrarLista, setMostrarLista] = useState(false);
@@ -84,37 +89,6 @@ export default function NovoOrcamentoScreen() {
   const [termoBusca, setTermoBusca] = useState('');
   const [buscandoItens, setBuscandoItens] = useState(false);
   const [itensEncontrados, setItensEncontrados] = useState<(Produto | Servico | Pacote)[]>([]);
-
-  const pan = new Animated.ValueXY();
-
-  const panResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: (_, gestureState) => {
-      return Math.abs(gestureState.dy) > 10;
-    },
-    onPanResponderMove: (_, gestureState) => {
-      if (gestureState.dy > 0) {
-        pan.setValue({ x: 0, y: gestureState.dy });
-      }
-    },
-    onPanResponderRelease: (_, gestureState) => {
-      if (gestureState.dy > 100) {
-        Animated.timing(pan, {
-          toValue: { x: 0, y: 500 },
-          duration: 200,
-          useNativeDriver: true,
-        }).start(() => {
-          setModalVisible(false);
-          pan.setValue({ x: 0, y: 0 });
-        });
-      } else {
-        Animated.spring(pan, {
-          toValue: { x: 0, y: 0 },
-          useNativeDriver: true,
-        }).start();
-      }
-    },
-  });
 
   // Função para carregar itens iniciais
   const carregarItensIniciais = useCallback(async () => {
@@ -749,12 +723,10 @@ export default function NovoOrcamentoScreen() {
           
           <View style={styles.tipoItemContainer}>
             <Text style={styles.label}>Adicionar Item</Text>
-            <View style={styles.tipoItemButtons}>
-              <TouchableOpacity 
-                style={[
-                  styles.tipoItemButton,
-                  tipoItem === 'produto' && styles.tipoItemButtonActive
-                ]}
+            <View style={SELECTION_BUTTON_CONTAINER_STYLE}>
+              <SelectionButton
+                label="Produto"
+                icon="cube-outline"
                 onPress={() => {
                   logger.debug('Abrindo modal de produtos');
                   setTipoItem('produto');
@@ -762,23 +734,11 @@ export default function NovoOrcamentoScreen() {
                   setTermoBusca('');
                   setItensSelecionados([]);
                 }}
-              >
-                <Ionicons 
-                  name="cube-outline" 
-                  size={24} 
-                  color={tipoItem === 'produto' ? colors.white : colors.primary} 
-                />
-                <Text style={[
-                  styles.tipoItemButtonText,
-                  tipoItem === 'produto' && styles.tipoItemButtonTextActive
-                ]}>Produto</Text>
-              </TouchableOpacity>
+              />
 
-              <TouchableOpacity 
-                style={[
-                  styles.tipoItemButton,
-                  tipoItem === 'servico' && styles.tipoItemButtonActive
-                ]}
+              <SelectionButton
+                label="Serviço"
+                icon="construct-outline"
                 onPress={() => {
                   logger.debug('Abrindo modal de serviços');
                   setTipoItem('servico');
@@ -786,23 +746,11 @@ export default function NovoOrcamentoScreen() {
                   setTermoBusca('');
                   setItensSelecionados([]);
                 }}
-              >
-                <Ionicons 
-                  name="construct-outline" 
-                  size={24} 
-                  color={tipoItem === 'servico' ? colors.white : colors.primary} 
-                />
-                <Text style={[
-                  styles.tipoItemButtonText,
-                  tipoItem === 'servico' && styles.tipoItemButtonTextActive
-                ]}>Serviço</Text>
-              </TouchableOpacity>
+              />
 
-              <TouchableOpacity 
-                style={[
-                  styles.tipoItemButton,
-                  tipoItem === 'pacote' && styles.tipoItemButtonActive
-                ]}
+              <SelectionButton
+                label="Pacote"
+                icon="gift-outline"
                 onPress={() => {
                   logger.debug('Abrindo modal de pacotes');
                   setTipoItem('pacote');
@@ -810,17 +758,7 @@ export default function NovoOrcamentoScreen() {
                   setTermoBusca('');
                   setItensSelecionados([]);
                 }}
-              >
-                <Ionicons 
-                  name="gift-outline" 
-                  size={24} 
-                  color={tipoItem === 'pacote' ? colors.white : colors.primary} 
-                />
-                <Text style={[
-                  styles.tipoItemButtonText,
-                  tipoItem === 'pacote' && styles.tipoItemButtonTextActive
-                ]}>Pacote</Text>
-              </TouchableOpacity>
+              />
             </View>
           </View>
           
@@ -953,27 +891,14 @@ export default function NovoOrcamentoScreen() {
 
         {/* Modal de Seleção de Itens */}
         <Modal
-          animationType="slide"
+          animationType="fade"
           transparent={true}
           visible={modalVisible}
           onRequestClose={() => setModalVisible(false)}
         >
-          <View style={styles.modalContainer}>
-            <Animated.View 
-              style={[
-                styles.modalContent,
-                {
-                  transform: [
-                    { translateY: pan.y }
-                  ]
-                }
-              ]}
-            >
-              <View 
-                style={styles.modalHeader}
-                {...panResponder.panHandlers}
-              >
-                <View style={styles.modalDragIndicator} />
+          <Pressable style={styles.modalBackdrop} onPress={() => setModalVisible(false)}>
+            <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+              <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>
                   Selecionar {tipoItem.charAt(0).toUpperCase() + tipoItem.slice(1)}s
                 </Text>
@@ -1011,7 +936,10 @@ export default function NovoOrcamentoScreen() {
                           {'nome' in item ? item.nome : ''}
                         </Text>
                         <View style={styles.modalItemDetalhes}>
-                          <Text style={styles.modalItemPreco}>
+                          <Text style={[
+                            styles.modalItemPreco,
+                            itemSelecionado && styles.modalItemPrecoSelecionado
+                          ]}>
                             {(() => {
                               if ('valor' in item && 'desconto' in item) {
                                 // Para pacotes, usar valor final (valor - desconto)
@@ -1046,9 +974,6 @@ export default function NovoOrcamentoScreen() {
                           )}
                         </View>
                       </View>
-                      {itemSelecionado && (
-                        <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
-                      )}
                     </TouchableOpacity>
                   );
                 })}
@@ -1115,8 +1040,8 @@ export default function NovoOrcamentoScreen() {
                   </Text>
                 </TouchableOpacity>
               </View>
-            </Animated.View>
-          </View>
+            </Pressable>
+          </Pressable>
         </Modal>
       </View>
     </ScrollView>
@@ -1171,6 +1096,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   textArea: {
     height: 100,
     textAlignVertical: 'top',
+    color: colors.text,
   },
   button: {
     backgroundColor: colors.primary,
@@ -1248,10 +1174,10 @@ const createStyles = (colors: any) => StyleSheet.create({
     top: 12,
   },
   clienteItemSelecionado: {
-    backgroundColor: '#f3e8fd',
+    backgroundColor: colors.primary,
   },
   clienteNomeSelecionado: {
-    color: colors.primary,
+    color: colors.primaryContrast,
     fontWeight: '600',
   },
   itemRow: {
@@ -1420,202 +1346,247 @@ const createStyles = (colors: any) => StyleSheet.create({
   tipoItemContainer: {
     marginBottom: 16,
   },
-  tipoItemButtons: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 8,
-  },
-  tipoItemButton: {
+  // REMOVIDO: usar SELECTION_BUTTON_CONTAINER_STYLE importado de Buttons.tsx
+  modalBackdrop: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
     justifyContent: 'center',
-    gap: 8,
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.primary,
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalCard: {
     backgroundColor: colors.surface,
+    borderRadius: 24,
+    maxWidth: 500,
+    width: '100%',
+    maxHeight: '74%',
+    minHeight: 380,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 30,
+    elevation: 20,
   },
-  tipoItemButtonActive: {
-    backgroundColor: colors.primary,
-  },
-  tipoItemButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  tipoItemButtonTextActive: {
-    color: colors.white,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
+  modalCardLarge: {
     backgroundColor: colors.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 16,
-    maxHeight: '80%',
+    borderRadius: 24,
+    maxWidth: 500,
+    width: '100%',
+    maxHeight: '84%',
+    minHeight: 500,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 30,
+    elevation: 20,
   },
   modalHeader: {
-    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.text,
   },
-  modalDragIndicator: {
-    width: 40,
-    height: 4,
-    backgroundColor: colors.border,
-    borderRadius: 2,
-    marginBottom: 8,
-    alignSelf: 'center',
-  },
   modalSearch: {
-    position: 'relative',
-    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginHorizontal: 24,
+    marginTop: 16,
+    marginBottom: 20,
   },
   modalSearchInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    paddingRight: 40,
-    fontSize: 16,
-  },
-  modalSearchIcon: {
-    position: 'absolute',
-    right: 12,
-    top: 12,
+    flex: 1,
+    fontSize: 15,
+    color: colors.text,
+    marginLeft: 10,
   },
   modalList: {
-    maxHeight: 300,
-    marginBottom: 16,
+    paddingHorizontal: 20,
+    maxHeight: 400,
   },
   modalItem: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 9,
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  modalItemSelecionado: {
+    backgroundColor: colors.primaryBackground,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    borderLeftWidth: 4,
   },
   modalItemInfo: {
     flex: 1,
   },
   modalItemNome: {
-    fontSize: 16,
+    fontSize: 14,
+    fontWeight: '500',
     color: colors.text,
+    marginBottom: 3,
+  },
+  modalItemNomeSelecionado: {
+    color: colors.primary,
+    fontWeight: '600',
   },
   modalItemDetalhes: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 4,
+    alignItems: 'center',
+    gap: 10,
   },
   modalItemPreco: {
     fontSize: 14,
     color: colors.primary,
-    fontWeight: '600',
+    fontWeight: '700',
+  },
+  modalItemPrecoSelecionado: {
+    color: colors.primary,
+    fontWeight: '700',
   },
   modalItemEstoque: {
-    fontSize: 14,
+    fontSize: 12,
     color: colors.textSecondary,
+    fontWeight: '500',
   },
   modalSelecionados: {
     marginTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    paddingTop: 16,
+    marginHorizontal: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   modalSelecionadosTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 8,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
   },
   modalSelecionadoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 8,
-    backgroundColor: '#f8f8f8',
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+    paddingVertical: 11,
+    paddingHorizontal: 13,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   modalSelecionadoInfo: {
     flex: 1,
   },
   modalSelecionadoNome: {
-    fontSize: 14,
+    fontSize: 13,
+    fontWeight: '600',
     color: colors.text,
+    marginBottom: 2,
   },
   modalSelecionadoPreco: {
-    fontSize: 14,
+    fontSize: 12,
     color: colors.primary,
     fontWeight: '600',
   },
   modalSelecionadoQuantidade: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 8,
+    gap: 6,
+    marginRight: 8,
   },
   modalQuantidadeButton: {
-    padding: 4,
+    width: 26,
+    height: 26,
+    borderRadius: 6,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalQuantidadeText: {
-    fontSize: 16,
+    fontSize: 13,
+    fontWeight: '600',
     color: colors.text,
-    marginHorizontal: 8,
+    minWidth: 22,
+    textAlign: 'center',
   },
   modalRemoverButton: {
-    padding: 8,
+    width: 26,
+    height: 26,
+    borderRadius: 6,
+    backgroundColor: colors.errorBackground,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalFooter: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 16,
-    paddingTop: 16,
+    gap: 12,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 24,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: colors.border,
   },
   modalCancelButton: {
     flex: 1,
-    padding: 16,
-    backgroundColor: colors.borderLight,
+    backgroundColor: colors.background,
+    paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
-    marginRight: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   modalCancelButtonText: {
     color: colors.textSecondary,
-    fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
+    fontSize: 15,
   },
   modalConfirmButton: {
     flex: 1,
-    padding: 16,
     backgroundColor: colors.primary,
+    paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
-    marginLeft: 8,
   },
   modalConfirmButtonDisabled: {
-    backgroundColor: '#9CA3AF',
+    backgroundColor: colors.border,
   },
   modalConfirmButtonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '600',
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 15,
   },
-  modalItemSelecionado: {
-    backgroundColor: '#f3e8fd',
-  },
-  modalItemNomeSelecionado: {
-    color: colors.primary,
-    fontWeight: '600',
+  modalSearchIcon: {
+    position: 'absolute',
+    right: 12,
+    top: 12,
   },
   errorText: {
     color: colors.error,

@@ -1,8 +1,8 @@
-﻿import React, { useState, useEffect , useMemo} from 'react';
+﻿import React, { useState, useEffect , useMemo, useCallback} from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, ScrollView, Modal, PanResponder, Animated, ActivityIndicator , DeviceEventEmitter } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { logger } from '../../../utils/logger';
@@ -223,7 +223,7 @@ export default function EstoqueScreen() {
     }
   };
 
-  const carregarProdutos = async () => {
+  const carregarProdutos = async (forceRefresh = false) => {
     try {
       setLoading(true);
       
@@ -237,10 +237,12 @@ export default function EstoqueScreen() {
       const cacheKey = `produtos_${estabelecimentoId}_${filtroAtivo}_${categoriaSelecionada || 'all'}_${fornecedorSelecionado || 'all'}_${marcaSelecionada || 'all'}`;
       
       // Tentar buscar do cache (TTL de 5 minutos)
-      const cachedData = await CacheManager.get<ProdutoEstoque[]>(
-        CacheNamespaces.ESTOQUE,
-        cacheKey
-      );
+      const cachedData = forceRefresh
+        ? null
+        : await CacheManager.get<ProdutoEstoque[]>(
+            CacheNamespaces.ESTOQUE,
+            cacheKey
+          );
 
       if (cachedData) {
         logger.debug('✅ Usando cache para produtos');
@@ -314,9 +316,12 @@ export default function EstoqueScreen() {
     }
   };
 
-  useEffect(() => {
-    carregarDados();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      carregarDados();
+      carregarProdutos(true);
+    }, [estabelecimentoId])
+  );
 
   useEffect(() => {
     carregarProdutos();
@@ -1038,13 +1043,13 @@ const createStyles = (colors: any) => StyleSheet.create({
   limparFiltros: {
     marginLeft: 12,
     padding: 8,
-    backgroundColor: colors.primaryBackground,
+    backgroundColor: colors.primary,
     borderRadius: 8,
     minWidth: 60,
     alignItems: 'center',
   },
   limparFiltrosTexto: {
-    color: colors.primary,
+    color: colors.primaryContrast,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -1088,7 +1093,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderColor: colors.border,
   },
   filtroChipAtivo: {
-    backgroundColor: colors.primaryBackground,
+    backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
   filtroChipText: {
@@ -1096,7 +1101,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.text,
   },
   filtroChipTextAtivo: {
-    color: colors.primary,
+    color: colors.primaryContrast,
   },
   listContent: {
     padding: 16,

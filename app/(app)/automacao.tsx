@@ -1,5 +1,6 @@
-import React, { useEffect, useState , useMemo} from 'react';
+import React, { useEffect, useState , useMemo, useCallback} from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -18,30 +19,32 @@ export default function AutomacaoScreen() {
   const { estabelecimentoId } = useAuth();
   const { colors } = useTheme();
   
-  // Estilos dinâmicos baseados no tema
+  // Estilos dinï¿½micos baseados no tema
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [tab, setTab] = useState<TabType>('agendamentos');
   const [modeloAgendamento, setModeloAgendamento] = useState('');
   const [modeloAniversariante, setModeloAniversariante] = useState('');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        const [agendamento, aniversariante] = await Promise.all([
-          getModeloMensagem(estabelecimentoId || undefined),
-          getModeloAniversariante(estabelecimentoId || undefined)
-        ]);
-        setModeloAgendamento(agendamento);
-        setModeloAniversariante(aniversariante);
-      } catch (e) {
-        logger.error(e);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [estabelecimentoId]);
+  useFocusEffect(
+    useCallback(() => {
+      (async () => {
+        try {
+          setLoading(true);
+          const [agendamento, aniversariante] = await Promise.all([
+            getModeloMensagem(estabelecimentoId || undefined),
+            getModeloAniversariante(estabelecimentoId || undefined)
+          ]);
+          setModeloAgendamento(agendamento);
+          setModeloAniversariante(aniversariante);
+        } catch (e) {
+          logger.error(e);
+        } finally {
+          setLoading(false);
+        }
+      })();
+    }, [estabelecimentoId])
+  );
 
   const onSalvarAgendamento = async () => {
     try {
@@ -49,17 +52,17 @@ export default function AutomacaoScreen() {
       Alert.alert('Sucesso', 'Modelo de mensagem de agendamento salvo.');
     } catch (e) {
       logger.error(e);
-      Alert.alert('Erro', 'Não foi possível salvar o modelo.');
+      Alert.alert('Erro', 'Nï¿½o foi possï¿½vel salvar o modelo.');
     }
   };
 
   const onSalvarAniversariante = async () => {
     try {
       await salvarModeloAniversariante(modeloAniversariante, estabelecimentoId || undefined);
-      Alert.alert('Sucesso', 'Modelo de mensagem de aniversário salvo.');
+      Alert.alert('Sucesso', 'Modelo de mensagem de aniversï¿½rio salvo.');
     } catch (e) {
       logger.error(e);
-      Alert.alert('Erro', 'Não foi possível salvar o modelo.');
+      Alert.alert('Erro', 'Nï¿½o foi possï¿½vel salvar o modelo.');
     }
   };
 
@@ -91,7 +94,7 @@ export default function AutomacaoScreen() {
           <Text style={styles.title}>Mensagem de agendamento</Text>
           <Text style={styles.help}>
             Use os placeholders:
-            {'\n'}• {`{cliente}`} • {`{data}`} • {`{hora}`} • {`{dia}`} {'\n'}• {`{servico}`} • {`{empresa}`} • {`{valor}`}
+            {'\n'}ï¿½ {`{cliente}`} ï¿½ {`{data}`} ï¿½ {`{hora}`} ï¿½ {`{dia}`} {'\n'}ï¿½ {`{servico}`} ï¿½ {`{empresa}`} ï¿½ {`{valor}`}
           </Text>
           <TextInput
             multiline
@@ -115,16 +118,16 @@ export default function AutomacaoScreen() {
 
       {tab === 'aniversariantes' && (
         <ScrollView contentContainerStyle={styles.content}>
-          <Text style={styles.title}>Mensagem de aniversário</Text>
+          <Text style={styles.title}>Mensagem de aniversï¿½rio</Text>
           <Text style={styles.help}>
             Use os placeholders:
-            {'\n'}• {`{cliente}`} • {`{idade}`} • {`{data_nascimento}`} • {`{empresa}`}
+            {'\n'}ï¿½ {`{cliente}`} ï¿½ {`{idade}`} ï¿½ {`{data_nascimento}`} ï¿½ {`{empresa}`}
           </Text>
           <TextInput
             multiline
             value={modeloAniversariante}
             onChangeText={setModeloAniversariante}
-            placeholder="Digite o modelo da mensagem de aniversário..."
+            placeholder="Digite o modelo da mensagem de aniversï¿½rio..."
             style={styles.textarea}
             editable={!loading}
           />
@@ -143,7 +146,7 @@ export default function AutomacaoScreen() {
   );
 }
 
-// Função auxiliar para criar estilos dinâmicos
+// Funï¿½ï¿½o auxiliar para criar estilos dinï¿½micos
 const createStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surface },
   tabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#eee' },
@@ -154,7 +157,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   content: { padding: 16 },
   title: { fontSize: 18, fontWeight: '700', marginBottom: 12 },
   help: { color: colors.textSecondary, marginBottom: 12, lineHeight: 20 },
-  textarea: { minHeight: 160, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, textAlignVertical: 'top', fontSize: 16 },
+  textarea: { minHeight: 160, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, textAlignVertical: 'top', fontSize: 16, color: colors.text },
   actions: { marginTop: 12, flexDirection: 'row', gap: 10 },
   button: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   buttonPrimary: { backgroundColor: colors.successBackground, borderWidth: 1, borderColor: colors.success },

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect , useMemo} from 'react';
+﻿import React, { useState, useEffect , useMemo, useCallback} from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
   DeviceEventEmitter,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -61,18 +62,20 @@ export default function ComissoesScreen() {
   const [configComissoes, setConfigComissoes] = useState<{[key: string]: boolean}>({});
   const [todosUsuarios, setTodosUsuarios] = useState<UsuarioComissao[]>([]); // Para o modal de config
 
-  useEffect(() => {
-    logger.debug('🏢 Estabelecimento ID:', estabelecimentoId);
-    logger.debug('👤 Usuário logado:', user?.email);
-    carregarDados();
+  useFocusEffect(
+    useCallback(() => {
+      logger.debug('🏢 Estabelecimento ID:', estabelecimentoId);
+      logger.debug('👤 Usuário logado:', user?.email);
+      carregarDados();
 
-    // Listener para o botão de configuração no header
-    const subscription = DeviceEventEmitter.addListener('abrirConfigComissoes', () => {
-      abrirModalConfig();
-    });
+      // Listener para o botão de configuração no header
+      const subscription = DeviceEventEmitter.addListener('abrirConfigComissoes', () => {
+        abrirModalConfig();
+      });
 
-    return () => subscription.remove();
-  }, []);
+      return () => subscription.remove();
+    }, [estabelecimentoId, user?.email])
+  );
 
   const carregarDados = async () => {
     try {
@@ -641,9 +644,9 @@ export default function ComissoesScreen() {
                     <Switch
                       value={isAtivo}
                       onValueChange={(valor) => alternarComissao(usuario.id, valor)}
-                      trackColor={{ false: colors.background, true: colors.primary + '80' }}
-                      thumbColor={isAtivo ? colors.primary : colors.background}
-                      ios_backgroundColor={colors.background}
+                      trackColor={{ false: colors.border, true: colors.primary + '80' }}
+                      thumbColor={isAtivo ? colors.primaryContrast : colors.borderLight}
+                      ios_backgroundColor={colors.border}
                     />
                   </View>
                 );

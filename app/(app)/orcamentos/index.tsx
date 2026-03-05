@@ -1,7 +1,7 @@
 ﻿import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Animated, ActivityIndicator, TextInput, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { logger } from '../../../utils/logger';
 import { theme } from '@utils/theme';
 import { useTheme } from '../../../contexts/ThemeContext';
@@ -80,9 +80,11 @@ export default function OrcamentosScreen() {
 
   const [statusFiltro, setStatusFiltro] = useState<null | string>(null);
 
-  useEffect(() => {
-    carregarOrcamentosLista();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      carregarOrcamentosLista();
+    }, [])
+  );
 
   useEffect(() => {
     let filtrados = orcamentos;
@@ -100,7 +102,7 @@ export default function OrcamentosScreen() {
   async function carregarOrcamentosLista() {
     try {
       setLoading(true);
-      const data = await carregarOrcamentos();
+      const data = await carregarOrcamentos(true);
       setOrcamentos(data);
       setOrcamentosFiltrados(data);
     } catch (error) {

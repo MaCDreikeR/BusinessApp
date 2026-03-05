@@ -694,8 +694,8 @@ export default function PerfilScreen() {
                 <TextInput style={styles.input} value={celular} onChangeText={(text) => setCelular(formatarCelular(text))} keyboardType="phone-pad" placeholder="(00) 00000-0000"/>
             </View>
             <View style={styles.switchContainer}>
-                <Text style={styles.label}>Este usu�rio faz atendimentos/agendamentos</Text>
-                <Switch trackColor={{ false: "#767577", true: "#81b0ff" }} thumbColor={fazAtendimento ? colors.primary : "#f4f3f4"} value={fazAtendimento} onValueChange={setFazAtendimento} />
+                <Text style={styles.label}>Este usuário faz atendimentos/agendamentos</Text>
+                <Switch trackColor={{ false: colors.border, true: colors.primary }} thumbColor={fazAtendimento ? colors.primaryContrast : colors.borderLight} value={fazAtendimento} onValueChange={setFazAtendimento} />
             </View>
           </View>
           

@@ -19,6 +19,9 @@ import { offlineInsert, getOfflineFeedback } from '../../../services/offlineSupa
 import { CacheManager, CacheNamespaces } from '../../../utils/cacheManager';
 import { useTheme } from '../../../contexts/ThemeContext';
 
+type ClienteFieldErrorKey = 'nome' | 'telefone' | 'email' | 'dataNascimento' | 'dataAgendamento' | 'horaAgendamento' | 'servicoAgendado';
+type ClienteFieldErrors = Partial<Record<ClienteFieldErrorKey, string>>;
+
 export default function NovoClienteScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -31,6 +34,7 @@ export default function NovoClienteScreen() {
   const [email, setEmail] = useState('');
   const [dataNascimento, setDataNascimento] = useState('');
   const [observacoes, setObservacoes] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<ClienteFieldErrors>({});
   const [salvando, setSalvando] = useState(false);
   const [foto, setFoto] = useState<string | null>(null);
   
@@ -46,7 +50,7 @@ export default function NovoClienteScreen() {
   const [galeria, setGaleria] = useState<string[]>([]);
 
   useEffect(() => {
-    // Se recebeu o nome do cliente como parâmetro, preenche o campo
+    // Se recebeu o nome do cliente como parï¿½metro, preenche o campo
     if (params.nome) {
       setNome(params.nome as string);
     }
@@ -56,7 +60,7 @@ export default function NovoClienteScreen() {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permissão necessária', 'Precisamos de acesso à sua galeria para selecionar uma foto.');
+        Alert.alert('Permissï¿½o necessï¿½ria', 'Precisamos de acesso ï¿½ sua galeria para selecionar uma foto.');
         return;
       }
 
@@ -73,12 +77,12 @@ export default function NovoClienteScreen() {
       }
     } catch (error) {
       logger.error('Erro ao selecionar foto:', error);
-      Alert.alert('Erro', 'Não foi possível selecionar a foto.');
+      Alert.alert('Erro', 'Nï¿½o foi possï¿½vel selecionar a foto.');
     }
   };
 
   const validarSaldo = (valor: string) => {
-    if (!valor) return true; // Saldo não é obrigatório
+    if (!valor) return true; // Saldo nï¿½o ï¿½ obrigatï¿½rio
     const numeroLimpo = valor.replace(/\D/g, '');
     const numero = parseInt(numeroLimpo);
     return !isNaN(numero) && numero >= 0;
@@ -96,6 +100,42 @@ export default function NovoClienteScreen() {
     const h = parseInt(horas);
     const m = parseInt(minutos);
     return h >= 0 && h < 24 && m >= 0 && m < 60;
+  };
+
+  const validarFormulario = (): ClienteFieldErrors => {
+    const erros: ClienteFieldErrors = {};
+
+    if (!nome.trim()) {
+      erros.nome = 'Nome do cliente Ã© obrigatÃ³rio';
+    }
+
+    if (!validarTelefone(telefone)) {
+      erros.telefone = 'Digite um nÃºmero de telefone vÃ¡lido com DDD';
+    }
+
+    if (dataNascimento && !validarDataFormatada(dataNascimento)) {
+      erros.dataNascimento = 'Digite uma data de nascimento vÃ¡lida';
+    }
+
+    if ((dataAgendamento || horaAgendamento || servicoAgendado)) {
+      if (!dataAgendamento) {
+        erros.dataAgendamento = 'Data do agendamento Ã© obrigatÃ³ria';
+      } else if (!validarData(dataAgendamento)) {
+        erros.dataAgendamento = 'Digite uma data vÃ¡lida';
+      }
+
+      if (!horaAgendamento) {
+        erros.horaAgendamento = 'Hora do agendamento Ã© obrigatÃ³ria';
+      } else if (!validarHora(horaAgendamento)) {
+        erros.horaAgendamento = 'Digite uma hora vÃ¡lida';
+      }
+
+      if (!servicoAgendado) {
+        erros.servicoAgendado = 'ServiÃ§o Ã© obrigatÃ³rio';
+      }
+    }
+
+    return erros;
   };
 
   const handleSaldoChange = (valor: string) => {
@@ -120,48 +160,20 @@ export default function NovoClienteScreen() {
   };
 
   const salvarCliente = async () => {
-    if (!nome.trim()) {
-      Alert.alert('Atenção', 'O nome do cliente é obrigatório.');
+    const erros = validarFormulario();
+    
+    if (Object.keys(erros).length > 0) {
+      setFieldErrors(erros);
       return;
     }
 
-    if (!validarTelefone(telefone)) {
-      Alert.alert('Atenção', 'Digite um número de telefone válido com DDD.');
-      return;
-    }
-
-    if (dataNascimento && !validarDataFormatada(dataNascimento)) {
-      Alert.alert('Atenção', 'Digite uma data de nascimento válida.');
-      return;
-    }
-
-    if (saldoInicial && !validarSaldo(saldoInicial)) {
-      Alert.alert('Atenção', 'Digite um valor válido para o saldo inicial.');
-      return;
-    }
-
-    // Validar data e hora do agendamento
-    if ((dataAgendamento || horaAgendamento || servicoAgendado) &&
-        (!dataAgendamento || !horaAgendamento || !servicoAgendado)) {
-      Alert.alert('Atenção', 'Para criar um agendamento, preencha todos os campos (data, hora e serviço).');
-      return;
-    }
-
-    if (dataAgendamento && !validarData(dataAgendamento)) {
-      Alert.alert('Atenção', 'Digite uma data válida para o agendamento.');
-      return;
-    }
-
-    if (horaAgendamento && !validarHora(horaAgendamento)) {
-      Alert.alert('Atenção', 'Digite uma hora válida para o agendamento.');
-      return;
-    }
+    setFieldErrors({});
 
     try {
       setSalvando(true);
       
       if (!user || !estabelecimentoId) {
-        Alert.alert('Erro', 'Usuário ou estabelecimento não identificado');
+        Alert.alert('Erro', 'Usuï¿½rio ou estabelecimento nï¿½o identificado');
         return;
       }
 
@@ -202,7 +214,7 @@ export default function NovoClienteScreen() {
 
       if (clienteError) {
         logger.error('Erro ao criar cliente:', clienteError);
-        Alert.alert('Erro', 'Não foi possível criar o cliente. Por favor, tente novamente.');
+        Alert.alert('Erro', 'Nï¿½o foi possï¿½vel criar o cliente. Por favor, tente novamente.');
         return;
       }
 
@@ -224,7 +236,7 @@ export default function NovoClienteScreen() {
 
         if (saldoError) {
           logger.error('Erro ao criar saldo:', saldoError);
-          // Não impede a criação do cliente, apenas mostra um alerta
+          // Nï¿½o impede a criaï¿½ï¿½o do cliente, apenas mostra um alerta
           const feedback = getOfflineFeedback(fromCache, 'create');
           Alert.alert(feedback.title, 'Cliente criado, mas houve um erro ao registrar o saldo inicial.');
           router.back();
@@ -253,7 +265,7 @@ export default function NovoClienteScreen() {
 
         if (agendamentoError) {
           logger.error('Erro ao criar agendamento:', agendamentoError);
-          // Não impede a criação do cliente, apenas mostra um alerta
+          // Nï¿½o impede a criaï¿½ï¿½o do cliente, apenas mostra um alerta
           const feedback = getOfflineFeedback(fromCache, 'create');
           Alert.alert(feedback.title, 'Cliente criado, mas houve um erro ao registrar o agendamento.');
           router.back();
@@ -261,7 +273,7 @@ export default function NovoClienteScreen() {
         }
       }
 
-      // Limpar cache da lista de clientes para forçar atualização
+      // Limpar cache da lista de clientes para forï¿½ar atualizaï¿½ï¿½o
       if (estabelecimentoId) {
         const cacheKey = `lista_${estabelecimentoId}`;
         await CacheManager.remove(CacheNamespaces.CLIENTES, cacheKey);
@@ -315,7 +327,7 @@ export default function NovoClienteScreen() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Nome</Text>
-              <View style={styles.inputContainer}>
+              <View style={[styles.inputContainer, fieldErrors.nome && { borderColor: colors.error }]}>
                 <FontAwesome5 name="user" size={16} color={colors.textTertiary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
@@ -325,11 +337,12 @@ export default function NovoClienteScreen() {
                   placeholderTextColor={colors.textTertiary}
                 />
               </View>
+              {fieldErrors.nome ? <Text style={[styles.inlineErrorText, { color: colors.error }]}>{fieldErrors.nome}</Text> : null}
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Telefone</Text>
-              <View style={styles.inputContainer}>
+              <View style={[styles.inputContainer, fieldErrors.telefone && { borderColor: colors.error }]}>
                 <FontAwesome5 name="phone" size={16} color={colors.textTertiary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
@@ -341,6 +354,7 @@ export default function NovoClienteScreen() {
                   maxLength={15}
                 />
               </View>
+              {fieldErrors.telefone ? <Text style={[styles.inlineErrorText, { color: colors.error }]}>{fieldErrors.telefone}</Text> : null}
             </View>
 
             <View style={styles.inputGroup}>
@@ -361,7 +375,7 @@ export default function NovoClienteScreen() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Data de Nascimento</Text>
-              <View style={styles.inputContainer}>
+              <View style={[styles.inputContainer, fieldErrors.dataNascimento && { borderColor: colors.error }]}>
                 <FontAwesome5 name="calendar" size={16} color={colors.textTertiary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
@@ -373,15 +387,16 @@ export default function NovoClienteScreen() {
                   maxLength={10}
                 />
               </View>
+              {fieldErrors.dataNascimento ? <Text style={[styles.inlineErrorText, { color: colors.error }]}>{fieldErrors.dataNascimento}</Text> : null}
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Observação</Text>
+              <Text style={styles.label}>Observaï¿½ï¿½o</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
                 value={observacoes}
                 onChangeText={setObservacoes}
-                placeholder="Digite observações sobre o cliente"
+                placeholder="Digite observaï¿½ï¿½es sobre o cliente"
                 placeholderTextColor={colors.textTertiary}
                 multiline
                 numberOfLines={4}
@@ -408,7 +423,7 @@ export default function NovoClienteScreen() {
               </View>
             </View>
             <Text style={styles.infoText}>
-              O saldo na casa representa o valor que o cliente tem disponível para usar em serviços futuros.
+              O saldo na casa representa o valor que o cliente tem disponï¿½vel para usar em serviï¿½os futuros.
             </Text>
           </View>
         );
@@ -418,7 +433,7 @@ export default function NovoClienteScreen() {
           <View style={styles.tabContent}>
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Data do Agendamento</Text>
-              <View style={styles.inputContainer}>
+              <View style={[styles.inputContainer, fieldErrors.dataAgendamento && { borderColor: colors.error }]}>
                 <FontAwesome5 name="calendar-alt" size={16} color={colors.textTertiary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
@@ -430,11 +445,12 @@ export default function NovoClienteScreen() {
                   maxLength={10}
                 />
               </View>
+              {fieldErrors.dataAgendamento ? <Text style={[styles.inlineErrorText, { color: colors.error }]}>{fieldErrors.dataAgendamento}</Text> : null}
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Hora</Text>
-              <View style={styles.inputContainer}>
+              <View style={[styles.inputContainer, fieldErrors.horaAgendamento && { borderColor: colors.error }]}>
                 <FontAwesome5 name="clock" size={16} color={colors.textTertiary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
@@ -446,17 +462,18 @@ export default function NovoClienteScreen() {
                   maxLength={5}
                 />
               </View>
+              {fieldErrors.horaAgendamento ? <Text style={[styles.inlineErrorText, { color: colors.error }]}>{fieldErrors.horaAgendamento}</Text> : null}
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Serviço</Text>
+              <Text style={styles.label}>Serviï¿½o</Text>
               <View style={styles.inputContainer}>
                 <FontAwesome5 name="cut" size={16} color={colors.textTertiary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   value={servicoAgendado}
                   onChangeText={setServicoAgendado}
-                  placeholder="Digite o serviço agendado"
+                  placeholder="Digite o serviï¿½o agendado"
                   placeholderTextColor={colors.textTertiary}
                 />
               </View>
@@ -470,7 +487,7 @@ export default function NovoClienteScreen() {
             <View style={styles.emptyState}>
               <FontAwesome5 name="history" size={48} color={colors.textTertiary} />
               <Text style={styles.emptyStateText}>
-                O histórico estará disponível após criar o cliente
+                O histï¿½rico estarï¿½ disponï¿½vel apï¿½s criar o cliente
               </Text>
             </View>
           </View>
@@ -482,7 +499,7 @@ export default function NovoClienteScreen() {
             <View style={styles.emptyState}>
               <FontAwesome5 name="box" size={48} color={colors.textTertiary} />
               <Text style={styles.emptyStateText}>
-                Os pacotes estarão disponíveis após criar o cliente
+                Os pacotes estarï¿½o disponï¿½veis apï¿½s criar o cliente
               </Text>
             </View>
           </View>
@@ -494,7 +511,7 @@ export default function NovoClienteScreen() {
             <View style={styles.emptyState}>
               <FontAwesome5 name="receipt" size={48} color={colors.textTertiary} />
               <Text style={styles.emptyStateText}>
-                As comandas estarão disponíveis após criar o cliente
+                As comandas estarï¿½o disponï¿½veis apï¿½s criar o cliente
               </Text>
             </View>
           </View>
@@ -506,7 +523,7 @@ export default function NovoClienteScreen() {
             <View style={styles.emptyState}>
               <FontAwesome5 name="images" size={48} color={colors.textTertiary} />
               <Text style={styles.emptyStateText}>
-                A galeria de fotos estará disponível após criar o cliente
+                A galeria de fotos estarï¿½ disponï¿½vel apï¿½s criar o cliente
               </Text>
             </View>
           </View>
@@ -521,7 +538,7 @@ export default function NovoClienteScreen() {
     { id: 'dados', icon: 'pen', label: 'Dados' },
     { id: 'saldo', icon: 'sync-alt', label: 'Saldo na casa' },
     { id: 'agendamentos', icon: 'calendar-alt', label: 'Agendamentos' },
-    { id: 'historico', icon: 'history', label: 'Histórico' },
+    { id: 'historico', icon: 'history', label: 'Histï¿½rico' },
     { id: 'pacotes', icon: 'box', label: 'Pacotes' },
     { id: 'comandas', icon: 'receipt', label: 'Comandas' },
     { id: 'fotos', icon: 'images', label: 'Fotos' },
@@ -560,7 +577,7 @@ export default function NovoClienteScreen() {
                 <FontAwesome5
                   name={tab.icon}
                   size={16}
-                  color={activeTab === tab.id ? colors.primary : colors.textSecondary}
+                  color={activeTab === tab.id ? colors.primaryContrast : colors.textSecondary}
                 />
                 <Text 
                   style={[
@@ -604,7 +621,7 @@ export default function NovoClienteScreen() {
   );
 }
 
-// Função auxiliar para criar estilos dinâmicos
+// Funï¿½ï¿½o auxiliar para criar estilos dinï¿½micos
 const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
@@ -664,7 +681,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     height: 56,
   },
   tabActive: {
-    backgroundColor: colors.primaryBackground,
+    backgroundColor: colors.primary,
     borderBottomWidth: 2,
     borderBottomColor: colors.primary,
   },
@@ -675,7 +692,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginTop: 4,
   },
   tabTextActive: {
-    color: colors.primary,
+    color: colors.primaryContrast,
     fontWeight: '500',
   },
   form: {
@@ -730,10 +747,15 @@ const createStyles = (colors: any) => StyleSheet.create({
   textArea: {
     height: 100,
     textAlignVertical: 'top',
+    color: colors.text,
     backgroundColor: colors.surface,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  inlineErrorText: {
+    marginTop: 6,
+    fontSize: 12,
   },
   row: {
     flexDirection: 'row',

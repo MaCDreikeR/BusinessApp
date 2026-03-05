@@ -12,6 +12,9 @@ type ValidationErrors = {
   [key: string]: string;
 };
 
+type FornecedorFieldErrorKey = 'nome' | 'telefone' | 'email';
+type FornecedorFieldErrors = Partial<Record<FornecedorFieldErrorKey, string>>;
+
 export default function NovoFornecedorScreen() {
   const { estabelecimentoId } = useAuth();
   const { colors } = useTheme();
@@ -443,6 +446,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   textArea: {
     height: 100,
     textAlignVertical: 'top',
+    color: colors.text,
   },
   row: {
     flexDirection: 'row',

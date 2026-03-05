@@ -1,15 +1,16 @@
-import React, { useState, useEffect , useMemo} from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, ScrollView, Modal, PanResponder, Animated, ActivityIndicator, TextStyle, TouchableWithoutFeedback , DeviceEventEmitter } from 'react-native';
+import React, { useState, useEffect , useMemo, useCallback} from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, ScrollView, Modal, Pressable, ActivityIndicator, TextStyle, TouchableWithoutFeedback , DeviceEventEmitter } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { offlineInsert, offlineUpdate, offlineDelete, getOfflineFeedback } from '../../services/offlineSupabase';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { logger } from '../../utils/logger';
 import { Produto as ProdutoBase, Servico as ServicoBase, Pacote as PacoteBase } from '@types';
 import { theme } from '@utils/theme';
 import { Button } from '../../components/Button2';
+import { SelectionButton, SELECTION_BUTTON_CONTAINER_STYLE } from '../../components/Buttons';
 
 type ProdutoPacote = {
   id: string;
@@ -66,6 +67,9 @@ type ServicoPacoteData = {
   quantidade: number;
 };
 
+type PacoteFieldErrorKey = 'nomePacote' | 'descricaoPacote' | 'precoPacote';
+type PacoteFieldErrors = Partial<Record<PacoteFieldErrorKey, string>>;
+
 export default function PacotesScreen() {
   const { estabelecimentoId } = useAuth();
   const { colors } = useTheme();
@@ -86,8 +90,6 @@ export default function PacotesScreen() {
     produtos: [] as ProdutoPacote[],
     servicos: [] as ServicoPacote[]
   });
-  const [slideAnimation] = useState(new Animated.Value(400));
-  const [overlayOpacity] = useState(new Animated.Value(0));
   const [produtos, setProdutos] = useState<ProdutoPacotes[]>([]);
   const [servicos, setServicos] = useState<ServicoPacotes[]>([]);
   const [mostrarModalProdutos, setMostrarModalProdutos] = useState(false);
@@ -99,19 +101,22 @@ export default function PacotesScreen() {
   const [buscaProduto, setBuscaProduto] = useState('');
   const [buscaServico, setBuscaServico] = useState('');
   const [pacoteId, setPacoteId] = useState<string>('');
+  const [fieldErrors, setFieldErrors] = useState<PacoteFieldErrors>({});
   const { session } = useAuth();
 
-  useEffect(() => {
-    carregarPacotes();
-    
-    const subscription = DeviceEventEmitter.addListener('addPacote', () => {
-      handleNovoPacote();
-    });
+  useFocusEffect(
+    useCallback(() => {
+      carregarPacotes();
+      
+      const subscription = DeviceEventEmitter.addListener('addPacote', () => {
+        handleNovoPacote();
+      });
 
-    return () => {
-      subscription.remove();
-    };
-  }, []);
+      return () => {
+        subscription.remove();
+      };
+    }, [estabelecimentoId, session?.user?.id])
+  );
 
   // Carregar produtos e servi�os quando estabelecimentoId estiver dispon�vel
   useEffect(() => {
@@ -121,81 +126,6 @@ export default function PacotesScreen() {
     }
   }, [estabelecimentoId]);
 
-  useEffect(() => {
-    if (mostrarModal) {
-      Animated.parallel([
-        Animated.spring(slideAnimation, {
-          toValue: 0,
-          tension: 50,
-          friction: 8,
-          useNativeDriver: true,
-        }),
-        Animated.timing(overlayOpacity, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        })
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.spring(slideAnimation, {
-          toValue: 400,
-          tension: 50,
-          friction: 8,
-          useNativeDriver: true,
-        }),
-        Animated.timing(overlayOpacity, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        })
-      ]).start();
-    }
-  }, [mostrarModal]);
-
-  const panResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: (_, gestureState) => {
-      return gestureState.dy > 0;
-    },
-    onPanResponderMove: (_, gestureState) => {
-      if (gestureState.dy > 0) {
-        slideAnimation.setValue(gestureState.dy);
-        const newOpacity = 1 - (gestureState.dy / 400);
-        overlayOpacity.setValue(Math.max(0, newOpacity));
-      }
-    },
-    onPanResponderRelease: (_, gestureState) => {
-      if (gestureState.dy > 100 || gestureState.vy > 0.5) {
-        Animated.parallel([
-          Animated.timing(slideAnimation, {
-            toValue: 400,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-          Animated.timing(overlayOpacity, {
-            toValue: 0,
-            duration: 200,
-            useNativeDriver: true,
-          })
-        ]).start(() => setMostrarModal(false));
-      } else {
-        Animated.parallel([
-          Animated.spring(slideAnimation, {
-            toValue: 0,
-            tension: 50,
-            friction: 8,
-            useNativeDriver: true,
-          }),
-          Animated.timing(overlayOpacity, {
-            toValue: 1,
-            duration: 200,
-            useNativeDriver: true,
-          })
-        ]).start();
-      }
-    }
-  });
 
   const carregarPacotes = async () => {
     try {
@@ -280,7 +210,7 @@ export default function PacotesScreen() {
       setPacotes(pacotesFormatados || []);
     } catch (error) {
       logger.error('Erro ao carregar pacotes:', error);
-      Alert.alert('Erro', 'N�o foi poss�vel carregar os pacotes');
+      Alert.alert('Erro', 'Não foi possível carregar os pacotes');
     } finally {
       setLoading(false);
     }
@@ -304,7 +234,7 @@ export default function PacotesScreen() {
       logger.debug('Produtos carregados para pacotes:', data?.length || 0);
     } catch (error) {
       logger.error('Erro ao carregar produtos:', error);
-      Alert.alert('Erro', 'N�o foi poss�vel carregar os produtos');
+      Alert.alert('Erro', 'Não foi possível carregar os produtos');
     }
   };
 
@@ -323,10 +253,10 @@ export default function PacotesScreen() {
 
       if (error) throw error;
       setServicos(data || []);
-      logger.debug('Servi�os carregados para pacotes:', data?.length || 0);
+      logger.debug('Serviços carregados para pacotes:', data?.length || 0);
     } catch (error) {
-      logger.error('Erro ao carregar servi�os:', error);
-      Alert.alert('Erro', 'N�o foi poss�vel carregar os servi�os');
+      logger.error('Erro ao carregar serviços:', error);
+      Alert.alert('Erro', 'Não foi possível carregar os serviços');
     }
   };
 
@@ -391,7 +321,7 @@ export default function PacotesScreen() {
               await carregarPacotes();
             } catch (error) {
               logger.error('Erro ao excluir pacote:', error);
-              Alert.alert('Erro', 'N�o foi poss�vel excluir o pacote');
+              Alert.alert('Erro', 'Não foi possível excluir o pacote');
             }
           },
         },
@@ -399,15 +329,34 @@ export default function PacotesScreen() {
     );
   };
 
+  const validarPacote = (): PacoteFieldErrors => {
+    const erros: PacoteFieldErrors = {};
+
+    if (!novoPacote.nome.trim()) {
+      erros.nomePacote = 'Nome do pacote é obrigatório';
+    }
+
+    return erros;
+  };
+
   const handleSalvarPacote = async () => {
+    const erros = validarPacote();
+    
+    if (Object.keys(erros).length > 0) {
+      setFieldErrors(erros);
+      return;
+    }
+
+    setFieldErrors({});
+
     try {
       if (!novoPacote.nome.trim()) {
-        Alert.alert('Erro', 'O nome do pacote � obrigat�rio');
+        Alert.alert('Erro', 'O nome do pacote é obrigatório');
         return;
       }
 
       if (!estabelecimentoId) {
-        Alert.alert('Erro', 'Estabelecimento n�o identificado. Entre novamente.');
+        Alert.alert('Erro', 'Estabelecimento não identificado. Entre novamente.');
         return;
       }
 
@@ -524,7 +473,7 @@ export default function PacotesScreen() {
       Alert.alert(feedback.title, feedback.message);
     } catch (error) {
       logger.error('Erro ao salvar pacote:', error);
-      Alert.alert('Erro', 'N�o foi poss�vel salvar o pacote');
+      Alert.alert('Erro', 'Não foi possível salvar o pacote');
     }
   };
 
@@ -560,6 +509,24 @@ export default function PacotesScreen() {
       ...prev,
       [servicoId]: valor
     }));
+  };
+
+  const resetPacoteModal = () => {
+    setFieldErrors({});
+    setPacoteEmEdicao(null);
+    setNovoPacote({
+      nome: '',
+      descricao: '',
+      produtos: [],
+      servicos: [],
+      valor: '0',
+      desconto: '0',
+    });
+  };
+
+  const fecharModalPacote = () => {
+    resetPacoteModal();
+    setMostrarModal(false);
   };
 
   const handleAdicionarProdutos = async () => {
@@ -605,7 +572,7 @@ export default function PacotesScreen() {
 
   const handleAdicionarServicos = () => {
     if (servicosSelecionados.length === 0) {
-      Alert.alert('Erro', 'Selecione pelo menos um servi�o');
+      Alert.alert('Erro', 'Selecione pelo menos um serviço');
       return;
     }
 
@@ -758,7 +725,7 @@ export default function PacotesScreen() {
 
       {item.servicos && item.servicos.length > 0 && (
         <View style={styles.secaoLista}>
-          <Text style={styles.secaoTitulo}>Servi�os:</Text>
+          <Text style={styles.secaoTitulo}>Serviços:</Text>
           {item.servicos.map((servico) => (
             <View key={servico.id} style={styles.itemListaCompacto}>
               <View style={styles.itemInfoCompacto}>
@@ -767,7 +734,7 @@ export default function PacotesScreen() {
                 </Text>
                 {servico.servico?.duracao && (
                   <Text style={styles.itemDuracaoCompacto}>
-                    ?? {servico.servico.duracao * servico.quantidade} min
+                    ⏱ {servico.servico.duracao * servico.quantidade} min
                   </Text>
                 )}
               </View>
@@ -782,7 +749,7 @@ export default function PacotesScreen() {
           {item.duracao_total && (
             <View style={styles.duracaoTotalContainer}>
               <Text style={styles.duracaoTotalText}>
-                ?? Dura��o total: {item.duracao_total} minutos
+                ⏱ Duração total: {item.duracao_total} minutos
               </Text>
             </View>
           )}
@@ -840,151 +807,132 @@ export default function PacotesScreen() {
       <Modal
         visible={mostrarModal}
         transparent={true}
-        animationType="none"
-        onRequestClose={() => setMostrarModal(false)}
+        animationType="fade"
+        onRequestClose={fecharModalPacote}
       >
-        <Animated.View 
-          style={[
-            styles.modalOverlay,
-            {
-              opacity: overlayOpacity
-            }
-          ]}
-        >
-          <TouchableOpacity 
-            style={styles.modalOverlayTouchable}
-            activeOpacity={1}
-            onPress={() => setMostrarModal(false)}
-          />
-          <Animated.View 
-            style={[
-              styles.modalContainer,
-              {
-                transform: [{
-                  translateY: slideAnimation
-                }]
-              }
-            ]}
-          >
-            <View 
-              {...panResponder.panHandlers}
-              style={styles.modalHeader}
-            >
-              <View style={styles.modalDragIndicator} />
+        <View style={styles.modalBackdrop}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={fecharModalPacote} />
+          <View style={styles.modalCardLarge}>
+            <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {pacoteEmEdicao ? 'Editar Pacote' : 'Novo Pacote'}
               </Text>
             </View>
 
-            <View style={[styles.modalContent, { flex: 1 }]}>
-              <ScrollView 
-                style={[styles.modalForm, { flex: 1 }]}
-                showsVerticalScrollIndicator={true}
-                bounces={false}
-                contentContainerStyle={[styles.modalFormContent, { paddingBottom: 120 }]}
-                keyboardShouldPersistTaps="handled"
-                scrollEventThrottle={16}
-                onScrollBeginDrag={() => {
-                  if (panResponder.panHandlers.onResponderTerminate) {
-                    panResponder.panHandlers.onResponderTerminate({} as any);
-                  }
-                }}
-              >
+            <ScrollView 
+              style={styles.modalContent}
+              contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 20 }}
+              nestedScrollEnabled={true}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
                 <View style={styles.formContainer}>
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>Nome do Pacote</Text>
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, fieldErrors.nomePacote && { borderColor: colors.error, borderWidth: 1 }]}
                       value={novoPacote.nome}
                       onChangeText={(text) => setNovoPacote({ ...novoPacote, nome: text })}
                       placeholder="Digite o nome do pacote"
                       placeholderTextColor={colors.textTertiary}
                     />
+                    {fieldErrors.nomePacote ? <Text style={[styles.label, { color: colors.error, marginTop: 4, fontSize: 12 }]}>{fieldErrors.nomePacote}</Text> : null}
                   </View>
 
                   <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Descri��o</Text>
+                    <Text style={styles.label}>Descrição</Text>
                     <TextInput
                       style={[styles.input, styles.textArea]}
                       value={novoPacote.descricao}
                       onChangeText={(text) => setNovoPacote({ ...novoPacote, descricao: text })}
-                      placeholder="Digite a descri��o do pacote"
+                      placeholder="Digite a descrição do pacote"
                       placeholderTextColor={colors.textTertiary}
                       multiline
                       numberOfLines={4}
                     />
                   </View>
 
+                  {/* Seção de itens - botões lado a lado como em Comandas */}
                   <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Produtos</Text>
-                    <Button
-                      variant="outline"
-                      size="medium"
-                      icon="add-circle-outline"
-                      onPress={handleMostrarModalProdutos}
-                      style={styles.addButton}
-                    >
-                      Adicionar Produtos
-                    </Button>
-                    {novoPacote.produtos.map((produto, index) => (
-                      <View key={produto.id} style={styles.itemLista}>
-                        <View style={styles.itemInfo}>
-                          <Text style={styles.itemNome}>{produto.produto?.nome}</Text>
-                          <Text style={styles.itemQuantidade}>Qtd: {produto.quantidade}</Text>
-                          <Text style={styles.itemPreco}>
-                            R$ {((produto.produto?.preco || 0) * produto.quantidade).toLocaleString('pt-BR', {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2
-                            })}
-                          </Text>
-                        </View>
-                        <TouchableOpacity
-                          style={styles.removeButton}
-                          onPress={() => handleRemoverProduto(index)}
-                        >
-                          <Ionicons name="trash-outline" size={20} color={colors.error} />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
+                    <Text style={styles.label}>Itens do Pacote</Text>
+                    <View style={SELECTION_BUTTON_CONTAINER_STYLE}>
+                      <SelectionButton
+                        label="Produtos"
+                        icon="cube-outline"
+                        count={novoPacote.produtos.length}
+                        selected={novoPacote.produtos.length > 0}
+                        value={novoPacote.produtos.reduce((sum, p) => sum + ((p.produto?.preco || 0) * p.quantidade), 0)}
+                        onPress={handleMostrarModalProdutos}
+                      />
+                      <SelectionButton
+                        label="Serviços"
+                        icon="cut-outline"
+                        count={novoPacote.servicos.length}
+                        selected={novoPacote.servicos.length > 0}
+                        value={novoPacote.servicos.reduce((sum, s) => sum + ((s.servico?.preco || 0) * s.quantidade), 0)}
+                        onPress={handleMostrarModalServicos}
+                      />
+                    </View>
                   </View>
 
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Servi�os</Text>
-                    <Button
-                      variant="outline"
-                      size="medium"
-                      icon="add-circle-outline"
-                      onPress={handleMostrarModalServicos}
-                      style={styles.addButton}
-                    >
-                      Adicionar Serviços
-                    </Button>
-                    {novoPacote.servicos.map((servico, index) => (
-                      <View key={servico.id} style={styles.itemLista}>
-                        <View style={styles.itemInfo}>
-                          <Text style={styles.itemNome}>{servico.servico?.nome}</Text>
-                          <Text style={styles.itemQuantidade}>Qtd: {servico.quantidade}</Text>
-                          {servico.servico?.duracao && (
-                            <Text style={styles.itemDuracao}>
-                              ?? {servico.servico.duracao * servico.quantidade} min
+                  {/* Produtos adicionados */}
+                  {novoPacote.produtos.length > 0 && (
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Produtos Selecionados</Text>
+                      {novoPacote.produtos.map((produto, index) => (
+                        <View key={produto.id} style={styles.itemLista}>
+                          <View style={styles.itemInfo}>
+                            <Text style={styles.itemNome}>{produto.produto?.nome}</Text>
+                            <Text style={styles.itemQuantidade}>Qtd: {produto.quantidade}</Text>
+                            <Text style={styles.itemPreco}>
+                              R$ {((produto.produto?.preco || 0) * produto.quantidade).toLocaleString('pt-BR', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                              })}
                             </Text>
-                          )}
-                          <Text style={styles.itemPreco}>
-                            R$ {((servico.servico?.preco || 0) * servico.quantidade).toLocaleString('pt-BR', {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2
-                            })}
-                          </Text>
+                          </View>
+                          <TouchableOpacity
+                            style={styles.removeButton}
+                            onPress={() => handleRemoverProduto(index)}
+                          >
+                            <Ionicons name="trash-outline" size={20} color={colors.error} />
+                          </TouchableOpacity>
                         </View>
-                        <TouchableOpacity
-                          style={styles.removeButton}
-                          onPress={() => handleRemoverServico(index)}
-                        >
-                          <Ionicons name="trash-outline" size={20} color={colors.error} />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                  </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Serviços adicionados */}
+                  {novoPacote.servicos.length > 0 && (
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Serviços Selecionados</Text>
+                      {novoPacote.servicos.map((servico, index) => (
+                        <View key={servico.id} style={styles.itemLista}>
+                          <View style={styles.itemInfo}>
+                            <Text style={styles.itemNome}>{servico.servico?.nome}</Text>
+                            <Text style={styles.itemQuantidade}>Qtd: {servico.quantidade}</Text>
+                            {servico.servico?.duracao && (
+                              <Text style={styles.itemDuracao}>
+                                ⏱ {servico.servico.duracao * servico.quantidade} min
+                              </Text>
+                            )}
+                            <Text style={styles.itemPreco}>
+                              R$ {((servico.servico?.preco || 0) * servico.quantidade).toLocaleString('pt-BR', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                              })}
+                            </Text>
+                          </View>
+                          <TouchableOpacity
+                            style={styles.removeButton}
+                            onPress={() => handleRemoverServico(index)}
+                          >
+                            <Ionicons name="trash-outline" size={20} color={colors.error} />
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                    </View>
+                  )}
 
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>Itens adicionados</Text>
@@ -1037,36 +985,37 @@ export default function PacotesScreen() {
                     </View>
                   </View>
                 </View>
-              </ScrollView>
+            </ScrollView>
 
-              <View style={[styles.modalFooter, { position: 'absolute', bottom: 0, left: 0, right: 0 }]}>
+            <View style={styles.modalFooter}>
+              <View style={styles.modalFooterButton}>
                 <Button
                   variant="secondary"
                   size="medium"
-                  onPress={() => setMostrarModal(false)}
-                  style={[styles.button, styles.cancelButton]}
+                  onPress={fecharModalPacote}
                 >
                   Cancelar
                 </Button>
+              </View>
+              <View style={styles.modalFooterButton}>
                 <Button
                   variant="primary"
                   size="medium"
                   onPress={handleSalvarPacote}
-                  style={styles.button}
                 >
                   Salvar
                 </Button>
               </View>
             </View>
-          </Animated.View>
-        </Animated.View>
+          </View>
+        </View>
       </Modal>
 
       {/* Modal de Produtos */}
       <Modal
         visible={mostrarModalProdutos}
         transparent={true}
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => {
           setMostrarModalProdutos(false);
           setProdutosSelecionados([]);
@@ -1074,131 +1023,118 @@ export default function PacotesScreen() {
           setBuscaProduto('');
         }}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => {
-            setMostrarModalProdutos(false);
-            setProdutosSelecionados([]);
-            setQuantidadesProdutos({});
-            setBuscaProduto('');
-          }}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Adicionar Produtos</Text>
+        <View style={styles.modalBackdrop}>
+          <Pressable 
+            style={StyleSheet.absoluteFill}
+            onPress={() => {
+              setMostrarModalProdutos(false);
+              setProdutosSelecionados([]);
+              setQuantidadesProdutos({});
+              setBuscaProduto('');
+            }}
+          />
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Adicionar Produtos</Text>
+            </View>
+
+            <View style={styles.searchModalContainer}>
+              <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchModalInput}
+                value={buscaProduto}
+                onChangeText={setBuscaProduto}
+                placeholder="Buscar produtos..."
+                placeholderTextColor={colors.textTertiary}
+              />
+            </View>
+
+            <View style={styles.modalSubHeader}>
+              <Text style={styles.modalSubtitle}>Selecione os produtos e defina as quantidades</Text>
+            </View>
+
+            <ScrollView style={styles.modalList}>
+              {produtos
+                .filter(produto => 
+                  produto.nome.toLowerCase().includes(buscaProduto.toLowerCase())
+                )
+                .map((produto) => (
                 <TouchableOpacity
-                  onPress={() => {
-                    setMostrarModalProdutos(false);
-                    setProdutosSelecionados([]);
-                    setQuantidadesProdutos({});
-                    setBuscaProduto('');
-                  }}
-                  style={styles.modalCloseButton}
+                  key={produto.id}
+                  style={[
+                    styles.modalItem,
+                    produtosSelecionados.some(p => p.id === produto.id) && styles.modalItemSelecionado
+                  ]}
+                  onPress={() => handleSelecionarProduto(produto)}
                 >
-                  <Ionicons name="close" size={24} color={colors.text} />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.searchModalContainer}>
-                <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
-                <TextInput
-                  style={styles.searchModalInput}
-                  value={buscaProduto}
-                  onChangeText={setBuscaProduto}
-                  placeholder="Buscar produtos..."
-                  placeholderTextColor={colors.textTertiary}
-                />
-              </View>
-
-              <View style={styles.modalSubHeader}>
-                <Text style={styles.modalSubtitle}>Selecione os produtos e defina as quantidades</Text>
-              </View>
-
-              <ScrollView style={styles.modalList}>
-                {produtos
-                  .filter(produto => 
-                    produto.nome.toLowerCase().includes(buscaProduto.toLowerCase())
-                  )
-                  .map((produto) => (
-                  <TouchableOpacity
-                    key={produto.id}
-                    style={[
-                      styles.modalItem,
-                      produtosSelecionados.some(p => p.id === produto.id) && styles.modalItemSelecionado
-                    ]}
-                    onPress={() => handleSelecionarProduto(produto)}
-                  >
-                    <View style={styles.modalItemContent}>
-                      <View style={styles.modalItemInfo}>
-                        <View style={styles.modalItemCheckbox}>
-                          <Ionicons 
-                            name={produtosSelecionados.some(p => p.id === produto.id) ? "checkbox" : "square-outline"} 
-                            size={24} 
-                            color={colors.primary} 
-                          />
-                        </View>
-                        <Text style={styles.modalItemText}>{produto.nome}</Text>
-                        <Text style={styles.modalItemPreco}>
-                          {produto.preco.toLocaleString('pt-BR', {
-                            style: 'currency',
-                            currency: 'BRL'
-                          })}
-                        </Text>
-                      </View>
-                      {produtosSelecionados.some(p => p.id === produto.id) && (
-                        <View style={styles.quantidadeInputContainer}>
-                          <Text style={styles.quantidadeLabel}>Quantidade:</Text>
-                          <View style={styles.quantidadeControls}>
-                            <TouchableOpacity
-                              style={styles.quantidadeButton}
-                              onPress={() => {
-                                const atual = parseInt(quantidadesProdutos[produto.id] || '1');
-                                if (atual > 1) {
-                                  handleQuantidadeProdutoChange(produto.id, (atual - 1).toString());
-                                }
-                              }}
-                            >
-                              <Ionicons name="remove" size={20} color={colors.primary} />
-                            </TouchableOpacity>
-                            <TextInput
-                              style={styles.quantidadeInput}
-                              value={quantidadesProdutos[produto.id] || '1'}
-                              onChangeText={(text) => {
-                                const apenasNumeros = text.replace(/[^0-9]/g, '');
-                                const valor = parseInt(apenasNumeros) || 1;
-                                handleQuantidadeProdutoChange(produto.id, valor.toString());
-                              }}
-                              keyboardType="numeric"
-                              maxLength={3}
-                            />
-                            <TouchableOpacity
-                              style={styles.quantidadeButton}
-                              onPress={() => {
-                                const atual = parseInt(quantidadesProdutos[produto.id] || '1');
-                                if (atual < 999) {
-                                  handleQuantidadeProdutoChange(produto.id, (atual + 1).toString());
-                                }
-                              }}
-                            >
-                              <Ionicons name="add" size={20} color={colors.primary} />
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                      )}
+                  <View style={styles.modalItemContent}>
+                    <View style={styles.modalItemInfo}>
+                      <Text style={[
+                        styles.modalItemText,
+                        produtosSelecionados.some(p => p.id === produto.id) && styles.modalItemTextSelecionado
+                      ]}>{produto.nome}</Text>
+                      <Text style={[
+                        styles.modalItemPreco,
+                        produtosSelecionados.some(p => p.id === produto.id) && styles.modalItemPrecoSelecionado
+                      ]}>
+                        {produto.preco.toLocaleString('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL'
+                        })}
+                      </Text>
                     </View>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+                    {produtosSelecionados.some(p => p.id === produto.id) && (
+                      <View style={styles.quantidadeInputContainer}>
+                        <Text style={styles.quantidadeLabel}>Quantidade:</Text>
+                        <View style={styles.quantidadeControls}>
+                          <TouchableOpacity
+                            style={styles.quantidadeButton}
+                            onPress={() => {
+                              const atual = parseInt(quantidadesProdutos[produto.id] || '1');
+                              if (atual > 1) {
+                                handleQuantidadeProdutoChange(produto.id, (atual - 1).toString());
+                              }
+                            }}
+                          >
+                            <Ionicons name="remove" size={20} color={colors.primary} />
+                          </TouchableOpacity>
+                          <TextInput
+                            style={styles.quantidadeInput}
+                            value={quantidadesProdutos[produto.id] || '1'}
+                            onChangeText={(text) => {
+                              const apenasNumeros = text.replace(/[^0-9]/g, '');
+                              const valor = parseInt(apenasNumeros) || 1;
+                              handleQuantidadeProdutoChange(produto.id, valor.toString());
+                            }}
+                            keyboardType="numeric"
+                            maxLength={3}
+                          />
+                          <TouchableOpacity
+                            style={styles.quantidadeButton}
+                            onPress={() => {
+                              const atual = parseInt(quantidadesProdutos[produto.id] || '1');
+                              if (atual < 999) {
+                                handleQuantidadeProdutoChange(produto.id, (atual + 1).toString());
+                              }
+                            }}
+                          >
+                            <Ionicons name="add" size={20} color={colors.primary} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
 
-              <View style={styles.modalFooter}>
+            <View style={styles.modalFooter}>
+              <View style={styles.modalFooterButton}>
                 <Button
                   variant="primary"
                   size="large"
                   onPress={handleAdicionarProdutos}
                   disabled={produtosSelecionados.length === 0}
-                  style={styles.button}
                   fullWidth
                 >
                   Adicionar ao Pacote ({produtosSelecionados.length})
@@ -1206,14 +1142,14 @@ export default function PacotesScreen() {
               </View>
             </View>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
 
-      {/* Modal de Servi�os */}
+      {/* Modal de Serviços */}
       <Modal
         visible={mostrarModalServicos}
         transparent={true}
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => {
           setMostrarModalServicos(false);
           setServicosSelecionados([]);
@@ -1221,127 +1157,114 @@ export default function PacotesScreen() {
           setBuscaServico('');
         }}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => {
-            setMostrarModalServicos(false);
-            setServicosSelecionados([]);
-            setQuantidadesServicos({});
-            setBuscaServico('');
-          }}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Adicionar Servi�os</Text>
+        <View style={styles.modalBackdrop}>
+          <Pressable 
+            style={StyleSheet.absoluteFill}
+            onPress={() => {
+              setMostrarModalServicos(false);
+              setServicosSelecionados([]);
+              setQuantidadesServicos({});
+              setBuscaServico('');
+            }}
+          />
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Adicionar Serviços</Text>
+            </View>
+
+            <View style={styles.searchModalContainer}>
+              <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchModalInput}
+                value={buscaServico}
+                onChangeText={setBuscaServico}
+                placeholder="Buscar serviços..."
+                placeholderTextColor={colors.textTertiary}
+              />
+            </View>
+
+            <ScrollView style={styles.modalList}>
+              {servicos
+                .filter(servico => 
+                  servico.nome.toLowerCase().includes(buscaServico.toLowerCase())
+                )
+                .map((servico) => (
                 <TouchableOpacity
-                  onPress={() => {
-                    setMostrarModalServicos(false);
-                    setServicosSelecionados([]);
-                    setQuantidadesServicos({});
-                    setBuscaServico('');
-                  }}
-                  style={styles.modalCloseButton}
+                  key={servico.id}
+                  style={[
+                    styles.modalItem,
+                    servicosSelecionados.some(s => s.id === servico.id) && styles.modalItemSelecionado
+                  ]}
+                  onPress={() => handleSelecionarServico(servico)}
                 >
-                  <Ionicons name="close" size={24} color={colors.text} />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.searchModalContainer}>
-                <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
-                <TextInput
-                  style={styles.searchModalInput}
-                  value={buscaServico}
-                  onChangeText={setBuscaServico}
-                  placeholder="Buscar servi�os..."
-                  placeholderTextColor={colors.textTertiary}
-                />
-              </View>
-
-              <ScrollView style={styles.modalList}>
-                {servicos
-                  .filter(servico => 
-                    servico.nome.toLowerCase().includes(buscaServico.toLowerCase())
-                  )
-                  .map((servico) => (
-                  <TouchableOpacity
-                    key={servico.id}
-                    style={[
-                      styles.modalItem,
-                      servicosSelecionados.some(s => s.id === servico.id) && styles.modalItemSelecionado
-                    ]}
-                    onPress={() => handleSelecionarServico(servico)}
-                  >
-                    <View style={styles.modalItemContent}>
-                      <View style={styles.modalItemInfo}>
-                        <View style={styles.modalItemCheckbox}>
-                          <Ionicons 
-                            name={servicosSelecionados.some(s => s.id === servico.id) ? "checkbox" : "square-outline"} 
-                            size={24} 
-                            color={colors.primary} 
-                          />
-                        </View>
-                        <Text style={styles.modalItemText}>{servico.nome}</Text>
-                        <Text style={styles.modalItemPreco}>
-                          {servico.preco.toLocaleString('pt-BR', {
-                            style: 'currency',
-                            currency: 'BRL'
-                          })}
-                        </Text>
-                      </View>
-                      {servicosSelecionados.some(s => s.id === servico.id) && (
-                        <View style={styles.quantidadeInputContainer}>
-                          <Text style={styles.quantidadeLabel}>Quantidade:</Text>
-                          <View style={styles.quantidadeControls}>
-                            <TouchableOpacity
-                              style={styles.quantidadeButton}
-                              onPress={() => {
-                                const atual = parseInt(quantidadesServicos[servico.id] || '1');
-                                if (atual > 1) {
-                                  handleQuantidadeServicoChange(servico.id, (atual - 1).toString());
-                                }
-                              }}
-                            >
-                              <Ionicons name="remove" size={20} color={colors.primary} />
-                            </TouchableOpacity>
-                            <TextInput
-                              style={styles.quantidadeInput}
-                              value={quantidadesServicos[servico.id] || '1'}
-                              onChangeText={(text) => {
-                                const apenasNumeros = text.replace(/[^0-9]/g, '');
-                                const valor = parseInt(apenasNumeros) || 1;
-                                handleQuantidadeServicoChange(servico.id, valor.toString());
-                              }}
-                              keyboardType="numeric"
-                              maxLength={3}
-                            />
-                            <TouchableOpacity
-                              style={styles.quantidadeButton}
-                              onPress={() => {
-                                const atual = parseInt(quantidadesServicos[servico.id] || '1');
-                                if (atual < 999) {
-                                  handleQuantidadeServicoChange(servico.id, (atual + 1).toString());
-                                }
-                              }}
-                            >
-                              <Ionicons name="add" size={20} color={colors.primary} />
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                      )}
+                  <View style={styles.modalItemContent}>
+                    <View style={styles.modalItemInfo}>
+                      <Text style={[
+                        styles.modalItemText,
+                        servicosSelecionados.some(s => s.id === servico.id) && styles.modalItemTextSelecionado
+                      ]}>{servico.nome}</Text>
+                      <Text style={[
+                        styles.modalItemPreco,
+                        servicosSelecionados.some(s => s.id === servico.id) && styles.modalItemPrecoSelecionado
+                      ]}>
+                        {servico.preco.toLocaleString('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL'
+                        })}
+                      </Text>
                     </View>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+                    {servicosSelecionados.some(s => s.id === servico.id) && (
+                      <View style={styles.quantidadeInputContainer}>
+                        <Text style={styles.quantidadeLabel}>Quantidade:</Text>
+                        <View style={styles.quantidadeControls}>
+                          <TouchableOpacity
+                            style={styles.quantidadeButton}
+                            onPress={() => {
+                              const atual = parseInt(quantidadesServicos[servico.id] || '1');
+                              if (atual > 1) {
+                                handleQuantidadeServicoChange(servico.id, (atual - 1).toString());
+                              }
+                            }}
+                          >
+                            <Ionicons name="remove" size={20} color={colors.primary} />
+                          </TouchableOpacity>
+                          <TextInput
+                            style={styles.quantidadeInput}
+                            value={quantidadesServicos[servico.id] || '1'}
+                            onChangeText={(text) => {
+                              const apenasNumeros = text.replace(/[^0-9]/g, '');
+                              const valor = parseInt(apenasNumeros) || 1;
+                              handleQuantidadeServicoChange(servico.id, valor.toString());
+                            }}
+                            keyboardType="numeric"
+                            maxLength={3}
+                          />
+                          <TouchableOpacity
+                            style={styles.quantidadeButton}
+                            onPress={() => {
+                              const atual = parseInt(quantidadesServicos[servico.id] || '1');
+                              if (atual < 999) {
+                                handleQuantidadeServicoChange(servico.id, (atual + 1).toString());
+                              }
+                            }}
+                          >
+                            <Ionicons name="add" size={20} color={colors.primary} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
 
-              <View style={styles.modalFooter}>
+            <View style={styles.modalFooter}>
+              <View style={styles.modalFooterButton}>
                 <Button
                   variant="primary"
                   size="large"
                   onPress={handleAdicionarServicos}
                   disabled={servicosSelecionados.length === 0}
-                  style={styles.button}
                   fullWidth
                 >
                   Adicionar ao Pacote ({servicosSelecionados.length})
@@ -1349,7 +1272,7 @@ export default function PacotesScreen() {
               </View>
             </View>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
     </View>
   );
@@ -1448,22 +1371,43 @@ const createStyles = (colors: any) => StyleSheet.create({
   excluirButton: {
     padding: 8,
   },
-  modalOverlay: {
+  modalBackdrop: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
-  modalContainer: {
+  modalCard: {
     backgroundColor: colors.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    minHeight: '50%',
-    maxHeight: '90%',
-    flex: 1,
+    borderRadius: 24,
+    maxWidth: 500,
+    width: '100%',
+    maxHeight: '74%',
+    minHeight: 380,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 30,
+    elevation: 20,
+  },
+  modalCardLarge: {
+    backgroundColor: colors.surface,
+    borderRadius: 24,
+    maxWidth: 500,
+    width: '100%',
+    maxHeight: '84%',
+    minHeight: 500,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 30,
+    elevation: 20,
   },
   modalContent: {
     flex: 1,
-    position: 'relative',
   },
   modalForm: {
     flex: 1,
@@ -1476,15 +1420,14 @@ const createStyles = (colors: any) => StyleSheet.create({
     paddingBottom: 100,
   },
   modalHeader: {
-    paddingTop: 8,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 24,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    backgroundColor: colors.surface,
-    zIndex: 10,
-    paddingHorizontal: 20,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
   },
   input: {
     backgroundColor: colors.background,
@@ -1512,49 +1455,42 @@ const createStyles = (colors: any) => StyleSheet.create({
     minHeight: 44,
     justifyContent: 'center',
   },
-  modalDragIndicator: {
-    width: 40,
-    height: 4,
-    backgroundColor: colors.border,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 12,
-  },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.text,
-    textAlign: 'center',
   },
   modalFooter: {
     flexDirection: 'row',
-    padding: 20,
+    gap: 12,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 24,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    gap: 12,
-    backgroundColor: colors.surface,
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+  },
+  modalFooterButton: {
+    flex: 1,
   },
   button: {
     flex: 1,
     borderRadius: 8,
     alignItems: 'center',
-    padding: 12,
+    paddingVertical: 14,
     backgroundColor: colors.primary,
   },
   cancelButton: {
     backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   buttonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: 'bold',
     color: colors.white,
   },
   cancelButtonText: {
-    color: colors.text,
+    color: colors.textSecondary,
   },
   emptyContainer: {
     flex: 1,
@@ -1568,20 +1504,6 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontWeight: '500',
     textAlign: 'center',
     marginTop: 20,
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: colors.primary,
-    marginLeft: 8,
   },
   itemLista: {
     flexDirection: 'row',
@@ -1611,19 +1533,25 @@ const createStyles = (colors: any) => StyleSheet.create({
   removeButton: {
     padding: 8,
   },
-  modalCloseButton: {
-    padding: 8,
-  },
   modalList: {
     flex: 1,
   },
   modalItem: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   modalItemSelecionado: {
     backgroundColor: colors.primaryBackground,
+    borderColor: colors.primary,
   },
   modalItemContent: {
     flexDirection: 'column',
@@ -1639,10 +1567,16 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontWeight: '600',
     color: colors.text,
   },
+  modalItemTextSelecionado: {
+    color: colors.primaryContrast,
+  },
   modalItemPreco: {
     fontSize: 14,
     fontWeight: '600',
     color: colors.primary,
+  },
+  modalItemPrecoSelecionado: {
+    color: colors.primaryContrast,
   },
   quantidadeInputContainer: {
     marginTop: 8,
@@ -1690,10 +1624,6 @@ const createStyles = (colors: any) => StyleSheet.create({
   buttonTextDisabled: {
     color: colors.textTertiary,
   },
-  modalOverlayTouchable: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
   valorFinalContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1712,9 +1642,11 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.text,
     marginBottom: 8,
   },
+  // REMOVIDO: usar SELECTION_BUTTON_CONTAINER_STYLE importado de Buttons.tsx
   textArea: {
     height: 100,
     textAlignVertical: 'top',
+    color: colors.text,
   },
   searchModalContainer: {
     flexDirection: 'row',
@@ -1801,9 +1733,5 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: colors.primary,
-  },
-  modalItemCheckbox: {
-    marginRight: 12,
-    justifyContent: 'center',
   },
 }); 

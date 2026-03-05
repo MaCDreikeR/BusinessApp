@@ -161,3 +161,105 @@ export function addMinutesLocal(date: Date, minutos: number): string {
   const novaData = new Date(date.getTime() + minutos * 60 * 1000);
   return toISOStringWithTimezone(novaData);
 }
+
+/**
+ * Converte hora em formato "HH:MM" para minutos desde inicio do dia
+ * @param hora Hora no formato "HH:MM" (ex: "14:30")
+ * @returns Número de minutos desde as 00:00
+ */
+export function converterHoraParaMinutos(hora: string): number {
+  const [horas, minutos] = hora.split(':').map(Number);
+  return (horas || 0) * 60 + (minutos || 0);
+}
+
+/**
+ * Converte minutos desde inicio do dia para formato "HH:MM"
+ * @param minutos Número de minutos desde 00:00
+ * @returns Hora formatada no formato "HH:MM"
+ */
+export function converterMinutosParaHora(minutos: number): string {
+  const horas = Math.floor(minutos / 60);
+  const mins = minutos % 60;
+  return `${horas.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Parse de data ISO para Date no horário local (BRT)
+ * Suporta strings ISO com ou sem timezone
+ * 
+ * Exemplos:
+ * - "2026-01-30T00:30:00+00:00" (UTC) → converte para BRT
+ * - "2026-01-30T00:30:00-03:00" (BRT) → mantém como local
+ * - "2026-01-30T00:30:00" (sem offset) → assume local
+ * 
+ * @param dataHoraISO String ISO com ou sem timezone
+ * @returns Date no horário local
+ */
+export function parseDataHoraLocal(dataHoraISO: string): Date {
+  try {
+    // Validar entrada
+    if (!dataHoraISO || typeof dataHoraISO !== 'string') {
+      console.warn('⚠️ parseDataHoraLocal: entrada inválida', dataHoraISO);
+      return new Date(); // Retorna data atual como fallback
+    }
+
+    // ✅ SE vier com offset timezone (±HH:MM ou Z), usar parseISOStringLocal que faz conversão automática
+    // new Date() converte UTC → horário local automaticamente
+    if (dataHoraISO.includes('+') || dataHoraISO.includes('Z') || 
+        (dataHoraISO.includes('-') && dataHoraISO.indexOf('-') > 10)) { // - depois de "YYYY-MM-DD"
+      try {
+        const dataConverted = new Date(dataHoraISO);
+        if (!isNaN(dataConverted.getTime())) {
+          return dataConverted; // ✅ Conversão automática de UTC→local!
+        }
+      } catch (e) {
+        console.warn('⚠️ parseDataHoraLocal: erro ao converter com timezone', dataHoraISO);
+        // Continuar com parse manual
+      }
+    }
+
+    // Extrair partes da string ISO (formato: "YYYY-MM-DDTHH:MM:SS" ou "YYYY-MM-DDTHH:MM:SS-03:00")
+    const [datePart, timePartRaw] = dataHoraISO.split('T');
+    
+    if (!datePart || !timePartRaw) {
+      console.warn('⚠️ parseDataHoraLocal: formato inválido', dataHoraISO);
+      return new Date();
+    }
+
+    const [ano, mes, dia] = datePart.split('-').map(Number);
+    
+    // 🔧 CORREÇÃO: Remover APENAS o timezone (tudo após + ou - no final da hora)
+    // Não usar split('-')[0] que destroi a hora!
+    let timeClean = timePartRaw;
+    const plusIndex = timePartRaw.indexOf('+');
+    const minusIndex = timePartRaw.lastIndexOf('-'); // Último - (timezone está no final)
+    
+    if (plusIndex > 0) {
+      timeClean = timePartRaw.substring(0, plusIndex); // Tudo até o +
+    } else if (minusIndex > 5) { // Timezone - está depois de "HH:MM:SS" (>5 caracteres)
+      timeClean = timePartRaw.substring(0, minusIndex);
+    }
+    
+    const [hora, min, seg = 0] = timeClean.split(':').map(Number);
+    
+    // Validar valores extraídos
+    if (isNaN(ano) || isNaN(mes) || isNaN(dia) || isNaN(hora) || isNaN(min)) {
+      console.warn('⚠️ parseDataHoraLocal: valores NaN', { ano, mes, dia, hora, min });
+      return new Date();
+    }
+    
+    // Criar Date como horário LOCAL
+    const date = new Date(ano, mes - 1, dia, hora, min, seg);
+    
+    // Validar resultado
+    if (isNaN(date.getTime())) {
+      console.warn('⚠️ parseDataHoraLocal: Date inválida resultante', dataHoraISO);
+      return new Date();
+    }
+    
+    return date;
+  } catch (error) {
+    console.error('❌ parseDataHoraLocal: erro ao fazer parse', error, dataHoraISO);
+    return new Date(); // Retorna data atual como fallback
+  }
+}

@@ -1,6 +1,6 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Clipboard, Linking, Share, Platform, DeviceEventEmitter, TextInput } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -27,22 +27,24 @@ export default function AgendamentoOnlineScreen() {
     ? `${urlBase}/${slug}` 
     : 'Carregando...';
   
-  useEffect(() => {
-    carregarConfiguracao();
-    carregarSlug();
-    carregarUrlBase();
-    carregarAntecedencia();
-    
-    // Escutar mudanças do toggle no header
-    const subscription = DeviceEventEmitter.addListener(
-      'agendamentoOnlineAtualizado',
-      (novoValor: boolean) => {
-        setAgendamentoOnlineAtivo(novoValor);
-      }
-    );
-    
-    return () => subscription.remove();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      carregarConfiguracao();
+      carregarSlug();
+      carregarUrlBase();
+      carregarAntecedencia();
+      
+      // Escutar mudanças do toggle no header
+      const subscription = DeviceEventEmitter.addListener(
+        'agendamentoOnlineAtualizado',
+        (novoValor: boolean) => {
+          setAgendamentoOnlineAtivo(novoValor);
+        }
+      );
+      
+      return () => subscription.remove();
+    }, [estabelecimentoId])
+  );
   
   const carregarSlug = async () => {
     try {

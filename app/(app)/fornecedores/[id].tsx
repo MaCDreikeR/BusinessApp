@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import MaskInput, { Masks } from 'react-native-mask-input';
 import { logger } from '../../../utils/logger';
 import { Fornecedor as FornecedorBase } from '@types';
@@ -43,9 +43,11 @@ export default function EditarFornecedorScreen() {
     observacoes: '',
   });
 
-  useEffect(() => {
-    carregarFornecedor();
-  }, [id]);
+  useFocusEffect(
+    useCallback(() => {
+      carregarFornecedor();
+    }, [id])
+  );
 
   // Função para sanitizar strings
   const sanitizeString = (str: string) => {
@@ -539,6 +541,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   textArea: {
     height: 100,
     textAlignVertical: 'top',
+    color: colors.text,
   },
   row: {
     flexDirection: 'row',

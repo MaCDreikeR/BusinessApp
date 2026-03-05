@@ -135,7 +135,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   
   const colors = {
     ...colorTheme,
-    primaryContrast: isDark ? '#FFFFFF' : colorTheme.primary,
+    primaryContrast: '#FFFFFF',
   };
 
   if (!isReady) {
@@ -180,7 +180,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
  * Em vez de usar useTheme + useMemo em toda tela, use:
  * 
  * ```tsx
- * import { useCreateStyles } from '@utils/accentTheme';
+ * import { useCreateStyles } from '@utils/useCreateStyles';
  * 
  * const styles = useCreateStyles(({ colors, design }) => StyleSheet.create({
  *   container: { backgroundColor: colors.surface, padding: design.spacing.md },

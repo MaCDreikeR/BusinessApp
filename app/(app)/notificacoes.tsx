@@ -1,8 +1,10 @@
-﻿import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useCreateStyles, ColorTheme } from '../../utils/accentTheme';
+import { useCreateStyles } from '../../utils/useCreateStyles';
+import { ColorTheme } from '../../utils/accentTheme';
 import { getHistoricoNotificacoes } from '../../services/notifications';
 import { logger } from '../../utils/logger';
 import { Button } from '../../components/Button2';
@@ -46,9 +48,11 @@ export default function NotificacoesScreen() {
     }
   };
 
-  useEffect(() => {
-    carregarNotificacoes();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      carregarNotificacoes();
+    }, [])
+  );
 
   const renderItem = ({ item }: { item: Notificacao }) => (
     <TouchableOpacity style={styles.notificacaoItem}>

@@ -29,7 +29,7 @@ export default function ClientesScreen() {
   const { estabelecimentoId } = useAuth();
   const { colors } = useTheme();
   
-  // Estilos dinâmicos baseados no tema
+  // Estilos dinï¿½micos baseados no tema
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [clientes, setClientes] = useState<ClienteLista[]>([]);
   const [filtro, setFiltro] = useState('todos');
@@ -42,8 +42,8 @@ export default function ClientesScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      carregarClientes();
-    }, [])
+      carregarClientes(true);
+    }, [estabelecimentoId])
   );
 
   const onRefresh = async () => {
@@ -62,19 +62,21 @@ export default function ClientesScreen() {
     }
   };
 
-  const carregarClientes = async () => {
+  const carregarClientes = async (forceRefresh = false) => {
     try {
       if (!estabelecimentoId) {
-        Alert.alert('Erro', 'Estabelecimento não identificado');
+        Alert.alert('Erro', 'Estabelecimento nï¿½o identificado');
         return;
       }
 
       // Tentar buscar do cache (TTL de 5 minutos)
       const cacheKey = `lista_${estabelecimentoId}`;
-      const cachedData = await CacheManager.get<ClienteLista[]>(
-        CacheNamespaces.CLIENTES,
-        cacheKey
-      );
+      const cachedData = forceRefresh
+        ? null
+        : await CacheManager.get<ClienteLista[]>(
+            CacheNamespaces.CLIENTES,
+            cacheKey
+          );
 
       if (cachedData) {
         logger.debug('? Usando cache para clientes');
@@ -106,9 +108,9 @@ export default function ClientesScreen() {
         return;
       }
 
-      // Buscar todas as movimentações de crediário
-      // A tabela crediario_movimentacoes não tem estabelecimento_id, 
-      // então vamos buscar só dos clientes deste estabelecimento
+      // Buscar todas as movimentaï¿½ï¿½es de crediï¿½rio
+      // A tabela crediario_movimentacoes nï¿½o tem estabelecimento_id, 
+      // entï¿½o vamos buscar sï¿½ dos clientes deste estabelecimento
       const clienteIds = clientesData?.map(c => c.id) || [];
       
       let movimentacoesData: any[] = [];
@@ -119,7 +121,7 @@ export default function ClientesScreen() {
           .in('cliente_id', clienteIds);
 
         if (movimentacoesError) {
-          logger.error('Erro ao carregar movimentações:', movimentacoesError);
+          logger.error('Erro ao carregar movimentaï¿½ï¿½es:', movimentacoesError);
         } else {
           movimentacoesData = data || [];
         }
@@ -131,7 +133,7 @@ export default function ClientesScreen() {
         if (!saldosPorCliente[mov.cliente_id]) {
           saldosPorCliente[mov.cliente_id] = 0;
         }
-        // Converte o valor para número (pode vir como string do banco)
+        // Converte o valor para nï¿½mero (pode vir como string do banco)
         const valorNumerico = typeof mov.valor === 'number' ? mov.valor : parseFloat(mov.valor);
         saldosPorCliente[mov.cliente_id] += valorNumerico;
       });
@@ -167,7 +169,7 @@ export default function ClientesScreen() {
       );
     } catch (error) {
       logger.error('Erro ao carregar clientes:', error);
-      Alert.alert('Erro', 'Não foi possível carregar os clientes');
+      Alert.alert('Erro', 'Nï¿½o foi possï¿½vel carregar os clientes');
     }
   };
 
@@ -224,8 +226,8 @@ export default function ClientesScreen() {
     // Validar se o telefone existe
     if (!telefone || telefone.trim() === '') {
       Alert.alert(
-        'Telefone não cadastrado',
-        'Este cliente não possui telefone cadastrado. Deseja cadastrar agora?',
+        'Telefone nï¿½o cadastrado',
+        'Este cliente nï¿½o possui telefone cadastrado. Deseja cadastrar agora?',
         [
           {
             text: 'Cancelar',
@@ -246,11 +248,11 @@ export default function ClientesScreen() {
 
     const numeroLimpo = telefone.replace(/\D/g, '');
     
-    // Validar se o número tem pelo menos 10 dígitos (DDD + número)
+    // Validar se o nï¿½mero tem pelo menos 10 dï¿½gitos (DDD + nï¿½mero)
     if (numeroLimpo.length < 10) {
       Alert.alert(
-        'Telefone inválido',
-        'O telefone cadastrado é inválido. Deseja corrigir?',
+        'Telefone invï¿½lido',
+        'O telefone cadastrado ï¿½ invï¿½lido. Deseja corrigir?',
         [
           {
             text: 'Cancelar',
@@ -274,14 +276,14 @@ export default function ClientesScreen() {
     Linking.canOpenURL(url)
       .then(supported => {
         if (!supported) {
-          Alert.alert('Erro', 'WhatsApp não está instalado neste dispositivo');
+          Alert.alert('Erro', 'WhatsApp nï¿½o estï¿½ instalado neste dispositivo');
           return;
         }
         return Linking.openURL(url);
       })
       .catch(err => {
         logger.error('Erro ao abrir WhatsApp:', err);
-        Alert.alert('Erro', 'Não foi possível abrir o WhatsApp');
+        Alert.alert('Erro', 'Nï¿½o foi possï¿½vel abrir o WhatsApp');
       });
   };
 
@@ -303,7 +305,7 @@ export default function ClientesScreen() {
     try {
       const { status } = await Contacts.requestPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permissão necessária', 'Precisamos de acesso aos seus contatos para importá-los.');
+        Alert.alert('Permissï¿½o necessï¿½ria', 'Precisamos de acesso aos seus contatos para importï¿½-los.');
         return;
       }
 
@@ -312,7 +314,7 @@ export default function ClientesScreen() {
       });
 
       if (data.length === 0) {
-        Alert.alert('Nenhum contato', 'Não foram encontrados contatos no dispositivo.');
+        Alert.alert('Nenhum contato', 'Nï¿½o foram encontrados contatos no dispositivo.');
         return;
       }
 
@@ -328,7 +330,7 @@ export default function ClientesScreen() {
         .filter(contato => contato !== null);
 
       if (contatosValidos.length === 0) {
-        Alert.alert('Nenhum contato válido', 'Não foram encontrados contatos com nome e número de telefone válidos.');
+        Alert.alert('Nenhum contato vï¿½lido', 'Nï¿½o foram encontrados contatos com nome e nï¿½mero de telefone vï¿½lidos.');
         return;
       }
       
@@ -341,7 +343,7 @@ export default function ClientesScreen() {
 
     } catch (error) {
       logger.error('Erro ao acessar contatos:', error);
-      Alert.alert('Erro', 'Não foi possível acessar os contatos do dispositivo.');
+      Alert.alert('Erro', 'Nï¿½o foi possï¿½vel acessar os contatos do dispositivo.');
     }
   };
 
@@ -351,7 +353,7 @@ export default function ClientesScreen() {
 
   return (
     <View style={styles.container}>
-      {/* --- CABEÇALHO COM LAYOUT CORRIGIDO --- */}
+      {/* --- CABEï¿½ALHO COM LAYOUT CORRIGIDO --- */}
       <View style={[styles.header, { paddingTop: insets.top, paddingBottom: 16 }]}>
         <View style={styles.headerLeft}>
           <TouchableOpacity 
@@ -383,7 +385,7 @@ export default function ClientesScreen() {
             onPress={() => setFiltro('todos')}
           >
             <View style={[styles.filtroIcone, filtro === 'todos' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="users" size={16} color={filtro === 'todos' ? colors.primary : colors.textSecondary} />
+              <FontAwesome5 name="users" size={16} color={filtro === 'todos' ? colors.primaryContrast : colors.textSecondary} />
             </View>
             <Text style={[styles.filtroTexto, filtro === 'todos' && styles.filtroTextoAtivo]}>Todos</Text>
           </TouchableOpacity>
@@ -393,7 +395,7 @@ export default function ClientesScreen() {
             onPress={() => setFiltro('agendados')}
           >
             <View style={[styles.filtroIcone, filtro === 'agendados' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="calendar" size={16} color={filtro === 'agendados' ? colors.primary : colors.textSecondary} />
+              <FontAwesome5 name="calendar" size={16} color={filtro === 'agendados' ? colors.primaryContrast : colors.textSecondary} />
             </View>
             <Text style={[styles.filtroTexto, filtro === 'agendados' && styles.filtroTextoAtivo]}>Agendados</Text>
           </TouchableOpacity>
@@ -403,9 +405,9 @@ export default function ClientesScreen() {
             onPress={() => setFiltro('com_credito')}
           >
             <View style={[styles.filtroIcone, filtro === 'com_credito' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="user" size={16} color={filtro === 'com_credito' ? colors.primary : colors.textSecondary} />
+              <FontAwesome5 name="user" size={16} color={filtro === 'com_credito' ? colors.primaryContrast : colors.textSecondary} />
             </View>
-            <Text style={[styles.filtroTexto, filtro === 'com_credito' && styles.filtroTextoAtivo]}>Com crédito</Text>
+            <Text style={[styles.filtroTexto, filtro === 'com_credito' && styles.filtroTextoAtivo]}>Com crï¿½dito</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -413,9 +415,9 @@ export default function ClientesScreen() {
             onPress={() => setFiltro('com_debito')}
           >
             <View style={[styles.filtroIcone, filtro === 'com_debito' && styles.filtroIconeAtivo]}>
-              <FontAwesome5 name="exclamation-circle" size={16} color={filtro === 'com_debito' ? colors.primary : colors.textSecondary} />
+              <FontAwesome5 name="exclamation-circle" size={16} color={filtro === 'com_debito' ? colors.primaryContrast : colors.textSecondary} />
             </View>
-            <Text style={[styles.filtroTexto, filtro === 'com_debito' && styles.filtroTextoAtivo]}>Com Débito</Text>
+            <Text style={[styles.filtroTexto, filtro === 'com_debito' && styles.filtroTextoAtivo]}>Com Dï¿½bito</Text>
           </TouchableOpacity>
         </ScrollView>
       </View>
@@ -536,8 +538,8 @@ export default function ClientesScreen() {
   );
 }
 
-// --- STYLESHEET COM AS MUDANÇAS ---
-// Função auxiliar para criar estilos dinâmicos
+// --- STYLESHEET COM AS MUDANï¿½AS ---
+// Funï¿½ï¿½o auxiliar para criar estilos dinï¿½micos
 const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
@@ -546,7 +548,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between', // Mantém os grupos da esquerda e direita separados
+    justifyContent: 'space-between', // Mantï¿½m os grupos da esquerda e direita separados
     paddingHorizontal: 16,
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
@@ -566,7 +568,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   title: {
     fontSize: 20,
     color: colors.primary,
-    marginLeft: 10, // Espaçamento entre o ícone de menu e o título
+    marginLeft: 10, // Espaï¿½amento entre o ï¿½cone de menu e o tï¿½tulo
   },
   filtrosWrapper: {
     backgroundColor: colors.surface,
@@ -588,7 +590,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     minWidth: 95,
   },
   filtroAtivo: {
-    backgroundColor: colors.primaryBackground,
+    backgroundColor: colors.primary,
   },
   filtroIcone: {
     width: 24,
@@ -607,7 +609,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.textSecondary,
   },
   filtroTextoAtivo: {
-    color: colors.primary,
+    color: colors.primaryContrast,
     fontWeight: '500',
   },
   pesquisaContainer: {

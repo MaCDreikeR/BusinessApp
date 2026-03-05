@@ -14,7 +14,8 @@ import { View, Text, ScrollView, StyleSheet, Alert } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Button } from '../../components/Button2';
 import { Card } from '../../components/Card2';
-import { DESIGN_TOKENS, useCreateStyles, ColorTheme } from '../../utils/accentTheme';
+import { DESIGN_TOKENS, ColorTheme } from '../../utils/accentTheme';
+import { useCreateStyles } from '../../utils/useCreateStyles';
 
 export default function DesignSystemDemo() {
   const { colors } = useTheme();

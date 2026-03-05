@@ -15,6 +15,10 @@ const formatarCelular = (valor: string) => {
   return `(${celular.slice(0, 2)}) ${celular.slice(2, 7)}-${celular.slice(7, 11)}`;
 };
 
+
+type UsuarioFieldErrorKey = 'nomeCompleto' | 'email' | 'senha' | 'confirmarSenha' | 'telefone';
+type UsuarioFieldErrors = Partial<Record<UsuarioFieldErrorKey, string>>;
+
 export default function NovoUsuarioScreen() {
   const router = useRouter();
   const { session, estabelecimentoId } = useAuth();
@@ -22,6 +26,7 @@ export default function NovoUsuarioScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [loading, setLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<UsuarioFieldErrors>({});
   
   // Dados do formulário
   const [nomeCompleto, setNomeCompleto] = useState('');
@@ -121,43 +126,44 @@ export default function NovoUsuarioScreen() {
     }
   };
 
-  const validarFormulario = () => {
+  const validarFormulario = (): UsuarioFieldErrors => {
+    const erros: UsuarioFieldErrors = {};
+
     if (!nomeCompleto.trim()) {
-      Alert.alert('Erro', 'Nome completo é obrigatório.');
-      return false;
+      erros.nomeCompleto = 'Nome completo é obrigatório';
     }
     
     if (!email.trim()) {
-      Alert.alert('Erro', 'Email é obrigatório.');
-      return false;
-    }
-    
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      Alert.alert('Erro', 'Email deve ter um formato válido.');
-      return false;
+      erros.email = 'Email é obrigatório';
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        erros.email = 'Email deve ter um formato válido';
+      }
     }
     
     if (!senha.trim()) {
-      Alert.alert('Erro', 'Senha é obrigatória.');
-      return false;
+      erros.senha = 'Senha é obrigatória';
+    } else if (senha.length < 6) {
+      erros.senha = 'Senha deve ter pelo menos 6 caracteres';
     }
     
-    if (senha.length < 6) {
-      Alert.alert('Erro', 'Senha deve ter pelo menos 6 caracteres.');
-      return false;
-    }
-    
-    if (senha !== confirmarSenha) {
-      Alert.alert('Erro', 'Senhas não coincidem.');
-      return false;
+    if (senha && confirmarSenha && senha !== confirmarSenha) {
+      erros.confirmarSenha = 'Senhas não coincidem';
     }
 
-    return true;
+    return erros;
   };
 
   const handleSalvar = async () => {
-    if (!validarFormulario()) return;
+    const erros = validarFormulario();
+    
+    if (Object.keys(erros).length > 0) {
+      setFieldErrors(erros);
+      return;
+    }
+
+    setFieldErrors({});
     if (!estabelecimentoId) {
       Alert.alert('Erro', 'Estabelecimento não identificado.');
       return;
@@ -255,18 +261,19 @@ export default function NovoUsuarioScreen() {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Nome Completo *</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, fieldErrors.nomeCompleto && { borderColor: colors.error, borderWidth: 1 }]}
             value={nomeCompleto}
             onChangeText={setNomeCompleto}
             placeholder="Digite o nome completo"
             placeholderTextColor={colors.textTertiary}
           />
+          {fieldErrors.nomeCompleto ? <Text style={[styles.errorText, { color: colors.error }]}>{fieldErrors.nomeCompleto}</Text> : null}
         </View>
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Email *</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, fieldErrors.email && { borderColor: colors.error, borderWidth: 1 }]}
             value={email}
             onChangeText={setEmail}
             placeholder="email@exemplo.com"
@@ -274,6 +281,7 @@ export default function NovoUsuarioScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
           />
+          {fieldErrors.email ? <Text style={[styles.errorText, { color: colors.error }]}>{fieldErrors.email}</Text> : null}
         </View>
 
         <View style={styles.inputGroup}>
@@ -296,7 +304,7 @@ export default function NovoUsuarioScreen() {
         
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Senha *</Text>
-          <View style={styles.passwordContainer}>
+          <View style={[styles.passwordContainer, fieldErrors.senha && { borderColor: colors.error, borderWidth: 1 }]}>
             <TextInput
               style={styles.passwordInput}
               value={senha}
@@ -316,11 +324,12 @@ export default function NovoUsuarioScreen() {
               />
             </TouchableOpacity>
           </View>
+          {fieldErrors.senha ? <Text style={[styles.errorText, { color: colors.error }]}>{fieldErrors.senha}</Text> : null}
         </View>
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Confirmar Senha *</Text>
-          <View style={styles.passwordContainer}>
+          <View style={[styles.passwordContainer, fieldErrors.confirmarSenha && { borderColor: colors.error, borderWidth: 1 }]}>
             <TextInput
               style={styles.passwordInput}
               value={confirmarSenha}
@@ -340,6 +349,7 @@ export default function NovoUsuarioScreen() {
               />
             </TouchableOpacity>
           </View>
+          {fieldErrors.confirmarSenha ? <Text style={[styles.errorText, { color: colors.error }]}>{fieldErrors.confirmarSenha}</Text> : null}
         </View>
       </View>
 
@@ -510,6 +520,10 @@ const createStyles = (colors: any) => StyleSheet.create({
   inputGroup: {
     marginBottom: 16,
   },
+  errorText: {
+    marginTop: 4,
+    fontSize: 12,
+  },
   label: {
     fontSize: 14,
     fontWeight: '500',
@@ -558,7 +572,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   radioButtonActive: {
     borderColor: colors.primary,
-    backgroundColor: colors.primaryBackground,
+    backgroundColor: colors.primary,
   },
   radioCircle: {
     width: 20,
@@ -571,20 +585,20 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginRight: 12,
   },
   radioCircleActive: {
-    borderColor: colors.primary,
+    borderColor: colors.primaryContrast,
   },
   radioDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primaryContrast,
   },
   radioLabel: {
     fontSize: 16,
     color: colors.textSecondary,
   },
   radioLabelActive: {
-    color: colors.primary,
+    color: colors.primaryContrast,
     fontWeight: '500',
   },
   checkboxContainer: {

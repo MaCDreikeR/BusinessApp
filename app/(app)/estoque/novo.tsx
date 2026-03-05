@@ -1,9 +1,9 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, Modal } from 'react-native';
+﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, Modal, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import MaskInput from 'react-native-mask-input';
 import { logger } from '../../../utils/logger';
 import { Fornecedor as FornecedorBase } from '@types';
@@ -37,6 +37,9 @@ const PRECO_MASK = [
   /\d/,
 ];
 
+type EstoqueFieldErrorKey = 'nomeProduto' | 'descricaoProduto' | 'precoProduto' | 'quantidadeProduto';
+type EstoqueFieldErrors = Partial<Record<EstoqueFieldErrorKey, string>>;
+
 export default function NovoProdutoScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -63,11 +66,13 @@ export default function NovoProdutoScreen() {
     observacoes: ''
   });
 
-  useEffect(() => {
-    carregarCategorias();
-    carregarFornecedores();
-    carregarMarcas();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      carregarCategorias();
+      carregarFornecedores();
+      carregarMarcas();
+    }, [])
+  );
 
   const carregarCategorias = async () => {
     try {
@@ -123,6 +128,16 @@ export default function NovoProdutoScreen() {
       currency: 'BRL',
     });
     return valorFormatado;
+  };
+
+    const validarEstoque = (): EstoqueFieldErrors => {
+    const erros: EstoqueFieldErrors = {};
+    
+    if (!nomeProduto.trim()) {
+      erros.nomeProduto = 'Nome do produto é obrigatório';
+    }
+    
+    return erros;
   };
 
   const handleSalvar = async () => {
@@ -351,117 +366,99 @@ export default function NovoProdutoScreen() {
       <Modal
         visible={mostrarCategorias}
         transparent={true}
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setMostrarCategorias(false)}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
+        <Pressable
+          style={styles.modalBackdrop}
           onPress={() => setMostrarCategorias(false)}
         >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Selecione uma categoria</Text>
-                <TouchableOpacity
-                  onPress={() => setMostrarCategorias(false)}
-                  style={styles.modalCloseButton}
-                >
-                  <Ionicons name="close" size={24} color={colors.text} />
-                </TouchableOpacity>
-              </View>
-              <ScrollView style={styles.modalList}>
-                {categorias.map((categoria) => (
-                  <TouchableOpacity
-                    key={categoria.id}
-                    style={styles.modalItem}
-                    onPress={() => handleSelecionarCategoria(categoria)}
-                  >
-                    <Text style={styles.modalItemText}>{categoria.nome}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+          <Pressable
+            style={styles.modalCard}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Selecione uma categoria</Text>
             </View>
-          </View>
-        </TouchableOpacity>
+            <ScrollView style={styles.modalList}>
+              {categorias.map((categoria) => (
+                <TouchableOpacity
+                  key={categoria.id}
+                  style={styles.modalItem}
+                  onPress={() => handleSelecionarCategoria(categoria)}
+                >
+                  <Text style={styles.modalItemText}>{categoria.nome}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       {/* Modal de Fornecedores */}
       <Modal
         visible={mostrarFornecedores}
         transparent={true}
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setMostrarFornecedores(false)}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
+        <Pressable
+          style={styles.modalBackdrop}
           onPress={() => setMostrarFornecedores(false)}
         >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Selecione um fornecedor</Text>
-                <TouchableOpacity
-                  onPress={() => setMostrarFornecedores(false)}
-                  style={styles.modalCloseButton}
-                >
-                  <Ionicons name="close" size={24} color={colors.text} />
-                </TouchableOpacity>
-              </View>
-              <ScrollView style={styles.modalList}>
-                {fornecedores.map((fornecedor) => (
-                  <TouchableOpacity
-                    key={fornecedor.id}
-                    style={styles.modalItem}
-                    onPress={() => handleSelecionarFornecedor(fornecedor)}
-                  >
-                    <Text style={styles.modalItemText}>{fornecedor.nome}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+          <Pressable
+            style={styles.modalCard}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Selecione um fornecedor</Text>
             </View>
-          </View>
-        </TouchableOpacity>
+            <ScrollView style={styles.modalList}>
+              {fornecedores.map((fornecedor) => (
+                <TouchableOpacity
+                  key={fornecedor.id}
+                  style={styles.modalItem}
+                  onPress={() => handleSelecionarFornecedor(fornecedor)}
+                >
+                  <Text style={styles.modalItemText}>{fornecedor.nome}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       {/* Modal de Marcas */}
       <Modal
         visible={mostrarMarcas}
         transparent={true}
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setMostrarMarcas(false)}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
+        <Pressable
+          style={styles.modalBackdrop}
           onPress={() => setMostrarMarcas(false)}
         >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Selecione uma marca</Text>
-                <TouchableOpacity
-                  onPress={() => setMostrarMarcas(false)}
-                  style={styles.modalCloseButton}
-                >
-                  <Ionicons name="close" size={24} color={colors.text} />
-                </TouchableOpacity>
-              </View>
-              <ScrollView style={styles.modalList}>
-                {marcas.map((marca) => (
-                  <TouchableOpacity
-                    key={marca.id}
-                    style={styles.modalItem}
-                    onPress={() => handleSelecionarMarca(marca)}
-                  >
-                    <Text style={styles.modalItemText}>{marca.nome}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+          <Pressable
+            style={styles.modalCard}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Selecione uma marca</Text>
             </View>
-          </View>
-        </TouchableOpacity>
+            <ScrollView style={styles.modalList}>
+              {marcas.map((marca) => (
+                <TouchableOpacity
+                  key={marca.id}
+                  style={styles.modalItem}
+                  onPress={() => handleSelecionarMarca(marca)}
+                >
+                  <Text style={styles.modalItemText}>{marca.nome}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
       </Modal>
     </View>
   );
@@ -519,6 +516,7 @@ function createStyles(colors: any) {
     textArea: {
       height: 100,
       textAlignVertical: 'top',
+      color: colors.text,
     },
     row: {
       flexDirection: 'row',
@@ -557,29 +555,47 @@ function createStyles(colors: any) {
       fontSize: 16,
       fontWeight: '600',
     },
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.75)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    modalCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 24,
+      maxWidth: 500,
+      width: '100%',
+      maxHeight: '85%',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.3,
+      shadowRadius: 30,
+      elevation: 20,
+    },
     modalOverlay: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      justifyContent: 'flex-end',
     },
     modalContainer: {
-      backgroundColor: colors.surface,
-      borderTopLeftRadius: 16,
-      borderTopRightRadius: 16,
-      maxHeight: '80%',
+      flex: 1,
     },
     modalContent: {
-      padding: 16,
+      flex: 1,
     },
     modalHeader: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
+      justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: 16,
+      paddingHorizontal: 24,
+      paddingTop: 24,
+      paddingBottom: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
     },
     modalTitle: {
-      fontSize: 18,
-      fontWeight: '600',
+      fontSize: 20,
+      fontWeight: '700',
       color: colors.text,
     },
     modalCloseButton: {
@@ -591,8 +607,12 @@ function createStyles(colors: any) {
     modalItem: {
       paddingVertical: 12,
       paddingHorizontal: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
+      marginHorizontal: 16,
+      marginBottom: 8,
+      borderRadius: 8,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     modalItemText: {
       fontSize: 16,

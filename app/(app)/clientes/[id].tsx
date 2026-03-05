@@ -1,6 +1,6 @@
-import React, { useState, useEffect , useMemo, useRef } from 'react';
+import React, { useState, useEffect , useMemo, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, Image, Modal, KeyboardAvoidingView, Platform, Dimensions, Linking } from 'react-native';
-import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
+import { useRouter, useLocalSearchParams, Stack, useFocusEffect } from 'expo-router';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -88,9 +88,11 @@ export default function EditarClienteScreen() {
     setLoadingModalInfo(false);
   };
 
-  useEffect(() => {
-    carregarCliente();
-  }, [id]);
+  useFocusEffect(
+    useCallback(() => {
+      carregarCliente();
+    }, [id, estabelecimentoId])
+  );
 
   // Calcula saldo sempre que cliente muda ou quando activeTab for 'saldo'
   useEffect(() => {
@@ -2309,7 +2311,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     height: 56,
   },
   tabActive: {
-    backgroundColor: colors.primaryBackground,
+    backgroundColor: colors.primary,
     borderBottomWidth: 2,
     borderBottomColor: colors.primary,
   },
@@ -2320,7 +2322,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginTop: 4,
   },
   tabTextActive: {
-    color: colors.primary,
+    color: colors.primaryContrast,
     fontWeight: '500',
   },
   form: {
@@ -2375,6 +2377,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   textArea: {
     height: 100,
     textAlignVertical: 'top',
+    color: colors.text,
     backgroundColor: colors.surface,
     borderRadius: 8,
     borderWidth: 1,

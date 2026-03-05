@@ -372,7 +372,7 @@ export function ExpenseForm({
               value={recurring}
               onValueChange={setRecurring}
               trackColor={{ false: colors.border, true: colors.primary + '50' }}
-              thumbColor={recurring ? colors.primary : '#f4f3f4'}
+              thumbColor={recurring ? colors.primaryContrast : colors.borderLight}
             />
           </View>
         </ScrollView>
