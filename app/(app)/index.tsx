@@ -567,13 +567,12 @@ export default function HomeScreen() {
         { data: proxAgendamentos, error: proxError },
         { data: vendasRecentesData, error: vendasRecentesError },
       ] = await withTimeoutAll([
-        Promise.all([
-          // Carregar agendamentos de hoje
-          supabase.from('agendamentos').select('*', { count: 'exact' }).eq('estabelecimento_id', estabelecimentoId).gte('data_hora', inicioHoje).lte('data_hora', fimHoje),
-          // Carregar vendas de hoje - SOMENTE COMANDAS FECHADAS HOJE
-          supabase.from('comandas_itens').select(`preco_total, comandas!inner(status, estabelecimento_id, finalized_at)`).eq('comandas.estabelecimento_id', estabelecimentoId).eq('comandas.status', 'fechada').gte('comandas.finalized_at', inicioHoje).lte('comandas.finalized_at', fimHoje),
-          // Carregar clientes ativos
-          supabase.from('clientes').select('*', { count: 'exact', head: true }).eq('estabelecimento_id', estabelecimentoId),
+        // Carregar agendamentos de hoje
+        supabase.from('agendamentos').select('*', { count: 'exact' }).eq('estabelecimento_id', estabelecimentoId).gte('data_hora', inicioHoje).lte('data_hora', fimHoje),
+        // Carregar vendas de hoje - SOMENTE COMANDAS FECHADAS HOJE
+        supabase.from('comandas_itens').select(`preco_total, comandas!inner(status, estabelecimento_id, finalized_at)`).eq('comandas.estabelecimento_id', estabelecimentoId).eq('comandas.status', 'fechada').gte('comandas.finalized_at', inicioHoje).lte('comandas.finalized_at', fimHoje),
+        // Carregar clientes ativos
+        supabase.from('clientes').select('*', { count: 'exact', head: true }).eq('estabelecimento_id', estabelecimentoId),
         // Carregar próximos agendamentos com JOIN - elimina N+1
         (() => {
           let query = supabase.from('agendamentos')
@@ -602,7 +601,6 @@ export default function HomeScreen() {
         })(),
         // Carregar vendas recentes - COMANDAS FECHADAS COM VALOR_TOTAL
         supabase.from('comandas').select('id, cliente_nome, valor_total, finalized_at').eq('estabelecimento_id', estabelecimentoId).eq('status', 'fechada').order('finalized_at', { ascending: false }).limit(5),
-        ])
       ], 15000, 'Timeout ao carregar dados');
 
       // Processar agendamentos
