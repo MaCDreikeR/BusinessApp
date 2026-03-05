@@ -2331,7 +2331,7 @@ export default function NovoAgendamentoScreen() {
             <View style={styles.inputGroup}>
               <TouchableOpacity
                 style={styles.botaoGerenciarBloqueios}
-                onPress={abrirModalBloqueios}
+                onPress={() => setShowBloqueioModal(true)}
               >
                 <Ionicons name="lock-closed-outline" size={20} color={colors.white} />
                 <Text style={styles.botaoGerenciarBloqueiosText}>Gerenciar Bloqueios</Text>
