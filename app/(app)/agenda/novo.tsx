@@ -14,6 +14,7 @@ import { formatarDataInput, formatarTelefoneInput } from '@utils/validators';
 import { theme } from '@utils/theme';
 import { CacheManager, CacheNamespaces } from '../../../utils/cacheManager';
 import { SelectionButton, SELECTION_BUTTON_CONTAINER_STYLE } from '../../../components/Buttons';
+import { ModalGerenciarBloqueios } from '../../../components/ModalGerenciarBloqueios';
 // [CACHE-BUSTER-2025-11-05-14:30] Import condicional: DateTimePicker s• • importado no mobile
 let DateTimePicker: any = null;
 if (Platform.OS !== 'web') {
@@ -146,9 +147,6 @@ export default function NovoAgendamentoScreen() {
   const [diasSemanaBloqueados, setDiasSemanaBloqueados] = useState<number[]>([]);
   const [datasBloqueadas, setDatasBloqueadas] = useState<string[]>([]);
   const [showBloqueioModal, setShowBloqueioModal] = useState(false);
-  const [novaDataBloqueada, setNovaDataBloqueada] = useState('');
-  const [diasSemanaBloqueadosPendentes, setDiasSemanaBloqueadosPendentes] = useState<number[]>([]);
-  const [datasBloqueadasPendentes, setDatasBloqueadasPendentes] = useState<string[]>([]);
 
   // Adicionar estado para armazenar o limite de agendamentos simultâneos
   const [limiteSimultaneos, setLimiteSimultaneos] = useState('1');
@@ -600,96 +598,6 @@ export default function NovoAgendamentoScreen() {
     } catch (error) {
       logger.error('Erro ao verificar data bloqueada:', error);
       return false;
-    }
-  };
-
-  // Funções para gerenciar bloqueios
-  const abrirModalBloqueios = () => {
-    setDiasSemanaBloqueadosPendentes([...diasSemanaBloqueados]);
-    setDatasBloqueadasPendentes([...datasBloqueadas]);
-    setNovaDataBloqueada('');
-    setShowBloqueioModal(true);
-  };
-
-  const fecharModalBloqueios = () => {
-    setShowBloqueioModal(false);
-  };
-
-  const toggleDiaSemana = (diaSemana: number) => {
-    setDiasSemanaBloqueadosPendentes(prev => 
-      prev.includes(diaSemana)
-        ? prev.filter(d => d !== diaSemana)
-        : [...prev, diaSemana].sort()
-    );
-  };
-
-  const removerDataBloqueada = (data: string) => {
-    setDatasBloqueadasPendentes(prev => 
-      prev.filter(d => d !== data)
-    );
-  };
-
-  const adicionarDataBloqueada = () => {
-    if (!novaDataBloqueada.trim()) {
-      Alert.alert('Aviso', 'Digite uma data válida (DD/MM/AAAA)');
-      return;
-    }
-
-    if (!validarData(novaDataBloqueada)) {
-      Alert.alert('Erro', 'Data inválida. Use o formato DD/MM/AAAA');
-      return;
-    }
-
-    if (datasBloqueadasPendentes.includes(novaDataBloqueada)) {
-      Alert.alert('Aviso', 'Esta data já está bloqueada');
-      return;
-    }
-
-    setDatasBloqueadasPendentes([...datasBloqueadasPendentes, novaDataBloqueada].sort());
-    setNovaDataBloqueada('');
-  };
-
-  const salvarBloqueios = async () => {
-    try {
-      if (!estabelecimentoId) return;
-
-      // Atualizar dias da semana bloqueados
-      const diasUpdate = await supabase
-        .from('configuracoes')
-        .upsert(
-          { 
-            estabelecimento_id: estabelecimentoId, 
-            chave: 'dias_semana_bloqueados', 
-            valor: JSON.stringify(diasSemanaBloqueadosPendentes) 
-          },
-          { onConflict: 'estabelecimento_id,chave' }
-        );
-
-      if (diasUpdate.error) throw diasUpdate.error;
-
-      // Atualizar datas bloqueadas
-      const datasUpdate = await supabase
-        .from('configuracoes')
-        .upsert(
-          { 
-            estabelecimento_id: estabelecimentoId, 
-            chave: 'datas_bloqueadas', 
-            valor: JSON.stringify(datasBloqueadasPendentes) 
-          },
-          { onConflict: 'estabelecimento_id,chave' }
-        );
-
-      if (datasUpdate.error) throw datasUpdate.error;
-
-      // Atualizar estados
-      setDiasSemanaBloqueados(diasSemanaBloqueadosPendentes);
-      setDatasBloqueadas(datasBloqueadasPendentes);
-
-      Alert.alert('Sucesso', 'Bloqueios atualizados com sucesso');
-      fecharModalBloqueios();
-    } catch (error) {
-      logger.error('Erro ao salvar bloqueios:', error);
-      Alert.alert('Erro', 'Falha ao salvar bloqueios');
     }
   };
 
@@ -2639,110 +2547,13 @@ export default function NovoAgendamentoScreen() {
       </Modal>
 
       {/* Modal de Gerenciar Bloqueios */}
-      <Modal
+      <ModalGerenciarBloqueios
         visible={showBloqueioModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={fecharModalBloqueios}
-      >
-        <Pressable style={styles.modalBackdrop} onPress={fecharModalBloqueios}>
-          <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Gerenciar Bloqueios</Text>
-            </View>
-
-            <ScrollView 
-              style={styles.modalScrollView}
-              contentContainerStyle={styles.modalScrollContent}
-              showsVerticalScrollIndicator={true}
-            >
-              {/* Dias da Semana Bloqueados */}
-              <View>
-                <Text style={styles.modalSubtitle}>Dias da Semana Bloqueados</Text>
-                <View style={styles.diasSemanaContainer}>
-                  {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((dia, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={[
-                        styles.diaSemanaItem,
-                        diasSemanaBloqueadosPendentes.includes(index) && styles.diaSemanaSelected
-                      ]}
-                      onPress={() => toggleDiaSemana(index)}
-                    >
-                      <Text style={[
-                        styles.diaSemanaText,
-                        diasSemanaBloqueadosPendentes.includes(index) && styles.diaSemanaTextSelected
-                      ]}>
-                        {dia}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* Datas Específicas Bloqueadas */}
-              <View style={{ marginTop: 24 }}>
-                <Text style={styles.modalSubtitle}>Datas Específicas Bloqueadas</Text>
-                
-                {datasBloqueadasPendentes.length > 0 ? (
-                  <View style={styles.datasBloqueadasList}>
-                    {datasBloqueadasPendentes.map((data) => (
-                      <View key={data} style={styles.dataBloqueadaItem}>
-                        <Text style={styles.dataBloqueadaText}>{data}</Text>
-                        <TouchableOpacity
-                          onPress={() => removerDataBloqueada(data)}
-                          style={styles.removerDataButton}
-                        >
-                          <Ionicons name="close-circle" size={20} color={colors.error} />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                  </View>
-                ) : (
-                  <Text style={styles.nenhumaDataText}>Nenhuma data bloqueada</Text>
-                )}
-
-                {/* Input para adicionar nova data */}
-                <View style={styles.addDataContainer}>
-                  <MaskInput
-                    style={styles.dataInput}
-                    value={novaDataBloqueada}
-                    onChangeText={(text) => setNovaDataBloqueada(formatarDataInput(text))}
-                    placeholder="DD/MM/AAAA"
-                    placeholderTextColor={colors.textTertiary}
-                    keyboardType="numeric"
-                    maxLength={10}
-                  />
-                  <TouchableOpacity
-                    style={styles.addDataButton}
-                    onPress={adicionarDataBloqueada}
-                  >
-                    <Ionicons name="add" size={20} color={colors.white} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </ScrollView>
-
-            {/* Botões de ação */}
-            <View style={styles.modalButtonsContainer}>
-              <TouchableOpacity
-                style={styles.botaoCancelar}
-                onPress={fecharModalBloqueios}
-              >
-                <Text style={styles.botaoCancelarText}>Cancelar</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.botaoSalvar}
-                onPress={salvarBloqueios}
-              >
-                <Ionicons name="checkmark" size={20} color={colors.white} style={{ marginRight: 8 }} />
-                <Text style={styles.botaoSalvarText}>Salvar Bloqueios</Text>
-              </TouchableOpacity>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+        onClose={() => setShowBloqueioModal(false)}
+        estabelecimentoId={estabelecimentoId}
+        colors={colors}
+        onSave={carregarBloqueios}
+      />
     </View>
   );
 }

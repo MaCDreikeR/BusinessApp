@@ -18,6 +18,7 @@ import { getStartOfDayLocal, getEndOfDayLocal, getStartOfMonthLocal, getEndOfMon
 import { useRealtimeSubscription } from '../../hooks/useRealtimeSubscription';
 import { getInitials, getAvatarColor, isToday } from '../../utils/avatarHelpers';
 import { SkeletonAgendamento } from '../../components/SkeletonLoader';
+import { ModalGerenciarBloqueios } from '../../components/ModalGerenciarBloqueios';
 
 // Configuração do idioma para o calendário
 LocaleConfig.locales['pt-br'] = {
@@ -76,11 +77,10 @@ export default function AgendaScreen() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [markedDates, setMarkedDates] = useState<{[key: string]: any}>({});
   
-  // Novos estados para bloqueio de datas
+  // Estado para modal de bloqueio
   const [showBloqueioModal, setShowBloqueioModal] = useState(false);
   const [diasSemanaBloqueados, setDiasSemanaBloqueados] = useState<number[]>([]);
   const [datasBloqueadas, setDatasBloqueadas] = useState<string[]>([]);
-  const [novaDataBloqueada, setNovaDataBloqueada] = useState('');
   
   // Estado para mensagem de sucesso
   const [successMessage, setSuccessMessage] = useState('');
@@ -806,185 +806,6 @@ export default function AgendaScreen() {
     }
   };
   
-  // Função para salvar bloqueios
-  const salvarBloqueios = async () => {
-    try {
-      // Obter o usuário atual
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
-      if (!estabelecimentoId) throw new Error('Estabelecimento ID não encontrado');
-      
-      // Verificar se os registros já existem
-      const { data: registros, error: checkError } = await supabase
-        .from('configuracoes')
-        .select('id, chave')
-        .in('chave', ['dias_semana_bloqueados', 'datas_bloqueadas'])
-        .eq('estabelecimento_id', estabelecimentoId);
-        
-      if (checkError) {
-        logger.error('Erro ao verificar registros existentes:', checkError);
-        if (checkError.code === '42P01') {
-          alert('A tabela de configurações não existe. Entre em contato com o suporte.');
-          throw checkError;
-        }
-      }
-      
-      // Mapeamento de chaves para registros existentes
-      const registrosMap = (registros || []).reduce((acc, reg) => {
-        acc[reg.chave] = reg.id;
-        return acc;
-      }, {} as Record<string, string>);
-      
-      // Salvar dias da semana bloqueados
-      logger.debug('Salvando dias bloqueados:', diasSemanaBloqueados);
-      
-      const dias = JSON.stringify(diasSemanaBloqueados);
-      let sucessoDias = false;
-      
-      if (registrosMap['dias_semana_bloqueados']) {
-        // Atualizar registro existente COM SUPORTE OFFLINE
-        const { error: updateError } = await offlineUpdate(
-          'configuracoes',
-          registrosMap['dias_semana_bloqueados'],
-          { valor: dias },
-          estabelecimentoId!
-        );
-          
-        if (updateError) {
-          logger.error('Erro ao atualizar dias bloqueados:', updateError);
-        } else {
-          sucessoDias = true;
-        }
-      } else {
-        // Criar novo registro COM SUPORTE OFFLINE
-        const { error: insertError } = await offlineInsert(
-          'configuracoes',
-          {
-            chave: 'dias_semana_bloqueados',
-            valor: dias,
-            estabelecimento_id: estabelecimentoId
-          },
-          estabelecimentoId!
-        );
-          
-        if (insertError) {
-          logger.error('Erro ao inserir dias bloqueados:', insertError);
-        } else {
-          sucessoDias = true;
-        }
-      }
-      
-      // Salvar datas específicas
-      logger.debug('Salvando datas bloqueadas:', datasBloqueadas);
-      
-      const datas = JSON.stringify(datasBloqueadas);
-      let sucessoDatas = false;
-      
-      if (registrosMap['datas_bloqueadas']) {
-        // Atualizar registro existente COM SUPORTE OFFLINE
-        const { error: updateError } = await offlineUpdate(
-          'configuracoes',
-          registrosMap['datas_bloqueadas'],
-          { valor: datas },
-          estabelecimentoId!
-        );
-          
-        if (updateError) {
-          logger.error('Erro ao atualizar datas bloqueadas:', updateError);
-        } else {
-          sucessoDatas = true;
-        }
-      } else {
-        // Criar novo registro COM SUPORTE OFFLINE
-        const { error: insertError } = await offlineInsert(
-          'configuracoes',
-          {
-            chave: 'datas_bloqueadas',
-            valor: datas,
-            estabelecimento_id: estabelecimentoId
-          },
-          estabelecimentoId!
-        );
-          
-        if (insertError) {
-          logger.error('Erro ao inserir datas bloqueadas:', insertError);
-        } else {
-          sucessoDatas = true;
-        }
-      }
-      
-      if (sucessoDias && sucessoDatas) {
-        logger.debug('Bloqueios salvos com sucesso!');
-        alert('Bloqueios salvos com sucesso!');
-      } else {
-        throw new Error('Não foi possível salvar todos os bloqueios');
-      }
-    } catch (error: any) {
-      logger.error('Erro ao salvar bloqueios:', error);
-      logger.error('Detalhes adicionais:', JSON.stringify(error, null, 2));
-      alert(`Erro ao salvar: ${error.message || 'Verifique o console para mais detalhes'}`);
-    }
-  };
-  
-  // Função para alternar dia da semana
-  const toggleDiaSemana = (dia: number) => {
-    setDiasSemanaBloqueados(prev => {
-      if (prev.includes(dia)) {
-        return prev.filter(d => d !== dia);
-      } else {
-        return [...prev, dia];
-      }
-    });
-  };
-  
-  // Função para adicionar data específica
-  const adicionarDataBloqueada = () => {
-    if (!novaDataBloqueada) return;
-    
-    try {
-      // Parse manual da data no formato DD/MM/YYYY
-      const [diaStr, mesStr, anoStr] = novaDataBloqueada.split('/');
-      const dia = Number(diaStr);
-      const mes = Number(mesStr);
-      const ano = Number(anoStr);
-      const parsedDate = new Date(ano, mes - 1, dia);
-      
-      if (!isValid(parsedDate)) {
-        logger.error('Data inválida');
-        return;
-      }
-      
-      const dataFormatada = format(parsedDate, 'yyyy-MM-dd');
-      
-      if (!datasBloqueadas.includes(dataFormatada)) {
-        setDatasBloqueadas(prev => [...prev, dataFormatada]);
-        setNovaDataBloqueada('');
-      }
-    } catch (error) {
-      logger.error('Erro ao adicionar data:', error);
-    }
-  };
-  
-  // Função para remover data específica
-  const removerDataBloqueada = (data: string) => {
-    setDatasBloqueadas(prev => prev.filter(d => d !== data));
-  };
-  
-  // Função para formatar a entrada da data
-  const formatarDataInput = (text: string) => {
-    // Remove caracteres não numéricos
-    const numerico = text.replace(/[^0-9]/g, '');
-    
-    // Aplica a máscara DD/MM/YYYY
-    if (numerico.length <= 2) {
-      return numerico;
-    } else if (numerico.length <= 4) {
-      return `${numerico.slice(0, 2)}/${numerico.slice(2)}`;
-    } else {
-      return `${numerico.slice(0, 2)}/${numerico.slice(2, 4)}/${numerico.slice(4, 8)}`;
-    }
-  };
-
   // Verificar se uma data está bloqueada
   const isDataBloqueada = (data: Date) => {
     // Verifica se o dia da semana está bloqueado
@@ -2049,103 +1870,13 @@ export default function AgendaScreen() {
       </Modal>
 
       {/* Modal de Bloqueio de Datas */}
-      <Modal
+      <ModalGerenciarBloqueios
         visible={showBloqueioModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowBloqueioModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Gerenciar Bloqueios</Text>
-              <TouchableOpacity 
-                onPress={() => setShowBloqueioModal(false)}
-                style={styles.closeButton}
-              >
-                <Ionicons name="close" size={24} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-            
-            <ScrollView 
-              style={styles.modalList}
-              contentContainerStyle={styles.modalListContent}
-              showsVerticalScrollIndicator={true}
-            >
-              <Text style={styles.modalSubtitle}>Dias da Semana Bloqueados</Text>
-              <View style={styles.diasSemanaContainer}>
-                {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((dia, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={[
-                      styles.diaSemanaItem,
-                      diasSemanaBloqueados.includes(index) && styles.diaSemanaSelected
-                    ]}
-                    onPress={() => toggleDiaSemana(index)}
-                  >
-                    <Text style={[
-                      styles.diaSemanaText,
-                      diasSemanaBloqueados.includes(index) && styles.diaSemanaTextSelected
-                    ]}>
-                      {dia}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              
-              <Text style={[styles.modalSubtitle, { marginTop: 20 }]}>Datas Específicas</Text>
-              <View style={styles.dataInputContainer}>
-                <TextInput
-                  style={styles.dataInput}
-                  value={novaDataBloqueada}
-                  onChangeText={(text) => setNovaDataBloqueada(formatarDataInput(text))}
-                  placeholder="DD/MM/AAAA"
-                  placeholderTextColor={colors.textTertiary}
-                  keyboardType="numeric"
-                  maxLength={10}
-                />
-                <TouchableOpacity 
-                  style={styles.dataAddButton}
-                  onPress={adicionarDataBloqueada}
-                >
-                  <Ionicons name="add" size={24} color={colors.white} />
-                </TouchableOpacity>
-              </View>
-              
-              <View style={styles.datasBloqueadasList}>
-                {datasBloqueadas.map((data, index) => {
-                  // Parse manual de yyyy-MM-dd
-                  const [anoStr, mesStr, diaStr] = data.split('-');
-                  const parsedDate = new Date(Number(anoStr), Number(mesStr) - 1, Number(diaStr));
-                  const dataFormatada = format(parsedDate, 'dd/MM/yyyy');
-                  
-                  return (
-                    <View key={index} style={styles.dataBloqueadaItem}>
-                      <Text style={styles.dataBloqueadaText}>{dataFormatada}</Text>
-                      <TouchableOpacity
-                        style={styles.dataRemoveButton}
-                        onPress={() => removerDataBloqueada(data)}
-                      >
-                        <Ionicons name="trash-outline" size={20} color={colors.error} />
-                      </TouchableOpacity>
-                    </View>
-                  );
-                })}
-              </View>
-              
-              <TouchableOpacity 
-                style={styles.salvarButton}
-                onPress={() => {
-                  salvarBloqueios();
-                  setShowBloqueioModal(false);
-                }}
-              >
-                <Text style={styles.salvarButtonText}>Salvar Bloqueios</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setShowBloqueioModal(false)}
+        estabelecimentoId={estabelecimentoId}
+        colors={colors}
+        onSave={carregarBloqueios}
+      />
 
       {/* Modal de Configuração de Horários */}
       <Modal
