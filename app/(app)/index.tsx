@@ -1,6 +1,7 @@
 ﻿import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert, Image, Dimensions, ActivityIndicator } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/Button2';
 import { format } from 'date-fns';
@@ -9,6 +10,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../hooks/usePermissions';
 import { logger } from '../../utils/logger';
+import { withTimeoutAll } from '../../utils/withTimeout';
 import { Agendamento as AgendamentoBase, Produto as ProdutoBase } from '@types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { CacheManager, CacheNamespaces, CacheTTL } from '../../utils/cacheManager';
@@ -531,12 +533,7 @@ export default function HomeScreen() {
 
   const carregarDados = useCallback(async () => {
     if (!user || !estabelecimentoId) return;
-    
-    // Timeout promise para evitar queries infinitas
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Timeout ao carregar dados')), 15000)
-    );
-    
+
     try {
       setLoadingStates(prev => ({ ...prev, cards: true, agendamentos: true, vendas: true }));
       
@@ -569,7 +566,7 @@ export default function HomeScreen() {
         { count: clientesCount, error: clientesError },
         { data: proxAgendamentos, error: proxError },
         { data: vendasRecentesData, error: vendasRecentesError },
-      ] = await Promise.race([
+      ] = await withTimeoutAll([
         Promise.all([
           // Carregar agendamentos de hoje
           supabase.from('agendamentos').select('*', { count: 'exact' }).eq('estabelecimento_id', estabelecimentoId).gte('data_hora', inicioHoje).lte('data_hora', fimHoje),
@@ -605,9 +602,8 @@ export default function HomeScreen() {
         })(),
         // Carregar vendas recentes - COMANDAS FECHADAS COM VALOR_TOTAL
         supabase.from('comandas').select('id, cliente_nome, valor_total, finalized_at').eq('estabelecimento_id', estabelecimentoId).eq('status', 'fechada').order('finalized_at', { ascending: false }).limit(5),
-        ]),
-        timeoutPromise
-      ]);
+        ])
+      ], 15000, 'Timeout ao carregar dados');
 
       // Processar agendamentos
       if (agendamentosError) {
@@ -735,10 +731,12 @@ export default function HomeScreen() {
     setRefreshing(false);
   }, [carregarDados, carregarProdutosBaixoEstoque, estabelecimentoId, role]);
 
-  useEffect(() => {
-    carregarDados();
-    carregarProdutosBaixoEstoque();
-  }, [carregarDados, carregarProdutosBaixoEstoque]);
+  useFocusEffect(
+    useCallback(() => {
+      carregarDados();
+      carregarProdutosBaixoEstoque();
+    }, [carregarDados, carregarProdutosBaixoEstoque])
+  );
 
   // Calcular quantos cards serão exibidos para ajustar o layout
   const cardsVisiveis = [
