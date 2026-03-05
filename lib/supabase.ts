@@ -112,15 +112,29 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       'x-application-name': 'business-app',
       'x-environment': isDevelopment && process.env.EXPO_PUBLIC_SUPABASE_URL_LOCAL ? 'local' : 'production',
     },
-    // 🔥 NOVO: Timeout global para requisições
-    fetch: (url, options = {}) => {
+    // 🔥 Timeout global para requisições com tratamento adequado de erros
+    fetch: async (url, options = {}) => {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
       
-      return fetch(url, {
-        ...options,
-        signal: controller.signal,
-      }).finally(() => clearTimeout(timeoutId));
+      try {
+        const response = await fetch(url, {
+          ...options,
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        return response;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        
+        // Se foi abort por timeout, lança erro adequado sem tentar criar Response inválida
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw new Error('Request timeout: A requisição excedeu o tempo limite de 30 segundos');
+        }
+        
+        // Re-lança outros erros
+        throw error;
+      }
     },
   },
   // 🔥 NOVO: Opções do realtime (se usado)
