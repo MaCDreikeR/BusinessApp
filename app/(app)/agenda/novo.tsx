@@ -2649,12 +2649,6 @@ export default function NovoAgendamentoScreen() {
           <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Gerenciar Bloqueios</Text>
-              <TouchableOpacity 
-                onPress={fecharModalBloqueios}
-                style={styles.closeButton}
-              >
-                <Ionicons name="close" size={24} color={colors.textSecondary} />
-              </TouchableOpacity>
             </View>
 
             <ScrollView 

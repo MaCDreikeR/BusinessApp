@@ -2000,16 +2000,10 @@ export default function AgendaScreen() {
         animationType="slide"
         onRequestClose={() => setShowPresencaModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <Pressable style={styles.modalOverlay} onPress={() => setShowPresencaModal(false)}>
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Gerenciar Presença</Text>
-              <TouchableOpacity 
-                onPress={() => setShowPresencaModal(false)}
-                style={styles.closeButton}
-              >
-                <Ionicons name="close" size={24} color={colors.textSecondary} />
-              </TouchableOpacity>
             </View>
             
             <ScrollView 
@@ -2050,8 +2044,8 @@ export default function AgendaScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       {/* Modal de Bloqueio de Datas */}
@@ -2160,16 +2154,10 @@ export default function AgendaScreen() {
         animationType="slide"
         onRequestClose={() => setShowHorariosModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <Pressable style={styles.modalOverlay} onPress={() => setShowHorariosModal(false)}>
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Configurar Horários</Text>
-              <TouchableOpacity 
-                onPress={() => setShowHorariosModal(false)}
-                style={styles.closeButton}
-              >
-                <Ionicons name="close" size={24} color={colors.textSecondary} />
-              </TouchableOpacity>
             </View>
             
             <ScrollView 
@@ -2320,8 +2308,8 @@ export default function AgendaScreen() {
                 <Text style={styles.salvarButtonText}>Salvar Configurações</Text>
               </TouchableOpacity>
             </ScrollView>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       {/* Botão de adicionar agendamento */}
@@ -3250,7 +3238,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   modalHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
