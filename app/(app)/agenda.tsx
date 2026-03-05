@@ -1474,8 +1474,8 @@ export default function AgendaScreen() {
         animationType="fade"
         onRequestClose={() => setShowCalendar(false)}
       >
-        <View style={styles.calendarOverlay}>
-          <View style={styles.calendarContainer}>
+        <Pressable style={styles.calendarOverlay} onPress={() => setShowCalendar(false)}>
+          <Pressable style={styles.calendarContainer} onPress={(e) => e.stopPropagation()}>
             <Calendar
               current={formatSelectedDateString()}
               onDayPress={handleDateSelect}
@@ -1496,8 +1496,8 @@ export default function AgendaScreen() {
                 textDayHeaderFontSize: 14,
               }}
             />
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       {/* Lista de avatares - OCULTA para profissionais */}
@@ -3051,11 +3051,13 @@ const createStyles = (colors: any) => StyleSheet.create({
     zIndex: 900,
   },
   calendarContainer: {
-    marginHorizontal: 10,
+    marginHorizontal: 40,
+    maxWidth: 400,
+    alignSelf: 'center',
     zIndex: 1000,
     backgroundColor: colors.surface,
-    borderRadius: 10,
-    padding: 10,
+    borderRadius: 12,
+    padding: 8,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
