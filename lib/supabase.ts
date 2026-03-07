@@ -338,6 +338,7 @@ export async function checkSession() {
 }
 
 /**
+/**
  * Verifica e cria a tabela de usuários se não existir
  * @deprecated Esta função pode não ser necessária com migrações adequadas
  * @returns Promise<boolean>
@@ -388,7 +389,34 @@ export async function verificarTabelaUsuarios() {
 }
 
 // ============================================================================
+// GERENCIAMENTO DE ESTADO DO APP (DOZE MODE / BACKGROUND)
+// ============================================================================
+
+AppState.addEventListener('change', async (state) => {
+  if (state === 'active') {
+    // App voltou para o primeiro plano (acordou)
+    // 1. Retoma o ciclo de vida da sessão
+    supabase.auth.startAutoRefresh();
+    // 2. Executa a sua função de reconexão já existente
+    void forceSupabaseReconnect('AppState active');
+  } else if (state === 'background' || state === 'inactive') {
+    // App foi minimizado ou a tela desligou (dormiu)
+    // 1. Pausa a renovação de tokens para não falhar sem rede
+    supabase.auth.stopAutoRefresh();
+    
+    // 2. Derruba o WebSocket ativamente antes que o Android o mate.
+    // Isso evita que o Supabase fique esperando uma conexão zumbi.
+    try {
+      supabase.realtime.disconnect();
+      debugLogger.info('SupabaseAppState', 'Realtime desconectado preventivamente no background');
+    } catch (e) {
+       // Ignora silenciosamente
+    }
+  }
+});
+
+// ============================================================================
 // EXPORTAÇÕES
 // ============================================================================
 
-export default supabase; 
+export default supabase;
