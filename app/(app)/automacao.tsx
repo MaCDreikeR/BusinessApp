@@ -163,3 +163,4 @@ const createStyles = (colors: any) => StyleSheet.create({
   buttonPrimary: { backgroundColor: colors.successBackground, borderWidth: 1, borderColor: colors.success },
   buttonPrimaryText: { color: '#065F46', fontWeight: '700' },
 });
+

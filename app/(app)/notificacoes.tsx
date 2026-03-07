@@ -7,7 +7,7 @@ import { useCreateStyles } from '../../utils/useCreateStyles';
 import { ColorTheme } from '../../utils/accentTheme';
 import { getHistoricoNotificacoes } from '../../services/notifications';
 import { logger } from '../../utils/logger';
-import { Button } from '../../components/Button2';
+import { Button } from '../../components/Button';
 
 // Função para formatar a data
 function formatarData(dataString: string) {
@@ -182,3 +182,5 @@ const createStyles = (colors: ColorTheme, design: any) => StyleSheet.create({
     marginTop: design.spacing.md,
   },
 });
+
+

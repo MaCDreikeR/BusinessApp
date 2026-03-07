@@ -1,4 +1,4 @@
-ï»¿import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { StyleSheet, ScrollView, View, TouchableOpacity } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
@@ -16,7 +16,7 @@ export default function RelatoriosScreen() {
     { id: 'vendas', icon: 'chart-line', label: 'Vendas' },
     { id: 'agendamentos', icon: 'calendar-alt', label: 'Agendamentos' },
     { id: 'clientes', icon: 'users', label: 'Clientes' },
-    { id: 'comissoes', icon: 'percentage', label: 'ComissÃµes' },
+    { id: 'comissoes', icon: 'percentage', label: 'Comissões' },
   ];
   
   const styles = useMemo(() => StyleSheet.create({
@@ -118,7 +118,7 @@ export default function RelatoriosScreen() {
             <FontAwesome5 name="bars" size={20} color={colors.primary} />
           </TouchableOpacity>
           <View style={styles.headerText}>
-            <ThemedText style={styles.title}>RelatÃ³rios</ThemedText>
+            <ThemedText style={styles.title}>Relatórios</ThemedText>
           </View>
         </View>
       </View>
@@ -162,3 +162,4 @@ export default function RelatoriosScreen() {
     </ThemedView>
   );
 }
+

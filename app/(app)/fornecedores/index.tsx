@@ -1,4 +1,4 @@
-ï»¿import React, { useState, useEffect , useMemo, useCallback} from 'react';
+import React, { useState, useEffect , useMemo, useCallback} from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
@@ -22,7 +22,7 @@ type FornecedorLista = Pick<FornecedorBase, 'id' | 'nome'> & {
 export default function FornecedoresScreen() {
   const { colors } = useTheme();
   
-  // Estilos dinÃ¢micos baseados no tema
+  // Estilos dinâmicos baseados no tema
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [fornecedores, setFornecedores] = useState<FornecedorLista[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +44,7 @@ export default function FornecedoresScreen() {
       setLoading(true);
       logger.debug('Iniciando carregamento de fornecedores...');
       if (!estabelecimentoId) {
-        Alert.alert('Erro', 'Estabelecimento nÃ£o identificado.');
+        Alert.alert('Erro', 'Estabelecimento não identificado.');
         return;
       }
       const { data, error } = await supabase
@@ -64,7 +64,7 @@ export default function FornecedoresScreen() {
       }
     } catch (error) {
       logger.error('Erro ao carregar fornecedores:', error);
-      Alert.alert('Erro', 'NÃ£o foi possÃ­vel carregar os fornecedores');
+      Alert.alert('Erro', 'Não foi possível carregar os fornecedores');
     } finally {
       setLoading(false);
     }
@@ -80,7 +80,7 @@ export default function FornecedoresScreen() {
 
   const handleExcluirFornecedor = async (fornecedor: FornecedorLista) => {
     Alert.alert(
-      'Confirmar ExclusÃ£o',
+      'Confirmar Exclusão',
       'Tem certeza que deseja excluir este fornecedor?',
       [
         {
@@ -101,7 +101,7 @@ export default function FornecedoresScreen() {
               await carregarFornecedores();
             } catch (error) {
               logger.error('Erro ao excluir fornecedor:', error);
-              Alert.alert('Erro', 'NÃ£o foi possÃ­vel excluir o fornecedor');
+              Alert.alert('Erro', 'Não foi possível excluir o fornecedor');
             }
           },
         },
@@ -192,7 +192,7 @@ export default function FornecedoresScreen() {
   );
 }
 
-// FunÃ§Ã£o auxiliar para criar estilos dinÃ¢micos
+// Função auxiliar para criar estilos dinâmicos
 const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
@@ -302,3 +302,4 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginTop: 8,
   }
 }); 
+

@@ -1,4 +1,4 @@
-Ôªøimport React, { useState, useEffect , useMemo, useCallback} from 'react';
+import React, { useState, useEffect , useMemo, useCallback} from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, ScrollView, Modal, PanResponder, Animated, ActivityIndicator , DeviceEventEmitter } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
@@ -43,7 +43,7 @@ export default function EstoqueScreen() {
   const { estabelecimentoId } = useAuth();
   const { colors } = useTheme();
   
-  // Estilos din√¢micos baseados no tema
+  // Estilos din‚micos baseados no tema
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [produtos, setProdutos] = useState<ProdutoEstoque[]>([]);
   const [loading, setLoading] = useState(true);
@@ -159,8 +159,8 @@ export default function EstoqueScreen() {
       logger.debug('Iniciando carregamento de categorias...');
       
       if (!estabelecimentoId) {
-        logger.error('Estabelecimento n√£o identificado');
-        Alert.alert('Erro', 'Estabelecimento n√£o identificado');
+        logger.error('Estabelecimento n„o identificado');
+        Alert.alert('Erro', 'Estabelecimento n„o identificado');
         return;
       }
 
@@ -181,14 +181,14 @@ export default function EstoqueScreen() {
       }
     } catch (error) {
       logger.error('Erro ao carregar categorias:', error);
-      Alert.alert('Erro', 'N√£o foi poss√≠vel carregar as categorias');
+      Alert.alert('Erro', 'N„o foi possÌvel carregar as categorias');
     }
   };
 
   const carregarFornecedores = async () => {
     try {
       if (!estabelecimentoId) {
-        logger.error('Estabelecimento n√£o identificado');
+        logger.error('Estabelecimento n„o identificado');
         return;
       }
       const { data, error } = await supabase
@@ -207,7 +207,7 @@ export default function EstoqueScreen() {
   const carregarMarcas = async () => {
     try {
       if (!estabelecimentoId) {
-        logger.error('Estabelecimento n√£o identificado');
+        logger.error('Estabelecimento n„o identificado');
         return;
       }
       const { data, error } = await supabase
@@ -228,8 +228,8 @@ export default function EstoqueScreen() {
       setLoading(true);
       
       if (!estabelecimentoId) {
-        logger.error('Estabelecimento n√£o identificado');
-        Alert.alert('Erro', 'Estabelecimento n√£o identificado');
+        logger.error('Estabelecimento n„o identificado');
+        Alert.alert('Erro', 'Estabelecimento n„o identificado');
         return;
       }
 
@@ -245,7 +245,7 @@ export default function EstoqueScreen() {
           );
 
       if (cachedData) {
-        logger.debug('‚úÖ Usando cache para produtos');
+        logger.debug('? Usando cache para produtos');
         setProdutos(cachedData);
         setLoading(false);
         return;
@@ -310,7 +310,7 @@ export default function EstoqueScreen() {
       );
     } catch (error) {
       logger.error('Erro ao carregar produtos:', error);
-      Alert.alert('Erro', 'N√£o foi poss√≠vel carregar os produtos');
+      Alert.alert('Erro', 'N„o foi possÌvel carregar os produtos');
     } finally {
       setLoading(false);
     }
@@ -586,7 +586,7 @@ export default function EstoqueScreen() {
 
   const getStatusEstoque = (quantidade: number, quantidade_minima: number) => {
     if (quantidade === 0) return { cor: colors.error, texto: 'Zerado', background: colors.errorBackground };
-    if (quantidade <= quantidade_minima) return { cor: colors.error, texto: 'Abaixo do M√≠nimo', background: colors.errorBackground };
+    if (quantidade <= quantidade_minima) return { cor: colors.error, texto: 'Abaixo do MÌnimo', background: colors.errorBackground };
     if (quantidade <= 5) return { cor: colors.warning, texto: 'Baixo', background: '#FFFFFF' };
     return { cor: colors.success, texto: 'Normal', background: '#FFFFFF' };
   };
@@ -602,12 +602,12 @@ export default function EstoqueScreen() {
   const handleSalvarCategoria = async () => {
     try {
       if (!novaCategoria.trim()) {
-        Alert.alert('Erro', 'O nome da categoria √© obrigat√≥rio');
+        Alert.alert('Erro', 'O nome da categoria È obrigatÛrio');
         return;
       }
 
       if (!estabelecimentoId) {
-        Alert.alert('Erro', 'Estabelecimento n√£o identificado');
+        Alert.alert('Erro', 'Estabelecimento n„o identificado');
         return;
       }
 
@@ -645,7 +645,7 @@ export default function EstoqueScreen() {
       setMostrarCategorias(false);
     } catch (error: any) {
       logger.error('Erro ao salvar categoria:', error);
-      Alert.alert('Erro', `N√£o foi poss√≠vel salvar a categoria: ${error.message || error}`);
+      Alert.alert('Erro', `N„o foi possÌvel salvar a categoria: ${error.message || error}`);
     }
   };
 
@@ -656,7 +656,7 @@ export default function EstoqueScreen() {
 
   const handleExcluirCategoria = async (categoria: CategoriaEstoque) => {
     Alert.alert(
-      'Confirmar Exclus√£o',
+      'Confirmar Exclus„o',
       'Tem certeza que deseja excluir esta categoria?',
       [
         {
@@ -669,7 +669,7 @@ export default function EstoqueScreen() {
           onPress: async () => {
             try {
               if (!estabelecimentoId) {
-                Alert.alert('Erro', 'Estabelecimento n√£o identificado');
+                Alert.alert('Erro', 'Estabelecimento n„o identificado');
                 return;
               }
 
@@ -684,7 +684,7 @@ export default function EstoqueScreen() {
               await carregarCategorias();
             } catch (error) {
               logger.error('Erro ao excluir categoria:', error);
-              Alert.alert('Erro', 'N√£o foi poss√≠vel excluir a categoria');
+              Alert.alert('Erro', 'N„o foi possÌvel excluir a categoria');
             }
           },
         },
@@ -695,7 +695,7 @@ export default function EstoqueScreen() {
   const handleSalvarMarca = async () => {
     try {
       if (!estabelecimentoId) {
-        Alert.alert('Erro', 'Estabelecimento n√£o identificado');
+        Alert.alert('Erro', 'Estabelecimento n„o identificado');
         return;
       }
 
@@ -723,7 +723,7 @@ export default function EstoqueScreen() {
       Alert.alert('Sucesso', marcaEmEdicao ? 'Marca atualizada com sucesso!' : 'Marca cadastrada com sucesso!');
     } catch (error) {
       logger.error('Erro ao salvar marca:', error);
-      Alert.alert('Erro', 'N√£o foi poss√≠vel salvar a marca');
+      Alert.alert('Erro', 'N„o foi possÌvel salvar a marca');
     }
   };
 
@@ -735,7 +735,7 @@ export default function EstoqueScreen() {
   const handleExcluirMarca = async (marca: MarcaEstoque) => {
     try {
       if (!estabelecimentoId) {
-        Alert.alert('Erro', 'Estabelecimento n√£o identificado');
+        Alert.alert('Erro', 'Estabelecimento n„o identificado');
         return;
       }
 
@@ -748,10 +748,10 @@ export default function EstoqueScreen() {
       if (error) throw error;
 
       await carregarMarcas();
-      Alert.alert('Sucesso', 'Marca exclu√≠da com sucesso!');
+      Alert.alert('Sucesso', 'Marca excluÌda com sucesso!');
     } catch (error) {
       logger.error('Erro ao excluir marca:', error);
-      Alert.alert('Erro', 'N√£o foi poss√≠vel excluir a marca');
+      Alert.alert('Erro', 'N„o foi possÌvel excluir a marca');
     }
   };
 
@@ -766,7 +766,7 @@ export default function EstoqueScreen() {
         <View style={styles.produtoHeader}>
           <View style={styles.produtoInfo}>
             <Text style={styles.produtoNome}>{item.nome}</Text>
-            <Text style={styles.produtoCodigo}>C√≥digo: {item.codigo}</Text>
+            <Text style={styles.produtoCodigo}>CÛdigo: {item.codigo}</Text>
             {item.categoria && (
               <Text style={styles.produtoCategoria}>{item.categoria.nome}</Text>
             )}
@@ -1008,7 +1008,7 @@ export default function EstoqueScreen() {
   );
 }
 
-// Fun√ß√£o auxiliar para criar estilos din√¢micos
+// FunÁ„o auxiliar para criar estilos din‚micos
 const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
@@ -1334,3 +1334,4 @@ const createStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'center',
   },
 });
+

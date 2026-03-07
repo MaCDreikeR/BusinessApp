@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo } from 'react';
+﻿import React, { useRef, useState, useMemo } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { Link, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,14 +17,14 @@ import {
   formatarCNPJ, 
   formatarTelefone as formatarCelular 
 } from '../../utils/validators';
-import { Button } from '../../components/Button2';
+import { Button } from '../../components/Button';
 
 const segmentos = [
   { label: 'Varejo', value: 'varejo' },
-  { label: 'Serviços', value: 'servicos' },
-  { label: 'Alimentação', value: 'alimentacao' },
-  { label: 'Beleza e Estética', value: 'beleza' },
-  { label: 'Saúde', value: 'saude' },
+  { label: 'ServiÃ§os', value: 'servicos' },
+  { label: 'AlimentaÃ§Ã£o', value: 'alimentacao' },
+  { label: 'Beleza e EstÃ©tica', value: 'beleza' },
+  { label: 'SaÃºde', value: 'saude' },
   { label: 'Outros', value: 'outros' },
 ];
 
@@ -130,7 +130,7 @@ export default function CadastroScreen() {
       }
 
       const backoffMs = 400 * Math.pow(2, tentativa - 1);
-      logger.warn('SignUp com erro temporário, tentando novamente...', {
+      logger.warn('SignUp com erro temporÃ¡rio, tentando novamente...', {
         tentativa,
         backoffMs,
         mensagem: result.error.message,
@@ -155,37 +155,37 @@ export default function CadastroScreen() {
     if (!confirmarSenha) errors.confirmarSenha = 'Confirme a senha';
 
     if (emailNormalizado && !validarEmail(emailNormalizado)) {
-      errors.email = 'Email inválido. Verifique o formato e tente novamente.';
+      errors.email = 'Email invÃ¡lido. Verifique o formato e tente novamente.';
     }
 
     if (tipoDocumento === 'CPF' && numeroDocumento && !validarCPF(numeroDocumento)) {
-      errors.numeroDocumento = 'CPF inválido';
+      errors.numeroDocumento = 'CPF invÃ¡lido';
     }
 
     if (tipoDocumento === 'CNPJ' && numeroDocumento && !validarCNPJ(numeroDocumento)) {
-      errors.numeroDocumento = 'CNPJ inválido';
+      errors.numeroDocumento = 'CNPJ invÃ¡lido';
     }
 
     if (telefone && !validarCelular(telefone)) {
-      errors.telefone = 'Celular inválido';
+      errors.telefone = 'Celular invÃ¡lido';
     }
 
     if (senha && senha.length < 8) {
-      errors.senha = 'A senha deve ter no mínimo 8 caracteres';
+      errors.senha = 'A senha deve ter no mÃ­nimo 8 caracteres';
     }
 
     if (senha && confirmarSenha && senha !== confirmarSenha) {
-      errors.confirmarSenha = 'As senhas não coincidem';
+      errors.confirmarSenha = 'As senhas nÃ£o coincidem';
     }
 
     if (!aceitaTermos) {
-      errors.aceitaTermos = 'Você precisa aceitar os Termos de Uso e Política de Privacidade';
+      errors.aceitaTermos = 'VocÃª precisa aceitar os Termos de Uso e PolÃ­tica de Privacidade';
     }
 
     setFieldErrors(errors);
 
     if (Object.keys(errors).length > 0) {
-      showToast('Revise os campos obrigatórios para continuar.', 'error');
+      showToast('Revise os campos obrigatÃ³rios para continuar.', 'error');
       return false;
     }
 
@@ -207,16 +207,16 @@ export default function CadastroScreen() {
       });
 
       if (!emailJaExisteError && emailJaExiste === true) {
-        setFieldError('email', 'Este email já está cadastrado');
-        showToast('Este email já está cadastrado. Tente fazer login ou recuperar a senha.', 'warning');
+        setFieldError('email', 'Este email jÃ¡ estÃ¡ cadastrado');
+        showToast('Este email jÃ¡ estÃ¡ cadastrado. Tente fazer login ou recuperar a senha.', 'warning');
         return;
       }
 
       if (emailJaExisteError) {
-        logger.warn('Não foi possível validar duplicidade de email antes do signUp:', emailJaExisteError);
+        logger.warn('NÃ£o foi possÃ­vel validar duplicidade de email antes do signUp:', emailJaExisteError);
       }
 
-      // Criar usuário no Auth com retry inteligente para erros transitórios
+      // Criar usuÃ¡rio no Auth com retry inteligente para erros transitÃ³rios
       const { data: authData, error: authError } = await signUpWithRetry(
         emailNormalizado,
         senha,
@@ -226,15 +226,15 @@ export default function CadastroScreen() {
       if (authError) {
         logger.error('Erro no cadastro:', authError);
         
-        // Mensagens de erro mais específicas
-        let mensagemErro = 'Não foi possível criar o usuário. Tente novamente.';
+        // Mensagens de erro mais especÃ­ficas
+        let mensagemErro = 'NÃ£o foi possÃ­vel criar o usuÃ¡rio. Tente novamente.';
         
         if (authError.message?.includes('Email') || authError.message?.includes('email')) {
-          mensagemErro = 'Email inválido. Verifique o formato (ex: usuario@email.com) e tente novamente.';
+          mensagemErro = 'Email invÃ¡lido. Verifique o formato (ex: usuario@email.com) e tente novamente.';
         } else if (authError.message?.includes('already')) {
-          mensagemErro = 'Este email já está cadastrado. Tente fazer login ou use outro email.';
+          mensagemErro = 'Este email jÃ¡ estÃ¡ cadastrado. Tente fazer login ou use outro email.';
         } else if (authError.message?.includes('password')) {
-          mensagemErro = 'Senha fraca. Use pelo menos 6 caracteres com letras e números.';
+          mensagemErro = 'Senha fraca. Use pelo menos 6 caracteres com letras e nÃºmeros.';
         }
         
         setFieldError('email', mensagemErro.toLowerCase().includes('email') ? mensagemErro : '');
@@ -243,13 +243,13 @@ export default function CadastroScreen() {
       }
 
       if (!authData.user) {
-        showToast('Usuário não foi criado corretamente.', 'error');
+        showToast('UsuÃ¡rio nÃ£o foi criado corretamente.', 'error');
         return;
       }
 
       if (Array.isArray(authData.user.identities) && authData.user.identities.length === 0) {
-        setFieldError('email', 'Este email já está cadastrado');
-        showToast('Este email já está cadastrado. Tente fazer login ou recuperar a senha.', 'warning');
+        setFieldError('email', 'Este email jÃ¡ estÃ¡ cadastrado');
+        showToast('Este email jÃ¡ estÃ¡ cadastrado. Tente fazer login ou recuperar a senha.', 'warning');
         return;
       }
 
@@ -277,7 +277,7 @@ export default function CadastroScreen() {
       }
 
       if (!authUserExiste) {
-        logger.error('Usuário Auth ainda não disponível para FK:', { userId });
+        logger.error('UsuÃ¡rio Auth ainda nÃ£o disponÃ­vel para FK:', { userId });
         showToast('Conta criada, mas ainda sincronizando. Aguarde alguns segundos e tente novamente.', 'warning');
         return;
       }
@@ -298,8 +298,8 @@ export default function CadastroScreen() {
         logger.error('Erro ao criar conta:', contaError);
         
         // ============================================================
-        // CLEANUP: Tentar remover usuário órfão de auth.users
-        // Se a RPC falhou, não queremos deixar um usuário sem dados
+        // CLEANUP: Tentar remover usuÃ¡rio Ã³rfÃ£o de auth.users
+        // Se a RPC falhou, nÃ£o queremos deixar um usuÃ¡rio sem dados
         // ============================================================
         try {
           const { error: cleanError } = await supabase.rpc('limpar_usuario_orfao', {
@@ -307,21 +307,21 @@ export default function CadastroScreen() {
           });
           
           if (!cleanError) {
-            logger.info('✅ Usuário órfão removido de auth.users após falha na RPC');
+            logger.info('âœ… UsuÃ¡rio Ã³rfÃ£o removido de auth.users apÃ³s falha na RPC');
           } else {
-            logger.warn('Não foi possível remover usuário órfão:', cleanError);
+            logger.warn('NÃ£o foi possÃ­vel remover usuÃ¡rio Ã³rfÃ£o:', cleanError);
           }
         } catch (cleanupError) {
-          logger.warn('Erro ao tentar fazer cleanup de usuário órfão:', cleanupError);
+          logger.warn('Erro ao tentar fazer cleanup de usuÃ¡rio Ã³rfÃ£o:', cleanupError);
         }
         
-        showToast('Não foi possível criar a conta. Tente novamente.', 'error');
+        showToast('NÃ£o foi possÃ­vel criar a conta. Tente novamente.', 'error');
         return;
       }
 
-      // Verificação pós-RPC (best effort): em alguns cenários de confirmação de e-mail,
-      // a sessão pode estar nula e a leitura direta pode retornar falso-negativo por RLS.
-      // Não deve bloquear o sucesso quando a RPC já concluiu sem erro.
+      // VerificaÃ§Ã£o pÃ³s-RPC (best effort): em alguns cenÃ¡rios de confirmaÃ§Ã£o de e-mail,
+      // a sessÃ£o pode estar nula e a leitura direta pode retornar falso-negativo por RLS.
+      // NÃ£o deve bloquear o sucesso quando a RPC jÃ¡ concluiu sem erro.
       const { data: usuarioCriado, error: usuarioVerificacaoError } = await supabase
         .from('usuarios')
         .select('id')
@@ -329,7 +329,7 @@ export default function CadastroScreen() {
         .maybeSingle();
 
       if (usuarioVerificacaoError || !usuarioCriado) {
-        logger.warn('Verificação pós-RPC inconclusiva (não bloqueante):', {
+        logger.warn('VerificaÃ§Ã£o pÃ³s-RPC inconclusiva (nÃ£o bloqueante):', {
           usuarioVerificacaoError,
           userId,
           usuarioCriado: !!usuarioCriado,
@@ -526,7 +526,7 @@ export default function CadastroScreen() {
         </View>
 
         <View style={styles.formSection}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Dados do Responsável</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Dados do ResponsÃ¡vel</Text>
 
           <View style={styles.inputContainer}>
             <Text style={[styles.label, { color: colors.text }]}>Nome Completo*</Text>
@@ -544,7 +544,7 @@ export default function CadastroScreen() {
                 placeholderTextColor={colors.textTertiary}
                 returnKeyType="next"
                 onSubmitEditing={() => emailRef.current?.focus()}
-                accessibilityLabel="Nome completo do responsável"
+                accessibilityLabel="Nome completo do responsÃ¡vel"
             />
             {fieldErrors.nomeCompleto ? (
               <Text style={[styles.errorText, { color: colors.error }]}>{fieldErrors.nomeCompleto}</Text>
@@ -581,7 +581,7 @@ export default function CadastroScreen() {
               )}
             </View>
             {(fieldErrors.email || (email && !validarEmail(email.trim().toLowerCase()))) && (
-              <Text style={[styles.errorText, { color: colors.error }]}>{fieldErrors.email || 'Email inválido'}</Text>
+              <Text style={[styles.errorText, { color: colors.error }]}>{fieldErrors.email || 'Email invÃ¡lido'}</Text>
             )}
           </View>
 
@@ -591,7 +591,7 @@ export default function CadastroScreen() {
               <TextInput
                 ref={senhaRef}
                 style={[styles.input, styles.passwordInput, { backgroundColor: colors.background, borderColor: colors.borderLight, color: colors.text }, fieldErrors.senha && { borderColor: colors.error }]}
-                placeholder="Mínimo 8 caracteres"
+                placeholder="MÃ­nimo 8 caracteres"
                 value={senha}
                 onChangeText={(text) => {
                   setSenha(text);
@@ -647,7 +647,7 @@ export default function CadastroScreen() {
                 style={styles.eyeButton}
                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                 accessibilityRole="button"
-                accessibilityLabel={showConfirmPassword ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'}
+                accessibilityLabel={showConfirmPassword ? 'Ocultar confirmaÃ§Ã£o de senha' : 'Mostrar confirmaÃ§Ã£o de senha'}
               >
                 <Ionicons 
                   name={showConfirmPassword ? "eye-outline" : "eye-off-outline"} 
@@ -694,14 +694,14 @@ export default function CadastroScreen() {
             }}
             accessibilityRole="checkbox"
             accessibilityState={{ checked: aceitaTermos }}
-            accessibilityLabel="Aceitar termos de uso e política de privacidade"
+            accessibilityLabel="Aceitar termos de uso e polÃ­tica de privacidade"
           >
                 {aceitaTermos && <Ionicons name="checkmark" size={16} color="#fff" />}
           </TouchableOpacity>
           <Text style={[styles.checkboxLabel, { color: colors.textSecondary }]}>
             Li e aceito os{' '}
             <Text style={[styles.link, { color: colors.link }]}>Termos de Uso</Text> e a{' '}
-            <Text style={[styles.link, { color: colors.link }]}>Política de Privacidade</Text>
+            <Text style={[styles.link, { color: colors.link }]}>PolÃ­tica de Privacidade</Text>
           </Text>
         </View>
         {fieldErrors.aceitaTermos ? (
@@ -721,7 +721,7 @@ export default function CadastroScreen() {
         </Button>
 
         <View style={styles.loginContainer}>
-          <Text style={[styles.loginText, { color: colors.textSecondary }]}>Já tem uma conta? </Text>
+          <Text style={[styles.loginText, { color: colors.textSecondary }]}>JÃ¡ tem uma conta? </Text>
           <Link href="/(auth)/login" asChild>
             <TouchableOpacity accessibilityRole="button" accessibilityLabel="Ir para login">
               <Text style={[styles.loginLink, { color: colors.link }]}>Fazer login</Text>
@@ -730,7 +730,7 @@ export default function CadastroScreen() {
         </View>
 
         <TouchableOpacity style={styles.trialButton}>
-          <Text style={[styles.trialText, { color: colors.successDark }]}>Faça o teste grátis por 7 dias!</Text>
+          <Text style={[styles.trialText, { color: colors.successDark }]}>FaÃ§a o teste grÃ¡tis por 7 dias!</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.supportButton}>
@@ -930,3 +930,4 @@ const createStyles = (colors: any) => StyleSheet.create({
     flex: 1,
   },
 }); 
+

@@ -17,29 +17,77 @@ Notifications.setNotificationHandler({
 
 // Função para salvar notificação no histórico
 async function salvarNotificacaoNoHistorico(titulo: string, mensagem: string, tipo: string) {
-  const { data: { user } } = await supabase.auth.getUser();
+  const retryWithTimeout = async (fn: () => Promise<any>, retries = 2, timeout = 12000) => {
+    let lastError;
+    for (let i = 0; i <= retries; i++) {
+      try {
+        return await Promise.race([
+          fn(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeout))
+        ]);
+      } catch (err) {
+        lastError = err;
+        if (err?.message?.includes('permission') || err?.code === 'PGRST116') {
+          if (typeof window !== 'undefined' && window.signOut) window.signOut();
+          throw err;
+        }
+        if (i < retries) {
+          logger.warn(`Retry ${i + 1} após erro:`, err);
+          await new Promise(res => setTimeout(res, 1000 * (i + 1)));
+        }
+      }
+    }
+    throw lastError;
+  };
+  const { data: { user } } = await retryWithTimeout(() => supabase.auth.getUser());
   if (user) {
-    await supabase
-      .from('notificacoes_historico')
-      .insert({
-        user_id: user.id,
-        titulo: titulo,
-        mensagem: mensagem,
-        tipo: tipo,
-        data_envio: new Date().toISOString(),
-        data_expiracao: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(), // 48 horas
-      });
+    await retryWithTimeout(() =>
+      supabase
+        .from('notificacoes_historico')
+        .insert({
+          user_id: user.id,
+          titulo: titulo,
+          mensagem: mensagem,
+          tipo: tipo,
+          data_envio: new Date().toISOString(),
+          data_expiracao: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(), // 48 horas
+        })
+    );
   }
 }
 
 // Função para limpar notificações antigas
 async function limparNotificacoesAntigas() {
-  const { data: { user } } = await supabase.auth.getUser();
+  const retryWithTimeout = async (fn: () => Promise<any>, retries = 2, timeout = 12000) => {
+    let lastError;
+    for (let i = 0; i <= retries; i++) {
+      try {
+        return await Promise.race([
+          fn(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeout))
+        ]);
+      } catch (err) {
+        lastError = err;
+        if (err?.message?.includes('permission') || err?.code === 'PGRST116') {
+          if (typeof window !== 'undefined' && window.signOut) window.signOut();
+          throw err;
+        }
+        if (i < retries) {
+          logger.warn(`Retry ${i + 1} após erro:`, err);
+          await new Promise(res => setTimeout(res, 1000 * (i + 1)));
+        }
+      }
+    }
+    throw lastError;
+  };
+  const { data: { user } } = await retryWithTimeout(() => supabase.auth.getUser());
   if (user) {
-    await supabase
-      .from('notificacoes_historico')
-      .delete()
-      .lt('data_expiracao', new Date().toISOString());
+    await retryWithTimeout(() =>
+      supabase
+        .from('notificacoes_historico')
+        .delete()
+        .lt('data_expiracao', new Date().toISOString())
+    );
   }
 }
 
@@ -74,15 +122,39 @@ export async function registerForPushNotificationsAsync() {
     })).data;
 
     // Salvar o token no Supabase
-    const { data: { user } } = await supabase.auth.getUser();
+    const retryWithTimeout = async (fn: () => Promise<any>, retries = 2, timeout = 12000) => {
+      let lastError;
+      for (let i = 0; i <= retries; i++) {
+        try {
+          return await Promise.race([
+            fn(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeout))
+          ]);
+        } catch (err) {
+          lastError = err;
+          if (err?.message?.includes('permission') || err?.code === 'PGRST116') {
+            if (typeof window !== 'undefined' && window.signOut) window.signOut();
+            throw err;
+          }
+          if (i < retries) {
+            logger.warn(`Retry ${i + 1} após erro:`, err);
+            await new Promise(res => setTimeout(res, 1000 * (i + 1)));
+          }
+        }
+      }
+      throw lastError;
+    };
+    const { data: { user } } = await retryWithTimeout(() => supabase.auth.getUser());
     if (user) {
-      await supabase
-        .from('user_push_tokens')
-        .upsert({
-          user_id: user.id,
-          token: token,
-          platform: Platform.OS,
-        });
+      await retryWithTimeout(() =>
+        supabase
+          .from('user_push_tokens')
+          .upsert({
+            user_id: user.id,
+            token: token,
+            platform: Platform.OS,
+          })
+      );
     }
   } else {
     logger.debug('Dispositivo físico necessário para notificações push');

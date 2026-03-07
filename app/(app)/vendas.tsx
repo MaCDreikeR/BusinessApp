@@ -12,7 +12,7 @@ import { logger } from '../../utils/logger';
 import { Cliente as ClienteBase, Comanda as ComandaBase } from '@types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { CacheManager, CacheNamespaces, CacheTTL } from '../../utils/cacheManager';
-import { Button } from '../../components/Button2';
+import { Button } from '../../components/Button';
 
 // Tipos específicos da tela de vendas
 type VendaItem = {
@@ -115,14 +115,14 @@ const VendasScreen = () => {
   );
 
   useEffect(() => {
-    logger.debug('🎭 modalDetalhesVisible mudou:', modalDetalhesVisible);
-    logger.debug('📋 detalhesMovimentacao:', detalhesMovimentacao);
+    logger.debug('?? modalDetalhesVisible mudou:', modalDetalhesVisible);
+    logger.debug('?? detalhesMovimentacao:', detalhesMovimentacao);
   }, [modalDetalhesVisible, detalhesMovimentacao]);
 
   const carregarVendas = async (pagina: number, refresh = false) => {
     try {
       if (!estabelecimentoId) {
-        logger.debug('❌ Sem estabelecimentoId para carregar vendas');
+        logger.debug('? Sem estabelecimentoId para carregar vendas');
         return;
       }
       
@@ -136,7 +136,7 @@ const VendasScreen = () => {
       );
       
       if (cachedData && !refresh) {
-        logger.debug(`✅ Usando cache para vendas (${cacheKey})`);
+        logger.debug(`? Usando cache para vendas (${cacheKey})`);
         setVendas(prev => refresh ? cachedData : {
           totalVendas: prev.totalVendas + cachedData.totalVendas,
           quantidadeItens: prev.quantidadeItens + cachedData.quantidadeItens,
@@ -279,12 +279,12 @@ const VendasScreen = () => {
   };
 
   const carregarDetalhesMovimentacao = async () => {
-    logger.debug('🔍 carregarDetalhesMovimentacao chamada');
+    logger.debug('?? carregarDetalhesMovimentacao chamada');
     setLoadingDetalhes(true);
     try {
-      logger.debug('🏢 estabelecimentoId do contexto:', estabelecimentoId);
+      logger.debug('?? estabelecimentoId do contexto:', estabelecimentoId);
       if (!estabelecimentoId) {
-        logger.debug('❌ Sem estabelecimentoId');
+        logger.debug('? Sem estabelecimentoId');
         Alert.alert('Erro', 'Estabelecimento não identificado');
         return;
       }
@@ -294,7 +294,7 @@ const VendasScreen = () => {
       const dataFim = debouncedFiltros.dataFim || new Date();
       dataInicio.setHours(0, 0, 0, 0);
       dataFim.setHours(23, 59, 59, 999);
-      logger.debug('📅 Período:', { dataInicio, dataFim });
+      logger.debug('?? Período:', { dataInicio, dataFim });
 
       // Buscar comandas fechadas no período
       const { data: comandas, error } = await supabase
@@ -305,9 +305,9 @@ const VendasScreen = () => {
         .gte('finalized_at', dataInicio.toISOString())
         .lte('finalized_at', dataFim.toISOString());
 
-      logger.debug('📊 Comandas encontradas:', comandas?.length || 0);
+      logger.debug('?? Comandas encontradas:', comandas?.length || 0);
       if (error) {
-        logger.error('❌ Erro na query:', error);
+        logger.error('? Erro na query:', error);
         throw error;
       }
 
@@ -395,16 +395,16 @@ const VendasScreen = () => {
         }
       });
 
-      logger.debug('✅ Detalhes processados:', detalhes);
+      logger.debug('? Detalhes processados:', detalhes);
       setDetalhesMovimentacao(detalhes);
       setModalDetalhesVisible(true);
-      logger.debug('🎯 Modal deve abrir agora');
+      logger.debug('?? Modal deve abrir agora');
     } catch (error) {
-      logger.error('❌ Erro ao carregar detalhes:', error);
+      logger.error('? Erro ao carregar detalhes:', error);
       Alert.alert('Erro', 'Não foi possível carregar os detalhes');
     } finally {
       setLoadingDetalhes(false);
-      logger.debug('✅ Loading finalizado');
+      logger.debug('? Loading finalizado');
     }
   };
 
@@ -754,7 +754,7 @@ const VendasScreen = () => {
                       {detalhesMovimentacao.dinheiro.trocos_adicionados.length > 0 && (
                         <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
                           <Text style={{ fontSize: 12, color: colors.success, fontWeight: '600', marginBottom: 4 }}>
-                            💰 Trocos adicionados ao crediário (incluído no total acima):
+                            ?? Trocos adicionados ao crediário (incluído no total acima):
                           </Text>
                           {detalhesMovimentacao.dinheiro.trocos_adicionados.map((troco: any, idx: number) => (
                             <View key={idx} style={styles.comandaDetalhe}>
@@ -769,7 +769,7 @@ const VendasScreen = () => {
                       {detalhesMovimentacao.dinheiro.faltas_adicionadas.length > 0 && (
                         <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
                           <Text style={{ fontSize: 12, color: colors.error, fontWeight: '600', marginBottom: 4 }}>
-                            ⚠️ Faltas adicionadas ao crediário (subtraído do total acima):
+                            ?? Faltas adicionadas ao crediário (subtraído do total acima):
                           </Text>
                           {detalhesMovimentacao.dinheiro.faltas_adicionadas.map((falta: any, idx: number) => (
                             <View key={idx} style={styles.comandaDetalhe}>
@@ -805,7 +805,7 @@ const VendasScreen = () => {
                       {detalhesMovimentacao.cartao_credito.trocos_adicionados.length > 0 && (
                         <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
                           <Text style={{ fontSize: 12, color: colors.success, fontWeight: '600', marginBottom: 4 }}>
-                            💰 Trocos adicionados ao crediário (incluído no total acima):
+                            ?? Trocos adicionados ao crediário (incluído no total acima):
                           </Text>
                           {detalhesMovimentacao.cartao_credito.trocos_adicionados.map((troco: any, idx: number) => (
                             <View key={idx} style={styles.comandaDetalhe}>
@@ -818,7 +818,7 @@ const VendasScreen = () => {
                       {detalhesMovimentacao.cartao_credito.faltas_adicionadas.length > 0 && (
                         <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
                           <Text style={{ fontSize: 12, color: colors.error, fontWeight: '600', marginBottom: 4 }}>
-                            ⚠️ Faltas adicionadas ao crediário (subtraído do total acima):
+                            ?? Faltas adicionadas ao crediário (subtraído do total acima):
                           </Text>
                           {detalhesMovimentacao.cartao_credito.faltas_adicionadas.map((falta: any, idx: number) => (
                             <View key={idx} style={styles.comandaDetalhe}>
@@ -851,7 +851,7 @@ const VendasScreen = () => {
                       {detalhesMovimentacao.cartao_debito.trocos_adicionados.length > 0 && (
                         <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
                           <Text style={{ fontSize: 12, color: colors.success, fontWeight: '600', marginBottom: 4 }}>
-                            💰 Trocos adicionados ao crediário (incluído no total acima):
+                            ?? Trocos adicionados ao crediário (incluído no total acima):
                           </Text>
                           {detalhesMovimentacao.cartao_debito.trocos_adicionados.map((troco: any, idx: number) => (
                             <View key={idx} style={styles.comandaDetalhe}>
@@ -864,7 +864,7 @@ const VendasScreen = () => {
                       {detalhesMovimentacao.cartao_debito.faltas_adicionadas.length > 0 && (
                         <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
                           <Text style={{ fontSize: 12, color: colors.error, fontWeight: '600', marginBottom: 4 }}>
-                            ⚠️ Faltas adicionadas ao crediário (subtraído do total acima):
+                            ?? Faltas adicionadas ao crediário (subtraído do total acima):
                           </Text>
                           {detalhesMovimentacao.cartao_debito.faltas_adicionadas.map((falta: any, idx: number) => (
                             <View key={idx} style={styles.comandaDetalhe}>
@@ -897,7 +897,7 @@ const VendasScreen = () => {
                       {detalhesMovimentacao.pix.trocos_adicionados.length > 0 && (
                         <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
                           <Text style={{ fontSize: 12, color: colors.success, fontWeight: '600', marginBottom: 4 }}>
-                            💰 Trocos adicionados ao crediário (incluído no total acima):
+                            ?? Trocos adicionados ao crediário (incluído no total acima):
                           </Text>
                           {detalhesMovimentacao.pix.trocos_adicionados.map((troco: any, idx: number) => (
                             <View key={idx} style={styles.comandaDetalhe}>
@@ -910,7 +910,7 @@ const VendasScreen = () => {
                       {detalhesMovimentacao.pix.faltas_adicionadas.length > 0 && (
                         <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
                           <Text style={{ fontSize: 12, color: colors.error, fontWeight: '600', marginBottom: 4 }}>
-                            ⚠️ Faltas adicionadas ao crediário (subtraído do total acima):
+                            ?? Faltas adicionadas ao crediário (subtraído do total acima):
                           </Text>
                           {detalhesMovimentacao.pix.faltas_adicionadas.map((falta: any, idx: number) => (
                             <View key={idx} style={styles.comandaDetalhe}>
@@ -1288,3 +1288,5 @@ const createStyles = (colors: any) => StyleSheet.create({
 });
 
 export default VendasScreen; 
+
+

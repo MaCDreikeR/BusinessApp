@@ -2,7 +2,10 @@ import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
+import { AppState } from 'react-native';
 import { logger } from '../utils/logger';
+import { debugLogger } from '../utils/debugLogger';
+import { withTimeout } from '../utils/withTimeout';
 
 // ============================================================================
 // CONFIGURAÇÃO DE AMBIENTE
@@ -114,8 +117,15 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     },
     // 🔥 Timeout global para requisições com tratamento adequado de erros
     fetch: async (url, options = {}) => {
+      const requestId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const startedAt = Date.now();
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+      const requestUrl = typeof url === 'string' ? url : url.toString();
+      const shortUrl = requestUrl.replace(supabaseUrl, '').split('?')[0] || '/';
+
+      debugLogger.debug('SupabaseFetch', `REQ ${requestId} ${shortUrl}`);
+      console.info(`[SupabaseFetch] REQ ${requestId} ${shortUrl}`);
       
       try {
         const response = await fetch(url, {
@@ -123,12 +133,32 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
           signal: controller.signal,
         });
         clearTimeout(timeoutId);
+
+        const elapsedMs = Date.now() - startedAt;
+        debugLogger.info(
+          'SupabaseFetch',
+          `RES ${requestId} ${shortUrl} ${response.status} (${elapsedMs}ms)`
+        );
+        console.info(`[SupabaseFetch] RES ${requestId} ${shortUrl} ${response.status} (${elapsedMs}ms)`);
+
         return response;
       } catch (error) {
         clearTimeout(timeoutId);
+        const elapsedMs = Date.now() - startedAt;
+
+        debugLogger.error('SupabaseFetch', `ERR ${requestId} ${shortUrl} (${elapsedMs}ms)`, {
+          name: (error as any)?.name,
+          message: (error as any)?.message,
+        });
+        console.error(
+          `[SupabaseFetch] ERR ${requestId} ${shortUrl} (${elapsedMs}ms)`,
+          (error as any)?.name,
+          (error as any)?.message
+        );
         
         // Se foi abort por timeout, lança erro adequado sem tentar criar Response inválida
         if (error instanceof Error && error.name === 'AbortError') {
+          console.error(`[SupabaseFetch] TIMEOUT ${requestId} ${shortUrl} (${elapsedMs}ms)`);
           throw new Error('Request timeout: A requisição excedeu o tempo limite de 30 segundos');
         }
         
@@ -143,6 +173,112 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       eventsPerSecond: 2,
     },
   },
+});
+
+let reconnectInProgress = false;
+let reconnectAttemptSeq = 0;
+const RECONNECT_STEP_TIMEOUT_MS = 12000;
+const RECONNECT_LOCK_TIMEOUT_MS = 45000;
+
+export async function forceSupabaseReconnect(reason: string = 'manual') {
+  if (reconnectInProgress) {
+    debugLogger.debug('SupabaseReconnect', 'Reconexão já em andamento - ignorado');
+    console.info('[SupabaseReconnect] Reconexão já em andamento - ignorado');
+    return;
+  }
+
+  reconnectInProgress = true;
+  const attemptId = ++reconnectAttemptSeq;
+  const startedAt = Date.now();
+
+  const lockWatchdog = setTimeout(() => {
+    if (!reconnectInProgress || attemptId !== reconnectAttemptSeq) return;
+
+    reconnectInProgress = false;
+    const elapsedMs = Date.now() - startedAt;
+    debugLogger.error('SupabaseReconnect', 'Watchdog forçou liberação do lock de reconexão', {
+      attemptId,
+      elapsedMs,
+    });
+    console.error(`[SupabaseReconnect] WATCHDOG_UNLOCK attempt=${attemptId} (${elapsedMs}ms)`);
+  }, RECONNECT_LOCK_TIMEOUT_MS);
+
+  try {
+    debugLogger.info('SupabaseReconnect', `Iniciando reconexão (${reason})`, { attemptId });
+    console.info(`[SupabaseReconnect] Iniciando reconexão (${reason}) attempt=${attemptId}`);
+
+    try {
+      supabase.realtime.disconnect();
+    } catch (disconnectError) {
+      debugLogger.warn('SupabaseReconnect', 'Falha ao desconectar realtime (seguindo)', {
+        error: String(disconnectError),
+      });
+      console.warn('[SupabaseReconnect] Falha ao desconectar realtime (seguindo)', String(disconnectError));
+    }
+
+    supabase.realtime.connect();
+
+    const { data: { session }, error: sessionError } = await withTimeout(
+      supabase.auth.getSession(),
+      RECONNECT_STEP_TIMEOUT_MS,
+      'SupabaseReconnect: Timeout ao obter sessão'
+    );
+    
+    if (sessionError) {
+      debugLogger.error('SupabaseReconnect', 'Erro ao obter sessão na reconexão', {
+        error: String(sessionError),
+        attemptId,
+      });
+      console.error('[SupabaseReconnect] Erro ao obter sessão na reconexão', String(sessionError));
+      // NÃO usar return aqui - deixa o finally limpar o lock
+    } else if (!session?.user?.id) {
+      debugLogger.warn('SupabaseReconnect', 'Sem sessão ativa durante reconexão');
+      console.warn('[SupabaseReconnect] Sem sessão ativa durante reconexão');
+      // NÃO usar return aqui - deixa o finally limpar o lock
+    } else {
+      // Health check simples para garantir HTTP ativo após retorno do app.
+      const { error: pingError } = await withTimeout(
+        supabase
+          .from('usuarios')
+          .select('id')
+          .eq('id', session.user.id)
+          .limit(1)
+          .maybeSingle(),
+        RECONNECT_STEP_TIMEOUT_MS,
+        'SupabaseReconnect: Timeout no health check'
+      );
+
+      if (pingError) {
+        debugLogger.error('SupabaseReconnect', 'Health check falhou após reconexão', {
+          code: (pingError as any)?.code,
+          message: (pingError as any)?.message,
+          attemptId,
+        });
+        console.error(
+          '[SupabaseReconnect] Health check falhou após reconexão',
+          (pingError as any)?.code,
+          (pingError as any)?.message
+        );
+      } else {
+        debugLogger.info('SupabaseReconnect', 'Health check OK após reconexão');
+        console.info('[SupabaseReconnect] Health check OK após reconexão');
+      }
+    }
+  } catch (error) {
+    debugLogger.error('SupabaseReconnect', 'Erro inesperado na reconexão', { error: String(error) });
+    console.error('[SupabaseReconnect] Erro inesperado na reconexão', String(error));
+  } finally {
+    clearTimeout(lockWatchdog);
+    reconnectInProgress = false;
+    const elapsedMs = Date.now() - startedAt;
+    console.info(`[SupabaseReconnect] Finalizou attempt=${attemptId} em ${elapsedMs}ms`);
+  }
+}
+
+// Reconexão automática ao voltar para foreground.
+AppState.addEventListener('change', async (state) => {
+  if (state !== 'active') return;
+  void forceSupabaseReconnect('AppState active');
 });
 
 // ============================================================================

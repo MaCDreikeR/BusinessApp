@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect , useMemo, useCallback} from 'react';
+import React, { useState, useEffect , useMemo, useCallback} from 'react';
 import { StyleSheet, View, ScrollView, TouchableOpacity, Text, Switch, Alert, Clipboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -82,7 +82,7 @@ export default function ConfiguracoesScreen() {
       const saved = await AsyncStorage.getItem('@notification_settings');
       if (saved) setNotifSettings(JSON.parse(saved));
     } catch (error) {
-      logger.error('Erro ao carregar configurações de notificação:', error);
+      logger.error('Erro ao carregar configura��es de notifica��o:', error);
     }
   };
 
@@ -92,8 +92,8 @@ export default function ConfiguracoesScreen() {
       await AsyncStorage.setItem('@notification_settings', JSON.stringify(updated));
       setNotifSettings(updated);
     } catch (error) {
-      logger.error('Erro ao salvar configurações:', error);
-      Alert.alert('Erro', 'Não foi possível salvar as configurações');
+      logger.error('Erro ao salvar configura��es:', error);
+      Alert.alert('Erro', 'N�o foi poss�vel salvar as configura��es');
     }
   };
 
@@ -103,7 +103,7 @@ export default function ConfiguracoesScreen() {
       Alert.alert('Sucesso', 'Cor de destaque aplicada!');
     } catch (error) {
       logger.error('Erro ao salvar cor:', error);
-      Alert.alert('Erro', 'Não foi possível salvar a cor');
+      Alert.alert('Erro', 'N�o foi poss�vel salvar a cor');
     }
   };
 
@@ -145,14 +145,14 @@ export default function ConfiguracoesScreen() {
         ultimaSync,
       });
     } catch (error) {
-      logger.error('Erro ao carregar estatísticas:', error);
+      logger.error('Erro ao carregar estat�sticas:', error);
     }
   };
 
   const handleClearCache = () => {
     Alert.alert(
       'Limpar Cache',
-      `Isso irá liberar aproximadamente ${empresaStats.espacoUsado}MB de espaço. Deseja continuar?`,
+      `Isso ir� liberar aproximadamente ${empresaStats.espacoUsado}MB de espa�o. Deseja continuar?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -165,7 +165,7 @@ export default function ConfiguracoesScreen() {
               loadEmpresaStats();
             } catch (error) {
               logger.error('Erro ao limpar cache:', error);
-              Alert.alert('Erro', 'Não foi possível limpar o cache');
+              Alert.alert('Erro', 'N�o foi poss�vel limpar o cache');
             }
           },
         },
@@ -175,7 +175,7 @@ export default function ConfiguracoesScreen() {
 
   const handleCopyLink = () => {
     if (!empresaData?.slug) {
-      Alert.alert('Aviso', 'Slug não configurado para este estabelecimento');
+      Alert.alert('Aviso', 'Slug n�o configurado para este estabelecimento');
       return;
     }
     
@@ -188,13 +188,13 @@ export default function ConfiguracoesScreen() {
 
   const handleSync = async () => {
     if (!estabelecimentoId) {
-      Alert.alert('Erro', 'Estabelecimento não identificado');
+      Alert.alert('Erro', 'Estabelecimento n�o identificado');
       return;
     }
 
     Alert.alert(
       'Sincronizar Dados',
-      'Upload de alterações locais + download de dados da nuvem. Continuar?',
+      'Upload de altera��es locais + download de dados da nuvem. Continuar?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -202,27 +202,27 @@ export default function ConfiguracoesScreen() {
           onPress: async () => {
             try {
               // TODO: Implementar syncService
-              Alert.alert('Em desenvolvimento', 'Funcionalidade de sincronização será implementada em breve.');
+              Alert.alert('Em desenvolvimento', 'Funcionalidade de sincroniza��o ser� implementada em breve.');
               return;
               // const result = await syncService.sync(estabelecimentoId);
 
               if (result.success) {
                 Alert.alert(
-                  'Sincronização Completa!',
-                  `✅ ${result.uploadedOperations} operações enviadas\n` +
-                  `📥 ${result.downloadedRecords} registros baixados`
+                  'Sincroniza��o Completa!',
+                  `? ${result.uploadedOperations} opera��es enviadas\n` +
+                  `?? ${result.downloadedRecords} registros baixados`
                 );
               } else {
                 Alert.alert(
-                  'Sincronização com Erros',
-                  `Algumas operações falharam:\n\n${result.errors.join('\n')}`
+                  'Sincroniza��o com Erros',
+                  `Algumas opera��es falharam:\n\n${result.errors.join('\n')}`
                 );
               }
 
-              // Recarrega estatísticas
+              // Recarrega estat�sticas
               await loadEmpresaStats();
             } catch (error) {
-              logger.error('Erro na sincronização:', error);
+              logger.error('Erro na sincroniza��o:', error);
               Alert.alert('Erro', 'Falha ao sincronizar dados');
             }
           },
@@ -287,7 +287,7 @@ export default function ConfiguracoesScreen() {
           onPress={() => setTab('aparencia')}
         >
           <Text style={[styles.tabText, { color: tab === 'aparencia' ? colors.primaryContrast : colors.textSecondary }]}>
-            Aparência
+            Apar�ncia
           </Text>
         </TouchableOpacity>
 
@@ -296,7 +296,7 @@ export default function ConfiguracoesScreen() {
           onPress={() => setTab('notificacoes')}
         >
           <Text style={[styles.tabText, { color: tab === 'notificacoes' ? colors.primaryContrast : colors.textSecondary }]}>
-            Notificações
+            Notifica��es
           </Text>
         </TouchableOpacity>
 
@@ -306,7 +306,7 @@ export default function ConfiguracoesScreen() {
             onPress={() => setTab('negocio')}
           >
             <Text style={[styles.tabText, { color: tab === 'negocio' ? colors.primaryContrast : colors.textSecondary }]}>
-              Negócio
+              Neg�cio
             </Text>
           </TouchableOpacity>
         )}
@@ -322,7 +322,7 @@ export default function ConfiguracoesScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* ABA APARÊNCIA */}
+        {/* ABA APAR�NCIA */}
         {tab === 'aparencia' && (
           <View>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Tema</Text>
@@ -333,7 +333,7 @@ export default function ConfiguracoesScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.settingTitle, { color: colors.text }]}>Tema</Text>
                     <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
-                      Alterar entre claro, escuro ou automático
+                      Alterar entre claro, escuro ou autom�tico
                     </Text>
                   </View>
                 </View>
@@ -369,14 +369,14 @@ export default function ConfiguracoesScreen() {
           </View>
         )}
 
-        {/* ABA NOTIFICAÇÕES */}
+        {/* ABA NOTIFICA��ES */}
         {tab === 'notificacoes' && (
           <View>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Alertas e Lembretes</Text>
             
             <NotificationSwitch
               label="Agendamentos"
-              description={`Notificar ${notifSettings.agendamentosAntecedencia} min antes do horário`}
+              description={`Notificar ${notifSettings.agendamentosAntecedencia} min antes do hor�rio`}
               value={notifSettings.agendamentos}
               onValueChange={(val: boolean) => saveNotificationSettings({ agendamentos: val })}
               icon="calendar-outline"
@@ -391,8 +391,8 @@ export default function ConfiguracoesScreen() {
             />
 
             <NotificationSwitch
-              label="Lembretes de Comissões"
-              description="Notificar no final do mês"
+              label="Lembretes de Comiss�es"
+              description="Notificar no final do m�s"
               value={notifSettings.comissoes}
               onValueChange={(val: boolean) => saveNotificationSettings({ comissoes: val })}
               icon="cash-outline"
@@ -400,35 +400,35 @@ export default function ConfiguracoesScreen() {
 
             <NotificationSwitch
               label="Estoque Baixo"
-              description="Alertar quando atingir quantidade mínima"
+              description="Alertar quando atingir quantidade m�nima"
               value={notifSettings.estoqueBaixo}
               onValueChange={(val: boolean) => saveNotificationSettings({ estoqueBaixo: val })}
               icon="alert-circle-outline"
             />
 
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Configurações de Som</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Configura��es de Som</Text>
 
             <NotificationSwitch
               label="Som"
-              description="Tocar som ao receber notificação"
+              description="Tocar som ao receber notifica��o"
               value={notifSettings.som}
               onValueChange={(val: boolean) => saveNotificationSettings({ som: val })}
               icon="volume-high-outline"
             />
 
             <NotificationSwitch
-              label="Vibração"
-              description="Vibrar ao receber notificação"
+              label="Vibra��o"
+              description="Vibrar ao receber notifica��o"
               value={notifSettings.vibracao}
               onValueChange={(val: boolean) => saveNotificationSettings({ vibracao: val })}
               icon="phone-portrait-outline"
             />
 
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Modo Não Perturbe</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Modo N�o Perturbe</Text>
 
             <NotificationSwitch
-              label="Ativar Não Perturbe"
-              description={`${notifSettings.naoPerturbarInicio} até ${notifSettings.naoPerturbarFim}`}
+              label="Ativar N�o Perturbe"
+              description={`${notifSettings.naoPerturbarInicio} at� ${notifSettings.naoPerturbarFim}`}
               value={notifSettings.naoPerturbar}
               onValueChange={(val: boolean) => saveNotificationSettings({ naoPerturbar: val })}
               icon="moon-outline"
@@ -436,7 +436,7 @@ export default function ConfiguracoesScreen() {
           </View>
         )}
 
-        {/* ABA NEGÓCIO */}
+        {/* ABA NEG�CIO */}
         {tab === 'negocio' && isAdmin && (
           <View>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Dados do Estabelecimento</Text>
@@ -456,7 +456,7 @@ export default function ConfiguracoesScreen() {
                 <View style={{ flex: 1, marginLeft: 12 }}>
                   <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>CNPJ</Text>
                   <Text style={[styles.infoValue, { color: colors.text }]}>
-                    {empresaData?.numero_documento || 'Não informado'}
+                    {empresaData?.numero_documento || 'N�o informado'}
                   </Text>
                 </View>
               </View>
@@ -466,7 +466,7 @@ export default function ConfiguracoesScreen() {
                 <View style={{ flex: 1, marginLeft: 12 }}>
                   <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Segmento</Text>
                   <Text style={[styles.infoValue, { color: colors.text }]}>
-                    {empresaData?.segmento || 'Não informado'}
+                    {empresaData?.segmento || 'N�o informado'}
                   </Text>
                 </View>
               </View>
@@ -477,9 +477,9 @@ export default function ConfiguracoesScreen() {
               <View style={styles.infoRow}>
                 <Ionicons name="link-outline" size={20} color={colors.textSecondary} />
                 <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Link Público</Text>
+                  <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Link P�blico</Text>
                   <Text style={[styles.infoValue, { color: colors.primary, fontSize: 14 }]}>
-                    {empresaData?.slug ? `https://businessapp-web.vercel.app/${empresaData.slug}` : 'Slug não configurado'}
+                    {empresaData?.slug ? `https://businessapp-web.vercel.app/${empresaData.slug}` : 'Slug n�o configurado'}
                   </Text>
                   {empresaData?.slug && (
                     <Text style={[styles.infoLabel, { color: colors.textSecondary, marginTop: 4, fontSize: 12 }]}>
@@ -498,7 +498,7 @@ export default function ConfiguracoesScreen() {
               </View>
             </View>
 
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Estatísticas de Uso</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Estat�sticas de Uso</Text>
             <View style={[styles.settingCard, { backgroundColor: colors.surface }]}>
               <View style={styles.statsRow}>
                 <View style={styles.statItem}>
@@ -531,7 +531,7 @@ export default function ConfiguracoesScreen() {
               <View style={styles.settingRow}>
                 <View style={styles.settingLeft}>
                   <Ionicons name="people-outline" size={24} color={colors.primary} style={{ marginRight: spacing.md }} />
-                  <Text style={[styles.settingTitle, { color: colors.text }]}>Gerenciar Usuários</Text>
+                  <Text style={[styles.settingTitle, { color: colors.text }]}>Gerenciar Usu�rios</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
               </View>
@@ -547,7 +547,7 @@ export default function ConfiguracoesScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.settingTitle, { color: colors.text }]}>Limpar Cache</Text>
                     <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
-                      Liberar {empresaStats.espacoUsado}MB de espaço
+                      Liberar {empresaStats.espacoUsado}MB de espa�o
                     </Text>
                   </View>
                 </View>
@@ -565,7 +565,7 @@ export default function ConfiguracoesScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.settingTitle, { color: colors.text }]}>Sincronizar Dados</Text>
                     <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
-                      Última sync: {formatDate(empresaStats.ultimaSync)}
+                      �ltima sync: {formatDate(empresaStats.ultimaSync)}
                     </Text>
                   </View>
                 </View>
@@ -578,12 +578,12 @@ export default function ConfiguracoesScreen() {
         {/* ABA SOBRE */}
         {tab === 'sobre' && (
           <View>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Informações do Aplicativo</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Informa��es do Aplicativo</Text>
             <View style={[styles.settingCard, { backgroundColor: colors.surface }]}>
               <View style={styles.infoRow}>
                 <Ionicons name="information-circle-outline" size={20} color={colors.textSecondary} />
                 <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Versão</Text>
+                  <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Vers�o</Text>
                   <Text style={[styles.infoValue, { color: colors.text }]}>1.0.0</Text>
                 </View>
               </View>
@@ -617,7 +617,7 @@ export default function ConfiguracoesScreen() {
   );
 }
 
-// Função auxiliar para criar estilos dinâmicos
+// Fun��o auxiliar para criar estilos din�micos
 const createStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1 },
   tabs: { flexDirection: 'row', borderBottomWidth: 1 },
@@ -659,3 +659,4 @@ const createStyles = (colors: any) => StyleSheet.create({
   statNumber: { fontSize: 24, fontWeight: '700' },
   statLabel: { fontSize: 12, marginTop: 4 },
 });
+

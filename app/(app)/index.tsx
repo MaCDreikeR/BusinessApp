@@ -1,9 +1,9 @@
-﻿import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert, Image, Dimensions, ActivityIndicator } from 'react-native';
+﻿import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Alert, Image, Dimensions, ActivityIndicator, AppState } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
-import { useEffect, useState, useCallback, useMemo, useReducer } from 'react';
+import { useEffect, useState, useCallback, useMemo, useReducer, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
-import { Button } from '../../components/Button2';
+import { Button } from '../../components/Button';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useRouter } from 'expo-router';
@@ -146,6 +146,8 @@ export default function HomeScreen() {
   const { user, estabelecimentoId, role } = useAuth();
   const { permissions, loading: loadingPermissions } = usePermissions();
   const { colors } = useTheme();
+  const appResumeReloadAtRef = useRef<number>(0);
+  const isReloadingFromResumeRef = useRef<boolean>(false);
 
   // Styles dinâmicos baseados no tema
   const styles = useMemo(() => StyleSheet.create({
@@ -163,8 +165,7 @@ export default function HomeScreen() {
     card: {
       backgroundColor: colors.surface,
       borderRadius: 16,
-      padding: 20,
-      minHeight: 160,
+      padding: 16,
       marginBottom: 0,
       elevation: 2,
       shadowColor: '#000',
@@ -173,24 +174,31 @@ export default function HomeScreen() {
       shadowRadius: 3,
       maxWidth: '48%' as const,
       flexGrow: 1,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
     },
     cardIconContainer: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
       backgroundColor: 'rgba(124, 58, 237, 0.1)',
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
-      marginBottom: 12,
+      marginRight: 12,
+      flexShrink: 0,
+    },
+    cardContent: {
+      flex: 1,
+      justifyContent: 'center' as const,
     },
     cardTitle: {
-      fontSize: 14,
+      fontSize: 12,
       color: colors.textSecondary,
-      marginBottom: 8,
-      lineHeight: 18,
+      marginBottom: 4,
+      lineHeight: 16,
     },
     cardValue: {
-      fontSize: 28,
+      fontSize: 20,
       fontWeight: 'bold' as const,
       color: colors.text,
       marginBottom: 4,
@@ -201,9 +209,9 @@ export default function HomeScreen() {
     },
     cardChevron: {
       position: 'absolute' as const,
-      bottom: 16,
-      right: 16,
-      opacity: 0.5,
+      bottom: 12,
+      right: 12,
+      opacity: 0.4,
     },
     cardPrimary: { borderLeftWidth: 4 },
     cardSuccess: { borderLeftWidth: 4, borderLeftColor: colors.success },
@@ -501,7 +509,6 @@ export default function HomeScreen() {
       backgroundColor: colors.surface,
       borderRadius: 16,
       padding: 20,
-      minHeight: 160,
       justifyContent: 'space-between' as const,
     },
     skeletonCircle: {
@@ -577,7 +584,11 @@ export default function HomeScreen() {
   }, []);
 
   const carregarProdutosBaixoEstoque = useCallback(async () => {
-    if (!estabelecimentoId) return;
+    if (!estabelecimentoId) {
+      // Evita spinner infinito quando o contexto de auth ainda nao foi restaurado.
+      dispatch({ type: 'SET_LOADING', payload: { key: 'estoque', value: false } });
+      return;
+    }
     try {
       dispatch({ type: 'SET_LOADING', payload: { key: 'estoque', value: true } });
       
@@ -654,7 +665,13 @@ export default function HomeScreen() {
   }, [estabelecimentoId, retryWithBackoff]);
 
   const carregarDados = useCallback(async () => {
-    if (!user || !estabelecimentoId) return;
+    if (!user || !estabelecimentoId) {
+      // Evita spinner infinito se a tela focar antes de user/perfil estarem disponiveis.
+      dispatch({ type: 'SET_LOADING', payload: { key: 'cards', value: false } });
+      dispatch({ type: 'SET_LOADING', payload: { key: 'agendamentos', value: false } });
+      dispatch({ type: 'SET_LOADING', payload: { key: 'vendas', value: false } });
+      return;
+    }
 
     try {
       dispatch({ type: 'SET_LOADING', payload: { key: 'cards', value: true } });
@@ -682,7 +699,7 @@ export default function HomeScreen() {
       
       logger.debug('Buscando dados para o estabelecimento:', estabelecimentoId);
       
-      // 🔧 CORREÇÃO: Usar timezone local para queries
+      // ?? CORREÇÃO: Usar timezone local para queries
       const inicioHoje = getStartOfDayLocal();
       const fimHoje = getEndOfDayLocal();
 
@@ -725,9 +742,21 @@ export default function HomeScreen() {
           
           return query;
         })(),
-        // Carregar vendas recentes - COMANDAS FECHADAS COM VALOR_TOTAL
-        supabase.from('comandas').select('id, cliente_nome, valor_total, finalized_at').eq('estabelecimento_id', estabelecimentoId).eq('status', 'fechada').order('finalized_at', { ascending: false }).limit(5),
-      ], 15000, 'Timeout ao carregar dados');
+        // Carregar vendas recentes - COMANDAS FECHADAS COM VALOR_TOTAL (últimos 2 dias)
+        (() => {
+          const doisDiasAtras = new Date();
+          doisDiasAtras.setDate(doisDiasAtras.getDate() - 2);
+          doisDiasAtras.setHours(0, 0, 0, 0);
+          return supabase
+            .from('comandas')
+            .select('id, cliente_nome, valor_total, finalized_at')
+            .eq('estabelecimento_id', estabelecimentoId)
+            .eq('status', 'fechada')
+            .gte('finalized_at', doisDiasAtras.toISOString())
+            .order('finalized_at', { ascending: false })
+            .limit(5);
+        })(),
+      ], 60000, 'Timeout ao carregar dados'); // Aumentado para 60s (60 segundos) para melhor suporte a background e conexões lentas
 
       // Processar agendamentos
       if (agendamentosError) {
@@ -854,13 +883,13 @@ export default function HomeScreen() {
       logger.warn('Falha ao executar haptic inicial:', error);
     }
     
-    // Limpar cache para forçar atualização
-    const cacheKey = `dashboard_${estabelecimentoId}_${role || 'all'}`;
-    await CacheManager.remove(CacheNamespaces.RELATORIOS, cacheKey);
-    const cacheKeyEstoque = `baixo_estoque_${estabelecimentoId}`;
-    await CacheManager.remove(CacheNamespaces.ESTOQUE, cacheKeyEstoque);
-    
     try {
+      // Limpar cache para forçar atualização
+      const cacheKey = `dashboard_${estabelecimentoId}_${role || 'all'}`;
+      await CacheManager.remove(CacheNamespaces.RELATORIOS, cacheKey);
+      const cacheKeyEstoque = `baixo_estoque_${estabelecimentoId}`;
+      await CacheManager.remove(CacheNamespaces.ESTOQUE, cacheKeyEstoque);
+      
       await Promise.all([carregarDados(), carregarProdutosBaixoEstoque()]);
       
       // Haptic feedback de sucesso e toast
@@ -872,16 +901,24 @@ export default function HomeScreen() {
       }
     } catch (error) {
       logger.error('Erro ao atualizar dados:', error);
-      showToast('Erro ao atualizar dados', 'error');
+      
+      // Mensagem mais específica para timeout
+      if (error instanceof Error && error.message === 'Timeout ao carregar dados') {
+        showToast('Conexão lenta. Verifique sua internet e tente novamente.', 'error');
+      } else {
+        showToast('Erro ao atualizar dados', 'error');
+      }
+      
       try {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       } catch (hapticError) {
         logger.warn('Falha ao executar haptic de erro:', hapticError);
       }
+    } finally {
+      // IMPORTANTE: Garante que o refreshing seja desligado em ANY situação
+      dispatch({ type: 'SET_REFRESHING', payload: false });
     }
-    
-    dispatch({ type: 'SET_REFRESHING', payload: false });
-  }, [carregarDados, carregarProdutosBaixoEstoque, estabelecimentoId, role]);
+  }, [carregarDados, carregarProdutosBaixoEstoque, estabelecimentoId, role, showToast]);
 
   useFocusEffect(
     useCallback(() => {
@@ -889,6 +926,41 @@ export default function HomeScreen() {
       carregarProdutosBaixoEstoque();
     }, [carregarDados, carregarProdutosBaixoEstoque])
   );
+
+  useEffect(() => {
+    // Recarrega ao restaurar user/perfil apos voltar do background.
+    if (!user || !estabelecimentoId) return;
+    carregarDados();
+    carregarProdutosBaixoEstoque();
+  }, [user, estabelecimentoId, role, carregarDados, carregarProdutosBaixoEstoque]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', async (nextState) => {
+      if (nextState !== 'active') return;
+      if (!user || !estabelecimentoId) return;
+
+      const now = Date.now();
+      const debounceMs = 3000;
+
+      if (now - appResumeReloadAtRef.current < debounceMs) return;
+      if (isReloadingFromResumeRef.current) return;
+
+      appResumeReloadAtRef.current = now;
+      isReloadingFromResumeRef.current = true;
+
+      try {
+        await Promise.all([carregarDados(), carregarProdutosBaixoEstoque()]);
+      } catch (error) {
+        logger.error('Erro ao recarregar dashboard no retorno do app:', error);
+      } finally {
+        isReloadingFromResumeRef.current = false;
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [user, estabelecimentoId, carregarDados, carregarProdutosBaixoEstoque]);
 
   // Calcular quantos cards serão exibidos para ajustar o layout
   const cardsVisiveis = [
@@ -916,10 +988,17 @@ export default function HomeScreen() {
     }
     
     const cardWidthPx = (availableWidth - (gap * (cols - 1))) / cols;
-    logger.debug(`📱 Layout: ${cols} cols, ${cardWidthPx.toFixed(0)}px, screen ${screenWidth}dp`);
+    logger.debug(`?? Layout: ${cols} cols, ${cardWidthPx.toFixed(0)}px, screen ${screenWidth}dp`);
     
     return cardWidthPx;
   }, [screenWidth, cardsVisiveis]);
+
+  // Calcular altura e layout dos cards de forma responsiva
+  const { cardHeight, isLargeScreen } = useMemo(() => {
+    const isLarge = screenWidth >= 900;
+    const height = isLarge ? 140 : 90; // Maior em telas grandes, compacto em pequenas
+    return { cardHeight: height, isLargeScreen: isLarge };
+  }, [screenWidth]);
   
   // Funções utilitárias de formatação (evita duplicação)
   const formatarHorario = useCallback((data: string) => {
@@ -951,7 +1030,7 @@ export default function HomeScreen() {
 
   // Componente Skeleton Card
   const SkeletonCard = () => (
-    <View style={[styles.skeletonCard, { width: cardWidth }]}>
+    <View style={[styles.skeletonCard, { width: cardWidth, height: cardHeight }]}>
       <View style={styles.skeletonCircle} />
       <View style={styles.skeletonLine} />
       <View style={styles.skeletonLineWide} />
@@ -999,7 +1078,7 @@ export default function HomeScreen() {
             <SkeletonCard />
           ) : (
             <TouchableOpacity
-              style={[styles.card, styles.cardPrimary, { width: cardWidth, borderLeftColor: colors.primary }]}
+              style={[styles.card, styles.cardPrimary, { width: cardWidth, height: cardHeight, borderLeftColor: colors.primary }]}
               onPress={() => router.push('/agenda')}
               accessibilityRole="button"
               accessibilityLabel={`${state.agendamentosHoje} agendamentos hoje`}
@@ -1008,8 +1087,10 @@ export default function HomeScreen() {
               <View style={styles.cardIconContainer}>
                 <FontAwesome5 name="calendar-check" size={24} color={colors.primary} />
               </View>
-              <Text style={styles.cardTitle}>Agendamentos Hoje</Text>
-              <Text style={styles.cardValue}>{state.agendamentosHoje}</Text>
+              <View style={styles.cardContent}>
+                <Text style={styles.cardTitle}>Agendamentos Hoje</Text>
+                <Text style={styles.cardValue} numberOfLines={1} adjustsFontSizeToFit>{state.agendamentosHoje}</Text>
+              </View>
               <View style={styles.cardChevron}>
                 <FontAwesome5 name="chevron-right" size={16} color={colors.textSecondary} />
               </View>
@@ -1023,7 +1104,7 @@ export default function HomeScreen() {
             <SkeletonCard />
           ) : (
             <TouchableOpacity
-              style={[styles.card, styles.cardSuccess, { width: cardWidth }]}
+              style={[styles.card, styles.cardSuccess, { width: cardWidth, height: cardHeight }]}
               onPress={() => {
                 logger.debug('Navegando para vendas...');
                 router.push('/(app)/vendas');
@@ -1035,8 +1116,10 @@ export default function HomeScreen() {
               <View style={styles.cardIconContainer}>
                 <FontAwesome5 name="dollar-sign" size={24} color={colors.success} />
               </View>
-              <Text style={styles.cardTitle}>Vendas Hoje</Text>
-              <Text style={styles.cardValue}>{formatarValor(state.vendasHoje)}</Text>
+              <View style={styles.cardContent}>
+                <Text style={styles.cardTitle}>Vendas Hoje</Text>
+                <Text style={styles.cardValue} numberOfLines={1} adjustsFontSizeToFit>{formatarValor(state.vendasHoje)}</Text>
+              </View>
               <View style={styles.cardChevron}>
                 <FontAwesome5 name="chevron-right" size={16} color={colors.textSecondary} />
               </View>
@@ -1050,7 +1133,7 @@ export default function HomeScreen() {
             <SkeletonCard />
           ) : (
             <TouchableOpacity
-              style={[styles.card, styles.cardInfo, { width: cardWidth }]}
+              style={[styles.card, styles.cardInfo, { width: cardWidth, height: cardHeight }]}
               onPress={() => router.push('/clientes')}
               accessibilityRole="button"
               accessibilityLabel={`${state.clientesAtivos} clientes ativos`}
@@ -1059,8 +1142,10 @@ export default function HomeScreen() {
               <View style={styles.cardIconContainer}>
                 <FontAwesome5 name="users" size={24} color={colors.info} />
               </View>
-              <Text style={styles.cardTitle}>Clientes Ativos</Text>
-              <Text style={styles.cardValue}>{state.clientesAtivos}</Text>
+              <View style={styles.cardContent}>
+                <Text style={styles.cardTitle}>Clientes Ativos</Text>
+                <Text style={styles.cardValue} numberOfLines={1} adjustsFontSizeToFit>{state.clientesAtivos}</Text>
+              </View>
               <View style={styles.cardChevron}>
                 <FontAwesome5 name="chevron-right" size={16} color={colors.textSecondary} />
               </View>
@@ -1074,7 +1159,7 @@ export default function HomeScreen() {
             <SkeletonCard />
           ) : (
             <TouchableOpacity
-              style={[styles.card, styles.cardDanger, { width: cardWidth }]}
+              style={[styles.card, styles.cardDanger, { width: cardWidth, height: cardHeight }]}
               onPress={() => router.push('/estoque')}
               accessibilityRole="button"
               accessibilityLabel={`${state.produtosBaixoEstoque?.length || 0} produtos com baixo estoque`}
@@ -1083,8 +1168,10 @@ export default function HomeScreen() {
               <View style={styles.cardIconContainer}>
                 <FontAwesome5 name="exclamation-triangle" size={24} color={colors.error} />
               </View>
-              <Text style={styles.cardTitle}>Produtos Baixo Estoque</Text>
-              <Text style={styles.cardValue}>{state.produtosBaixoEstoque?.length || 0}</Text>
+              <View style={styles.cardContent}>
+                <Text style={styles.cardTitle}>Produtos Baixo Estoque</Text>
+                <Text style={styles.cardValue} numberOfLines={1} adjustsFontSizeToFit>{state.produtosBaixoEstoque?.length || 0}</Text>
+              </View>
               <View style={styles.cardChevron}>
                 <FontAwesome5 name="chevron-right" size={16} color={colors.textSecondary} />
               </View>
@@ -1278,27 +1365,27 @@ export default function HomeScreen() {
           {state.loadingStates.estoque ? (
             <View style={styles.emptyState}>
               <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={styles.emptyText}>Carregando produtos...</Text>
+              <Text style={styles.emptyText}>Carregando produtos com baixo estoque...</Text>
             </View>
-          ) : /* Error State */
-          state.errors.estoque ? (
+          ) : state.errors.estoque ? (
             <View style={styles.errorState} accessibilityRole="alert">
               <FontAwesome5 name="exclamation-circle" size={32} color={colors.error} />
-              <Text style={styles.errorText}>{state.errors.estoque}</Text>
-              <TouchableOpacity
-                style={styles.retryButton}
+              <Text style={styles.errorText}>{state.errors.estoque || 'Erro ao carregar produtos com baixo estoque.'}</Text>
+              <Button
+                variant="primary"
+                size="medium"
                 onPress={async () => {
                   dispatch({ type: 'SET_ERROR', payload: { key: 'estoque', message: undefined } });
+                  dispatch({ type: 'SET_LOADING', payload: { key: 'estoque', value: true } });
                   await carregarProdutosBaixoEstoque();
                 }}
                 accessibilityRole="button"
                 accessibilityLabel="Tentar carregar produtos novamente"
               >
-                <Text style={styles.retryButtonText}>Tentar novamente</Text>
-              </TouchableOpacity>
+                Tentar novamente
+              </Button>
             </View>
-          ) : /* Content */
-          state.produtosBaixoEstoque && state.produtosBaixoEstoque.length > 0 ? (
+          ) : state.produtosBaixoEstoque && state.produtosBaixoEstoque.length > 0 ? (
             state.produtosBaixoEstoque.map((produto, index) => (
               <Animated.View
                 key={produto.id}
@@ -1340,3 +1427,5 @@ export default function HomeScreen() {
     </>
   );
 }
+
+

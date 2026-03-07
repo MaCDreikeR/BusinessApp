@@ -41,23 +41,71 @@ export function obterDiaSemana(isoDate: string) {
 }
 
 async function getEmpresaId(): Promise<string | null> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const retryWithTimeout = async (fn: () => Promise<any>, retries = 2, timeout = 12000) => {
+    let lastError;
+    for (let i = 0; i <= retries; i++) {
+      try {
+        return await Promise.race([
+          fn(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeout))
+        ]);
+      } catch (err) {
+        lastError = err;
+        if (err?.message?.includes('permission') || err?.code === 'PGRST116') {
+          if (typeof window !== 'undefined' && window.signOut) window.signOut();
+          throw err;
+        }
+        if (i < retries) {
+          logger.warn(`Retry ${i + 1} após erro:`, err);
+          await new Promise(res => setTimeout(res, 1000 * (i + 1)));
+        }
+      }
+    }
+    throw lastError;
+  };
+  const { data: { user } } = await retryWithTimeout(() => supabase.auth.getUser());
   if (!user) return null;
-  const { data, error } = await supabase
-    .from('usuarios')
-    .select('estabelecimento_id')
-    .eq('id', user.id)
-    .single();
+  const { data, error } = await retryWithTimeout(() =>
+    supabase
+      .from('usuarios')
+      .select('estabelecimento_id')
+      .eq('id', user.id)
+      .single()
+  );
   if (error) return null;
   return data?.estabelecimento_id || null;
 }
 
 async function getEmpresaNome(empresaId: string): Promise<string | undefined> {
-  const { data, error } = await supabase
-    .from('estabelecimentos')
-    .select('nome')
-    .eq('id', empresaId)
-    .single();
+  const retryWithTimeout = async (fn: () => Promise<any>, retries = 2, timeout = 12000) => {
+    let lastError;
+    for (let i = 0; i <= retries; i++) {
+      try {
+        return await Promise.race([
+          fn(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeout))
+        ]);
+      } catch (err) {
+        lastError = err;
+        if (err?.message?.includes('permission') || err?.code === 'PGRST116') {
+          if (typeof window !== 'undefined' && window.signOut) window.signOut();
+          throw err;
+        }
+        if (i < retries) {
+          logger.warn(`Retry ${i + 1} após erro:`, err);
+          await new Promise(res => setTimeout(res, 1000 * (i + 1)));
+        }
+      }
+    }
+    throw lastError;
+  };
+  const { data, error } = await retryWithTimeout(() =>
+    supabase
+      .from('estabelecimentos')
+      .select('nome')
+      .eq('id', empresaId)
+      .single()
+  );
   if (error) return undefined;
   return data?.nome || undefined;
 }
@@ -67,13 +115,36 @@ export async function getModeloMensagem(empresaId?: string): Promise<string> {
   if (!empresa) empresa = await getEmpresaId() as string | undefined;
   if (!empresa) return MODELO_PADRAO;
 
-  const { data, error } = await supabase
-    .from('configuracoes_mensagens')
-    .select('modelo')
-    .eq('empresa_id', empresa)
-    .eq('tipo', 'agendamento')
-    .maybeSingle();
-
+  const retryWithTimeout = async (fn: () => Promise<any>, retries = 2, timeout = 12000) => {
+    let lastError;
+    for (let i = 0; i <= retries; i++) {
+      try {
+        return await Promise.race([
+          fn(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeout))
+        ]);
+      } catch (err) {
+        lastError = err;
+        if (err?.message?.includes('permission') || err?.code === 'PGRST116') {
+          if (typeof window !== 'undefined' && window.signOut) window.signOut();
+          throw err;
+        }
+        if (i < retries) {
+          logger.warn(`Retry ${i + 1} após erro:`, err);
+          await new Promise(res => setTimeout(res, 1000 * (i + 1)));
+        }
+      }
+    }
+    throw lastError;
+  };
+  const { data, error } = await retryWithTimeout(() =>
+    supabase
+      .from('configuracoes_mensagens')
+      .select('modelo')
+      .eq('empresa_id', empresa)
+      .eq('tipo', 'agendamento')
+      .maybeSingle()
+  );
   if (error) return MODELO_PADRAO;
   return data?.modelo || MODELO_PADRAO;
 }
@@ -83,10 +154,33 @@ export async function salvarModeloMensagem(modelo: string, empresaId?: string) {
   if (!empresa) empresa = await getEmpresaId() as string | undefined;
   if (!empresa) throw new Error('Estabelecimento não identificado');
 
-  const { error } = await supabase
-    .from('configuracoes_mensagens')
-    .upsert({ empresa_id: empresa, tipo: 'agendamento', modelo }, { onConflict: 'empresa_id,tipo' });
-
+  const retryWithTimeout = async (fn: () => Promise<any>, retries = 2, timeout = 12000) => {
+    let lastError;
+    for (let i = 0; i <= retries; i++) {
+      try {
+        return await Promise.race([
+          fn(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeout))
+        ]);
+      } catch (err) {
+        lastError = err;
+        if (err?.message?.includes('permission') || err?.code === 'PGRST116') {
+          if (typeof window !== 'undefined' && window.signOut) window.signOut();
+          throw err;
+        }
+        if (i < retries) {
+          logger.warn(`Retry ${i + 1} após erro:`, err);
+          await new Promise(res => setTimeout(res, 1000 * (i + 1)));
+        }
+      }
+    }
+    throw lastError;
+  };
+  const { error } = await retryWithTimeout(() =>
+    supabase
+      .from('configuracoes_mensagens')
+      .upsert({ empresa_id: empresa, tipo: 'agendamento', modelo }, { onConflict: 'empresa_id,tipo' })
+  );
   if (error) throw error;
 }
 

@@ -1,4 +1,4 @@
-ï»¿import { Stack } from 'expo-router';
+import { Stack } from 'expo-router';
 import { useTheme } from '../../../contexts/ThemeContext';
 
 export default function OrcamentosLayout() {
@@ -9,13 +9,13 @@ export default function OrcamentosLayout() {
       <Stack.Screen
         name="index"
         options={{
-          title: 'OrÃ§amentos'
+          title: 'Orçamentos'
         }}
       />
       <Stack.Screen
         name="novo"
         options={{
-          title: 'Novo OrÃ§amento',
+          title: 'Novo Orçamento',
           headerShown: true,
           headerBackTitle: 'Voltar',
           headerStyle: {
@@ -27,9 +27,10 @@ export default function OrcamentosLayout() {
       <Stack.Screen
         name="[id]"
         options={{
-          title: 'Detalhes do OrÃ§amento'
+          title: 'Detalhes do Orçamento'
         }}
       />
     </Stack>
   );
 }
+

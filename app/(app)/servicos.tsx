@@ -13,7 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '../../utils/logger';
 import { Servico, CategoriaServico } from '@types';
 import { CacheManager, CacheNamespaces, CacheTTL } from '../../utils/cacheManager';
-import { Button } from '../../components/Button2';
+import { Button } from '../../components/Button';
 
 interface ServicoComCategoria extends Servico {
   descricaoServico?: string;
@@ -610,7 +610,7 @@ export default function ServicosScreen() {
           </ThemedText>
           {item.duracao && (
             <Text style={styles.servicoDuracao}>
-              ⏱️ {item.duracao} min
+              ?? {item.duracao} min
             </Text>
           )}
         </View>
@@ -1325,3 +1325,5 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginBottom: 0,
   },
 });
+
+

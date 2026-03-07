@@ -47,6 +47,34 @@ export function useExpenses(initialFilters?: ExpenseFilters) {
   const loadData = useCallback(async (showLoading = true) => {
     if (!estabelecimentoId) return;
 
+    // Retry e timeout
+    const retryWithTimeout = async (fn: () => Promise<any>, retries = 2, timeout = 12000) => {
+      let lastError;
+      for (let i = 0; i <= retries; i++) {
+        try {
+          return await Promise.race([
+            fn(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeout))
+          ]);
+        } catch (err) {
+          lastError = err;
+          if (err?.message?.includes('permission') || err?.code === 'PGRST116') {
+            // Forçar signOut global se disponível
+            if (typeof window !== 'undefined' && window.signOut) window.signOut();
+            setError('Sessão expirada ou sem permissão. Faça login novamente.');
+            setLoading(false);
+            setRefreshing(false);
+            throw err;
+          }
+          if (i < retries) {
+            console.warn(`Retry ${i + 1} após erro:`, err);
+            await new Promise(res => setTimeout(res, 1000 * (i + 1)));
+          }
+        }
+      }
+      throw lastError;
+    };
+
     try {
       if (showLoading) {
         setLoading(true);
@@ -54,11 +82,11 @@ export function useExpenses(initialFilters?: ExpenseFilters) {
       setError(null);
 
       // Carregar categorias (inicializar padrão se necessário)
-      await categoriesService.initializeDefaultCategories(estabelecimentoId);
+      await retryWithTimeout(() => categoriesService.initializeDefaultCategories(estabelecimentoId));
       const [expensesData, categoriesData, summaryData] = await Promise.all([
-        expensesService.getExpenses(estabelecimentoId, filters),
-        categoriesService.getCategories(estabelecimentoId),
-        expensesService.getExpenseSummary(estabelecimentoId, filters),
+        retryWithTimeout(() => expensesService.getExpenses(estabelecimentoId, filters)),
+        retryWithTimeout(() => categoriesService.getCategories(estabelecimentoId)),
+        retryWithTimeout(() => expensesService.getExpenseSummary(estabelecimentoId, filters)),
       ]);
 
       setExpenses(expensesData);

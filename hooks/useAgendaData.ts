@@ -29,24 +29,18 @@ export function useAgendaData(
 
   /**
    * Carregar agendamentos do dia com otimização N+1
-   */
   const carregarAgendamentos = useCallback(async (forceRefresh = false) => {
+    setLoading(true);
     try {
-      setLoading(true);
-      
       if (!estabelecimentoId) {
         logger.error('Estabelecimento ID não encontrado');
+        setLoading(false);
         return [];
       }
-      
-      // Filtrar por usuário se selecionado OU se for profissional
+
       const usuarioFiltro = selectedUser || (role === 'profissional' ? userId : null);
-      
-      // Gerar chave de cache
       const dataStr = format(selectedDate, 'yyyy-MM-dd');
       const cacheKey = `dia_${dataStr}_${usuarioFiltro || 'todos'}`;
-      
-      // Buscar do cache primeiro
       const cachedData = forceRefresh
         ? null
         : await CacheManager.get<any[]>(CacheNamespaces.AGENDAMENTOS, cacheKey);
@@ -54,49 +48,87 @@ export function useAgendaData(
       if (cachedData) {
         logger.debug('📦 Agendamentos carregados do cache');
         setAgendamentos(cachedData);
+        setLoading(false);
         return cachedData;
       }
-      
-      // Buscar do banco
+
+      // Retry e timeout
+      const retryWithTimeout = async (fn: () => Promise<any>, retries = 2, timeout = 12000) => {
+        let lastError;
+        for (let i = 0; i <= retries; i++) {
+          try {
+            return await Promise.race([
+              fn(),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeout))
+            ]);
+          } catch (err) {
+            lastError = err;
+            if (err?.message?.includes('permission') || err?.code === 'PGRST116') {
+              logger.error('Erro de permissão ou sessão inválida, forçando signOut');
+              // Forçar signOut global se disponível
+              if (typeof window !== 'undefined' && window.signOut) window.signOut();
+              setLoading(false);
+              throw err;
+            }
+            if (i < retries) {
+              logger.warn(`Retry ${i + 1} após erro:`, err);
+              await new Promise(res => setTimeout(res, 1000 * (i + 1)));
+            }
+          }
+        }
+        setLoading(false);
+        throw lastError;
+      };
+
+      // Buscar do banco com retry/timeout
       const ano = selectedDate.getFullYear();
       const mes = selectedDate.getMonth() + 1;
       const dia = selectedDate.getDate();
-      
       const dataInicioLocal = getStartOfDayLocal(selectedDate);
       const dataFimLocal = getEndOfDayLocal(selectedDate);
-      
       logger.debug(`📅 Buscando agendamentos do dia ${dia}/${mes}/${ano}`);
-      
+
       let query = supabase
         .from('agendamentos')
         .select('*')
         .eq('estabelecimento_id', estabelecimentoId)
         .gte('data_hora', dataInicioLocal)
         .lte('data_hora', dataFimLocal);
-      
       if (usuarioFiltro) {
         query = query.eq('usuario_id', usuarioFiltro);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await retryWithTimeout(() => query);
       if (error) throw error;
 
       // 🚀 OTIMIZAÇÃO: Buscar todos os clientes e movimentações de uma vez
       const clienteIds = [...new Set(data?.map(ag => ag.cliente_id).filter(Boolean) || [])];
-      
       let clientesData: any = {};
       let movimentacoesData: any = {};
-      
       if (clienteIds.length > 0) {
-        const { data: searchClientes } = await supabase
-          .from('clientes')
-          .select('id, foto_url, telefone')
-          .in('id', clienteIds);
-        
+        const { data: searchClientes } = await retryWithTimeout(() =>
+          supabase.from('clientes').select('id, foto_url, telefone').in('id', clienteIds)
+        );
         (searchClientes || []).forEach(c => {
           clientesData[c.id] = c;
         });
-        
+        const { data: todasMovimentacoes } = await retryWithTimeout(() =>
+          supabase.from('crediario_movimentacoes').select('*').in('cliente_id', clienteIds)
+        );
+        (todasMovimentacoes || []).forEach(mov => {
+          movimentacoesData[mov.cliente_id] = mov;
+        });
+      }
+
+      setAgendamentos(data);
+      setLoading(false);
+      return data;
+    } catch (error) {
+      logger.error('Erro ao carregar agendamentos:', error);
+      setLoading(false);
+      throw error;
+    }
+  });
         const { data: todasMovimentacoes } = await supabase
           .from('crediario_movimentacoes')
           .select('valor, cliente_id')

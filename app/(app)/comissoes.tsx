@@ -21,7 +21,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { logger } from '../../utils/logger';
 import { Usuario as UsuarioBase } from '@types';
-import { Button } from '../../components/Button2';
+import { Button } from '../../components/Button';
 
 type UsuarioComissao = Pick<UsuarioBase, 'id' | 'nome_completo' | 'email' | 'role'> & {
   avatar_url?: string;
@@ -64,8 +64,8 @@ export default function ComissoesScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      logger.debug('🏢 Estabelecimento ID:', estabelecimentoId);
-      logger.debug('👤 Usuário logado:', user?.email);
+      logger.debug('?? Estabelecimento ID:', estabelecimentoId);
+      logger.debug('?? Usuário logado:', user?.email);
       carregarDados();
 
       // Listener para o botão de configuração no header
@@ -93,31 +93,31 @@ export default function ComissoesScreen() {
 
   const carregarUsuarios = async () => {
     try {
-      logger.debug('🔍 Buscando usuários do estabelecimento:', estabelecimentoId);
-      logger.debug('🔍 Tipo de estabelecimentoId:', typeof estabelecimentoId);
+      logger.debug('?? Buscando usuários do estabelecimento:', estabelecimentoId);
+      logger.debug('?? Tipo de estabelecimentoId:', typeof estabelecimentoId);
       
       if (!estabelecimentoId) {
-        logger.error('❌ estabelecimentoId está nulo!');
+        logger.error('? estabelecimentoId está nulo!');
         Alert.alert('Erro', 'ID do estabelecimento não encontrado');
         return;
       }
 
       // MÉTODO 1: Tentar usar RPC function (se existir)
-      logger.debug('🚀 Tentando usar função RPC get_usuarios_estabelecimento...');
+      logger.debug('?? Tentando usar função RPC get_usuarios_estabelecimento...');
       const { data: dataRpc, error: errorRpc } = await supabase
         .rpc('get_usuarios_estabelecimento', { 
           p_estabelecimento_id: estabelecimentoId 
         });
 
       if (!errorRpc && dataRpc) {
-        logger.debug('✅ Usuários encontrados via RPC:', dataRpc.length);
-        logger.debug('📋 Lista de usuários (RPC):', JSON.stringify(dataRpc, null, 2));
+        logger.debug('? Usuários encontrados via RPC:', dataRpc.length);
+        logger.debug('?? Lista de usuários (RPC):', JSON.stringify(dataRpc, null, 2));
         setUsuarios(dataRpc || []);
         return;
       }
 
-      logger.debug('⚠️ RPC não disponível ou erro:', errorRpc?.message);
-      logger.debug('🔄 Tentando query direta...');
+      logger.debug('?? RPC não disponível ou erro:', errorRpc?.message);
+      logger.debug('?? Tentando query direta...');
 
       // MÉTODO 2: Query direta (pode ser bloqueada por RLS)
       const { data, error } = await supabase
@@ -128,11 +128,11 @@ export default function ComissoesScreen() {
         .order('nome_completo');
 
       if (error) {
-        logger.error('❌ Erro ao buscar usuários:', error);
-        logger.error('❌ Detalhes do erro:', JSON.stringify(error, null, 2));
+        logger.error('? Erro ao buscar usuários:', error);
+        logger.error('? Detalhes do erro:', JSON.stringify(error, null, 2));
         
         // MÉTODO 3: Buscar todos e filtrar manualmente (último recurso)
-        logger.debug('🔄 Última tentativa: buscar todos os usuários...');
+        logger.debug('?? Última tentativa: buscar todos os usuários...');
         const { data: todosUsuarios, error: errorTodos } = await supabase
           .from('usuarios')
           .select('id, nome_completo, email, avatar_url, faz_atendimento, role, estabelecimento_id, recebe_comissao');
@@ -149,8 +149,8 @@ export default function ComissoesScreen() {
               : (u.role === 'funcionario' || u.role === 'profissional');
             return podeReceber;
           });
-          logger.debug('✅ Usuários filtrados manualmente:', usuariosFiltrados.length);
-          logger.debug('📋 Lista filtrada:', JSON.stringify(usuariosFiltrados, null, 2));
+          logger.debug('? Usuários filtrados manualmente:', usuariosFiltrados.length);
+          logger.debug('?? Lista filtrada:', JSON.stringify(usuariosFiltrados, null, 2));
           setUsuarios(usuariosFiltrados);
           return;
         }
@@ -158,8 +158,8 @@ export default function ComissoesScreen() {
         throw error;
       }
       
-      logger.debug('✅ Usuários encontrados via query direta:', data?.length);
-      logger.debug('📋 Lista de usuários:', JSON.stringify(data, null, 2));
+      logger.debug('? Usuários encontrados via query direta:', data?.length);
+      logger.debug('?? Lista de usuários:', JSON.stringify(data, null, 2));
       
       // Filtrar usuários que podem receber comissão
       const usuariosFiltrados = (data || []).filter(u => {
@@ -170,10 +170,10 @@ export default function ComissoesScreen() {
         return podeReceber;
       });
       
-      logger.debug('✅ Usuários que podem receber comissão:', usuariosFiltrados.length);
+      logger.debug('? Usuários que podem receber comissão:', usuariosFiltrados.length);
       setUsuarios(usuariosFiltrados);
     } catch (error) {
-      logger.error('💥 Erro ao carregar usuários:', error);
+      logger.error('?? Erro ao carregar usuários:', error);
       Alert.alert('Erro', 'Não foi possível carregar os usuários. Verifique as permissões RLS.');
     }
   };
@@ -389,7 +389,7 @@ export default function ComissoesScreen() {
       // Recarregar lista de usuários para refletir mudanças
       await carregarUsuarios();
       
-      logger.debug(`✅ Comissão ${novoValor ? 'ativada' : 'desativada'} para usuário ${usuarioId}`);
+      logger.debug(`? Comissão ${novoValor ? 'ativada' : 'desativada'} para usuário ${usuarioId}`);
     } catch (error) {
       logger.error('Erro ao alterar configuração de comissão:', error);
       Alert.alert('Erro', 'Não foi possível atualizar a configuração');
@@ -1036,3 +1036,5 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.textSecondary,
   },
 });
+
+

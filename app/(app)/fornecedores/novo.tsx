@@ -1,4 +1,4 @@
-ï»¿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -34,30 +34,30 @@ export default function NovoFornecedorScreen() {
     observacoes: '',
   });
 
-  // FunÃ§Ã£o para sanitizar strings
+  // Função para sanitizar strings
   const sanitizeString = (str: string) => {
     return str.trim().replace(/[<>]/g, '');
   };
 
-  // FunÃ§Ã£o para validar email
+  // Função para validar email
   const isValidEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
-  // FunÃ§Ã£o para validar CNPJ
+  // Função para validar CNPJ
   const isValidCNPJ = (cnpj: string) => {
     const cleanCNPJ = cnpj.replace(/[^\d]/g, '');
     return cleanCNPJ.length === 14;
   };
 
-  // FunÃ§Ã£o para validar CEP
+  // Função para validar CEP
   const isValidCEP = (cep: string) => {
     const cleanCEP = cep.replace(/[^\d]/g, '');
     return cleanCEP.length === 8;
   };
 
-  // FunÃ§Ã£o para validar telefone
+  // Função para validar telefone
   const isValidPhone = (phone: string) => {
     const cleanPhone = phone.replace(/[^\d]/g, '');
     return cleanPhone.length >= 10 && cleanPhone.length <= 11;
@@ -66,34 +66,34 @@ export default function NovoFornecedorScreen() {
   const validateForm = (): boolean => {
     const newErrors: ValidationErrors = {};
 
-    // ValidaÃ§Ã£o do nome
+    // Validação do nome
     if (!formData.nome.trim()) {
-      newErrors.nome = 'O nome Ã© obrigatÃ³rio';
+      newErrors.nome = 'O nome é obrigatório';
     } else if (formData.nome.length < 3) {
       newErrors.nome = 'O nome deve ter pelo menos 3 caracteres';
     }
 
-    // ValidaÃ§Ã£o do CNPJ
+    // Validação do CNPJ
     if (formData.cnpj && !isValidCNPJ(formData.cnpj)) {
-      newErrors.cnpj = 'CNPJ invÃ¡lido';
+      newErrors.cnpj = 'CNPJ inválido';
     }
 
-    // ValidaÃ§Ã£o do telefone
+    // Validação do telefone
     if (formData.telefone && !isValidPhone(formData.telefone)) {
-      newErrors.telefone = 'Telefone invÃ¡lido';
+      newErrors.telefone = 'Telefone inválido';
     }
 
-    // ValidaÃ§Ã£o do email
+    // Validação do email
     if (formData.email && !isValidEmail(formData.email)) {
-      newErrors.email = 'E-mail invÃ¡lido';
+      newErrors.email = 'E-mail inválido';
     }
 
-    // ValidaÃ§Ã£o do CEP
+    // Validação do CEP
     if (formData.cep && !isValidCEP(formData.cep)) {
-      newErrors.cep = 'CEP invÃ¡lido';
+      newErrors.cep = 'CEP inválido';
     }
 
-    // ValidaÃ§Ã£o do estado
+    // Validação do estado
     if (formData.estado && formData.estado.length !== 2) {
       newErrors.estado = 'Estado deve ter 2 caracteres';
     }
@@ -106,13 +106,13 @@ export default function NovoFornecedorScreen() {
     try {
       if (!validateForm()) {
         const errorMessages = Object.values(errors).join('\n');
-        Alert.alert('Erro de ValidaÃ§Ã£o', errorMessages);
+        Alert.alert('Erro de Validação', errorMessages);
         return;
       }
 
       setLoading(true);
       if (!estabelecimentoId) {
-        Alert.alert('Erro', 'Estabelecimento nÃ£o identificado. Entre novamente.');
+        Alert.alert('Erro', 'Estabelecimento não identificado. Entre novamente.');
         return;
       }
 
@@ -148,7 +148,7 @@ export default function NovoFornecedorScreen() {
       ]);
     } catch (error: any) {
       logger.error('Erro ao cadastrar fornecedor:', error);
-      Alert.alert('Erro', error?.message ?? 'NÃ£o foi possÃ­vel cadastrar o fornecedor');
+      Alert.alert('Erro', error?.message ?? 'Não foi possível cadastrar o fornecedor');
     } finally {
       setLoading(false);
     }
@@ -156,10 +156,10 @@ export default function NovoFornecedorScreen() {
 
   const buscarCep = async (cep: string) => {
     try {
-      // Remove caracteres nÃ£o numÃ©ricos do CEP
+      // Remove caracteres não numéricos do CEP
       const cepLimpo = cep.replace(/\D/g, '');
       
-      // Verifica se o CEP tem 8 dÃ­gitos
+      // Verifica se o CEP tem 8 dígitos
       if (cepLimpo.length !== 8) return;
 
       setLoadingCep(true);
@@ -167,7 +167,7 @@ export default function NovoFornecedorScreen() {
       const data = await response.json();
 
       if (data.erro) {
-        Alert.alert('Erro', 'CEP nÃ£o encontrado');
+        Alert.alert('Erro', 'CEP não encontrado');
         return;
       }
 
@@ -179,7 +179,7 @@ export default function NovoFornecedorScreen() {
       }));
     } catch (error) {
       logger.error('Erro ao buscar CEP:', error);
-      Alert.alert('Erro', 'NÃ£o foi possÃ­vel buscar o endereÃ§o');
+      Alert.alert('Erro', 'Não foi possível buscar o endereço');
     } finally {
       setLoadingCep(false);
     }
@@ -196,7 +196,7 @@ export default function NovoFornecedorScreen() {
     <View style={styles.container}>
       <ScrollView style={styles.formContainer}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>InformaÃ§Ãµes BÃ¡sicas</Text>
+          <Text style={styles.sectionTitle}>Informações Básicas</Text>
           
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Nome *</Text>
@@ -274,7 +274,7 @@ export default function NovoFornecedorScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>EndereÃ§o</Text>
+          <Text style={styles.sectionTitle}>Endereço</Text>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>CEP</Text>
@@ -311,12 +311,12 @@ export default function NovoFornecedorScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>EndereÃ§o</Text>
+            <Text style={styles.label}>Endereço</Text>
             <TextInput
               style={styles.input}
               value={formData.endereco}
               onChangeText={(text) => setFormData({ ...formData, endereco: text })}
-              placeholder="Rua, nÃºmero, complemento"
+              placeholder="Rua, número, complemento"
               placeholderTextColor={colors.textTertiary}
               maxLength={200}
               editable={!loadingCep}
@@ -358,13 +358,13 @@ export default function NovoFornecedorScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ObservaÃ§Ãµes</Text>
+          <Text style={styles.sectionTitle}>Observações</Text>
           <View style={styles.inputGroup}>
             <TextInput
               style={[styles.input, styles.textArea]}
               value={formData.observacoes}
               onChangeText={(text) => setFormData({ ...formData, observacoes: text })}
-              placeholder="Adicione observaÃ§Ãµes sobre o fornecedor..."
+              placeholder="Adicione observações sobre o fornecedor..."
               placeholderTextColor={colors.textTertiary}
               multiline
               numberOfLines={4}
@@ -388,7 +388,7 @@ export default function NovoFornecedorScreen() {
   );
 }
 
-// FunÃ§Ã£o auxiliar para criar estilos dinÃ¢micos
+// Função auxiliar para criar estilos dinâmicos
 const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
@@ -476,3 +476,4 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginLeft: 8,
   },
 });
+

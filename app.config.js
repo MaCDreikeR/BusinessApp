@@ -2,7 +2,7 @@ export default {
   expo: {
     name: 'BusinessApp',
     slug: 'businessapp',
-    version: '1.0.0',
+    version: '1.0.4',
     orientation: 'portrait',
     icon: './assets/images/icon.png',
     userInterfaceStyle: 'light',
@@ -47,7 +47,7 @@ export default {
       appName: process.env.EXPO_PUBLIC_APP_NAME || 'BusinessApp',
       appVersion: process.env.EXPO_PUBLIC_APP_VERSION || '1.0.0',
       appEnvironment: process.env.EXPO_PUBLIC_APP_ENV || 'development',
-      apiTimeout: parseInt(process.env.EXPO_PUBLIC_API_TIMEOUT || '30000', 10),
+      apiTimeout: parseInt(process.env.EXPO_PUBLIC_API_TIMEOUT || '60000', 10),
       enableDebugMode: process.env.EXPO_PUBLIC_DEBUG_MODE === 'true',
       // Feature Flags
       enablePushNotifications: process.env.EXPO_PUBLIC_ENABLE_PUSH !== 'false',

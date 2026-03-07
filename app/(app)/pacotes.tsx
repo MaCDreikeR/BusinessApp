@@ -1,4 +1,4 @@
-import React, { useState, useEffect , useMemo, useCallback, useRef} from 'react';
+﻿import React, { useState, useEffect , useMemo, useCallback, useRef} from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, ScrollView, Modal, Pressable, ActivityIndicator, TextStyle, TouchableWithoutFeedback , DeviceEventEmitter, Animated, Dimensions } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
@@ -9,7 +9,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { logger } from '../../utils/logger';
 import { Produto as ProdutoBase, Servico as ServicoBase, Pacote as PacoteBase } from '@types';
 import { theme } from '@utils/theme';
-import { Button } from '../../components/Button2';
+import { Button } from '../../components/Button';
 import { SelectionButton, SELECTION_BUTTON_CONTAINER_STYLE } from '../../components/Buttons';
 
 type ProdutoPacote = {
@@ -37,7 +37,7 @@ type ServicoPacote = {
 
 type PacoteDetalhado = Pick<PacoteBase, 'id' | 'nome' | 'descricao' | 'valor' | 'estabelecimento_id'> & {
   desconto: number;
-  duracao_total?: number; // dura��o total calculada em minutos
+  duracao_total?: number; // duraï¿½ï¿½o total calculada em minutos
   data_cadastro: string;
   produtos?: ProdutoPacote[];
   servicos?: ServicoPacote[];
@@ -74,7 +74,7 @@ export default function PacotesScreen() {
   const { estabelecimentoId } = useAuth();
   const { colors } = useTheme();
   
-  // Estilos din�micos baseados no tema
+  // Estilos dinï¿½micos baseados no tema
   const styles = useMemo(() => createStyles(colors), [colors]);
   
   const [pacotes, setPacotes] = useState<PacoteDetalhado[]>([]);
@@ -294,7 +294,7 @@ export default function PacotesScreen() {
     }, [estabelecimentoId, session?.user?.id])
   );
 
-  // Carregar produtos e servi�os quando estabelecimentoId estiver dispon�vel
+  // Carregar produtos e serviï¿½os quando estabelecimentoId estiver disponï¿½vel
   useEffect(() => {
     if (estabelecimentoId) {
       carregarProdutos();
@@ -309,8 +309,8 @@ export default function PacotesScreen() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.user?.id) {
-        logger.error('Usu�rio n�o autenticado');
-        Alert.alert('Erro', 'Usu�rio n�o autenticado. Por favor, fa�a login novamente.');
+        logger.error('Usuï¿½rio nï¿½o autenticado');
+        Alert.alert('Erro', 'Usuï¿½rio nï¿½o autenticado. Por favor, faï¿½a login novamente.');
         router.replace('/(auth)/login');
         return;
       }
@@ -342,7 +342,7 @@ export default function PacotesScreen() {
 
       if (error) throw error;
 
-      // Fun��o para calcular dura��o total do pacote
+      // Funï¿½ï¿½o para calcular duraï¿½ï¿½o total do pacote
       const calcularDuracaoTotal = (servicos: any[]): number | undefined => {
         if (!servicos || servicos.length === 0) return undefined;
         
@@ -386,7 +386,7 @@ export default function PacotesScreen() {
       setPacotes(pacotesFormatados || []);
     } catch (error) {
       logger.error('Erro ao carregar pacotes:', error);
-      Alert.alert('Erro', 'Não foi possível carregar os pacotes');
+      Alert.alert('Erro', 'NÃ£o foi possÃ­vel carregar os pacotes');
     } finally {
       setLoading(false);
     }
@@ -395,7 +395,7 @@ export default function PacotesScreen() {
   const carregarProdutos = async () => {
     try {
       if (!estabelecimentoId) {
-        logger.error('Estabelecimento n�o identificado');
+        logger.error('Estabelecimento nï¿½o identificado');
         return;
       }
 
@@ -410,14 +410,14 @@ export default function PacotesScreen() {
       logger.debug('Produtos carregados para pacotes:', data?.length || 0);
     } catch (error) {
       logger.error('Erro ao carregar produtos:', error);
-      Alert.alert('Erro', 'Não foi possível carregar os produtos');
+      Alert.alert('Erro', 'NÃ£o foi possÃ­vel carregar os produtos');
     }
   };
 
   const carregarServicos = async () => {
     try {
       if (!estabelecimentoId) {
-        logger.error('Estabelecimento n�o identificado');
+        logger.error('Estabelecimento nï¿½o identificado');
         return;
       }
 
@@ -429,10 +429,10 @@ export default function PacotesScreen() {
 
       if (error) throw error;
       setServicos(data || []);
-      logger.debug('Serviços carregados para pacotes:', data?.length || 0);
+      logger.debug('ServiÃ§os carregados para pacotes:', data?.length || 0);
     } catch (error) {
-      logger.error('Erro ao carregar serviços:', error);
-      Alert.alert('Erro', 'Não foi possível carregar os serviços');
+      logger.error('Erro ao carregar serviÃ§os:', error);
+      Alert.alert('Erro', 'NÃ£o foi possÃ­vel carregar os serviÃ§os');
     }
   };
 
@@ -452,7 +452,7 @@ export default function PacotesScreen() {
   const handleEditarPacote = (pacote: PacoteDetalhado, origem?: { x?: number; y?: number }) => {
     setPacoteEmEdicao(pacote);
     
-    // Recalcular a soma dos servi�os e produtos (sem desconto)
+    // Recalcular a soma dos serviï¿½os e produtos (sem desconto)
     const somaProdutos = (pacote.produtos || []).reduce((total, item) => {
       return total + (item.produto?.preco || 0) * item.quantidade;
     }, 0);
@@ -476,7 +476,7 @@ export default function PacotesScreen() {
 
   const handleExcluirPacote = async (pacote: PacoteDetalhado) => {
     Alert.alert(
-      'Confirmar Exclus�o',
+      'Confirmar Exclusï¿½o',
       'Tem certeza que deseja excluir este pacote?',
       [
         {
@@ -497,7 +497,7 @@ export default function PacotesScreen() {
               await carregarPacotes();
             } catch (error) {
               logger.error('Erro ao excluir pacote:', error);
-              Alert.alert('Erro', 'Não foi possível excluir o pacote');
+              Alert.alert('Erro', 'NÃ£o foi possÃ­vel excluir o pacote');
             }
           },
         },
@@ -509,7 +509,7 @@ export default function PacotesScreen() {
     const erros: PacoteFieldErrors = {};
 
     if (!novoPacote.nome.trim()) {
-      erros.nomePacote = 'Nome do pacote é obrigatório';
+      erros.nomePacote = 'Nome do pacote Ã© obrigatÃ³rio';
     }
 
     return erros;
@@ -527,35 +527,35 @@ export default function PacotesScreen() {
 
     try {
       if (!novoPacote.nome.trim()) {
-        Alert.alert('Erro', 'O nome do pacote é obrigatório');
+        Alert.alert('Erro', 'O nome do pacote Ã© obrigatÃ³rio');
         return;
       }
 
       if (!estabelecimentoId) {
-        Alert.alert('Erro', 'Estabelecimento não identificado. Entre novamente.');
+        Alert.alert('Erro', 'Estabelecimento nÃ£o identificado. Entre novamente.');
         return;
       }
 
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.user?.id) {
-        Alert.alert('Erro', 'Usu�rio n�o autenticado');
+        Alert.alert('Erro', 'Usuï¿½rio nï¿½o autenticado');
         return;
       }
 
-      // Calcular soma dos servi�os e produtos
+      // Calcular soma dos serviï¿½os e produtos
       const somaServicos = Number(novoPacote.valor.replace(',', '.'));
       const descontoNum = Number(novoPacote.desconto.replace(',', '.'));
       
       // IMPORTANTE: O campo "valor" no banco deve ser o VALOR FINAL (com desconto aplicado)
-      // novoPacote.valor cont�m a SOMA dos servi�os/produtos
-      // Ent�o: valor_final = soma_servicos - desconto
+      // novoPacote.valor contï¿½m a SOMA dos serviï¿½os/produtos
+      // Entï¿½o: valor_final = soma_servicos - desconto
       const valorFinal = somaServicos - descontoNum;
       
       const pacoteData = {
         nome: novoPacote.nome.trim(),
         descricao: novoPacote.descricao.trim(),
-        valor: isNaN(valorFinal) ? 0 : Math.max(0, valorFinal), // Garantir que n�o seja negativo
+        valor: isNaN(valorFinal) ? 0 : Math.max(0, valorFinal), // Garantir que nï¿½o seja negativo
         desconto: isNaN(descontoNum) ? 0 : descontoNum,
         estabelecimento_id: estabelecimentoId,
       };
@@ -573,9 +573,9 @@ export default function PacotesScreen() {
         if (error) throw error;
         pacoteId = pacoteEmEdicao.id;
 
-        // Remover produtos e servi�os existentes
-        // Nota: offlineDelete n�o suporta delete em lote por pacote_id.
-        // Como estamos editando, os deletes s�o refeitos localmente e sincronizados depois.
+        // Remover produtos e serviï¿½os existentes
+        // Nota: offlineDelete nï¿½o suporta delete em lote por pacote_id.
+        // Como estamos editando, os deletes sï¿½o refeitos localmente e sincronizados depois.
         await Promise.all([
           supabase.from('pacotes_produtos').delete().eq('pacote_id', pacoteId),
           supabase.from('pacotes_servicos').delete().eq('pacote_id', pacoteId)
@@ -611,7 +611,7 @@ export default function PacotesScreen() {
         }
       }
 
-      // Inserir servi�os
+      // Inserir serviï¿½os
       let lastFromCache = false;
       if (novoPacote.servicos.length > 0) {
         for (const servico of novoPacote.servicos) {
@@ -650,7 +650,7 @@ export default function PacotesScreen() {
       Alert.alert(feedback.title, feedback.message);
     } catch (error) {
       logger.error('Erro ao salvar pacote:', error);
-      Alert.alert('Erro', 'Não foi possível salvar o pacote');
+      Alert.alert('Erro', 'NÃ£o foi possÃ­vel salvar o pacote');
     }
   };
 
@@ -716,7 +716,7 @@ export default function PacotesScreen() {
 
       const novosProdutos: ProdutoPacote[] = produtosSelecionados.map(produto => ({
         id: Math.random().toString(),
-        pacote_id: '', // Ser� preenchido quando o pacote for salvo
+        pacote_id: '', // Serï¿½ preenchido quando o pacote for salvo
         produto_id: produto.id,
         quantidade: Number(quantidadesProdutos[produto.id] || '1'),
         produto: {
@@ -752,7 +752,7 @@ export default function PacotesScreen() {
 
   const handleAdicionarServicos = () => {
     if (servicosSelecionados.length === 0) {
-      Alert.alert('Erro', 'Selecione pelo menos um serviço');
+      Alert.alert('Erro', 'Selecione pelo menos um serviÃ§o');
       return;
     }
 
@@ -837,7 +837,7 @@ export default function PacotesScreen() {
   };
 
   const handleMostrarModalServicos = async () => {
-    // Garantir que os servi�os estejam carregados
+    // Garantir que os serviï¿½os estejam carregados
     if (servicos.length === 0) {
       await carregarServicos();
     }
@@ -862,7 +862,7 @@ export default function PacotesScreen() {
   };
 
   const renderItem = ({ item }: { item: PacoteDetalhado }) => {
-    // Calcular soma dos servi�os e produtos
+    // Calcular soma dos serviï¿½os e produtos
     const somaProdutos = (item.produtos || []).reduce((total, prod) => {
       return total + (prod.produto?.preco || 0) * prod.quantidade;
     }, 0);
@@ -872,7 +872,7 @@ export default function PacotesScreen() {
     }, 0);
     
     const valorSemDesconto = somaProdutos + somaServicos;
-    const valorComDesconto = item.valor; // Agora item.valor J� � o valor final
+    const valorComDesconto = item.valor; // Agora item.valor Jï¿½ ï¿½ o valor final
     
     return (
     <TouchableOpacity 
@@ -944,7 +944,7 @@ export default function PacotesScreen() {
 
       {item.servicos && item.servicos.length > 0 && (
         <View style={styles.secaoLista}>
-          <Text style={styles.secaoTitulo}>Serviços:</Text>
+          <Text style={styles.secaoTitulo}>ServiÃ§os:</Text>
           {item.servicos.map((servico) => (
             <View key={servico.id} style={styles.itemListaCompacto}>
               <View style={styles.itemInfoCompacto}>
@@ -953,7 +953,7 @@ export default function PacotesScreen() {
                 </Text>
                 {servico.servico?.duracao && (
                   <Text style={styles.itemDuracaoCompacto}>
-                    ⏱ {servico.servico.duracao * servico.quantidade} min
+                    â± {servico.servico.duracao * servico.quantidade} min
                   </Text>
                 )}
               </View>
@@ -968,7 +968,7 @@ export default function PacotesScreen() {
           {item.duracao_total && (
             <View style={styles.duracaoTotalContainer}>
               <Text style={styles.duracaoTotalText}>
-                ⏱ Duração total: {item.duracao_total} minutos
+                â± DuraÃ§Ã£o total: {item.duracao_total} minutos
               </Text>
             </View>
           )}
@@ -1071,19 +1071,19 @@ export default function PacotesScreen() {
                   </View>
 
                   <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Descrição</Text>
+                    <Text style={styles.label}>DescriÃ§Ã£o</Text>
                     <TextInput
                       style={[styles.input, styles.textArea]}
                       value={novoPacote.descricao}
                       onChangeText={(text) => setNovoPacote({ ...novoPacote, descricao: text })}
-                      placeholder="Digite a descrição do pacote"
+                      placeholder="Digite a descriÃ§Ã£o do pacote"
                       placeholderTextColor={colors.textTertiary}
                       multiline
                       numberOfLines={4}
                     />
                   </View>
 
-                  {/* Seção de itens - botões lado a lado como em Comandas */}
+                  {/* SeÃ§Ã£o de itens - botÃµes lado a lado como em Comandas */}
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>Itens do Pacote</Text>
                     <View style={[SELECTION_BUTTON_CONTAINER_STYLE, { paddingHorizontal: 0, justifyContent: 'space-between' }]}>
@@ -1099,7 +1099,7 @@ export default function PacotesScreen() {
                       </View>
                       <View ref={servicosButtonRef} collapsable={false} style={{ width: '48.5%' }}>
                         <SelectionButton
-                          label="Serviços"
+                          label="ServiÃ§os"
                           icon="cut-outline"
                           count={novoPacote.servicos.length}
                           selected={novoPacote.servicos.length > 0}
@@ -1137,10 +1137,10 @@ export default function PacotesScreen() {
                     </View>
                   )}
 
-                  {/* Serviços adicionados */}
+                  {/* ServiÃ§os adicionados */}
                   {novoPacote.servicos.length > 0 && (
                     <View style={styles.inputGroup}>
-                      <Text style={styles.label}>Serviços Selecionados</Text>
+                      <Text style={styles.label}>ServiÃ§os Selecionados</Text>
                       {novoPacote.servicos.map((servico, index) => (
                         <View key={servico.id} style={styles.itemLista}>
                           <View style={styles.itemInfo}>
@@ -1148,7 +1148,7 @@ export default function PacotesScreen() {
                             <Text style={styles.itemQuantidade}>Qtd: {servico.quantidade}</Text>
                             {servico.servico?.duracao && (
                               <Text style={styles.itemDuracao}>
-                                ⏱ {servico.servico.duracao * servico.quantidade} min
+                                â± {servico.servico.duracao * servico.quantidade} min
                               </Text>
                             )}
                             <Text style={styles.itemPreco}>
@@ -1396,7 +1396,7 @@ export default function PacotesScreen() {
         </View>
       </Modal>
 
-      {/* Modal de Serviços */}
+      {/* Modal de ServiÃ§os */}
       <Modal
         visible={mostrarModalServicos}
         transparent={true}
@@ -1436,7 +1436,7 @@ export default function PacotesScreen() {
             ]}
           >
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Adicionar Serviços</Text>
+              <Text style={styles.modalTitle}>Adicionar ServiÃ§os</Text>
             </View>
 
             <View style={styles.searchModalContainer}>
@@ -1445,7 +1445,7 @@ export default function PacotesScreen() {
                 style={styles.searchModalInput}
                 value={buscaServico}
                 onChangeText={setBuscaServico}
-                placeholder="Buscar serviços..."
+                placeholder="Buscar serviÃ§os..."
                 placeholderTextColor={colors.textTertiary}
               />
             </View>
@@ -1545,7 +1545,7 @@ export default function PacotesScreen() {
   );
 }
 
-// Fun��o auxiliar para criar estilos din�micos
+// Funï¿½ï¿½o auxiliar para criar estilos dinï¿½micos
 const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
@@ -2002,3 +2002,5 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.primary,
   },
 }); 
+
+

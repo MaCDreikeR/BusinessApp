@@ -359,3 +359,4 @@ const styles = StyleSheet.create({
   },
   emptyText: { fontSize: 16, color: '#6B7280', marginTop: 12 },
 });
+

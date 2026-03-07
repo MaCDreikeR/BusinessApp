@@ -9,6 +9,7 @@ import { logger } from '../utils/logger';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { useCacheCleanup } from '../hooks/useCacheCleanup';
 import * as SplashScreen from 'expo-splash-screen';
+import { debugLogger } from '../utils/debugLogger';
 
 // Previne a splash screen de esconder automaticamente
 SplashScreen.preventAutoHideAsync();
@@ -24,6 +25,7 @@ const MainLayout = () => {
   const lastRedirectRef = React.useRef<string | null>(null);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [shouldForceLogin, setShouldForceLogin] = useState(false);
+  const roleWaitSinceRef = React.useRef<number | null>(null);
   
   // 🔥 NOVO: Timeout absoluto com fallback garantido
   const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
@@ -59,11 +61,15 @@ const MainLayout = () => {
 
   const safeReplace = (path: string) => {
     if (lastRedirectRef.current !== path) {
+      debugLogger.info('MainLayout', `safeReplace: ${lastRedirectRef.current || '(nenhum)'} → ${path}`);
+      console.log(`🧗 [MainLayout] safeReplace: ${lastRedirectRef.current || '(nenhum)'} → ${path}`);
       logger.debug(`[safeReplace] Redirecionando: ${lastRedirectRef.current} → ${path}`);
       lastRedirectRef.current = path;
       // Tipagem do expo-router é mais restrita; para rotas absolutas conhecidas, fazemos cast seguro
       router.replace(path as any);
     } else {
+      debugLogger.debug('MainLayout', `safeReplace: Ignorado (mesmo path): ${path}`);
+      console.log(`🧗 [MainLayout] safeReplace: Ignorado (mesmo path): ${path}`);
       logger.debug(`[safeReplace] Redirecionamento ignorado (mesmo path): ${path}`);
     }
   };
@@ -84,20 +90,8 @@ const MainLayout = () => {
     checkFirstTime();
   }, []);
 
-  // Revalida o flag de primeira visita sempre que os segmentos mudarem
-  useEffect(() => {
-    const syncWelcomeFlag = async () => {
-      try {
-        const hasSeenWelcome = await AsyncStorage.getItem('@hasSeenWelcome');
-        if (hasSeenWelcome !== null && isFirstTime !== false) {
-          setIsFirstTime(false);
-        }
-      } catch (error) {
-        // silenciosamente ignore, manteremos o estado atual
-      }
-    };
-    syncWelcomeFlag();
-  }, [segments]);
+  // REMOVIDO: esse effect estava causando race conditions ao revalidar com cada mudança de segments
+  // A verificação inicial em checkFirstTime() é suficiente
 
   useEffect(() => {
     // 🔥 NOVO: Força navegação se timeout for atingido
@@ -111,6 +105,7 @@ const MainLayout = () => {
     
     // Espera o AuthContext e a verificação de primeira visita terminarem
     if ((authLoading && !hasBootRendered) || isCheckingFirstTime) {
+      debugLogger.debug('MainLayout', 'Aguardando carregamento', { authLoading, hasBootRendered, isCheckingFirstTime });
       logger.debug('[MainLayout] Aguardando carregamento...', { authLoading, hasBootRendered, isCheckingFirstTime });
       return;
     }
@@ -120,13 +115,26 @@ const MainLayout = () => {
     const inAdminGroup = segments[0] === '(admin)';
     const inRoot = segments.length === 0; // Está no index.tsx raiz
 
+    debugLogger.debug('MainLayout', 'Estado atual', { 
+      segments: segments.join('/'), 
+      role, 
+      hasUser: !!user, 
+      authLoading, 
+      isFirstTime, 
+      hasBootRendered 
+    });
     logger.debug('[MainLayout] Estado atual:', { segments, role, user: !!user, authLoading, isFirstTime, hasBootRendered });
-
+    // ⚠️ AGUARDA VERIFICAÇÃO DE PRIMEIRA VISITA ANTES DE QUALQUER REDIRECIONAMENTO
+    if (isCheckingFirstTime) {
+      debugLogger.debug('MainLayout', 'Ainda verificando primeira visita...');
+      return;
+    }
     // 1. PRIMEIRA PRIORIDADE: Se é a primeira vez, força boas-vindas
     if (isFirstTime) {
       const currentPage = (segments as string[])[1];
       // Se está na raiz ou não está em boas-vindas, redireciona
       if (inRoot || currentPage !== 'boas-vindas') {
+        debugLogger.info('MainLayout', 'Primeira vez: redirecionando para boas-vindas');
         safeReplace('/(auth)/boas-vindas');
         // Marca como renderizado para esconder splash
         if (!hasBootRendered) setHasBootRendered(true);
@@ -140,48 +148,94 @@ const MainLayout = () => {
     // 2. Se está na raiz e não é primeira vez, decide baseado em autenticação
     if (inRoot) {
       if (!user) {
+        debugLogger.info('MainLayout', 'Na raiz sem user: redirecionando para login');
         safeReplace('/(auth)/login');
         if (!hasBootRendered) setHasBootRendered(true);
         return;
       }
       // Aguarda role ser carregado antes de redirecionar
       if (!role) {
+        debugLogger.debug('MainLayout', 'Na raiz aguardando role');
         logger.debug('[MainLayout] Aguardando role na raiz...');
         return;
       }
       if (role === 'super_admin') {
+        debugLogger.info('MainLayout', 'Super admin na raiz: redirecionando para dashboard');
         logger.debug('[MainLayout] Redirecionando super_admin da raiz para dashboard');
         safeReplace('/(admin)/dashboard');
-        return;
+          if (!hasBootRendered) setHasBootRendered(true);
+          return;
       }
+      debugLogger.info('MainLayout', 'User comum na raiz: redirecionando para (app)');
+        if (!hasBootRendered) setHasBootRendered(true);
       safeReplace('/(app)');
       return;
     }
 
     if (!user && !inAuthGroup) {
       // 3. Se não é a primeira vez E não está logado, manda para o login
+      debugLogger.info('MainLayout', 'Sem user fora de auth: redirecionando para login');
       safeReplace('/(auth)/login');
       return;
     }
 
-    // Se está logado mas role ainda não foi carregado, aguarda
+    // Se está logado mas role ainda não foi carregado, aguarda por tempo limitado
     if (user && !role) {
-      logger.debug('[MainLayout] Usuário logado, aguardando role...');
+      if (!roleWaitSinceRef.current) {
+        roleWaitSinceRef.current = Date.now();
+        debugLogger.warn('MainLayout', 'Usuário logado sem role - Iniciando espera', {
+          userId: user.id,
+          email: user.email
+        });
+        console.log('🔷 [MainLayout] Usuário logado sem role - Iniciando espera...', {
+          userId: user.id,
+          email: user.email
+        });
+      }
+
+      const waitedMs = Date.now() - roleWaitSinceRef.current;
+      
+      if (waitedMs > 10000) {
+        debugLogger.error('MainLayout', 'TIMEOUT aguardando role (10s) - Forçando login', {
+          userId: user.id,
+          waitedMs
+        });
+        console.error('🔴 [MainLayout] TIMEOUT aguardando role (10s) - Forçando login', {
+          userId: user.id,
+          waitedMs
+        });
+        logger.error('[MainLayout] Timeout aguardando role; redirecionando para login');
+        setHasBootRendered(true);
+        safeReplace('/(auth)/login');
+        return;
+      }
+
+      if (waitedMs % 1000 < 100) { // Log a cada 1s
+        debugLogger.debug('MainLayout', `Aguardando role... (${Math.floor(waitedMs/1000)}s)`);
+        console.log(`🔷 [MainLayout] Aguardando role... (${Math.floor(waitedMs/1000)}s)`);
+      }
+      logger.debug('[MainLayout] Usuário logado, aguardando role...', { waitedMs });
       return;
+    }
+
+    // Reset quando role for resolvido ou user sair
+    if (roleWaitSinceRef.current !== null) {
+      debugLogger.info('MainLayout', 'Role resolvido! Resetando timeout', { role });
+      console.log('🟢 [MainLayout] Role resolvido! Resetando timeout.', { role });
+      roleWaitSinceRef.current = null;
     }
 
     if (user && role === 'super_admin') {
       // Superusuário: só pode acessar rotas do grupo (admin)
       if (!inAdminGroup) {
+        debugLogger.info('MainLayout', 'Super admin fora de admin: redirecionando', { segments: segments.join('/') });
         logger.debug('[MainLayout] Super admin detectado, redirecionando para dashboard admin', { segments });
-        // Se está tentando ir para (app), reseta o lastRedirect para forçar redirecionamento
-        if (inAppGroup) {
-          lastRedirectRef.current = null;
-        }
+          if (!hasBootRendered) setHasBootRendered(true);
         safeReplace('/(admin)/dashboard');
         return;
       }
       // Se já está em (admin), não faz nada e marca como renderizado
+      debugLogger.debug('MainLayout', 'Super admin já em (admin)', { segments: segments.join('/') });
       logger.debug('[MainLayout] Super admin já está em (admin), mantendo posição', { segments });
       if (!hasBootRendered) {
         setHasBootRendered(true);
@@ -192,11 +246,14 @@ const MainLayout = () => {
     if (user && role && role !== 'super_admin') {
       // Usuário comum: só pode acessar rotas do grupo (app)
       if (!inAppGroup) {
+        debugLogger.info('MainLayout', 'User comum fora de (app): redirecionando', { role, segments: segments.join('/') });
         logger.debug('[MainLayout] Usuário comum redirecionando para (app)', { role, segments });
+          if (!hasBootRendered) setHasBootRendered(true);
         safeReplace('/(app)');
         return;
       }
       // Se já está em (app), não faz nada
+        if (!hasBootRendered) setHasBootRendered(true);
       return;
     }
     // marca que já renderizamos pelo menos uma vez após boot
@@ -324,12 +381,14 @@ const MainLayout = () => {
 
   // SÓ renderiza Stack depois de verificar tudo
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="(app)" options={{ headerShown: false }} />
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      <Stack.Screen name="(admin)" options={{ headerShown: false }} />
-    </Stack>
+    <>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="(app)" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="(admin)" options={{ headerShown: false }} />
+      </Stack>
+    </>
   );
 };
 

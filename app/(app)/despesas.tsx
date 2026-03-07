@@ -21,7 +21,7 @@ import { ExpenseFilters } from '../../components/ExpenseFilters';
 import { ExpenseCard } from '../../components/ExpenseCard';
 import { ExpenseForm } from '../../components/ExpenseForm';
 import { Expense, CreateExpenseInput, PeriodFilter } from '../../types/Expense';
-import { Button } from '../../components/Button2';
+import { Button } from '../../components/Button';
 
 export default function DespesasScreen() {
   const insets = useSafeAreaInsets();
@@ -769,3 +769,5 @@ const createStyles = (colors: any) => StyleSheet.create({
     lineHeight: 18,
   },
 });
+
+

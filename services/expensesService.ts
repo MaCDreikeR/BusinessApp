@@ -53,7 +53,32 @@ export const expensesService = {
       query = query.eq('payment_method', filters.paymentMethod);
     }
 
-    const { data, error } = await query;
+    // Retry e timeout
+    const retryWithTimeout = async (fn: () => Promise<any>, retries = 2, timeout = 12000) => {
+      let lastError;
+      for (let i = 0; i <= retries; i++) {
+        try {
+          return await Promise.race([
+            fn(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeout))
+          ]);
+        } catch (err) {
+          lastError = err;
+          if (err?.message?.includes('permission') || err?.code === 'PGRST116') {
+            // Forçar signOut global se disponível
+            if (typeof window !== 'undefined' && window.signOut) window.signOut();
+            throw err;
+          }
+          if (i < retries) {
+            console.warn(`Retry ${i + 1} após erro:`, err);
+            await new Promise(res => setTimeout(res, 1000 * (i + 1)));
+          }
+        }
+      }
+      throw lastError;
+    };
+
+    const { data, error } = await retryWithTimeout(() => query);
 
     if (error) {
       console.error('Erro ao buscar despesas:', error);

@@ -30,7 +30,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { logger } from '../../utils/logger';
 import { Cliente as ClienteBase, Produto as ProdutoBase, Servico as ServicoBase, Pacote as PacoteBase, Comanda as ComandaBase } from '@types';
 import { offlineInsert, offlineUpdate, offlineDelete, getOfflineFeedback } from '../../services/offlineSupabase';
-import { Button } from '../../components/Button2';
+import { Button } from '../../components/Button';
 import { SelectionButton, SELECTION_BUTTON_CONTAINER_STYLE } from '../../components/Buttons';
 
 // Tipos específicos para comandas
@@ -200,10 +200,15 @@ export default function ComandasScreen() {
   const servicoButtonEditRef = useRef<any>(null);
   const pacoteButtonEditRef = useRef<any>(null);
   const origemNovaComandaRef = useRef({ x: 0, y: 0 });
+  const origemDetalhesComandaRef = useRef({ x: 0, y: 0 });
   const scaleNovaComandaAnim = useRef(new Animated.Value(0)).current;
   const opacityNovaComandaAnim = useRef(new Animated.Value(0)).current;
   const translateXNovaComandaAnim = useRef(new Animated.Value(0)).current;
   const translateYNovaComandaAnim = useRef(new Animated.Value(0)).current;
+  const scaleDetalhesComandaAnim = useRef(new Animated.Value(0)).current;
+  const opacityDetalhesComandaAnim = useRef(new Animated.Value(0)).current;
+  const translateXDetalhesComandaAnim = useRef(new Animated.Value(0)).current;
+  const translateYDetalhesComandaAnim = useRef(new Animated.Value(0)).current;
 
   const calcularDeslocamentoCentroItens = (origemX: number, origemY: number) => {
     const { width, height } = Dimensions.get('window');
@@ -295,7 +300,82 @@ export default function ComandasScreen() {
     });
   };
 
+  // Funções para animar o modal de detalhes da comanda
+  const abrirModalDetalhesComAnimacao = () => {
+    const { width, height } = Dimensions.get('window');
+    const { deltaX, deltaY } = calcularDeslocamentoCentroNovaComanda(width / 2, height / 2);
+
+    origemDetalhesComandaRef.current = { x: width / 2, y: height / 2 };
+    scaleDetalhesComandaAnim.setValue(0.25);
+    opacityDetalhesComandaAnim.setValue(0);
+    translateXDetalhesComandaAnim.setValue(deltaX);
+    translateYDetalhesComandaAnim.setValue(deltaY);
+    setModalVisible(true);
+
+    requestAnimationFrame(() => {
+      Animated.parallel([
+        Animated.spring(scaleDetalhesComandaAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 7,
+        }),
+        Animated.timing(opacityDetalhesComandaAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateXDetalhesComandaAnim, {
+          toValue: 0,
+          duration: 240,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateYDetalhesComandaAnim, {
+          toValue: 0,
+          duration: 240,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+  };
+
+  const fecharModalDetalhesComAnimacao = (onAfterClose?: () => void) => {
+    const { deltaX, deltaY } = calcularDeslocamentoCentroNovaComanda(origemDetalhesComandaRef.current.x, origemDetalhesComandaRef.current.y);
+
+    Animated.parallel([
+      Animated.timing(scaleDetalhesComandaAnim, {
+        toValue: 0.25,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityDetalhesComandaAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateXDetalhesComandaAnim, {
+        toValue: deltaX,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateYDetalhesComandaAnim, {
+        toValue: deltaY,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setModalVisible(false);
+      scaleDetalhesComandaAnim.setValue(0);
+      opacityDetalhesComandaAnim.setValue(0);
+      translateXDetalhesComandaAnim.setValue(0);
+      translateYDetalhesComandaAnim.setValue(0);
+      fecharModal();
+      onAfterClose?.();
+    });
+  };
+
   const iniciarAnimacaoAberturaItens = (origemX: number, origemY: number) => {
+    logger.debug('?? iniciarAnimacaoAberturaItens: origemX =', origemX, 'origemY =', origemY);
     const { deltaX, deltaY } = calcularDeslocamentoCentroItens(origemX, origemY);
     origemModalItensRef.current = { x: origemX, y: origemY };
 
@@ -303,7 +383,6 @@ export default function ComandasScreen() {
     opacityItensAnim.setValue(0);
     translateXItensAnim.setValue(deltaX);
     translateYItensAnim.setValue(deltaY);
-    setModalItensVisible(true);
 
     requestAnimationFrame(() => {
       Animated.parallel([
@@ -400,6 +479,23 @@ export default function ComandasScreen() {
     }
   }, [modalNovaComandaVisible]);
 
+  // useEffect para carregar itens quando o modal de seleção de itens é aberto
+  useEffect(() => {
+    logger.debug('?? useEffect ativado: modalItensVisible =', modalItensVisible, 'tipoItem =', tipoItem);
+    if (modalItensVisible && tipoItem) {
+      logger.debug('?? Chamando carregarItensIniciais...');
+      carregarItensIniciais();
+    }
+  }, [modalItensVisible, tipoItem]);
+
+  // useEffect para buscar itens quando o termo de busca muda
+  useEffect(() => {
+    if (modalItensVisible && tipoItem && termoBusca.trim() !== '') {
+      logger.debug('?? Buscando com termo:', termoBusca);
+      buscarItens(termoBusca);
+    }
+  }, [termoBusca, modalItensVisible, tipoItem]);
+
   // useEffect para garantir que a lista de clientes seja fechada quando um cliente é selecionado
   useEffect(() => {
     if (selectedCliente) {
@@ -476,68 +572,78 @@ export default function ComandasScreen() {
   // Função para buscar produtos
   const buscarProdutos = async (query: string) => {
     try {
-      setBuscandoItens(true);
+      logger.debug('?? buscarProdutos iniciada, query:', query, 'estabelecimentoId:', estabelecimentoId);
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      if (!user) {
+        logger.error('? Usuário não autenticado');
+        return [];
+      }
 
       const { data, error } = await supabase
         .from('produtos')
         .select('id, nome, preco, quantidade')
-  .eq('estabelecimento_id', estabelecimentoId)
+        .eq('estabelecimento_id', estabelecimentoId)
         .ilike('nome', `%${query}%`)
         .order('nome');
 
-      if (error) throw error;
+      if (error) {
+        logger.error('? Erro na query:', error);
+        throw error;
+      }
       
-      // Adicionar logs para debug
-      logger.debug('Query de busca:', query);
-      logger.debug('Produtos encontrados:', data);
+      logger.debug('? Produtos encontrados:', data?.length, 'itens');
       
       // Verificar se a quantidade está presente
       if (data && data.length > 0) {
-        logger.debug('Primeiro produto:', data[0]);
-        logger.debug('Quantidade do primeiro produto:', data[0].quantidade);
+        logger.debug('?? Primeiro produto:', data[0]);
       }
       
       return data || [];
     } catch (error) {
-      logger.error('Erro ao buscar produtos:', error);
+      logger.error('? Erro ao buscar produtos:', error);
       return [];
-    } finally {
-      setBuscandoItens(false);
     }
   };
 
   // Função para buscar serviços
   const buscarServicos = async (query: string) => {
     try {
-      setBuscandoItens(true);
+      logger.debug('?? buscarServicos iniciada, query:', query, 'estabelecimentoId:', estabelecimentoId);
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      if (!user) {
+        logger.error('? Usuário não autenticado');
+        return [];
+      }
 
       const { data, error } = await supabase
         .from('servicos')
         .select('*')
-  .eq('estabelecimento_id', estabelecimentoId)
+        .eq('estabelecimento_id', estabelecimentoId)
         .ilike('nome', `%${query}%`)
         .order('nome');
 
-      if (error) throw error;
+      if (error) {
+        logger.error('? Erro na query:', error);
+        throw error;
+      }
+      
+      logger.debug('? Serviços encontrados:', data?.length, 'itens');
       return data || [];
     } catch (error) {
-      logger.error('Erro ao buscar serviços:', error);
+      logger.error('? Erro ao buscar serviços:', error);
       return [];
-    } finally {
-      setBuscandoItens(false);
     }
   };
 
   // Função para buscar pacotes
   const buscarPacotes = async (query: string) => {
     try {
-      setBuscandoItens(true);
+      logger.debug('?? buscarPacotes iniciada, query:', query, 'estabelecimentoId:', estabelecimentoId);
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      if (!user) {
+        logger.error('? Usuário não autenticado');
+        return [];
+      }
 
       const { data, error } = await supabase
         .from('pacotes')
@@ -546,32 +652,43 @@ export default function ComandasScreen() {
         .ilike('nome', `%${query}%`)
         .order('nome');
 
-      if (error) throw error;
+      if (error) {
+        logger.error('? Erro na query:', error);
+        throw error;
+      }
+      
+      logger.debug('? Pacotes encontrados:', data?.length, 'itens');
       return data || [];
     } catch (error) {
-      logger.error('Erro ao buscar pacotes:', error);
+      logger.error('? Erro ao buscar pacotes:', error);
       return [];
-    } finally {
-      setBuscandoItens(false);
     }
   };
 
   // Função para carregar itens iniciais com base no tipo selecionado
   const carregarItensIniciais = async () => {
+    logger.debug('? carregarItensIniciais chamada, tipoItem:', tipoItem, 'modalItensVisible:', modalItensVisible);
     setBuscandoItens(true);
     try {
       let resultados;
       switch (tipoItem) {
         case 'produto':
+          logger.debug('?? Carregando produtos...');
           resultados = await buscarProdutos('');
+          logger.debug('?? Produtos retornados:', resultados?.length);
           break;
         case 'servico':
+          logger.debug('?? Carregando serviços...');
           resultados = await buscarServicos('');
+          logger.debug('?? Serviços retornados:', resultados?.length);
           break;
         case 'pacote':
+          logger.debug('?? Carregando pacotes...');
           resultados = await buscarPacotes('');
+          logger.debug('?? Pacotes retornados:', resultados?.length);
           break;
       }
+      logger.debug('?? Atualizando itensEncontrados com:', resultados?.length, 'itens');
       setItensEncontrados(resultados || []);
     } catch (error) {
       logger.error('Erro ao carregar itens iniciais:', error);
@@ -711,13 +828,6 @@ export default function ComandasScreen() {
     setItensSelecionados([]);
     // O valorTotal será automaticamente calculado para 0 pelo useEffect
   };
-
-  // useEffect para carregar itens quando o modal é aberto
-  useEffect(() => {
-    if (modalItensVisible) {
-      carregarItensIniciais();
-    }
-  }, [modalItensVisible, tipoItem]);
 
   // useEffect para recalcular o valor total sempre que os itens selecionados mudarem
   useEffect(() => {
@@ -1096,15 +1206,7 @@ export default function ComandasScreen() {
   // Função para abrir uma comanda e exibir seus detalhes
   const abrirComanda = (comanda: ComandaDetalhada) => {
     setComandaEmEdicao(comanda);
-    setModalVisible(true);
-    
-    // Animar a entrada do modal
-    Animated.spring(translateY, {
-      toValue: 0,
-      tension: 40,
-      friction: 8,
-      useNativeDriver: true,
-    }).start();
+    abrirModalDetalhesComAnimacao();
   };
   
   // Função para fechar uma comanda
@@ -1673,8 +1775,10 @@ export default function ComandasScreen() {
     tipo: 'produto' | 'servico' | 'pacote',
     origemRef?: React.RefObject<any>
   ) => {
+    logger.debug('?? abrirModalItens chamado com tipo:', tipo);
     setTipoItem(tipo);
     setTermoBusca('');
+    setModalItensVisible(true); // Abrir o modal IMEDIATAMENTE
 
     const fallbackOrigem = () => {
       const { width, height } = Dimensions.get('window');
@@ -2578,29 +2682,38 @@ export default function ComandasScreen() {
         visible={modalVisible}
         animationType="none"
         transparent={true}
-        onRequestClose={fecharModal}
+        onRequestClose={() => fecharModalDetalhesComAnimacao()}
       >
-        <View style={styles.modalContainer}>
-          <Animated.View 
+        <View style={styles.modalBackdrop}>
+          <Pressable 
+            style={StyleSheet.absoluteFill} 
+            onPress={() => fecharModalDetalhesComAnimacao()} 
+          />
+          <Animated.View
             style={[
-              styles.modalContent,
-              { transform: [{ translateY: translateY }] }
+              styles.modalCardLarge,
+              {
+                transform: [
+                  { translateX: translateXDetalhesComandaAnim },
+                  { translateY: translateYDetalhesComandaAnim },
+                  { scale: scaleDetalhesComandaAnim },
+                ],
+                opacity: opacityDetalhesComandaAnim,
+              }
             ]}
           >
-            <View {...panResponder.panHandlers}>
-              <View style={styles.modalDragIndicator} />
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Detalhes da Comanda</Text>
-              </View>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Detalhes da Comanda</Text>
             </View>
             
             {comandaEmEdicao && (
               <ScrollView 
                 style={[styles.modalBody]}
                 contentContainerStyle={styles.modalScrollContent}
-                nestedScrollEnabled={true}
-                disableScrollViewPanResponder={true}
                 keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={true}
+                scrollEventThrottle={16}
+                bounces={true}
               >
                 <View style={styles.comandaDetailHeader}>
                   <View style={styles.comandaDetailClienteContainer}>
@@ -2950,16 +3063,16 @@ export default function ComandasScreen() {
                       <View style={styles.crediarioInfoBox}>
                         <View style={styles.crediarioInfoRow}>
                           <FontAwesome5 
-                            name={comandaEmEdicao.saldo_aplicado > 0 ? "minus-circle" : "plus-circle"} 
+                            name={comandaEmEdicao.saldo_aplicado > 0 ? "plus-circle" : "minus-circle"} 
                             size={16} 
-                            color={comandaEmEdicao.saldo_aplicado > 0 ? colors.success : colors.error} 
+                            color={comandaEmEdicao.saldo_aplicado > 0 ? colors.error : colors.success} 
                           />
                           <Text style={styles.crediarioInfoLabel}>
-                            {comandaEmEdicao.saldo_aplicado > 0 ? 'Crédito usado:' : 'Débito quitado:'}
+                            {comandaEmEdicao.saldo_aplicado > 0 ? 'Débito quitado:' : 'Crédito usado:'}
                           </Text>
                           <Text style={[
                             styles.crediarioInfoValue,
-                            { color: comandaEmEdicao.saldo_aplicado > 0 ? colors.success : colors.error }
+                            { color: comandaEmEdicao.saldo_aplicado > 0 ? colors.error : colors.success }
                           ]}>
                             {Math.abs(comandaEmEdicao.saldo_aplicado).toLocaleString('pt-BR', {
                               style: 'currency',
@@ -2974,7 +3087,7 @@ export default function ComandasScreen() {
                       <View style={styles.crediarioInfoBox}>
                         <View style={styles.crediarioInfoRow}>
                           <FontAwesome5 name="plus-circle" size={16} color={colors.success} />
-                          <Text style={styles.crediarioInfoLabel}>Troco → Crédito:</Text>
+                          <Text style={styles.crediarioInfoLabel}>Troco ? Crédito:</Text>
                           <Text style={[styles.crediarioInfoValue, { color: colors.success }]}>
                             +{comandaEmEdicao.troco_para_credito.toLocaleString('pt-BR', {
                               style: 'currency',
@@ -2989,7 +3102,7 @@ export default function ComandasScreen() {
                       <View style={styles.crediarioInfoBox}>
                         <View style={styles.crediarioInfoRow}>
                           <FontAwesome5 name="minus-circle" size={16} color={colors.error} />
-                          <Text style={styles.crediarioInfoLabel}>Falta → Débito:</Text>
+                          <Text style={styles.crediarioInfoLabel}>Falta ? Débito:</Text>
                           <Text style={[styles.crediarioInfoValue, { color: colors.error }]}>
                             -{comandaEmEdicao.falta_para_debito.toLocaleString('pt-BR', {
                               style: 'currency',
@@ -3111,7 +3224,7 @@ export default function ComandasScreen() {
               }
             ]}
           >
-          <Pressable onPress={(e) => e.stopPropagation()}>
+          <Pressable onPress={(e) => e.stopPropagation()} style={{ flex: 1, flexDirection: 'column' }}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 Selecionar {tipoItem === 'produto' ? 'Produtos' : 
@@ -3306,7 +3419,7 @@ export default function ComandasScreen() {
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 4 }}>
-                        {saldoCrediario && saldoCrediario > 0 ? '✓ Crédito aplicado' : '⚠ Débito adicionado'}
+                        {saldoCrediario && saldoCrediario > 0 ? '? Crédito aplicado' : '? Débito adicionado'}
                       </Text>
                       <Text style={{ 
                         fontSize: 16, 
@@ -3731,7 +3844,7 @@ export default function ComandasScreen() {
         <View style={styles.optionsModalContainer}>
           <View style={[styles.optionsModalContent, { maxWidth: 420 }]}> 
             <Text style={[styles.modalTitle, { textAlign: 'center', marginBottom: 12 }]}>
-              {tipoTrocoFalta === 'troco' ? '💰 Troco Disponível' : '⚠️ Valor em Falta'}
+              {tipoTrocoFalta === 'troco' ? '?? Troco Disponível' : '?? Valor em Falta'}
             </Text>
             <Text style={{ textAlign: 'center', marginBottom: 12, color: colors.text }}>
               {tipoTrocoFalta === 'troco' 
@@ -4195,11 +4308,17 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   // REMOVIDO: usar SELECTION_BUTTON_CONTAINER_STYLE importado de Buttons.tsx
   comandaActions: {
+    position: 'absolute' as const,
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 16,
+    paddingBottom: 20,
     borderTopWidth: 1,
     borderTopColor: colors.border,
+    backgroundColor: colors.surface,
   },
   cancelarComandaButton: {
     flex: 1,
@@ -4347,6 +4466,8 @@ const createStyles = (colors: any) => StyleSheet.create({
     elevation: 20,
   },
   modalCardLarge: {
+    flex: 1,
+    flexDirection: 'column',
     backgroundColor: colors.surface,
     borderRadius: 24,
     maxWidth: 500,
@@ -4360,15 +4481,35 @@ const createStyles = (colors: any) => StyleSheet.create({
     shadowRadius: 30,
     elevation: 20,
   },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
   modalContent: {
     flex: 1,
+    flexDirection: 'column',
+    backgroundColor: colors.surface,
+    maxHeight: '85%',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
+  },
+  modalDragIndicator: {
+    width: 40,
+    height: 4,
+    backgroundColor: colors.border,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 8,
+    marginBottom: 4,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingTop: 24,
+    paddingTop: 12,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
@@ -4384,7 +4525,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   modalScrollContent: {
     paddingHorizontal: 24,
     paddingTop: 16,
-    paddingBottom: 20,
+    paddingBottom: 80,  /* Espaço para os  botões fixos */
   },
   modalFooter: {
     flexDirection: 'row',
@@ -5391,3 +5532,5 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.textDisabled,
   },
 }); 
+
+

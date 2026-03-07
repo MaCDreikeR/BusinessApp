@@ -36,6 +36,13 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 
+# Debug logs and temp scripts (do not commit)
+logs-*.txt
+test-*.js
+fix-*.ps1
+prebuild.log
+capturar-logs.ps1
+
 # macOS
 .DS_Store
 *.pem
@@ -60,3 +67,9 @@ public/
 .expo/
 *.tgz
 BusinessApp-production.apk
+
+# Python virtual environment (not used)
+.venv/
+
+# Old/duplicate database migrations (use supabase/migrations/)
+database/

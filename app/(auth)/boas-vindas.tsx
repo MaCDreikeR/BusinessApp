@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Image, Dimensions, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+﻿import { View, Text, StyleSheet, Image, Dimensions, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -9,7 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
 import { logger } from '../../utils/logger';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Button } from '../../components/Button2';
+import { Button } from '../../components/Button';
 
 const { width, height } = Dimensions.get('window');
 
@@ -26,7 +26,7 @@ export default function BoasVindas() {
     setIsLoading(true);
     try {
       await AsyncStorage.setItem('@hasSeenWelcome', 'true');
-      // Use o caminho absoluto com o grupo para evitar conflitos com o guardião do layout
+        // Use o caminho absoluto com o grupo para evitar conflitos com o guardião do layout
       router.replace('/(auth)/login');
     } catch (error) {
       logger.error('Erro ao salvar estado de boas-vindas:', error);
@@ -57,7 +57,7 @@ export default function BoasVindas() {
           >
             <Text style={styles.title}>AppBusiness</Text>
             <Text style={styles.subtitle}>
-              Todo o seu negócio na palma da mão, Controle de estoque, agendamento de serviços, cadastro de clientes, venda de produtos e muito mais!
+                Todo o seu negócio na palma da mão, Controle de estoque, agendamento de serviços, cadastro de clientes, venda de produtos e muito mais!
             </Text>
           </Animated.View>
 
@@ -78,7 +78,7 @@ export default function BoasVindas() {
                 <View style={styles.cardTextContainer}>
                   <Text style={[styles.cardTitle, { color: colors.text }]}>Agenda Inteligente</Text>
                   <Text style={[styles.cardText, { color: colors.textSecondary }]}>
-                    Organize seus horários de forma eficiente e evite conflitos
+                      Organize seus horários de forma eficiente e evite conflitos
                   </Text>
                 </View>
               </View>
@@ -86,9 +86,9 @@ export default function BoasVindas() {
               <View style={[styles.card, { backgroundColor: colors.background, borderColor: colors.borderLight }] }>
                 <Ionicons name="people-outline" size={24} color={colors.primary} />
                 <View style={styles.cardTextContainer}>
-                  <Text style={[styles.cardTitle, { color: colors.text }]}>Gestão de Clientes</Text>
+                  <Text style={[styles.cardTitle, { color: colors.text }]}>GestÃ£o de Clientes</Text>
                   <Text style={[styles.cardText, { color: colors.textSecondary }]}>
-                    Cadastre e acompanhe o histórico de seus clientes
+                      Cadastre e acompanhe o histórico de seus clientes
                   </Text>
                 </View>
               </View>
@@ -113,7 +113,7 @@ export default function BoasVindas() {
               fullWidth
               style={{ marginTop: 8 }}
             >
-              Começar Agora
+                Começar Agora
             </Button>
           </Animated.View>
         </ScrollView>
@@ -236,3 +236,4 @@ const createStyles = (colors: any) => StyleSheet.create({
     lineHeight: 20,
   },
 }); 
+

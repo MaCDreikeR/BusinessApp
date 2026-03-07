@@ -1,4 +1,4 @@
-Ôªøimport React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
   Alert, ActivityIndicator, TextInput, Linking
@@ -54,11 +54,11 @@ export default function SelecionarContatoScreen() {
         setContatosFiltrados(contatosOrdenados);
       }
     } else {
-      // Se a permiss√£o for negada, atualizamos o estado
+      // Se a permiss„o for negada, atualizamos o estado
       setPermissaoConcedida(false);
       Alert.alert(
-        "Permiss√£o Necess√°ria",
-        "O acesso aos contatos foi negado. Para usar esta funcionalidade, por favor, habilite a permiss√£o nas configura√ß√µes do seu dispositivo."
+        "Permiss„o Necess·ria",
+        "O acesso aos contatos foi negado. Para usar esta funcionalidade, por favor, habilite a permiss„o nas configuraÁıes do seu dispositivo."
       );
     }
     setLoading(false);
@@ -77,7 +77,7 @@ export default function SelecionarContatoScreen() {
   };
   
   const handleSelecionarContato = (contato: Contato) => {
-    // L√≥gica para quando um contato √© selecionado
+    // LÛgica para quando um contato È selecionado
     // Por exemplo, voltar para a tela anterior e passar os dados
     logger.debug('Contato Selecionado:', contato);
     navigation.goBack(); 
@@ -90,7 +90,7 @@ export default function SelecionarContatoScreen() {
       </View>
       <View style={styles.infoContainer}>
         <Text style={styles.nome}>{item.name}</Text>
-        <Text style={styles.telefone}>{item.phoneNumbers ? item.phoneNumbers[0].number : 'Sem n√∫mero'}</Text>
+        <Text style={styles.telefone}>{item.phoneNumbers ? item.phoneNumbers[0].number : 'Sem n˙mero'}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -103,17 +103,17 @@ export default function SelecionarContatoScreen() {
     );
   }
 
-  // Se a permiss√£o foi negada, exibe a tela de aviso
+  // Se a permiss„o foi negada, exibe a tela de aviso
   if (!permissaoConcedida) {
     return (
       <View style={styles.centeredContainer}>
         <Ionicons name="people-circle-outline" size={80} color="#D1D5DB" />
-        <Text style={styles.permissaoTitulo}>Acesso aos Contatos Necess√°rio</Text>
+        <Text style={styles.permissaoTitulo}>Acesso aos Contatos Necess·rio</Text>
         <Text style={styles.permissaoTexto}>
-          Para adicionar clientes a partir da sua agenda, precisamos da sua permiss√£o para acessar seus contatos.
+          Para adicionar clientes a partir da sua agenda, precisamos da sua permiss„o para acessar seus contatos.
         </Text>
         <TouchableOpacity style={styles.botaoPermissao} onPress={() => Linking.openSettings()}>
-          <Text style={styles.botaoPermissaoTexto}>Abrir Configura√ß√µes</Text>
+          <Text style={styles.botaoPermissaoTexto}>Abrir ConfiguraÁıes</Text>
         </TouchableOpacity>
       </View>
     );
@@ -145,7 +145,7 @@ export default function SelecionarContatoScreen() {
   );
 }
 
-// Fun√ß√£o auxiliar para criar estilos din√¢micos
+// FunÁ„o auxiliar para criar estilos din‚micos
 const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
@@ -240,3 +240,4 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontWeight: '600',
   },
 });
+

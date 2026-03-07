@@ -501,3 +501,4 @@ const styles = StyleSheet.create({
     borderColor: '#4B5563',
   },
 });
+

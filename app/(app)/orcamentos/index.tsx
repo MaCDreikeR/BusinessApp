@@ -1,4 +1,4 @@
-ï»¿import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Animated, ActivityIndicator, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Animated, ActivityIndicator, TextInput, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
@@ -106,8 +106,8 @@ export default function OrcamentosScreen() {
       setOrcamentos(data);
       setOrcamentosFiltrados(data);
     } catch (error) {
-      logger.error('Erro ao carregar orÃ§amentos:', error);
-      Alert.alert('Erro', 'NÃ£o foi possÃ­vel carregar os orÃ§amentos');
+      logger.error('Erro ao carregar orçamentos:', error);
+      Alert.alert('Erro', 'Não foi possível carregar os orçamentos');
     } finally {
       setLoading(false);
     }
@@ -194,8 +194,8 @@ export default function OrcamentosScreen() {
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
               {busca.length > 0 
-                ? 'Nenhum orÃ§amento encontrado para esta busca'
-                : 'Nenhum orÃ§amento cadastrado'}
+                ? 'Nenhum orçamento encontrado para esta busca'
+                : 'Nenhum orçamento cadastrado'}
             </Text>
           </View>
         )}
@@ -204,7 +204,7 @@ export default function OrcamentosScreen() {
   );
 }
 
-// FunÃ§Ã£o auxiliar para criar estilos dinÃ¢micos
+// Função auxiliar para criar estilos dinâmicos
 const createStyles = (colors: any) => StyleSheet.create({
   list: {
     padding: 16,
@@ -337,3 +337,4 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 4,
   },
 });
+

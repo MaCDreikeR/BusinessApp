@@ -12,7 +12,7 @@ import { Cliente as ClienteBase } from '@types';
 import { formatarTelefoneInput, formatarDataInput, somenteNumeros } from '../../../utils/validators';
 import { offlineUpdate, offlineDelete, getOfflineFeedback } from '../../../services/offlineSupabase';
 import { CacheManager, CacheNamespaces } from '../../../utils/cacheManager';
-import { Button } from '../../../components/Button2';
+import { Button } from '../../../components/Button';
 
 type ClienteDetalhes = Pick<ClienteBase, 'id' | 'nome' | 'telefone' | 'email' | 'observacoes' | 'estabelecimento_id'> & {
   foto_url: string | null;

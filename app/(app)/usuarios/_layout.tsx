@@ -1,4 +1,4 @@
-﻿import { Stack } from 'expo-router';
+import { Stack } from 'expo-router';
 import { TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerToggleButton } from '@react-navigation/drawer';
@@ -24,7 +24,7 @@ export default function UsuariosLayout() {
       <Stack.Screen
         name="index"
         options={{
-          title: 'Usuários',
+          title: 'Usu�rios',
           headerShown: true,
         }}
       />
@@ -42,3 +42,4 @@ export default function UsuariosLayout() {
     </Stack>
   );
 }
+
