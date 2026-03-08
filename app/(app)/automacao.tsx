@@ -19,7 +19,7 @@ export default function AutomacaoScreen() {
   const { estabelecimentoId } = useAuth();
   const { colors } = useTheme();
   
-  // Estilos din�micos baseados no tema
+  // Estilos dinâmicos baseados no tema
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [tab, setTab] = useState<TabType>('agendamentos');
   const [modeloAgendamento, setModeloAgendamento] = useState('');
@@ -52,17 +52,17 @@ export default function AutomacaoScreen() {
       Alert.alert('Sucesso', 'Modelo de mensagem de agendamento salvo.');
     } catch (e) {
       logger.error(e);
-      Alert.alert('Erro', 'N�o foi poss�vel salvar o modelo.');
+      Alert.alert('Erro', 'Não foi possível salvar o modelo.');
     }
   };
 
   const onSalvarAniversariante = async () => {
     try {
       await salvarModeloAniversariante(modeloAniversariante, estabelecimentoId || undefined);
-      Alert.alert('Sucesso', 'Modelo de mensagem de anivers�rio salvo.');
+      Alert.alert('Sucesso', 'Modelo de mensagem de aniversário salvo.');
     } catch (e) {
       logger.error(e);
-      Alert.alert('Erro', 'N�o foi poss�vel salvar o modelo.');
+      Alert.alert('Erro', 'Não foi possível salvar o modelo.');
     }
   };
 
@@ -94,7 +94,7 @@ export default function AutomacaoScreen() {
           <Text style={styles.title}>Mensagem de agendamento</Text>
           <Text style={styles.help}>
             Use os placeholders:
-            {'\n'}� {`{cliente}`} � {`{data}`} � {`{hora}`} � {`{dia}`} {'\n'}� {`{servico}`} � {`{empresa}`} � {`{valor}`}
+            {'\n'}• {`{cliente}`} • {`{data}`} • {`{hora}`} • {`{dia}`} {'\n'}• {`{servico}`} • {`{empresa}`} • {`{valor}`}
           </Text>
           <TextInput
             multiline
@@ -118,16 +118,16 @@ export default function AutomacaoScreen() {
 
       {tab === 'aniversariantes' && (
         <ScrollView contentContainerStyle={styles.content}>
-          <Text style={styles.title}>Mensagem de anivers�rio</Text>
+          <Text style={styles.title}>Mensagem de aniversário</Text>
           <Text style={styles.help}>
             Use os placeholders:
-            {'\n'}� {`{cliente}`} � {`{idade}`} � {`{data_nascimento}`} � {`{empresa}`}
+            {'\n'}• {`{cliente}`} • {`{idade}`} • {`{data_nascimento}`} • {`{empresa}`}
           </Text>
           <TextInput
             multiline
             value={modeloAniversariante}
             onChangeText={setModeloAniversariante}
-            placeholder="Digite o modelo da mensagem de anivers�rio..."
+            placeholder="Digite o modelo da mensagem de aniversário..."
             style={styles.textarea}
             editable={!loading}
           />
@@ -146,7 +146,7 @@ export default function AutomacaoScreen() {
   );
 }
 
-// Fun��o auxiliar para criar estilos din�micos
+// Função auxiliar para criar estilos dinâmicos
 const createStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surface },
   tabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#eee' },
@@ -163,4 +163,3 @@ const createStyles = (colors: any) => StyleSheet.create({
   buttonPrimary: { backgroundColor: colors.successBackground, borderWidth: 1, borderColor: colors.success },
   buttonPrimaryText: { color: '#065F46', fontWeight: '700' },
 });
-

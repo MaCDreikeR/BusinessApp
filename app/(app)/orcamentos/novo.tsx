@@ -48,7 +48,7 @@ export default function NovoOrcamentoScreen() {
   const [buscandoClientes, setBuscandoClientes] = useState(false);
   const [mostrarLista, setMostrarLista] = useState(false);
 
-  // Estados para itens do or�amento
+  // Estados para itens do orçamento
   const [itemAtual, setItemAtual] = useState('');
   const [quantidadeAtual, setQuantidadeAtual] = useState('1');
   const [valorItemAtual, setValorItemAtual] = useState('');
@@ -68,7 +68,7 @@ export default function NovoOrcamentoScreen() {
   const [mostrarListaProdutos, setMostrarListaProdutos] = useState(false);
   const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null);
 
-  // Estados para busca de servi�os
+  // Estados para busca de serviços
   const [servicosEncontrados, setServicosEncontrados] = useState<Servico[]>([]);
   const [buscandoServicos, setBuscandoServicos] = useState(false);
   const [mostrarListaServicos, setMostrarListaServicos] = useState(false);
@@ -83,7 +83,7 @@ export default function NovoOrcamentoScreen() {
   // Estados para tipo de item
   const [tipoItem, setTipoItem] = useState<'produto' | 'servico' | 'pacote'>('produto');
 
-  // Estados para modal de sele��o de itens
+  // Estados para modal de seleção de itens
   const [modalVisible, setModalVisible] = useState(false);
   const [itensSelecionados, setItensSelecionados] = useState<ItemSelecionado[]>([]);
   const [termoBusca, setTermoBusca] = useState('');
@@ -204,7 +204,7 @@ export default function NovoOrcamentoScreen() {
     });
   };
 
-  // Fun��o para carregar itens iniciais
+  // Função para carregar itens iniciais
   const carregarItensIniciais = useCallback(async () => {
     setBuscandoItens(true);
     try {
@@ -229,7 +229,7 @@ export default function NovoOrcamentoScreen() {
     }
   }, [tipoItem]);
 
-  // Carrega itens quando o modal � aberto
+  // Carrega itens quando o modal é aberto
   useEffect(() => {
     if (modalVisible) {
       carregarItensIniciais();
@@ -332,11 +332,11 @@ export default function NovoOrcamentoScreen() {
     setBuscandoServicos(true);
     try {
       const servicos = await buscarServicos(nome);
-      logger.debug('Servi�os encontrados:', servicos);
+      logger.debug('Serviços encontrados:', servicos);
       setServicosEncontrados(servicos);
       setMostrarListaServicos(true);
     } catch (error) {
-      logger.error('Erro ao buscar servi�os:', error);
+      logger.error('Erro ao buscar serviços:', error);
       setServicosEncontrados([]);
       setMostrarListaServicos(false);
     } finally {
@@ -389,7 +389,7 @@ export default function NovoOrcamentoScreen() {
     logger.debug('Produto selecionado:', produto);
     if (!produto.id) {
       logger.error('Produto sem ID:', produto);
-      Alert.alert('Erro', 'Produto inv�lido');
+      Alert.alert('Erro', 'Produto inválido');
       return;
     }
     setProdutoSelecionado(produto);
@@ -400,10 +400,10 @@ export default function NovoOrcamentoScreen() {
   };
 
   const handleSelecionarServico = (servico: Servico) => {
-    logger.debug('Servi�o selecionado:', servico);
+    logger.debug('Serviço selecionado:', servico);
     if (!servico.id) {
-      logger.error('Servi�o sem ID:', servico);
-      Alert.alert('Erro', 'Servi�o inv�lido');
+      logger.error('Serviço sem ID:', servico);
+      Alert.alert('Erro', 'Serviço inválido');
       return;
     }
     setServicoSelecionado(servico);
@@ -417,7 +417,7 @@ export default function NovoOrcamentoScreen() {
     logger.debug('Pacote selecionado:', pacote);
     if (!pacote.id) {
       logger.error('Pacote sem ID:', pacote);
-      Alert.alert('Erro', 'Pacote inv�lido');
+      Alert.alert('Erro', 'Pacote inválido');
       return;
     }
     setPacoteSelecionado(pacote);
@@ -429,13 +429,13 @@ export default function NovoOrcamentoScreen() {
 
   const handleAdicionarItem = () => {
     if (!itemAtual.trim()) {
-      Alert.alert('Erro', 'Digite a descri��o do item');
+      Alert.alert('Erro', 'Digite a descrição do item');
       return;
     }
 
     const quantidade = parseInt(quantidadeAtual);
     if (isNaN(quantidade) || quantidade <= 0) {
-      Alert.alert('Erro', 'Quantidade inv�lida');
+      Alert.alert('Erro', 'Quantidade inválida');
       return;
     }
 
@@ -445,7 +445,7 @@ export default function NovoOrcamentoScreen() {
     switch (tipoItem) {
       case 'produto':
         if (!produtoSelecionado?.id) {
-          Alert.alert('Erro', 'Selecione um produto v�lido');
+          Alert.alert('Erro', 'Selecione um produto válido');
           return;
         }
         produto_id = produtoSelecionado.id;
@@ -453,7 +453,7 @@ export default function NovoOrcamentoScreen() {
         break;
       case 'servico':
         if (!servicoSelecionado?.id) {
-          Alert.alert('Erro', 'Selecione um servi�o v�lido');
+          Alert.alert('Erro', 'Selecione um serviço válido');
           return;
         }
         servico_id = servicoSelecionado.id;
@@ -461,7 +461,7 @@ export default function NovoOrcamentoScreen() {
         break;
       case 'pacote':
         if (!pacoteSelecionado?.id) {
-          Alert.alert('Erro', 'Selecione um pacote v�lido');
+          Alert.alert('Erro', 'Selecione um pacote válido');
           return;
         }
         pacote_id = pacoteSelecionado.id;
@@ -495,7 +495,7 @@ export default function NovoOrcamentoScreen() {
     setItens(itens.filter((_, i) => i !== index));
   };
 
-  // Fun��o para buscar itens baseado no tipo selecionado
+  // Função para buscar itens baseado no tipo selecionado
   const buscarItens = useCallback(async (termo: string) => {
     if (termo.length < 3) {
       carregarItensIniciais();
@@ -536,7 +536,7 @@ export default function NovoOrcamentoScreen() {
     logger.debug('Item selecionado:', item);
     if (!item.id) {
       logger.error('Item sem ID:', item);
-      Alert.alert('Erro', 'Item inv�lido');
+      Alert.alert('Erro', 'Item inválido');
       return;
     }
 
@@ -544,17 +544,17 @@ export default function NovoOrcamentoScreen() {
     const tipo = tipoItem;
     logger.debug('Tipo do item:', tipo);
 
-    // Verifica se o item j� foi selecionado
+    // Verifica se o item já foi selecionado
     const itemJaSelecionado = itensSelecionados.find(i => i.id === item.id);
     
     if (!itemJaSelecionado) {
-      // Se n�o foi selecionado, adiciona � lista com o tipo correto
+      // Se não foi selecionado, adiciona à lista com o tipo correto
       const itemSelecionado: ItemSelecionado = {
         id: item.id,
         nome: item.nome,
         preco: 'valor' in item && 'desconto' in item 
           ? Number(item.valor) - Number(item.desconto || 0) // Para pacotes: valor final
-          : 'preco' in item ? Number(item.preco) : 0, // Para produtos/servi�os: pre�o normal
+          : 'preco' in item ? Number(item.preco) : 0, // Para produtos/serviços: preço normal
         quantidade: 1,
         tipo: tipo // Usa o tipo do modal
       };
@@ -562,7 +562,7 @@ export default function NovoOrcamentoScreen() {
       logger.debug('ItemSelecionado criado:', itemSelecionado);
       setItensSelecionados(prev => [...prev, itemSelecionado]);
     } else {
-      // Se j� foi selecionado, remove da lista
+      // Se já foi selecionado, remove da lista
       setItensSelecionados(prev => prev.filter(i => i.id !== item.id));
     }
   };
@@ -604,7 +604,7 @@ export default function NovoOrcamentoScreen() {
     logger.debug('Novos itens a serem adicionados:', novosItens);
     setItens(prev => {
       const itensAtualizados = [...prev, ...novosItens];
-      logger.debug('Itens ap�s atualiza��o:', itensAtualizados);
+      logger.debug('Itens após atualização:', itensAtualizados);
       return itensAtualizados;
     });
     setItensSelecionados([]);
@@ -612,28 +612,28 @@ export default function NovoOrcamentoScreen() {
     fecharModalComAnimacao();
   };
 
-  // Adicionar useEffect para monitorar mudan�as no estado itens
+  // Adicionar useEffect para monitorar mudanças no estado itens
   useEffect(() => {
     logger.debug('Estado itens atualizado:', itens);
   }, [itens]);
 
-  // Adicionar useEffect para monitorar mudan�as no estado itensSelecionados
+  // Adicionar useEffect para monitorar mudanças no estado itensSelecionados
   useEffect(() => {
     logger.debug('Estado itensSelecionados atualizado:', itensSelecionados);
   }, [itensSelecionados]);
 
-  // Adicionar useEffect para monitorar mudan�as no estado modalVisible
+  // Adicionar useEffect para monitorar mudanças no estado modalVisible
   useEffect(() => {
     logger.debug('Estado modalVisible atualizado:', modalVisible);
   }, [modalVisible]);
 
-  // Fun��es de valida��o
+  // Funções de validação
   const validarValor = (valor: string) => {
     const valorNumerico = parseFloat(valor.replace(',', '.'));
     return !isNaN(valorNumerico) && valorNumerico > 0;
   };
 
-  // Fun��o para validar data
+  // Função para validar data
   const validarData = (data: string) => {
     const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
     if (!regex.test(data)) return false;
@@ -641,7 +641,7 @@ export default function NovoOrcamentoScreen() {
     const [, dia, mes, ano] = data.match(regex) || [];
     const dataObj = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
     
-    // Verifica se a data � v�lida e n�o � futura
+    // Verifica se a data é válida e não é futura
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     
@@ -654,12 +654,12 @@ export default function NovoOrcamentoScreen() {
     try {
       logger.debug('Itens antes de salvar:', itens);
       
-      // Valida��o dos IDs dos produtos
+      // Validação dos IDs dos produtos
       for (const item of itens) {
         if (item.tipo === 'produto' && item.produto_id) {
           const produto = await buscarProdutos(item.descricao);
           if (!produto.some(p => p.id === item.produto_id)) {
-            Alert.alert('Erro', `Produto "${item.descricao}" n�o encontrado no banco de dados. Por favor, remova-o e adicione novamente.`);
+            Alert.alert('Erro', `Produto "${item.descricao}" não encontrado no banco de dados. Por favor, remova-o e adicione novamente.`);
             return;
           }
         }
@@ -671,7 +671,7 @@ export default function NovoOrcamentoScreen() {
       }
 
       if (itens.length === 0) {
-        Alert.alert('Erro', 'Adicione pelo menos um item ao or�amento');
+        Alert.alert('Erro', 'Adicione pelo menos um item ao orçamento');
         return;
       }
 
@@ -682,7 +682,7 @@ export default function NovoOrcamentoScreen() {
 
       setLoading(true);
 
-      // Cria o or�amento com a data e hora atual
+      // Cria o orçamento com a data e hora atual
       const dataAtual = new Date();
       
       const novoOrcamento = await criarOrcamento({
@@ -697,9 +697,9 @@ export default function NovoOrcamentoScreen() {
         observacoes: observacoes || undefined
       });
 
-      logger.debug('Or�amento criado:', novoOrcamento);
+      logger.debug('Orçamento criado:', novoOrcamento);
 
-      // Adiciona os itens do or�amento
+      // Adiciona os itens do orçamento
       for (const item of itens) {
         logger.debug('Processando item para salvar:', item);
         const itemBase = {
@@ -718,7 +718,7 @@ export default function NovoOrcamentoScreen() {
             break;
           case 'servico':
             itemParaSalvar = { ...itemBase, servico_id: item.servico_id };
-            logger.debug('Item servi�o para salvar:', itemParaSalvar);
+            logger.debug('Item serviço para salvar:', itemParaSalvar);
             break;
           case 'pacote':
             itemParaSalvar = { ...itemBase, pacote_id: item.pacote_id };
@@ -731,15 +731,15 @@ export default function NovoOrcamentoScreen() {
         await adicionarItemOrcamento(itemParaSalvar);
       }
 
-      Alert.alert('Sucesso', 'Or�amento criado com sucesso!', [
+      Alert.alert('Sucesso', 'Orçamento criado com sucesso!', [
         {
           text: 'OK',
           onPress: () => router.replace('/(app)/orcamentos')
         }
       ]);
     } catch (error) {
-      logger.error('Erro ao salvar or�amento:', error);
-      Alert.alert('Erro', 'N�o foi poss�vel salvar o or�amento');
+      logger.error('Erro ao salvar orçamento:', error);
+      Alert.alert('Erro', 'Não foi possível salvar o orçamento');
     } finally {
       setLoading(false);
     }
@@ -748,9 +748,9 @@ export default function NovoOrcamentoScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.form}>
-        {/* Se��o Cliente */}
+        {/* Seção Cliente */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Informa��es do Cliente</Text>
+          <Text style={styles.sectionTitle}>Informações do Cliente</Text>
           <View style={styles.field}>
             <Text style={styles.label}>Nome do Cliente</Text>
             <View style={styles.clienteContainer}>
@@ -802,7 +802,7 @@ export default function NovoOrcamentoScreen() {
             {cliente.length > 0 && (!clientesEncontrados || clientesEncontrados.length === 0) && !buscandoClientes && (
               <View style={styles.clienteNaoEncontrado}>
                 <Text style={styles.clienteNaoEncontradoText}>
-                  Cliente n�o encontrado
+                  Cliente não encontrado
                 </Text>
                 <TouchableOpacity
                   style={styles.cadastrarClienteButton}
@@ -831,9 +831,9 @@ export default function NovoOrcamentoScreen() {
           </View>
         </View>
 
-        {/* Se��o Itens */}
+        {/* Seção Itens */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Itens do Or�amento</Text>
+          <Text style={styles.sectionTitle}>Itens do Orçamento</Text>
           
           <View style={styles.tipoItemContainer}>
             <Text style={styles.label}>Adicionar Item</Text>
@@ -851,10 +851,10 @@ export default function NovoOrcamentoScreen() {
 
               <View ref={servicoButtonRef} collapsable={false} style={{ flex: 1, minWidth: 0 }}>
                 <SelectionButton
-                  label="Servi�o"
+                  label="Serviço"
                   icon="construct-outline"
                   onPress={() => {
-                    logger.debug('Abrindo modal de servi�os');
+                    logger.debug('Abrindo modal de serviços');
                     abrirModalItensComOrigem('servico', servicoButtonRef);
                   }}
                 />
@@ -899,9 +899,9 @@ export default function NovoOrcamentoScreen() {
           )}
         </View>
 
-        {/* Se��o Pagamento */}
+        {/* Seção Pagamento */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Informa��es de Pagamento</Text>
+          <Text style={styles.sectionTitle}>Informações de Pagamento</Text>
           
           <View style={styles.field}>
             <Text style={styles.label}>Forma de Pagamento</Text>
@@ -914,8 +914,8 @@ export default function NovoOrcamentoScreen() {
                 <Picker.Item label="Selecione" value="selecione" />
                 <Picker.Item label="Dinheiro" value="dinheiro" />
                 <Picker.Item label="PIX" value="pix" />
-                <Picker.Item label="Cart�o de Cr�dito" value="credito" />
-                <Picker.Item label="Cart�o de D�bito" value="debito" />
+                <Picker.Item label="Cartão de Crédito" value="credito" />
+                <Picker.Item label="Cartão de Débito" value="debito" />
               </Picker>
             </View>
           </View>
@@ -929,7 +929,7 @@ export default function NovoOrcamentoScreen() {
                   onValueChange={(value) => setParcelas(value)}
                   style={styles.picker}
                 >
-                  <Picker.Item label="� Vista" value="a_vista" />
+                  <Picker.Item label="À Vista" value="a_vista" />
                   <Picker.Item label="2x" value="2" />
                   <Picker.Item label="3x" value="3" />
                   <Picker.Item label="4x" value="4" />
@@ -974,14 +974,14 @@ export default function NovoOrcamentoScreen() {
           </View>
         </View>
 
-        {/* Se��o Observa��es */}
+        {/* Seção Observações */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Observa��es</Text>
+          <Text style={styles.sectionTitle}>Observações</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
             value={observacoes}
             onChangeText={setObservacoes}
-            placeholder="Adicione observa��es importantes aqui..."
+            placeholder="Adicione observações importantes aqui..."
             multiline
             numberOfLines={4}
           />
@@ -996,11 +996,11 @@ export default function NovoOrcamentoScreen() {
           disabled={loading}
         >
           <Text style={styles.salvarButtonText}>
-            {loading ? 'Salvando...' : 'Salvar Or�amento'}
+            {loading ? 'Salvando...' : 'Salvar Orçamento'}
           </Text>
         </TouchableOpacity>
 
-        {/* Modal de Sele��o de Itens */}
+        {/* Modal de Seleção de Itens */}
         <Modal
           animationType="none"
           transparent={true}
@@ -1075,7 +1075,7 @@ export default function NovoOrcamentoScreen() {
                                     maximumFractionDigits: 2 
                                   });
                               } else {
-                                // Para produtos e servi�os, usar pre�o normal
+                                // Para produtos e serviços, usar preço normal
                                 return Number(item.preco || 0)
                                   .toLocaleString('pt-BR', { 
                                     style: 'currency', 
@@ -1088,12 +1088,12 @@ export default function NovoOrcamentoScreen() {
                           </Text>
                           {'quantidade_disponivel' in item && (
                             <Text style={styles.modalItemEstoque}>
-                              Dispon�vel: {item.quantidade_disponivel}
+                              Disponível: {item.quantidade_disponivel}
                             </Text>
                           )}
                           {'duracao' in item && (
                             <Text style={styles.modalItemEstoque}>
-                              Dura��o: {item.duracao}min
+                              Duração: {item.duracao}min
                             </Text>
                           )}
                         </View>
@@ -1173,7 +1173,7 @@ export default function NovoOrcamentoScreen() {
   );
 }
 
-// Fun��o auxiliar para criar estilos din�micos
+// Função auxiliar para criar estilos dinâmicos
 const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
@@ -1471,7 +1471,6 @@ const createStyles = (colors: any) => StyleSheet.create({
   tipoItemContainer: {
     marginBottom: 16,
   },
-  // REMOVIDO: usar SELECTION_BUTTON_CONTAINER_STYLE importado de Buttons.tsx
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.75)',
@@ -1719,4 +1718,3 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginTop: 4,
   },
 });
-

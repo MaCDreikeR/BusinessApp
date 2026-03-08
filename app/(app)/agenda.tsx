@@ -33,20 +33,13 @@ LocaleConfig.locales['pt-br'] = {
 };
 LocaleConfig.defaultLocale = 'pt-br';
 
-// Array de horários para a agenda
-// const HORARIOS = Array.from({ length: 31 }, (_, i) => {
-//   const hora = Math.floor(i / 2) + 7;
-//   const minutos = i % 2 === 0 ? '00' : '30';
-//   return `${hora.toString().padStart(2, '0')}:${minutos}`;
-// });
-
-// Estender o tipo Usuario para incluir campos espec�ficos da agenda
+// Estender o tipo Usuario para incluir campos específicos da agenda
 type UsuarioAgenda = Pick<Usuario, 'id' | 'nome_completo' | 'email' | 'foto_url'> & {
   faz_atendimento: boolean | null;
   avatar_url?: string | null;
 };
 
-// Estender o tipo Agendamento para incluir campos espec�ficos da tela
+// Estender o tipo Agendamento para incluir campos específicos da tela
 type AgendamentoAgenda = Omit<AgendamentoBase, 'horario' | 'status'> & {
   data_hora: string;
   horario_termino?: string;
@@ -85,10 +78,10 @@ export default function AgendaScreen() {
   // Estado para mensagem de sucesso
   const [successMessage, setSuccessMessage] = useState('');
   
-  // Modo de exibi��o: 'grid' (grade) ou 'list' (lista seccionada)
+  // Modo de exibição: 'grid' (grade) ou 'list' (lista seccionada)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
-  // Novos estados para configura��o de hor�rios
+  // Novos estados para configuração de horários
   const [showHorariosModal, setShowHorariosModal] = useState(false);
   const [horarioInicio, setHorarioInicio] = useState('08:00');
   const [horarioIntervaloInicio, setHorarioIntervaloInicio] = useState('');
@@ -98,7 +91,7 @@ export default function AgendaScreen() {
   const [limiteSimultaneos, setLimiteSimultaneos] = useState('1');
   const [temIntervalo, setTemIntervalo] = useState(false);
   
-  // Adicionar estado para os hor�rios
+  // Adicionar estado para os horários
   const [horarios, setHorarios] = useState<string[]>([]);
   
   // Novos estados para o modal de detalhes de agendamentos
@@ -106,17 +99,17 @@ export default function AgendaScreen() {
   const [agendamentosDoHorarioSelecionado, setAgendamentosDoHorarioSelecionado] = useState<AgendamentoAgenda[]>([]);
   const [horarioSelecionado, setHorarioSelecionado] = useState('');
 
-  // Estado para controlar a confirma��o de exclus�o
+  // Estado para controlar a confirmação de exclusão
   const [agendamentoParaExcluir, setAgendamentoParaExcluir] = useState<string | null>(null);
 
   const router = useRouter();
 
-  // ? Subscription do Supabase com reconnect autom�tico
+  // Subscription do Supabase com reconnect automático
   useRealtimeSubscription(
     'public:usuarios',
     'usuarios',
     () => {
-      logger.debug('Mudan�a detectada na tabela usuarios, recarregando...');
+      logger.debug('Mudança detectada na tabela usuarios, recarregando...');
       carregarUsuarios();
     },
     {
@@ -128,8 +121,7 @@ export default function AgendaScreen() {
     !!estabelecimentoId
   );
 
-  // ??? FUN��O HELPER: Converter string ISO local para Date
-  // Estilos din�micos baseados no tema
+  // Estilos dinâmicos baseados no tema
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   useFocusEffect(
@@ -151,11 +143,9 @@ export default function AgendaScreen() {
       });
 
       const subscriptionUsuario = DeviceEventEmitter.addListener('usuarioAtualizado', () => {
-        logger.debug('Usu�rio atualizado, recarregando lista...');
+        logger.debug('Usuário atualizado, recarregando lista...');
         carregarUsuarios();
       });
-
-      // ?? Subscription do Supabase movida para useRealtimeSubscription hook (acima)
 
       return () => {
         subscriptionPresenca.remove();
@@ -167,42 +157,42 @@ export default function AgendaScreen() {
   );
 
   useEffect(() => {
-    // Inicializa o estado de presen�a para todos os usu�rios
+    // Inicializa o estado de presença para todos os usuários
     if (usuarios.length > 0) {
       const presencaInicial = usuarios.reduce((acc, usuario) => {
-        acc[usuario.id] = true; // Por padr�o, todos est�o presentes
+        acc[usuario.id] = true; // Por padrão, todos estão presentes
         return acc;
       }, {} as Record<string, boolean>);
       setPresencaUsuarios(presencaInicial);
     }
   }, [usuarios]);
 
-  // Carregar agendamentos do m�s quando estabelecimentoId estiver dispon�vel
+  // Carregar agendamentos do mês quando estabelecimentoId estiver disponível
   useEffect(() => {
     if (estabelecimentoId) {
       carregarAgendamentosMes();
     }
-  }, [estabelecimentoId]); // Executar quando estabelecimentoId estiver dispon�vel
+  }, [estabelecimentoId]);
 
   useEffect(() => {
     const marked: {[key: string]: any} = {};
     
-    // ?? Filtrar agendamentos v�lidos antes de processar
+    // Filtrar agendamentos válidos antes de processar
     const agendamentosValidos = agendamentosMes.filter(ag => {
       if (!ag || !ag.data_hora) {
-        logger.warn('?? Agendamento sem data_hora ignorado:', ag?.id);
+        logger.warn('Agendamento sem data_hora ignorado:', ag?.id);
         return false;
       }
       return true;
     });
     
-    logger.debug('?? [CALEND�RIO] Atualizando marca��es:', {
+    logger.debug('[CALENDÁRIO] Atualizando marcações:', {
       totalAgendamentosMes: agendamentosValidos.length,
       datasComAgendamento: agendamentosValidos.map(ag => {
         try {
           return format(parseDataHoraLocal(ag.data_hora), 'dd/MM/yyyy');
         } catch (e) {
-          logger.error('? Erro ao formatar data:', ag.id, ag.data_hora, e);
+          logger.error('Erro ao formatar data:', ag.id, ag.data_hora, e);
           return 'data_invalida';
         }
       })
@@ -218,7 +208,7 @@ export default function AgendaScreen() {
         const dataAg = parseDataHoraLocal(ag.data_hora);
         const dataStr = format(dataAg, 'yyyy-MM-dd');
       
-        logger.debug('?? Marcando data:', dataStr);
+        logger.debug('Marcando data:', dataStr);
         
         if (dataStr === selectedDateStr) {
           marked[dataStr] = { 
@@ -234,7 +224,7 @@ export default function AgendaScreen() {
           };
         }
       } catch (e) {
-        logger.error('? Erro ao marcar data no calend�rio:', ag.id, e);
+        logger.error('Erro ao marcar data no calendário:', ag.id, e);
       }
     });
     
@@ -259,19 +249,19 @@ export default function AgendaScreen() {
     carregarBloqueios();
   }, []);
 
-  // Adicionar um useEffect para carregar as configura��es de hor�rios:
+  // Adicionar um useEffect para carregar as configurações de horários:
   useEffect(() => {
     carregarHorarios();
   }, []);
 
-  // Adicionar um useEffect para escutar o evento de atualiza��o de agendamentos
+  // Adicionar um useEffect para escutar o evento de atualização de agendamentos
   useEffect(() => {
-    // Escutar o evento de atualiza��o de agendamentos
+    // Escutar o evento de atualização de agendamentos
     const subscription = DeviceEventEmitter.addListener('atualizarAgendamentos', () => {
       logger.debug('Recebido evento para atualizar agendamentos');
       // Recarregar os agendamentos
       carregarAgendamentos();
-      // Recarregar os agendamentos do m�s para atualizar o calend�rio
+      // Recarregar os agendamentos do mês para atualizar o calendário
       carregarAgendamentosMes();
     });
 
@@ -289,7 +279,7 @@ export default function AgendaScreen() {
       // Exibir mensagem de sucesso
       setSuccessMessage(mensagem || 'Agendamento criado com sucesso!');
       
-      // Limpar a mensagem ap�s 3 segundos
+      // Limpar a mensagem após 3 segundos
       setTimeout(() => {
         setSuccessMessage('');
       }, 3000);
@@ -305,32 +295,30 @@ export default function AgendaScreen() {
     try {
       setLoading(true);
       
-      logger.debug('Carregando usu�rios para estabelecimento:', estabelecimentoId);
+      logger.debug('Carregando usuários para estabelecimento:', estabelecimentoId);
       
       if (!estabelecimentoId) {
-        logger.error('ID do estabelecimento n�o dispon�vel');
+        logger.error('ID do estabelecimento não disponível');
         return;
       }
 
-      // Tenta usar RPC function primeiro (pode n�o existir ainda)
+      // Tenta usar RPC function primeiro
       const { data: usuariosRpc, error: rpcError } = await supabase
         .rpc('get_usuarios_estabelecimento', { estabelecimento_uuid: estabelecimentoId });
 
       if (!rpcError && usuariosRpc) {
-        logger.debug('Usu�rios carregados via RPC:', usuariosRpc.length);
-        logger.debug('Todos os usu�rios RPC:', usuariosRpc);
+        logger.debug('Usuários carregados via RPC:', usuariosRpc.length);
         
         // REGRA: Profissionais veem apenas a si mesmos
         if (role === 'profissional' && user?.id) {
           const profissionalAtual = usuariosRpc.filter((u: any) => u.id === user.id);
-          logger.debug('?? Profissional logado - mostrando apenas pr�prio usu�rio:', profissionalAtual);
           setUsuarios(profissionalAtual);
-          // Selecionar automaticamente o pr�prio usu�rio
+          // Selecionar automaticamente o próprio usuário
           setSelectedUser(user.id);
           return;
         }
         
-        // Admin e funcion�rio veem TODOS os usu�rios
+        // Admin e funcionário veem TODOS os usuários
         setUsuarios(usuariosRpc || []);
         return;
       }
@@ -338,7 +326,7 @@ export default function AgendaScreen() {
       logger.debug('Erro RPC ou dados vazios:', rpcError);
 
       // Fallback para consulta direta
-      logger.debug('RPC n�o dispon�vel, usando consulta direta...');
+      logger.debug('RPC não disponível, usando consulta direta...');
       const { data: usuarios, error } = await supabase
         .from('usuarios')
         .select('id, nome_completo, email, avatar_url, faz_atendimento')
@@ -346,26 +334,24 @@ export default function AgendaScreen() {
         .order('nome_completo');
 
       if (error) {
-        logger.error('Erro ao carregar usu�rios via consulta direta:', error);
+        logger.error('Erro ao carregar usuários via consulta direta:', error);
         return;
       }
 
-      logger.debug('Usu�rios encontrados via consulta direta:', usuarios?.length);
-      logger.debug('Detalhes dos usu�rios via consulta direta:', usuarios);
+      logger.debug('Usuários encontrados via consulta direta:', usuarios?.length);
       
       // REGRA: Profissionais veem apenas a si mesmos
       if (role === 'profissional' && user?.id) {
         const profissionalAtual = usuarios?.filter((u: any) => u.id === user.id) || [];
-        logger.debug('?? Profissional logado - mostrando apenas pr�prio usu�rio:', profissionalAtual);
         setUsuarios(profissionalAtual);
-        // Selecionar automaticamente o pr�prio usu�rio
+        // Selecionar automaticamente o próprio usuário
         setSelectedUser(user.id);
         return;
       }
       
       setUsuarios(usuarios || []);
     } catch (error) {
-      logger.error('Erro ao carregar usu�rios:', error);
+      logger.error('Erro ao carregar usuários:', error);
     } finally {
       setLoading(false);
     }
@@ -376,14 +362,14 @@ export default function AgendaScreen() {
       setLoading(true);
       
       if (!estabelecimentoId) {
-        logger.error('Estabelecimento ID n�o encontrado');
+        logger.error('Estabelecimento ID não encontrado');
         return;
       }
       
-      // Filtrar por usu�rio se selecionado OU se for profissional (sempre filtrado)
+      // Filtrar por usuário se selecionado OU se for profissional
       const usuarioFiltro = selectedUser || (role === 'profissional' ? user?.id : null);
       
-      // Gerar chave de cache baseada na data e usu�rio
+      // Gerar chave de cache baseada na data e usuário
       const dataStr = format(selectedDate, 'yyyy-MM-dd');
       const cacheKey = `dia_${dataStr}_${usuarioFiltro || 'todos'}`;
       
@@ -396,47 +382,39 @@ export default function AgendaScreen() {
           );
 
       if (cachedData) {
-        logger.debug('?? Agendamentos carregados do cache');
+        logger.debug('Agendamentos carregados do cache');
         setAgendamentos(cachedData);
         setLoading(false);
         return;
       }
       
-      // ?? CORRE��O: Usar fun��es de timezone para garantir compara��o correta
+      // Usar funções de timezone para garantir comparação correta
       const ano = selectedDate.getFullYear();
-      const mes = selectedDate.getMonth() + 1; // +1 porque m�s come�a em 0
+      const mes = selectedDate.getMonth() + 1;
       const dia = selectedDate.getDate();
       
       const dataInicioLocal = getStartOfDayLocal(selectedDate);
       const dataFimLocal = getEndOfDayLocal(selectedDate);
       
-      logger.debug(`?? Buscando agendamentos do dia:`);
+      logger.debug(`Buscando agendamentos do dia:`);
       logger.debug(`   Data: ${dia}/${mes}/${ano}`);
-      logger.debug(`   In�cio: ${dataInicioLocal}`);
-      logger.debug(`   Fim: ${dataFimLocal}`);
       
       let query = supabase
         .from('agendamentos')
         .select('*')
         .eq('estabelecimento_id', estabelecimentoId)
         .gte('data_hora', dataInicioLocal)
-        .lte('data_hora', dataFimLocal); // ?? Mudado de .lt() para .lte() para incluir 23:59:59
+        .lte('data_hora', dataFimLocal);
       
       if (usuarioFiltro) {
-        logger.debug(`?? Filtrando agendamentos para o usu�rio: ${usuarioFiltro} (role: ${role})`);
         query = query.eq('usuario_id', usuarioFiltro);
-      } else {
-        logger.debug('?? Carregando agendamentos de todos os usu�rios');
       }
 
       const { data, error } = await query;
 
       if (error) throw error;
 
-      logger.debug('Agendamentos carregados:', data?.length || 0);
-      
-      // ?? OTIMIZA��O: Trazer todos os dados relacionados em DUAS queries ao inv�s de 60+
-      // Query 1: Buscar todos os clientes �nicos
+      // OTIMIZAÇÃO: Trazer todos os dados relacionados em DUAS queries
       const clienteIds = [...new Set((data || []).map((ag: any) => ag.cliente_id).filter(Boolean))];
       const clienteNomes = [...new Set((data || []).map((ag: any) => ag.cliente).filter(Boolean))];
       
@@ -444,7 +422,6 @@ export default function AgendaScreen() {
       let movimentacoesData: any = {};
       
       if (clienteIds.length > 0) {
-        // Query 2a: Buscar dados dos clientes por ID
         const { data: searchClientesById } = await supabase
           .from('clientes')
           .select('id, foto_url, telefone')
@@ -454,13 +431,11 @@ export default function AgendaScreen() {
           clientesData[c.id] = c;
         });
         
-        // Query 2b: Buscar movimenta��es de credi�rio para todos os clientes de uma vez
         const { data: todasMovimentacoes } = await supabase
           .from('crediario_movimentacoes')
           .select('valor, cliente_id')
           .in('cliente_id', clienteIds);
         
-        // Agrupar movimenta��es por cliente_id
         (todasMovimentacoes || []).forEach(mov => {
           if (!movimentacoesData[mov.cliente_id]) {
             movimentacoesData[mov.cliente_id] = [];
@@ -469,10 +444,9 @@ export default function AgendaScreen() {
         });
       }
       
-      // Se h� nomes de clientes sem ID, buscar por nome (fallback)
       if (clienteNomes.length > 0) {
         for (const nome of clienteNomes) {
-          if (!Object.values(clientesData).find(c => c.tooltip_eq === nome)) {
+          if (!Object.values(clientesData).find((c: any) => c.nome === nome)) {
             const { data: clienteData } = await supabase
               .from('clientes')
               .select('id, foto_url, telefone')
@@ -484,7 +458,6 @@ export default function AgendaScreen() {
             if (clienteData) {
               clientesData[clienteData.id] = clienteData;
               
-              // Se encontrou por nome, buscar suas movimenta��es tamb�m
               const { data: movs } = await supabase
                 .from('crediario_movimentacoes')
                 .select('valor, cliente_id')
@@ -498,7 +471,7 @@ export default function AgendaScreen() {
         }
       }
       
-      // ?? Montar resultado combinando agendamentos com dados de clientes
+      // Montar resultado combinando agendamentos com dados de clientes
       const agendamentosComClientes = (data || []).map((ag: any) => {
         let cliente_foto = null;
         let cliente_telefone = null;
@@ -510,7 +483,6 @@ export default function AgendaScreen() {
           cliente_foto = cliente.foto_url;
           cliente_telefone = cliente.telefone;
           
-          // Calcular saldo agregado
           const movimentacoes = movimentacoesData[ag.cliente_id] || [];
           cliente_saldo = movimentacoes.reduce((total: number, mov: any) => {
             const valorNumerico = typeof mov.valor === 'number' 
@@ -528,9 +500,6 @@ export default function AgendaScreen() {
         };
       });
       
-      logger.debug(`? [OTIMIZADO] Agendamentos processados com 3 queries ao inv�s de ${1 + (data?.length || 0) * 2}`);
-      
-      // Salvar no cache com TTL de 2 minutos (reutiliza vari�veis j� declaradas acima)
       await CacheManager.set(
         CacheNamespaces.AGENDAMENTOS,
         cacheKey,
@@ -541,7 +510,7 @@ export default function AgendaScreen() {
       setAgendamentos(agendamentosComClientes);
     } catch (error) {
       logger.error('Erro ao carregar agendamentos:', error);
-      setAgendamentos([]); // Limpar os agendamentos em caso de erro
+      setAgendamentos([]); 
     } finally {
       setLoading(false);
     }
@@ -550,27 +519,19 @@ export default function AgendaScreen() {
   const carregarAgendamentosMes = async (forceRefresh = false) => {
     try {
       if (!estabelecimentoId) {
-        logger.error('Estabelecimento ID n�o encontrado');
+        logger.error('Estabelecimento ID não encontrado');
         return;
       }
       
-      // Determinar o primeiro e �ltimo dia do m�s
       const ano = selectedDate.getFullYear();
       const mes = selectedDate.getMonth() + 1;
       
-      // ?? CORRE��O: Usar fun��es de timezone
       const dataInicioMesLocal = getStartOfMonthLocal(ano, mes);
       const dataFimMesLocal = getEndOfMonthLocal(ano, mes);
       
-      logger.debug(`?? Buscando agendamentos do m�s ${mes}/${ano}:`);
-      logger.debug(`   In�cio: ${dataInicioMesLocal}`);
-      logger.debug(`   Fim: ${dataFimMesLocal}`);
-      
-      // Gerar chave de cache baseada no m�s e usu�rio
       const mesStr = format(selectedDate, 'yyyy-MM');
       const cacheKey = `mes_${mesStr}_${selectedUser || 'todos'}`;
       
-      // Tentar buscar do cache primeiro
       const cachedData = forceRefresh
         ? null
         : await CacheManager.get<AgendamentoAgenda[]>(
@@ -579,7 +540,6 @@ export default function AgendaScreen() {
           );
 
       if (cachedData) {
-        logger.debug('?? Agendamentos do m�s carregados do cache');
         setAgendamentosMes(cachedData);
         return;
       }
@@ -591,9 +551,7 @@ export default function AgendaScreen() {
         .gte('data_hora', dataInicioMesLocal)
         .lte('data_hora', dataFimMesLocal);
 
-      // Filtrar por usu�rio se selecionado
       if (selectedUser) {
-        logger.debug('Filtrando agendamentos do m�s para o usu�rio:', selectedUser);
         query = query.eq('usuario_id', selectedUser);
       }
 
@@ -601,9 +559,6 @@ export default function AgendaScreen() {
 
       if (error) throw error;
 
-      logger.debug('Agendamentos do m�s carregados:', data?.length || 0);
-      
-      // ?? OTIMIZA��O: Trazer todos os dados relacionados em DUAS queries ao inv�s de N+1
       const clienteIds = [...new Set((data || []).map((ag: any) => ag.cliente_id).filter(Boolean))];
       const clienteNomes = [...new Set((data || []).map((ag: any) => ag.cliente).filter(Boolean))];
       
@@ -611,7 +566,6 @@ export default function AgendaScreen() {
       let movimentacoesData: any = {};
       
       if (clienteIds.length > 0) {
-        // Buscar dados dos clientes por ID
         const { data: searchClientesById } = await supabase
           .from('clientes')
           .select('id, foto_url, telefone')
@@ -621,13 +575,11 @@ export default function AgendaScreen() {
           clientesData[c.id] = c;
         });
         
-        // Buscar movimenta��es de credi�rio para todos os clientes de uma vez
         const { data: todasMovimentacoes } = await supabase
           .from('crediario_movimentacoes')
           .select('valor, cliente_id')
           .in('cliente_id', clienteIds);
         
-        // Agrupar movimenta��es por cliente_id
         (todasMovimentacoes || []).forEach(mov => {
           if (!movimentacoesData[mov.cliente_id]) {
             movimentacoesData[mov.cliente_id] = [];
@@ -636,10 +588,9 @@ export default function AgendaScreen() {
         });
       }
       
-      // Se h� nomes de clientes sem ID, buscar por nome (fallback)
       if (clienteNomes.length > 0) {
         for (const nome of clienteNomes) {
-          if (!Object.values(clientesData).find(c => c.tooltip_eq === nome)) {
+          if (!Object.values(clientesData).find((c: any) => c.nome === nome)) {
             const { data: clienteData } = await supabase
               .from('clientes')
               .select('id, foto_url, telefone')
@@ -651,7 +602,6 @@ export default function AgendaScreen() {
             if (clienteData) {
               clientesData[clienteData.id] = clienteData;
               
-              // Se encontrou por nome, buscar suas movimenta��es tamb�m
               const { data: movs } = await supabase
                 .from('crediario_movimentacoes')
                 .select('valor, cliente_id')
@@ -665,7 +615,6 @@ export default function AgendaScreen() {
         }
       }
       
-      // ?? Montar resultado combinando agendamentos com dados de clientes
       const agendamentosComClientes = (data || []).map((ag: any) => {
         let cliente_foto = null;
         let cliente_telefone = null;
@@ -677,7 +626,6 @@ export default function AgendaScreen() {
           cliente_foto = cliente.foto_url;
           cliente_telefone = cliente.telefone;
           
-          // Calcular saldo agregado
           const movimentacoes = movimentacoesData[ag.cliente_id] || [];
           cliente_saldo = movimentacoes.reduce((total: number, mov: any) => {
             const valorNumerico = typeof mov.valor === 'number' 
@@ -695,9 +643,6 @@ export default function AgendaScreen() {
         };
       });
       
-      logger.debug(`? [OTIMIZADO M�S] Agendamentos processados com 3 queries ao inv�s de ${1 + (data?.length || 0) * 2}`);
-      
-      // Salvar no cache com TTL de 2 minutos
       await CacheManager.set(
         CacheNamespaces.AGENDAMENTOS,
         cacheKey,
@@ -707,7 +652,7 @@ export default function AgendaScreen() {
       
       setAgendamentosMes(agendamentosComClientes);
     } catch (error) {
-      logger.error('Erro ao carregar agendamentos do m�s:', error);
+      logger.error('Erro ao carregar agendamentos do mês:', error);
     }
   };
 
@@ -722,12 +667,10 @@ export default function AgendaScreen() {
         [usuarioId]: !prev[usuarioId]
       };
 
-      // Se o usu�rio selecionado foi marcado como ausente, desseleciona ele
       if (selectedUser === usuarioId && !novoEstado[usuarioId]) {
         setSelectedUser(null);
       }
 
-      // Emite o evento de atualiza��o de presen�a
       DeviceEventEmitter.emit('atualizarPresencaUsuarios', novoEstado);
 
       return novoEstado;
@@ -751,21 +694,18 @@ export default function AgendaScreen() {
     return format(selectedDate, "yyyy-MM-dd");
   };
 
-  // Fun��o para carregar bloqueios salvos
   const carregarBloqueios = async () => {
     try {
-      // Obter o usu�rio atual
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        logger.error('Usu�rio n�o autenticado ao carregar bloqueios');
+        logger.error('Usuário não autenticado ao carregar bloqueios');
         return;
       }
       if (!estabelecimentoId) {
-        logger.error('Estabelecimento ID n�o encontrado ao carregar bloqueios');
+        logger.error('Estabelecimento ID não encontrado ao carregar bloqueios');
         return;
       }
       
-      // Carregar dias da semana bloqueados
       const { data: diasData, error: diasError } = await supabase
         .from('configuracoes')
         .select('valor')
@@ -783,7 +723,6 @@ export default function AgendaScreen() {
         }
       }
       
-      // Carregar datas espec�ficas bloqueadas
       const { data: datasData, error: datasError } = await supabase
         .from('configuracoes')
         .select('valor')
@@ -806,37 +745,30 @@ export default function AgendaScreen() {
     }
   };
   
-  // Verificar se uma data est� bloqueada
   const isDataBloqueada = (data: Date) => {
-    // Verifica se o dia da semana est� bloqueado
-    const diaSemana = data.getDay(); // 0 = Domingo, 1 = Segunda, etc.
+    const diaSemana = data.getDay(); 
     if (diasSemanaBloqueados.includes(diaSemana)) {
       return true;
     }
     
-    // Verifica se a data espec�fica est� bloqueada
     const dataStr = format(data, 'yyyy-MM-dd');
     return datasBloqueadas.includes(dataStr);
   };
 
-  // Fun��o para carregar configura��es de hor�rios
   const carregarHorarios = async () => {
     try {
-      // Obter o usu�rio atual
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        logger.error('Usu�rio n�o autenticado ao carregar hor�rios');
-        // Inicializar com valores padr�o
+        logger.error('Usuário não autenticado ao carregar horários');
         inicializarHorariosPadrao();
         return;
       }
       if (!estabelecimentoId) {
-        logger.error('Estabelecimento ID n�o encontrado ao carregar hor�rios');
+        logger.error('Estabelecimento ID não encontrado ao carregar horários');
         inicializarHorariosPadrao();
         return;
       }
       
-      // Carregar configura��es de hor�rios
       const { data, error } = await supabase
         .from('configuracoes')
         .select('chave, valor')
@@ -851,15 +783,13 @@ export default function AgendaScreen() {
         .eq('estabelecimento_id', estabelecimentoId);
         
       if (error) {
-        logger.error('Erro ao carregar configura��es de hor�rios:', error);
-        // Inicializar com valores padr�o
+        logger.error('Erro ao carregar configurações de horários:', error);
         inicializarHorariosPadrao();
         return;
       }
       
       let foiAtualizado = false;
       
-      // Mapear os valores das configura��es para os estados
       if (data && data.length > 0) {
         foiAtualizado = true;
         data.forEach(config => {
@@ -891,44 +821,28 @@ export default function AgendaScreen() {
         });
       }
       
-      // Se n�o houve atualiza��o, inicializar com valores padr�o
       if (!foiAtualizado) {
         inicializarHorariosPadrao();
       } else {
-        // Atualizar a lista de hor�rios baseada nas configura��es
         atualizarListaHorarios();
       }
     } catch (error) {
-      logger.error('Erro ao carregar configura��es de hor�rios:', error);
-      // Inicializar com valores padr�o
+      logger.error('Erro ao carregar configurações de horários:', error);
       inicializarHorariosPadrao();
     }
   };
   
-  // Fun��o para inicializar os hor�rios com valores padr�o
   const inicializarHorariosPadrao = () => {
     const horariosIniciais = Array.from({ length: 22 }, (_, i) => {
-      const hora = Math.floor(i / 2) + 8; // 8:00 a 18:30
+      const hora = Math.floor(i / 2) + 8; 
       const minutos = i % 2 === 0 ? '00' : '30';
       return `${hora.toString().padStart(2, '0')}:${minutos}`;
     });
     setHorarios(horariosIniciais);
   };
   
-  // Atualizar a fun��o atualizarListaHorarios para atualizar o estado horarios
   const atualizarListaHorarios = () => {
     try {
-      logger.debug('Atualizando lista de hor�rios com as configura��es:');
-      logger.debug(`- Hor�rio in�cio: ${horarioInicio}`);
-      logger.debug(`- Hor�rio fim: ${horarioFim}`);
-      logger.debug(`- Tem intervalo: ${temIntervalo}`);
-      if (temIntervalo) {
-        logger.debug(`- Intervalo in�cio: ${horarioIntervaloInicio}`);
-        logger.debug(`- Intervalo fim: ${horarioIntervaloFim}`);
-      }
-      logger.debug(`- Intervalo entre agendamentos: ${intervaloAgendamentos} minutos`);
-      logger.debug(`- Limite de agendamentos simult�neos: ${limiteSimultaneos}`);
-      
       const inicioMinutos = converterHoraParaMinutos(horarioInicio);
       const fimMinutos = converterHoraParaMinutos(horarioFim);
       const intervalo = parseInt(intervaloAgendamentos);
@@ -944,36 +858,27 @@ export default function AgendaScreen() {
       const novosHorarios: string[] = [];
       
       for (let i = inicioMinutos; i < fimMinutos; i += intervalo) {
-        // Pular hor�rios durante o intervalo
         if (temIntervalo && i >= intervaloInicioMinutos && i < intervaloFimMinutos) {
-          logger.debug(`Pulando hor�rio ${converterMinutosParaHora(i)} (dentro do intervalo)`);
           continue;
         }
         
         novosHorarios.push(converterMinutosParaHora(i));
       }
       
-      // Atualizar o estado com os novos hor�rios
       setHorarios(novosHorarios);
-      logger.debug('Lista de hor�rios atualizada:', novosHorarios.length);
-      logger.debug('Hor�rios gerados:', novosHorarios.join(', '));
     } catch (error) {
-      logger.error('Erro ao atualizar lista de hor�rios:', error);
+      logger.error('Erro ao atualizar lista de horários:', error);
       inicializarHorariosPadrao();
     }
   };
   
-  // Adicionar useEffect para atualizar a lista de hor�rios quando as configura��es mudarem
   useEffect(() => {
     atualizarListaHorarios();
   }, [horarioInicio, horarioFim, intervaloAgendamentos, temIntervalo, horarioIntervaloInicio, horarioIntervaloFim]);
   
-  // Fun��o para formatar a entrada de hora
   const formatarHoraInput = (text: string) => {
-    // Remove caracteres n�o num�ricos
     const numeros = text.replace(/[^0-9]/g, '');
     
-    // Aplica a m�scara HH:MM
     if (numeros.length <= 2) {
       return numeros;
     } else {
@@ -981,20 +886,16 @@ export default function AgendaScreen() {
     }
   };
 
-  // Fun��o para salvar configura��es de hor�rios
   const salvarHorarios = async () => {
     try {
-      // Validar hor�rios
       if (!validarHorarios()) {
         return;
       }
       
-      // Obter o usu�rio atual
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usu�rio n�o autenticado');
-      if (!estabelecimentoId) throw new Error('Estabelecimento ID n�o encontrado');
+      if (!user) throw new Error('Usuário não autenticado');
+      if (!estabelecimentoId) throw new Error('Estabelecimento ID não encontrado');
       
-      // Preparar configura��es para salvar
       const configs = [
         { chave: 'horario_inicio', valor: horarioInicio },
         { chave: 'horario_fim', valor: horarioFim },
@@ -1002,7 +903,6 @@ export default function AgendaScreen() {
         { chave: 'limite_simultaneos', valor: limiteSimultaneos }
       ];
       
-      // Adicionar configura��es de intervalo se habilitado
       if (temIntervalo) {
         configs.push({ chave: 'horario_intervalo_inicio', valor: horarioIntervaloInicio });
         configs.push({ chave: 'horario_intervalo_fim', valor: horarioIntervaloFim });
@@ -1011,7 +911,6 @@ export default function AgendaScreen() {
         configs.push({ chave: 'horario_intervalo_fim', valor: '' });
       }
       
-      // Verificar se os registros j� existem
       const { data: registros, error: checkError } = await supabase
         .from('configuracoes')
         .select('id, chave')
@@ -1021,23 +920,20 @@ export default function AgendaScreen() {
       if (checkError) {
         logger.error('Erro ao verificar registros existentes:', checkError);
         if (checkError.code === '42P01') {
-          alert('A tabela de configura��es n�o existe. Entre em contato com o suporte.');
+          alert('A tabela de configurações não existe. Entre em contato com o suporte.');
           throw checkError;
         }
       }
       
-      // Mapeamento de chaves para registros existentes
       const registrosMap = (registros || []).reduce((acc, reg) => {
         acc[reg.chave] = reg.id;
         return acc;
       }, {} as Record<string, string>);
       
-      // Salvar cada configura��o
       const promises = configs.map(async (config) => {
         const { chave, valor } = config;
         
         if (registrosMap[chave]) {
-          // Atualizar registro existente COM SUPORTE OFFLINE
           const { error } = await offlineUpdate(
             'configuracoes',
             registrosMap[chave],
@@ -1046,12 +942,11 @@ export default function AgendaScreen() {
           );
             
           if (error) {
-            logger.error(`Erro ao atualizar configura��o ${chave}:`, error);
+            logger.error(`Erro ao atualizar configuração ${chave}:`, error);
             return false;
           }
           return true;
         } else {
-          // Criar novo registro COM SUPORTE OFFLINE
           const { error } = await offlineInsert(
             'configuracoes',
             {
@@ -1063,140 +958,110 @@ export default function AgendaScreen() {
           );
             
           if (error) {
-            logger.error(`Erro ao inserir configura��o ${chave}:`, error);
+            logger.error(`Erro ao inserir configuração ${chave}:`, error);
             return false;
           }
           return true;
         }
       });
       
-      // Aguardar todas as opera��es
       const resultados = await Promise.all(promises);
       
       if (resultados.every(r => r === true)) {
-        logger.debug('Configura��es de hor�rios salvas com sucesso!');
-        alert('Configura��es de hor�rios salvas com sucesso!');
+        logger.debug('Configurações de horários salvas com sucesso!');
+        alert('Configurações de horários salvas com sucesso!');
         
-        // Fechar o modal
         setShowHorariosModal(false);
         
-        // Atualizar a lista de hor�rios
         atualizarListaHorarios();
       } else {
-        throw new Error('N�o foi poss�vel salvar todas as configura��es');
+        throw new Error('Não foi possível salvar todas as configurações');
       }
     } catch (error: any) {
-      logger.error('Erro ao salvar configura��es de hor�rios:', error);
+      logger.error('Erro ao salvar configurações de horários:', error);
       logger.error('Detalhes adicionais:', JSON.stringify(error, null, 2));
       alert(`Erro ao salvar: ${error.message || 'Verifique o console para mais detalhes'}`);
     }
   };
 
-  // Fun��o para validar os hor�rios
   const validarHorarios = () => {
     try {
-      // Validar formato dos hor�rios
       const regexHora = /^([0-1][0-9]|2[0-3]):([0-5][0-9])$/;
       
       if (!regexHora.test(horarioInicio)) {
-        alert('Hor�rio de in�cio inv�lido. Use o formato HH:MM.');
+        alert('Horário de início inválido. Use o formato HH:MM.');
         return false;
       }
       
       if (!regexHora.test(horarioFim)) {
-        alert('Hor�rio de encerramento inv�lido. Use o formato HH:MM.');
+        alert('Horário de encerramento inválido. Use o formato HH:MM.');
         return false;
       }
       
-      // Validar intervalo
       if (temIntervalo) {
         if (!regexHora.test(horarioIntervaloInicio)) {
-          alert('Hor�rio de in�cio do intervalo inv�lido. Use o formato HH:MM.');
+          alert('Horário de início do intervalo inválido. Use o formato HH:MM.');
           return false;
         }
         
         if (!regexHora.test(horarioIntervaloFim)) {
-          alert('Hor�rio de fim do intervalo inv�lido. Use o formato HH:MM.');
+          alert('Horário de fim do intervalo inválido. Use o formato HH:MM.');
           return false;
         }
         
-        // Validar que o intervalo est� dentro do hor�rio de funcionamento
         const inicio = converterHoraParaMinutos(horarioInicio);
         const intervaloInicio = converterHoraParaMinutos(horarioIntervaloInicio);
         const intervaloFim = converterHoraParaMinutos(horarioIntervaloFim);
         const fim = converterHoraParaMinutos(horarioFim);
         
         if (intervaloInicio <= inicio) {
-          alert('O in�cio do intervalo deve ser depois do hor�rio de in�cio.');
+          alert('O início do intervalo deve ser depois do horário de início.');
           return false;
         }
         
         if (intervaloFim >= fim) {
-          alert('O fim do intervalo deve ser antes do hor�rio de encerramento.');
+          alert('O fim do intervalo deve ser antes do horário de encerramento.');
           return false;
         }
         
         if (intervaloInicio >= intervaloFim) {
-          alert('O in�cio do intervalo deve ser antes do fim do intervalo.');
+          alert('O início do intervalo deve ser antes do fim do intervalo.');
           return false;
         }
       }
       
-      // Validar que o hor�rio de in�cio � antes do hor�rio de fim
       const inicio = converterHoraParaMinutos(horarioInicio);
       const fim = converterHoraParaMinutos(horarioFim);
       
       if (inicio >= fim) {
-        alert('O hor�rio de in�cio deve ser antes do hor�rio de encerramento.');
+        alert('O horário de início deve ser antes do horário de encerramento.');
         return false;
       }
       
-      // Validar intervalo entre agendamentos
       const intervalo = parseInt(intervaloAgendamentos);
       if (isNaN(intervalo) || intervalo <= 0) {
-        alert('O intervalo entre agendamentos deve ser um n�mero positivo.');
+        alert('O intervalo entre agendamentos deve ser um número positivo.');
         return false;
       }
       
-      // Validar limite de agendamentos simult�neos
       const limite = parseInt(limiteSimultaneos);
       if (isNaN(limite) || limite <= 0) {
-        alert('O limite de agendamentos simult�neos deve ser um n�mero positivo.');
+        alert('O limite de agendamentos simultâneos deve ser um número positivo.');
         return false;
       }
       
       return true;
     } catch (error) {
-      logger.error('Erro na valida��o de hor�rios:', error);
-      alert('Erro ao validar hor�rios. Verifique o formato e tente novamente.');
+      logger.error('Erro na validação de horários:', error);
+      alert('Erro ao validar horários. Verifique o formato e tente novamente.');
       return false;
     }
   };
 
-  // Nova fun��o para abrir modal de detalhes de agendamentos
   const abrirModalAgendamentos = async (horario: string, agendamentosDoHorario: AgendamentoAgenda[]) => {
-    // LOG CR�TICO: Verificar dados ANTES de abrir o modal
-    logger.debug('?? [MODAL] Abrindo modal com agendamentos:', {
-      horario,
-      total: agendamentosDoHorario.length,
-      agendamentos: agendamentosDoHorario.map(ag => ({
-        id: ag.id,
-        cliente: ag.cliente,
-        cliente_id: ag.cliente_id,
-        telefone: ag.cliente_telefone,
-        tem_cliente_id: !!ag.cliente_id,
-        tem_telefone: !!ag.cliente_telefone
-      }))
-    });
-    
-    // ?? CORRE��O CR�TICA: Buscar cliente_id e telefone se estiverem faltando
     const agendamentosCorrigidos = await Promise.all(
       agendamentosDoHorario.map(async (ag) => {
-        // Se j� tem cliente_id E telefone, n�o precisa buscar
         if (ag.cliente_id && ag.cliente_telefone) {
-          logger.debug('? [MODAL] Agendamento OK:', ag.id, ag.cliente);
-          
-          // Calcular saldo do cliente
           const { data: movimentacoes } = await supabase
             .from('crediario_movimentacoes')
             .select('valor')
@@ -1213,14 +1078,6 @@ export default function AgendaScreen() {
           };
         }
         
-        logger.warn('?? [MODAL] Agendamento sem dados completos, buscando...', {
-          id: ag.id,
-          cliente: ag.cliente,
-          tem_cliente_id: !!ag.cliente_id,
-          tem_telefone: !!ag.cliente_telefone
-        });
-        
-        // Buscar pelo cliente_id se tiver
         if (ag.cliente_id) {
           const { data: clienteData } = await supabase
             .from('clientes')
@@ -1229,9 +1086,6 @@ export default function AgendaScreen() {
             .single();
           
           if (clienteData) {
-            logger.debug('? [MODAL] Cliente encontrado por ID:', clienteData);
-            
-            // Calcular saldo do cliente
             const { data: movimentacoes } = await supabase
               .from('crediario_movimentacoes')
               .select('valor')
@@ -1252,7 +1106,6 @@ export default function AgendaScreen() {
           }
         }
         
-        // Fallback: buscar pelo nome
         if (ag.cliente && estabelecimentoId) {
           const { data: clienteData } = await supabase
             .from('clientes')
@@ -1263,9 +1116,6 @@ export default function AgendaScreen() {
             .maybeSingle();
           
           if (clienteData) {
-            logger.debug('? [MODAL] Cliente encontrado por nome:', clienteData);
-            
-            // Calcular saldo do cliente
             const { data: movimentacoes } = await supabase
               .from('crediario_movimentacoes')
               .select('valor')
@@ -1286,36 +1136,23 @@ export default function AgendaScreen() {
           }
         }
         
-        logger.error('? [MODAL] Cliente n�o encontrado para:', ag.cliente);
         return ag;
       })
     );
-    
-    logger.debug('?? [MODAL] Agendamentos corrigidos:', agendamentosCorrigidos.map(ag => ({
-      id: ag.id,
-      cliente: ag.cliente,
-      cliente_id: ag.cliente_id,
-      telefone: ag.cliente_telefone
-    })));
     
     setHorarioSelecionado(horario);
     setAgendamentosDoHorarioSelecionado(agendamentosCorrigidos);
     setShowAgendamentosModal(true);
   };
 
-  // Fun��o para iniciar o processo de exclus�o
   const iniciarExclusao = (agendamentoId: string) => {
     setAgendamentoParaExcluir(agendamentoId);
   };
 
-  // Fun��o para confirmar a exclus�o
   const confirmarExclusao = async () => {
     if (!agendamentoParaExcluir) return;
     
     try {
-      logger.debug(`??? Iniciando exclus�o do agendamento: ${agendamentoParaExcluir}`);
-      
-      // 1?? Remover IMEDIATAMENTE do estado ANTES de chamar API
       const novosAgendamentos = agendamentos.filter(
         ag => ag.id !== agendamentoParaExcluir
       );
@@ -1331,13 +1168,8 @@ export default function AgendaScreen() {
       );
       setAgendamentosDoHorarioSelecionado(novosAgendamentosDoHorario);
       
-      logger.debug(`? Estados atualizados localmente`);
-      
-      // 2?? Limpar cache ANTES de deletar
       await CacheManager.clearNamespace(CacheNamespaces.AGENDAMENTOS);
-      logger.debug(`?? Cache limpo`);
       
-      // 3?? Deletar do banco
       const { error } = await offlineDelete(
         'agendamentos',
         agendamentoParaExcluir,
@@ -1345,35 +1177,27 @@ export default function AgendaScreen() {
       );
         
       if (error) {
-        logger.error('? Erro ao excluir do banco:', error);
-        // Reverter estado em caso de erro
         setAgendamentos(agendamentos);
         setAgendamentosMes(agendamentosMes);
         setAgendamentosDoHorarioSelecionado(agendamentosDoHorarioSelecionado);
         throw error;
       }
       
-      logger.success(`? Agendamento ${agendamentoParaExcluir} deletado do banco`);
-      
-      // Se n�o h� mais agendamentos no hor�rio, fechar o modal
       if (novosAgendamentosDoHorario.length === 0) {
         setShowAgendamentosModal(false);
       }
       
-      // Mostrar mensagem de sucesso
-      setSuccessMessage('Agendamento exclu�do com sucesso!');
+      setSuccessMessage('Agendamento excluído com sucesso!');
       setTimeout(() => setSuccessMessage(''), 3000);
       
     } catch (error: any) {
       logger.error('Erro ao excluir agendamento:', error);
       alert(`Erro ao excluir agendamento: ${error.message}`);
     } finally {
-      // Limpar o agendamento para exclus�o
       setAgendamentoParaExcluir(null);
     }
   };
 
-  // Fun��o para atualizar o status do agendamento
   const atualizarStatus = async (agendamentoId: string, novoStatus: string) => {
     try {
       const { error, fromCache } = await offlineUpdate(
@@ -1385,57 +1209,45 @@ export default function AgendaScreen() {
       
       if (error) throw error;
       
-      // 1?? Atualizar IMEDIATAMENTE no estado principal
       const agendamentosAtualizados = agendamentos.map(ag =>
         ag.id === agendamentoId ? { ...ag, status: novoStatus as AgendamentoAgenda['status'] } : ag
       );
       setAgendamentos(agendamentosAtualizados);
       
-      // 2?? Atualizar no estado mensal
       const agendamentosMesAtualizados = agendamentosMes.map(ag =>
         ag.id === agendamentoId ? { ...ag, status: novoStatus as AgendamentoAgenda['status'] } : ag
       );
       setAgendamentosMes(agendamentosMesAtualizados);
       
-      // 3?? Atualizar localmente no modal
       const agendamentosHorarioAtualizados = agendamentosDoHorarioSelecionado.map(ag =>
         ag.id === agendamentoId ? { ...ag, status: novoStatus as AgendamentoAgenda['status'] } : ag
       );
       setAgendamentosDoHorarioSelecionado(agendamentosHorarioAtualizados);
       
-      // 4?? Limpar cache de agendamentos
       await CacheManager.clearNamespace(CacheNamespaces.AGENDAMENTOS);
       
-      logger.success(`? Status atualizado para ${novoStatus}`);
-      
-      // 5?? Recarregar os agendamentos da tela (garante sincroniza��o com servidor)
       setTimeout(() => {
         carregarAgendamentos();
       }, 300);
       
-      // Mostrar mensagem de sucesso
       setSuccessMessage(`Status atualizado para ${novoStatus}!`);
       setTimeout(() => setSuccessMessage(''), 3000);
       
     } catch (error: any) {
       logger.error('Erro ao atualizar status:', error);
-      Alert.alert('Erro', `N�o foi poss�vel atualizar o status: ${error.message}`);
+      Alert.alert('Erro', `Não foi possível atualizar o status: ${error.message}`);
     }
   };
 
-  // Fun��o para cancelar a exclus�o
   const cancelarExclusao = () => {
     setAgendamentoParaExcluir(null);
   };
 
-  // Agrupa agendamentos do m�s por data (dd/MM/yyyy) para uso na SectionList
   const listSections = useMemo(() => {
     const map: Record<string, AgendamentoAgenda[]> = {};
     (agendamentosMes || []).forEach((ag) => {
       try {
-        // Validar data_hora
         if (!ag || !ag.data_hora) {
-          logger.warn('?? Agendamento sem data_hora ignorado na lista:', ag?.id);
           return;
         }
         
@@ -1444,8 +1256,6 @@ export default function AgendaScreen() {
         if (!map[key]) map[key] = [];
         map[key].push(ag);
       } catch (e) {
-        logger.error('? Erro ao agrupar agendamento:', ag?.id, e);
-        // ignorar entradas inv�lidas
       }
     });
 
@@ -1455,7 +1265,6 @@ export default function AgendaScreen() {
         const [db, mb, ab] = b.split('/').map(Number);
         const daDate = new Date(aa, ma - 1, da).getTime();
         const dbDate = new Date(ab, mb - 1, db).getTime();
-        // INVERTIDO: ordem decrescente (mais recentes primeiro)
         return dbDate - daDate;
       })
       .map(title => ({ title, data: map[title] }));
@@ -1463,7 +1272,6 @@ export default function AgendaScreen() {
     return sections;
   }, [agendamentosMes]);
 
-  // Fun��o utilit�ria para obter cor por status (reutiliz�vel na lista)
   const getStatusColorGlobal = (status?: string) => {
     switch (status) {
       case 'confirmado': return colors.success;
@@ -1477,7 +1285,7 @@ export default function AgendaScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Seletor de data com bot�o para alternar visualiza��o */}
+      {/* Seletor de data com botão para alternar visualização */}
       <View style={styles.dateSelector}>
         <TouchableOpacity onPress={() => navegarData('anterior')}>
           <Ionicons name="chevron-back" size={24} color={colors.text} />
@@ -1489,7 +1297,7 @@ export default function AgendaScreen() {
           <Ionicons name="calendar-outline" size={20} color={isToday(selectedDate) ? colors.white : colors.text} />
           <Text style={[styles.dateText, isToday(selectedDate) && styles.dateTodayText]}>
             {selectedDate.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}
-            {isToday(selectedDate) && ' � HOJE'}
+            {isToday(selectedDate) && ' • HOJE'}
           </Text>
           <Ionicons name={showCalendar ? "chevron-up" : "chevron-down"} size={20} color={isToday(selectedDate) ? colors.white : colors.text} />
         </TouchableOpacity>
@@ -1498,7 +1306,7 @@ export default function AgendaScreen() {
           <Ionicons name="chevron-forward" size={24} color={colors.text} />
         </TouchableOpacity>
 
-        {/* Bot�o que alterna entre grade e lista */}
+        {/* Botão que alterna entre grade e lista */}
         <TouchableOpacity
           style={{ marginLeft: 8, padding: 6 }}
           onPress={() => setViewMode(prev => prev === 'grid' ? 'list' : 'grid')}
@@ -1507,7 +1315,7 @@ export default function AgendaScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Calend�rio (Web: Modal transparente para evitar conflitos de clique) */}
+      {/* Calendário (Web: Modal transparente para evitar conflitos de clique) */}
       <Modal
         visible={showCalendar}
         transparent
@@ -1521,11 +1329,8 @@ export default function AgendaScreen() {
               current={formatSelectedDateString()}
               onDayPress={handleDateSelect}
               onMonthChange={(month) => {
-                // Quando o usu�rio navega para outro m�s (setas), carregar agendamentos desse m�s
-                console.log('[Calendar] onMonthChange disparado:', month);
                 const newDate = new Date(month.year, month.month - 1, month.day);
                 setSelectedDate(newDate);
-                // carregarAgendamentosMes() ser� chamado automaticamente pelo useEffect que observa selectedDate
               }}
               markedDates={markedDates}
               theme={{
@@ -1551,7 +1356,7 @@ export default function AgendaScreen() {
             contentContainerStyle={styles.avatarListContent}
           >
             {usuarios
-              .filter(usuario => presencaUsuarios[usuario.id]) // Filtra apenas usu�rios presentes
+              .filter(usuario => presencaUsuarios[usuario.id]) // Filtra apenas usuários presentes
               .map((usuario) => (
                 <TouchableOpacity
                   key={usuario.id}
@@ -1582,11 +1387,11 @@ export default function AgendaScreen() {
         </View>
       )}
 
-      {/* Grade de hor�rios com scroll horizontal para cards (renderizar apenas no modo 'grid') */}
+      {/* Grade de horários com scroll horizontal para cards (renderizar apenas no modo 'grid') */}
       <ScrollView 
         horizontal 
         style={{ flex: 1, display: viewMode === 'grid' ? 'flex' : 'none' }}
-        contentContainerStyle={{ minWidth: 1000 }} // Largura para at� 5 colunas de cards
+        contentContainerStyle={{ minWidth: 1000 }} // Largura para até 5 colunas de cards
         showsHorizontalScrollIndicator={true}
       >
         <View style={{ width: 1000 }}>
@@ -1595,7 +1400,7 @@ export default function AgendaScreen() {
             <View style={styles.diaBloqueadoContainer}>
               <Ionicons name="sunny-outline" size={48} color={colors.error} />
               <Text style={styles.diaBloqueadoText}>Dia Bloqueado</Text>
-              <Text style={styles.diaBloqueadoSubtext}>N�o s�o permitidos agendamentos para este dia</Text>
+              <Text style={styles.diaBloqueadoSubtext}>Não são permitidos agendamentos para este dia</Text>
             </View>
           ) : horarios.length === 0 ? (
               <View style={styles.loadingSkeletonsContainer}>
@@ -1604,80 +1409,59 @@ export default function AgendaScreen() {
                 ))}
               </View>
             ) : (() => {
-            // Fun��o para converter TIME (HH:MM:SS ou HH:MM) para minutos totais
+            // Função para converter TIME (HH:MM:SS ou HH:MM) para minutos totais
             const timeParaMinutos = (timeStr: string) => {
               if (!timeStr) return 0;
               
-              // Log para debug
-              logger.debug(`?? timeParaMinutos recebeu: "${timeStr}" (tipo: ${typeof timeStr})`);
-              
-              // Remove qualquer espa�o e pega apenas HH:MM (ignora segundos se houver)
+              // Remove qualquer espaço e pega apenas HH:MM (ignora segundos se houver)
               const partes = String(timeStr).trim().split(':');
               const h = parseInt(partes[0] || '0', 10);
               const m = parseInt(partes[1] || '0', 10);
               
               const resultado = h * 60 + m;
-              logger.debug(`   ? Convertido para: ${resultado} minutos (${h}h ${m}m)`);
               
               return resultado;
             };
 
-            // Calcular altura do card com base na dura��o (30min por slot = 40px)
+            // Calcular altura do card com base na duração (30min por slot = 40px)
             const calcularAlturaCard = (ag: AgendamentoAgenda) => {
               if (!ag.horario_termino) {
-                logger.warn(`?? Agendamento "${ag.cliente}" SEM hor�rio de t�rmino!`);
                 return 60;
               }
               
-              logger.debug(`\n?? Calculando altura para "${ag.cliente}":`);
-              logger.debug(`   ?? data_hora: ${ag.data_hora}`);
-              logger.debug(`   ?? horario_termino: ${ag.horario_termino} (tipo: ${typeof ag.horario_termino})`);
-              
-              // ?? CORRE��O: Usar parseDataHoraLocal para converter UTC ? BRT
               const dataParsada = parseDataHoraLocal(ag.data_hora);
               const hora = dataParsada.getHours();
               const min = dataParsada.getMinutes();
               const minutosInicio = hora * 60 + min;
               const minutosTermino = timeParaMinutos(ag.horario_termino);
               
-              // ?? CORRE��O: Se hor�rio de t�rmino for menor que in�cio, � do pr�ximo dia
               let duracaoMinutos = minutosTermino - minutosInicio;
               
-              // Se dura��o negativa, o t�rmino � no dia seguinte (ex: 22:45 at� 00:30)
+              // Se duração negativa, o término é no dia seguinte (ex: 22:45 até 00:30)
               if (duracaoMinutos < 0) {
                 duracaoMinutos = (24 * 60 - minutosInicio) + minutosTermino;
-                logger.warn(`?? Hor�rio atravessa meia-noite: ${duracaoMinutos} min`);
               }
               
-              // ?? F�RMULA CORRIGIDA: Cada hora (60 minutos) = 40px de altura do time slot
-              // Exemplo: 40 minutos = (40/60) * 40 = 26.67px
               const alturaSlotHora = 40; // Altura de um time slot (1 hora)
               const alturaCalculada = (duracaoMinutos / 60) * alturaSlotHora;
               
-              // Garantir uma altura m�nima de 60px para conter o conte�do
+              // Garantir uma altura mínima de 60px para conter o conteúdo
               const alturaFinal = Math.max(alturaCalculada, 60);
               
-              logger.debug(`   ?? minutosInicio: ${minutosInicio} (${hora}:${min})`);
-              logger.debug(`   ?? minutosTermino: ${minutosTermino}`);
-              logger.debug(`   ??  Dura��o: ${duracaoMinutos} minutos`);
-              logger.debug(`   ?? Altura calculada: ${alturaCalculada}px, Altura final: ${alturaFinal}px`);
-              
               if (duracaoMinutos <= 0) {
-                logger.error(`? ERRO: Dura��o inv�lida (${duracaoMinutos} min) para "${ag.cliente}"!`);
                 return 60;
               }
               
               return alturaFinal;
             };
 
-            // SISTEMA DE ALOCA��O DE COLUNAS
+            // SISTEMA DE ALOCAÇÃO DE COLUNAS
             const NUM_COLUNAS = 5;
             const colunasOcupadas: { [coluna: number]: number } = {}; // { coluna: minutosTermino }
 
             // Alocar coluna para cada agendamento
             const agendamentosComColuna = agendamentos.map(ag => {
-              // ?? CORRE��O: Tratar data_hora como hor�rio LOCAL, n�o UTC
-              // Extrair partes manualmente ao inv�s de usar new Date()
+              // Extrair partes manualmente ao invés de usar new Date()
               const dataHoraParts = ag.data_hora.split('T');
               const [ano, mes, dia] = dataHoraParts[0].split('-').map(Number);
               const [hora, min] = dataHoraParts[1].split(':').map(Number);
@@ -1687,13 +1471,13 @@ export default function AgendaScreen() {
                 ? timeParaMinutos(ag.horario_termino) 
                 : minutosInicio + 30;
 
-              // Encontrar primeira coluna dispon�vel
+              // Encontrar primeira coluna disponível
               let colunaAlocada = 0;
               for (let col = 0; col < NUM_COLUNAS; col++) {
-                // Coluna est� livre se n�o existe ou se o �ltimo agendamento j� terminou
+                // Coluna está livre se não existe ou se o último agendamento já terminou
                 if (!colunasOcupadas[col] || colunasOcupadas[col] <= minutosInicio) {
                   colunaAlocada = col;
-                  colunasOcupadas[col] = minutosTermino; // Ocupar at� o t�rmino
+                  colunasOcupadas[col] = minutosTermino; // Ocupar até o término
                   break;
                 }
               }
@@ -1701,9 +1485,8 @@ export default function AgendaScreen() {
               return { ...ag, coluna: colunaAlocada };
             });
 
-            // Formatar hor�rio com in�cio e t�rmino
+            // Formatar horário com início e término
             const formatarHorarioAgendamento = (ag: AgendamentoAgenda) => {
-              // ?? CORRE��O: Usar parseDataHoraLocal para converter de UTC para BRT
               const dataParsada = parseDataHoraLocal(ag.data_hora);
               const horaInicio = dataParsada.toLocaleTimeString('pt-BR', { 
                 hour: '2-digit', 
@@ -1713,7 +1496,7 @@ export default function AgendaScreen() {
               if (ag.horario_termino) {
                 const [h, m] = ag.horario_termino.split(':');
                 const horaTermino = `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
-                return `${horaInicio} �s ${horaTermino}`;
+                return `${horaInicio} às ${horaTermino}`;
               }
               return horaInicio;
             };
@@ -1733,15 +1516,12 @@ export default function AgendaScreen() {
             return horarios.map((horario) => {
               const [horasSlot, minutosSlot] = horario.split(':').map(Number);
 
-              // Buscar agendamentos que INICIAM neste hor�rio EXATO
+              // Buscar agendamentos que INICIAM neste horário EXATO
               const agendamentosQueIniciam = agendamentosComColuna.filter(ag => {
-                // ?? CORRE��O: Usar parseDataHoraLocal para converter UTC ? BRT
                 const dataParsada = parseDataHoraLocal(ag.data_hora);
                 const horaInicio = dataParsada.getHours();
                 const minutoInicio = dataParsada.getMinutes();
                 
-                // ?? CORRE��O: Compara��o EXATA de hor�rio (sem toler�ncia)
-                // Mostrar o card apenas no slot que corresponde ao hor�rio de in�cio
                 return horasSlot === horaInicio && minutosSlot === minutoInicio;
               });
 
@@ -1752,7 +1532,7 @@ export default function AgendaScreen() {
                     <View style={styles.timeLine} />
                   </View>
                   
-                  {/* Cards de agendamento que INICIAM neste hor�rio */}
+                  {/* Cards de agendamento que INICIAM neste horário */}
                   {agendamentosQueIniciam.length > 0 && (
                     <View style={styles.cardsContainer}>
                       {agendamentosQueIniciam.map((ag) => {
@@ -1779,12 +1559,12 @@ export default function AgendaScreen() {
                                 </Text>
                                 <View style={[styles.statusBadge, { backgroundColor: getStatusColor(ag.status) }]}>
                                   <Text style={styles.statusBadgeText}>
-                                    {ag.status === 'confirmado' && '?'}
-                                    {ag.status === 'em_atendimento' && '?'}
-                                    {ag.status === 'concluido' && '?'}
-                                    {ag.status === 'cancelado' && '?'}
+                                    {ag.status === 'confirmado' && '✓'}
+                                    {ag.status === 'em_atendimento' && '⌛'}
+                                    {ag.status === 'concluido' && '★'}
+                                    {ag.status === 'cancelado' && '✕'}
                                     {ag.status === 'falta' && '!'}
-                                    {!ag.status && '?'}
+                                    {!ag.status && '📅'}
                                   </Text>
                                 </View>
                               </View>
@@ -1794,7 +1574,7 @@ export default function AgendaScreen() {
                               <Text style={styles.agendamentoServicosCard} numberOfLines={1} ellipsizeMode="tail">
                                 {JSON.stringify(ag.servicos)?.includes('nome') 
                                   ? ag.servicos.map((s:any) => s.nome).join(', ')
-                                  : 'Servi�o n�o especificado'}
+                                  : 'Serviço não especificado'}
                               </Text>
                             </View>
                           </TouchableOpacity>
@@ -1810,7 +1590,7 @@ export default function AgendaScreen() {
         </View>
       </ScrollView>
 
-      {/* SectionList: lista seccionada por data/m�s (vis�vel no modo 'list') */}
+      {/* SectionList: lista seccionada por data/mês (visível no modo 'list') */}
       {viewMode === 'list' && loading ? (
         <View style={{ flex: 1, paddingHorizontal: 16, paddingVertical: 12 }}>
           {Array.from({ length: 8 }).map((_, index) => (
@@ -1843,7 +1623,7 @@ export default function AgendaScreen() {
               <Text style={styles.listItemServices} numberOfLines={1}>
                 {JSON.stringify(item.servicos)?.includes('nome')
                   ? item.servicos.map((s:any) => s.nome).join(', ')
-                  : 'Servi�o n�o especificado'}
+                  : 'Serviço não especificado'}
               </Text>
             </View>
             <View style={styles.listItemStatus}>
@@ -1868,7 +1648,7 @@ export default function AgendaScreen() {
         <Pressable style={styles.modalOverlay} onPress={() => setShowPresencaModal(false)}>
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Gerenciar Presen�a</Text>
+              <Text style={styles.modalTitle}>Gerenciar Presença</Text>
             </View>
             
             <ScrollView 
@@ -1922,7 +1702,7 @@ export default function AgendaScreen() {
         onSave={carregarBloqueios}
       />
 
-      {/* Modal de Configura��o de Hor�rios */}
+      {/* Modal de Configuração de Horários */}
       <Modal
         visible={showHorariosModal}
         transparent={true}
@@ -1932,7 +1712,7 @@ export default function AgendaScreen() {
         <Pressable style={styles.modalOverlay} onPress={() => setShowHorariosModal(false)}>
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Configurar Hor�rios</Text>
+              <Text style={styles.modalTitle}>Configurar Horários</Text>
             </View>
             
             <ScrollView 
@@ -1940,11 +1720,11 @@ export default function AgendaScreen() {
               contentContainerStyle={styles.modalListContent}
               showsVerticalScrollIndicator={true}
             >
-              <Text style={styles.modalSubtitle}>Hor�rio de Funcionamento</Text>
+              <Text style={styles.modalSubtitle}>Horário de Funcionamento</Text>
               
-              {/* Hor�rio de In�cio */}
+              {/* Horário de Início */}
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Hor�rio de In�cio</Text>
+                <Text style={styles.formLabel}>Horário de Início</Text>
                 <TextInput
                   style={styles.formInput}
                   value={horarioInicio}
@@ -1956,9 +1736,9 @@ export default function AgendaScreen() {
                 />
               </View>
               
-              {/* Hor�rio de Encerramento */}
+              {/* Horário de Encerramento */}
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Hor�rio de Encerramento</Text>
+                <Text style={styles.formLabel}>Horário de Encerramento</Text>
                 <TextInput
                   style={styles.formInput}
                   value={horarioFim}
@@ -1985,7 +1765,7 @@ export default function AgendaScreen() {
                 {temIntervalo && (
                   <View style={styles.intervaloContainer}>
                     <View style={styles.intervaloInput}>
-                      <Text style={styles.formLabelSmall}>In�cio</Text>
+                      <Text style={styles.formLabelSmall}>Início</Text>
                       <TextInput
                         style={styles.formInput}
                         value={horarioIntervaloInicio}
@@ -2013,7 +1793,7 @@ export default function AgendaScreen() {
                 )}
               </View>
               
-              <Text style={[styles.modalSubtitle, { marginTop: 20 }]}>Configura��es de Agendamento</Text>
+              <Text style={[styles.modalSubtitle, { marginTop: 20 }]}>Configurações de Agendamento</Text>
               
               {/* Intervalo entre Agendamentos */}
               <View style={styles.formGroup}>
@@ -2043,9 +1823,9 @@ export default function AgendaScreen() {
                 </View>
               </View>
               
-              {/* Limite de Agendamentos Simult�neos */}
+              {/* Limite de Agendamentos Simultâneos */}
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Agendamentos Simult�neos</Text>
+                <Text style={styles.formLabel}>Agendamentos Simultâneos</Text>
                 <View style={styles.counterContainer}>
                   <TouchableOpacity
                     style={styles.counterButton}
@@ -2080,14 +1860,14 @@ export default function AgendaScreen() {
                   setShowHorariosModal(false);
                 }}
               >
-                <Text style={styles.salvarButtonText}>Salvar Configura��es</Text>
+                <Text style={styles.salvarButtonText}>Salvar Configurações</Text>
               </TouchableOpacity>
             </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>
 
-      {/* Bot�o de adicionar agendamento */}
+      {/* Botão de adicionar agendamento */}
       <TouchableOpacity
         style={[styles.addButton, { opacity: 0 }]}
         onPress={() => router.push('/(app)/agenda/novo')}
@@ -2102,7 +1882,7 @@ export default function AgendaScreen() {
         </View>
       ) : null}
 
-      {/* Modal para visualizar m�ltiplos agendamentos */}
+      {/* Modal para visualizar múltiplos agendamentos */}
       <Modal
         visible={showAgendamentosModal}
         transparent={true}
@@ -2111,7 +1891,7 @@ export default function AgendaScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContentDetalhes}>
-            {/* Bot�o fechar no topo direito */}
+            {/* Botão fechar no topo direito */}
             <TouchableOpacity 
               onPress={() => setShowAgendamentosModal(false)}
               style={styles.closeButtonTopRight}
@@ -2139,7 +1919,6 @@ export default function AgendaScreen() {
                 };
 
                 const statusInfo = getStatusInfo(item.status);
-                // ?? CORRE��O: Usar parseDataHoraLocal ao inv�s de new Date()
                 const dataInicio = parseDataHoraLocal(item.data_hora);
                 const horaInicio = dataInicio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                 let horarioCompleto = horaInicio;
@@ -2147,7 +1926,7 @@ export default function AgendaScreen() {
                 if (item.horario_termino) {
                   const [h, m] = item.horario_termino.split(':');
                   const horaTermino = `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
-                  horarioCompleto = `${horaInicio} �s ${horaTermino}`;
+                  horarioCompleto = `${horaInicio} às ${horaTermino}`;
                 }
 
                 const dataFormatada = dataInicio.toLocaleDateString('pt-BR', { 
@@ -2195,17 +1974,17 @@ export default function AgendaScreen() {
                       </View>
                     </View>
 
-                    {/* Data, hor�rio e servi�os */}
+                    {/* Data, horário e serviços */}
                     <View style={styles.detalhesInfo}>
                       <Text style={styles.detalhesInfoLabel}>
                         <Text style={styles.detalhesInfoBold}>Data:</Text> {dataFormatada} das{' '}
                         <Text style={styles.detalhesInfoDestaque}>{horarioCompleto}</Text>
                       </Text>
                       <Text style={styles.detalhesInfoLabel}>
-                        <Text style={styles.detalhesInfoBold}>Servi�os:</Text>{' '}
+                        <Text style={styles.detalhesInfoBold}>Serviços:</Text>{' '}
                         {JSON.stringify(item.servicos)?.includes('nome')
                           ? item.servicos.map((s: any) => s.nome).join(', ')
-                          : 'N�o especificado'}
+                          : 'Não especificado'}
                       </Text>
                     </View>
 
@@ -2214,7 +1993,7 @@ export default function AgendaScreen() {
                       style={styles.whatsappButton}
                       onPress={async () => {
                         try {
-                          logger.debug('?? IN�CIO - Verificando dados do agendamento:', {
+                          logger.debug('INÍCIO - Verificando dados do agendamento:', {
                             tem_telefone: !!item.cliente_telefone,
                             telefone_value: item.cliente_telefone,
                             cliente: item.cliente,
@@ -2224,10 +2003,10 @@ export default function AgendaScreen() {
                           
                           // 1. Validar se o cliente_id existe
                           if (!item.cliente_id) {
-                            logger.error('? CLIENTE_ID N�O ENCONTRADO no agendamento');
+                            logger.error('CLIENTE_ID NÃO ENCONTRADO no agendamento');
                             Alert.alert(
-                              'Cliente n�o vinculado', 
-                              `O agendamento de "${item.cliente}" n�o est� vinculado a um cadastro. Isso pode acontecer com agendamentos antigos. Tente recarregar a tela ou entre em contato com o suporte.`,
+                              'Cliente não vinculado', 
+                              `O agendamento de "${item.cliente}" não está vinculado a um cadastro. Isso pode acontecer com agendamentos antigos. Tente recarregar a tela ou entre em contato com o suporte.`,
                               [
                                 { text: 'OK', style: 'cancel' }
                               ]
@@ -2235,14 +2014,14 @@ export default function AgendaScreen() {
                             return;
                           }
                           
-                          // 2. Validar se h� telefone antes de prosseguir
+                          // 2. Validar se há telefone antes de prosseguir
                           if (!item.cliente_telefone) {
-                            logger.error('? TELEFONE N�O ENCONTRADO no objeto item');
+                            logger.error('TELEFONE NÃO ENCONTRADO no objeto item');
                             Alert.alert(
-                              'Telefone n�o cadastrado', 
-                              `O cliente "${item.cliente}" n�o possui telefone cadastrado. Deseja cadastrar agora?`,
+                              'Telefone não cadastrado', 
+                              `O cliente "${item.cliente}" não possui telefone cadastrado. Deseja cadastrar agora?`,
                               [
-                                { text: 'Agora n�o', style: 'cancel' },
+                                { text: 'Agora não', style: 'cancel' },
                                 { 
                                   text: 'Cadastrar', 
                                   onPress: () => {
@@ -2257,15 +2036,15 @@ export default function AgendaScreen() {
                           
                           // 3. Validar formato do telefone
                           const numeroLimpo = item.cliente_telefone.replace(/\D/g, '');
-                          logger.debug('?? Telefone limpo:', numeroLimpo, 'Tamanho:', numeroLimpo.length);
+                          logger.debug('Telefone limpo:', numeroLimpo, 'Tamanho:', numeroLimpo.length);
                           
                           if (numeroLimpo.length < 10) {
-                            logger.error('? TELEFONE INV�LIDO - menos de 10 d�gitos');
+                            logger.error('TELEFONE INVÁLIDO - menos de 10 dígitos');
                             Alert.alert(
-                              'Telefone inv�lido', 
-                              `O telefone cadastrado para "${item.cliente}" est� incompleto. Deseja corrigir?`,
+                              'Telefone inválido', 
+                              `O telefone cadastrado para "${item.cliente}" está incompleto. Deseja corrigir?`,
                               [
-                                { text: 'Agora n�o', style: 'cancel' },
+                                { text: 'Agora não', style: 'cancel' },
                                 { 
                                   text: 'Corrigir', 
                                   onPress: () => {
@@ -2278,7 +2057,6 @@ export default function AgendaScreen() {
                             return;
                           }
                           
-                          // ?? CORRE��O: Usar parseDataHoraLocal ao inv�s de new Date()
                           const d = parseDataHoraLocal(item.data_hora);
                           const yyyy = d.getFullYear();
                           const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -2287,7 +2065,7 @@ export default function AgendaScreen() {
                           const horaExtrair = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                           const servico = JSON.stringify(item.servicos)?.includes('nome')
                             ? item.servicos.map((s: any) => s.nome).join(', ')
-                            : 'Servi�o';
+                            : 'Serviço';
                           const payload: AgendamentoMensagem = {
                             cliente_nome: item.cliente,
                             cliente_telefone: item.cliente_telefone,
@@ -2296,7 +2074,7 @@ export default function AgendaScreen() {
                             servico,
                           };
                           
-                          logger.debug('?? Tentando abrir WhatsApp:', {
+                          logger.debug('Tentando abrir WhatsApp:', {
                             cliente: payload.cliente_nome,
                             telefone: payload.cliente_telefone,
                             telefone_limpo: numeroLimpo,
@@ -2307,7 +2085,7 @@ export default function AgendaScreen() {
                           await enviarMensagemWhatsapp(payload);
                         } catch (err) {
                           logger.error('Erro ao preparar WhatsApp:', err);
-                          Alert.alert('Erro', 'N�o foi poss�vel abrir o WhatsApp.');
+                          Alert.alert('Erro', 'Não foi possível abrir o WhatsApp.');
                         }
                       }}
                     >
@@ -2399,7 +2177,7 @@ export default function AgendaScreen() {
                       </TouchableOpacity>
                     </View>
 
-                    {/* Bot�es de a��o na parte inferior */}
+                    {/* Botões de ação na parte inferior */}
                     <View style={styles.detalhesActionsGrid}>
                       <TouchableOpacity 
                         style={[styles.detalhesActionButton, { backgroundColor: colors.errorBackground }]}
@@ -2441,7 +2219,7 @@ export default function AgendaScreen() {
                       </TouchableOpacity>
                     </View>
 
-                    {/* Divider entre agendamentos se houver m�ltiplos */}
+                    {/* Divider entre agendamentos se houver múltiplos */}
                     {index < agendamentosDoHorarioSelecionado.length - 1 && (
                       <View style={styles.detalhesCardDivider} />
                     )}
@@ -2453,7 +2231,7 @@ export default function AgendaScreen() {
         </View>
       </Modal>
 
-      {/* Modal de Confirma��o de Exclus�o */}
+      {/* Modal de Confirmação de Exclusão */}
       <Modal
         visible={agendamentoParaExcluir !== null}
         transparent={true}
@@ -2462,22 +2240,22 @@ export default function AgendaScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContentExclusao}>
-            {/* �cone de alerta */}
+            {/* Ícone de alerta */}
             <View style={styles.iconAlertContainer}>
               <View style={styles.iconAlertCircle}>
                 <Ionicons name="alert-circle" size={48} color={colors.error} />
               </View>
             </View>
 
-            {/* T�tulo */}
-            <Text style={styles.modalTitleExclusao}>Confirmar Exclus�o</Text>
+            {/* Título */}
+            <Text style={styles.modalTitleExclusao}>Confirmar Exclusão</Text>
             
             {/* Mensagem */}
             <Text style={styles.modalMessageExclusao}>
-              Tem certeza que deseja excluir este agendamento? Esta a��o n�o pode ser desfeita.
+              Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.
             </Text>
             
-            {/* Bot�es */}
+            {/* Botões */}
             <View style={styles.confirmationButtonsContainer}>
               <TouchableOpacity 
                 style={styles.cancelButtonExclusao}
@@ -2501,7 +2279,7 @@ export default function AgendaScreen() {
   );
 }
 
-// Fun��o auxiliar para criar estilos din�micos (movida para fora do componente)
+// Função auxiliar para criar estilos dinâmicos (movida para fora do componente)
 const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
@@ -2603,8 +2381,8 @@ const createStyles = (colors: any) => StyleSheet.create({
   timeSlotContainer: {
     position: 'relative',
     minHeight: 40,
-    // IMPORTANTE: No React Native Android, overflow: 'visible' n�o funciona com position absolute
-    // Os cards precisam se estender al�m deste container
+    // IMPORTANTE: No React Native Android, overflow: 'visible' não funciona com position absolute
+    // Os cards precisam se estender além deste container
   },
   timeSlot: {
     flexDirection: 'row',
@@ -2633,7 +2411,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     right: 0,
     height: 2000, // Altura grande o suficiente para cards longos
     zIndex: 10, // Z-index alto para ficar sobre outros elementos
-    pointerEvents: 'box-none', // Permitir cliques atrav�s do container vazio
+    pointerEvents: 'box-none', // Permitir cliques através do container vazio
   },
   agendamentoCardAbsolute: {
     position: 'absolute',
@@ -2643,7 +2421,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 8,
     padding: 10,
     borderLeftWidth: 4,
-    elevation: 5, // Eleva��o maior para ficar acima de tudo
+    elevation: 5, // Elevação maior para ficar acima de tudo
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -3220,7 +2998,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
   },
-  // Estilos para o formul�rio de hor�rios
+  // Estilos para o formulário de horários
   formGroup: {
     marginBottom: 16,
   },
@@ -3643,7 +3421,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 12,
   },
-  // Estilos para visualiza��o em lista
+  // Estilos para visualização em lista
   sectionHeader: {
     backgroundColor: colors.surface,
     paddingHorizontal: 16,
@@ -3696,4 +3474,3 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 6,
   },
 });
-
