@@ -24,7 +24,7 @@ export default function SelecionarContatoScreen() {
   const [contatosFiltrados, setContatosFiltrados] = useState<Contato[]>([]);
   const [loading, setLoading] = useState(true);
   const [termoBusca, setTermoBusca] = useState('');
-  const [permissaoConcedida, setPermissaoConcedida] = useState(true); // Novo estado
+  const [permissaoConcedida, setPermissaoConcedida] = useState(true);
   const navigation = useNavigation();
 
   useFocusEffect(
@@ -54,11 +54,10 @@ export default function SelecionarContatoScreen() {
         setContatosFiltrados(contatosOrdenados);
       }
     } else {
-      // Se a permissão for negada, atualizamos o estado
       setPermissaoConcedida(false);
       Alert.alert(
-        "Permissão Necessária",
-        "O acesso aos contatos foi negado. Para usar esta funcionalidade, por favor, habilite a permissão nas configurações do seu dispositivo."
+        "PermissÃ£o NecessÃ¡ria",
+        "O acesso aos contatos foi negado. Para usar esta funcionalidade, por favor, habilite a permissÃ£o nas configuraÃ§Ãµes do seu dispositivo."
       );
     }
     setLoading(false);
@@ -67,18 +66,16 @@ export default function SelecionarContatoScreen() {
   const handleBusca = (texto: string) => {
     setTermoBusca(texto);
     if (texto) {
-      const contatosFiltrados = contatos.filter(contato =>
+      const filtrados = contatos.filter(contato =>
         contato.name.toLowerCase().includes(texto.toLowerCase())
       );
-      setContatosFiltrados(contatosFiltrados);
+      setContatosFiltrados(filtrados);
     } else {
       setContatosFiltrados(contatos);
     }
   };
   
   const handleSelecionarContato = (contato: Contato) => {
-    // Lógica para quando um contato é selecionado
-    // Por exemplo, voltar para a tela anterior e passar os dados
     logger.debug('Contato Selecionado:', contato);
     navigation.goBack(); 
   };
@@ -90,7 +87,7 @@ export default function SelecionarContatoScreen() {
       </View>
       <View style={styles.infoContainer}>
         <Text style={styles.nome}>{item.name}</Text>
-        <Text style={styles.telefone}>{item.phoneNumbers ? item.phoneNumbers[0].number : 'Sem número'}</Text>
+        <Text style={styles.telefone}>{item.phoneNumbers ? item.phoneNumbers[0].number : 'Sem nÃºmero'}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -103,17 +100,16 @@ export default function SelecionarContatoScreen() {
     );
   }
 
-  // Se a permissão foi negada, exibe a tela de aviso
   if (!permissaoConcedida) {
     return (
       <View style={styles.centeredContainer}>
         <Ionicons name="people-circle-outline" size={80} color="#D1D5DB" />
-        <Text style={styles.permissaoTitulo}>Acesso aos Contatos Necessário</Text>
+        <Text style={styles.permissaoTitulo}>Acesso aos Contatos NecessÃ¡rio</Text>
         <Text style={styles.permissaoTexto}>
-          Para adicionar clientes a partir da sua agenda, precisamos da sua permissão para acessar seus contatos.
+          Para adicionar clientes a partir da sua agenda, precisamos da sua permissÃ£o para acessar seus contatos.
         </Text>
         <TouchableOpacity style={styles.botaoPermissao} onPress={() => Linking.openSettings()}>
-          <Text style={styles.botaoPermissaoTexto}>Abrir Configurações</Text>
+          <Text style={styles.botaoPermissaoTexto}>Abrir ConfiguraÃ§Ãµes</Text>
         </TouchableOpacity>
       </View>
     );
@@ -124,7 +120,7 @@ export default function SelecionarContatoScreen() {
       <View style={styles.searchContainer}>
         <Ionicons name="search" size={20} color={colors.textTertiary} style={styles.searchIcon} />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: colors.text }]}
           placeholder="Buscar contato..."
           value={termoBusca}
           onChangeText={handleBusca}
@@ -145,7 +141,6 @@ export default function SelecionarContatoScreen() {
   );
 }
 
-// Função auxiliar para criar estilos dinâmicos
 const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
@@ -240,4 +235,3 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontWeight: '600',
   },
 });
-

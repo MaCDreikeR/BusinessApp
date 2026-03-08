@@ -418,7 +418,7 @@ npm run check:console
 
 ## 🆕 MELHORIAS DE ORGANIZAÇÃO (v2.0.0)
 
-### 7. � Tipagem Centralizada (IMPLEMENTADO)
+### 7.  Tipagem Centralizada (IMPLEMENTADO)
 
 **Problema**: Tipos duplicados em vários arquivos
 - Cliente definido em 4+ lugares
@@ -674,7 +674,7 @@ import { supabase } from '@lib/supabase';
 
 ---
 
-## �📞 SUPORTE
+## 📞 SUPORTE
 
 Se encontrar algum problema após estas mudanças:
 1. Verifique se o cache foi limpo: `npx expo start --clear`

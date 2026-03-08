@@ -22,7 +22,7 @@ export default function AgendamentoOnlineScreen() {
   const [slug, setSlug] = useState<string>('');
   const [urlBase, setUrlBase] = useState<string>('https://businessapp-web.vercel.app');
   
-  // Gerar o link de agendamento baseado no slug do estabelecimento e URL das configuraÁıes globais
+  // Gerar o link de agendamento baseado no slug do estabelecimento e URL das configura√ß√µes globais
   const linkAgendamento = slug 
     ? `${urlBase}/${slug}` 
     : 'Carregando...';
@@ -34,7 +34,7 @@ export default function AgendamentoOnlineScreen() {
       carregarUrlBase();
       carregarAntecedencia();
       
-      // Escutar mudanÁas do toggle no header
+      // Escutar mudan√ßas do toggle no header
       const subscription = DeviceEventEmitter.addListener(
         'agendamentoOnlineAtualizado',
         (novoValor: boolean) => {
@@ -79,7 +79,7 @@ export default function AgendamentoOnlineScreen() {
       }
     } catch (error) {
       logger.error('Erro ao carregar URL base:', error);
-      // Usa URL padr„o se n„o conseguir carregar
+      // Usa URL padr√£o se n√£o conseguir carregar
     }
   };
   
@@ -94,14 +94,14 @@ export default function AgendamentoOnlineScreen() {
         .eq('estabelecimento_id', estabelecimentoId)
         .single();
       
-      if (error && error.code !== 'PGRST116') { // Ignora erro de "n„o encontrado"
+      if (error && error.code !== 'PGRST116') { // Ignora erro de "n√£o encontrado"
         throw error;
       }
       
       setAgendamentoOnlineAtivo(data?.valor === 'true');
     } catch (error) {
-      logger.error('Erro ao carregar configuraÁ„o:', error);
-      Alert.alert('Erro', 'N„o foi possÌvel carregar as configuraÁıes');
+      logger.error('Erro ao carregar configura√ß√£o:', error);
+      Alert.alert('Erro', 'N√£o foi poss√≠vel carregar as configura√ß√µes');
     } finally {
       setLoading(false);
     }
@@ -124,7 +124,7 @@ export default function AgendamentoOnlineScreen() {
         setAntecedenciaMinima(parseInt(data.valor));
       }
     } catch (error) {
-      logger.error('Erro ao carregar antecedÍncia:', error);
+      logger.error('Erro ao carregar anteced√™ncia:', error);
     }
   };
   
@@ -143,20 +143,20 @@ export default function AgendamentoOnlineScreen() {
       if (error) throw error;
       
       setAntecedenciaMinima(novoValor);
-      Alert.alert('Sucesso', 'AntecedÍncia mÌnima atualizada!');
+      Alert.alert('Sucesso', 'Anteced√™ncia m√≠nima atualizada!');
     } catch (error) {
-      logger.error('Erro ao salvar antecedÍncia:', error);
-      Alert.alert('Erro', 'N„o foi possÌvel salvar a configuraÁ„o');
+      logger.error('Erro ao salvar anteced√™ncia:', error);
+      Alert.alert('Erro', 'N√£o foi poss√≠vel salvar a configura√ß√£o');
     }
   };
   
   const copiarLink = () => {
     Clipboard.setString(linkAgendamento);
-    Alert.alert('Sucesso', 'Link copiado para a ·rea de transferÍncia!');
+    Alert.alert('Sucesso', 'Link copiado para a √°rea de transfer√™ncia!');
   };
   
   const compartilharWhatsApp = async () => {
-    const mensagem = `?? Agende seu hor·rio comigo!\n\nAcesse o link e escolha o melhor hor·rio:\n${linkAgendamento}`;
+    const mensagem = `üóìÔ∏è Agende seu hor√°rio comigo!\n\nAcesse o link e escolha o melhor hor√°rio:\n${linkAgendamento}`;
     const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(mensagem)}`;
     
     try {
@@ -164,18 +164,18 @@ export default function AgendamentoOnlineScreen() {
       if (supported) {
         await Linking.openURL(whatsappUrl);
       } else {
-        Alert.alert('Erro', 'WhatsApp n„o est· instalado neste dispositivo');
+        Alert.alert('Erro', 'WhatsApp n√£o est√° instalado neste dispositivo');
       }
     } catch (error) {
       logger.error('Erro ao abrir WhatsApp:', error);
-      Alert.alert('Erro', 'N„o foi possÌvel abrir o WhatsApp');
+      Alert.alert('Erro', 'N√£o foi poss√≠vel abrir o WhatsApp');
     }
   };
   
   const compartilharLink = async () => {
     try {
       await Share.share({
-        message: `?? Agende seu hor·rio comigo!\n\nAcesse o link e escolha o melhor hor·rio:\n${linkAgendamento}`,
+        message: `üóìÔ∏è Agende seu hor√°rio comigo!\n\nAcesse o link e escolha o melhor hor√°rio:\n${linkAgendamento}`,
         title: 'Link de Agendamento',
       });
     } catch (error) {
@@ -208,7 +208,7 @@ export default function AgendamentoOnlineScreen() {
               <Text style={[styles.infoTitle, { color: colors.text }]}>Agendamento Online Desativado</Text>
             </View>
             <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-              Ative o agendamento online no bot„o acima para permitir que seus clientes agendem hor·rios pela internet.
+              Ative o agendamento online no bot√£o acima para permitir que seus clientes agendem hor√°rios pela internet.
             </Text>
           </Animated.View>
         )}
@@ -248,14 +248,14 @@ export default function AgendamentoOnlineScreen() {
               </TouchableOpacity>
             </View>
             
-            {/* ConfiguraÁ„o de AntecedÍncia */}
+            {/* Configura√ß√£o de Anteced√™ncia */}
             <View style={[styles.configSection, { borderTopColor: colors.border }]}>
               <View style={styles.configHeader}>
                 <FontAwesome5 name="clock" size={16} color={colors.textSecondary} />
-                <Text style={[styles.configTitle, { color: colors.text }]}>AntecedÍncia MÌnima</Text>
+                <Text style={[styles.configTitle, { color: colors.text }]}>Anteced√™ncia M√≠nima</Text>
               </View>
               <Text style={[styles.configDescription, { color: colors.textSecondary }]}>
-                Tempo mÌnimo necess·rio antes do hor·rio para permitir agendamento online
+                Tempo m√≠nimo necess√°rio antes do hor√°rio para permitir agendamento online
               </Text>
               <View style={styles.antecedenciaContainer}>
                 <TextInput
@@ -278,13 +278,13 @@ export default function AgendamentoOnlineScreen() {
                 <Text style={[styles.antecedenciaLabel, { color: colors.text }]}>horas</Text>
               </View>
               <Text style={[styles.antecedenciaExample, { color: colors.textTertiary }]}>
-                Exemplo: Se agora s„o 08:00 e vocÍ configurou 2h, o prÛximo hor·rio disponÌvel ser· ‡s 10:00
+                Exemplo: Se agora s√£o 08:00 e voc√™ configurou 2h, o pr√≥ximo hor√°rio dispon√≠vel ser√° √†s 10:00
               </Text>
             </View>
           </Animated.View>
         )}
         
-        {/* Card de InformaÁıes */}
+        {/* Card de Informa√ß√µes */}
         {agendamentoOnlineAtivo && (
           <Animated.View 
             entering={FadeIn.delay(300).springify()}
@@ -298,21 +298,21 @@ export default function AgendamentoOnlineScreen() {
             <View style={styles.infoItem}>
               <FontAwesome5 name="check-circle" size={14} color={colors.success} />
               <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-                Clientes acessam o link e escolhem data e hor·rio
+                Clientes acessam o link e escolhem data e hor√°rio
               </Text>
             </View>
             
             <View style={styles.infoItem}>
               <FontAwesome5 name="check-circle" size={14} color={colors.success} />
               <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-                VocÍ recebe notificaÁ„o de novos agendamentos
+                Voc√™ recebe notifica√ß√£o de novos agendamentos
               </Text>
             </View>
             
             <View style={styles.infoItem}>
               <FontAwesome5 name="check-circle" size={14} color={colors.success} />
               <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-                Hor·rios ocupados s„o automaticamente bloqueados
+                Hor√°rios ocupados s√£o automaticamente bloqueados
               </Text>
             </View>
           </Animated.View>
@@ -479,4 +479,3 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 });
-

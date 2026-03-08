@@ -43,7 +43,7 @@ export default function EstoqueScreen() {
   const { estabelecimentoId } = useAuth();
   const { colors } = useTheme();
   
-  // Estilos din‚micos baseados no tema
+  // Estilos din√¢micos baseados no tema
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [produtos, setProdutos] = useState<ProdutoEstoque[]>([]);
   const [loading, setLoading] = useState(true);
@@ -159,8 +159,8 @@ export default function EstoqueScreen() {
       logger.debug('Iniciando carregamento de categorias...');
       
       if (!estabelecimentoId) {
-        logger.error('Estabelecimento n„o identificado');
-        Alert.alert('Erro', 'Estabelecimento n„o identificado');
+        logger.error('Estabelecimento n√£o identificado');
+        Alert.alert('Erro', 'Estabelecimento n√£o identificado');
         return;
       }
 
@@ -181,14 +181,14 @@ export default function EstoqueScreen() {
       }
     } catch (error) {
       logger.error('Erro ao carregar categorias:', error);
-      Alert.alert('Erro', 'N„o foi possÌvel carregar as categorias');
+      Alert.alert('Erro', 'N√£o foi poss√≠vel carregar as categorias');
     }
   };
 
   const carregarFornecedores = async () => {
     try {
       if (!estabelecimentoId) {
-        logger.error('Estabelecimento n„o identificado');
+        logger.error('Estabelecimento n√£o identificado');
         return;
       }
       const { data, error } = await supabase
@@ -207,7 +207,7 @@ export default function EstoqueScreen() {
   const carregarMarcas = async () => {
     try {
       if (!estabelecimentoId) {
-        logger.error('Estabelecimento n„o identificado');
+        logger.error('Estabelecimento n√£o identificado');
         return;
       }
       const { data, error } = await supabase
@@ -228,8 +228,8 @@ export default function EstoqueScreen() {
       setLoading(true);
       
       if (!estabelecimentoId) {
-        logger.error('Estabelecimento n„o identificado');
-        Alert.alert('Erro', 'Estabelecimento n„o identificado');
+        logger.error('Estabelecimento n√£o identificado');
+        Alert.alert('Erro', 'Estabelecimento n√£o identificado');
         return;
       }
 
@@ -245,7 +245,7 @@ export default function EstoqueScreen() {
           );
 
       if (cachedData) {
-        logger.debug('? Usando cache para produtos');
+        logger.debug('Usando cache para produtos');
         setProdutos(cachedData);
         setLoading(false);
         return;
@@ -310,7 +310,7 @@ export default function EstoqueScreen() {
       );
     } catch (error) {
       logger.error('Erro ao carregar produtos:', error);
-      Alert.alert('Erro', 'N„o foi possÌvel carregar os produtos');
+      Alert.alert('Erro', 'N√£o foi poss√≠vel carregar os produtos');
     } finally {
       setLoading(false);
     }
@@ -586,7 +586,7 @@ export default function EstoqueScreen() {
 
   const getStatusEstoque = (quantidade: number, quantidade_minima: number) => {
     if (quantidade === 0) return { cor: colors.error, texto: 'Zerado', background: colors.errorBackground };
-    if (quantidade <= quantidade_minima) return { cor: colors.error, texto: 'Abaixo do MÌnimo', background: colors.errorBackground };
+    if (quantidade <= quantidade_minima) return { cor: colors.error, texto: 'Abaixo do M√≠nimo', background: colors.errorBackground };
     if (quantidade <= 5) return { cor: colors.warning, texto: 'Baixo', background: '#FFFFFF' };
     return { cor: colors.success, texto: 'Normal', background: '#FFFFFF' };
   };
@@ -602,12 +602,12 @@ export default function EstoqueScreen() {
   const handleSalvarCategoria = async () => {
     try {
       if (!novaCategoria.trim()) {
-        Alert.alert('Erro', 'O nome da categoria È obrigatÛrio');
+        Alert.alert('Erro', 'O nome da categoria √© obrigat√≥rio');
         return;
       }
 
       if (!estabelecimentoId) {
-        Alert.alert('Erro', 'Estabelecimento n„o identificado');
+        Alert.alert('Erro', 'Estabelecimento n√£o identificado');
         return;
       }
 
@@ -645,7 +645,7 @@ export default function EstoqueScreen() {
       setMostrarCategorias(false);
     } catch (error: any) {
       logger.error('Erro ao salvar categoria:', error);
-      Alert.alert('Erro', `N„o foi possÌvel salvar a categoria: ${error.message || error}`);
+      Alert.alert('Erro', `N√£o foi poss√≠vel salvar a categoria: ${error.message || error}`);
     }
   };
 
@@ -656,7 +656,7 @@ export default function EstoqueScreen() {
 
   const handleExcluirCategoria = async (categoria: CategoriaEstoque) => {
     Alert.alert(
-      'Confirmar Exclus„o',
+      'Confirmar Exclus√£o',
       'Tem certeza que deseja excluir esta categoria?',
       [
         {
@@ -669,7 +669,7 @@ export default function EstoqueScreen() {
           onPress: async () => {
             try {
               if (!estabelecimentoId) {
-                Alert.alert('Erro', 'Estabelecimento n„o identificado');
+                Alert.alert('Erro', 'Estabelecimento n√£o identificado');
                 return;
               }
 
@@ -684,7 +684,7 @@ export default function EstoqueScreen() {
               await carregarCategorias();
             } catch (error) {
               logger.error('Erro ao excluir categoria:', error);
-              Alert.alert('Erro', 'N„o foi possÌvel excluir a categoria');
+              Alert.alert('Erro', 'N√£o foi poss√≠vel excluir a categoria');
             }
           },
         },
@@ -695,7 +695,7 @@ export default function EstoqueScreen() {
   const handleSalvarMarca = async () => {
     try {
       if (!estabelecimentoId) {
-        Alert.alert('Erro', 'Estabelecimento n„o identificado');
+        Alert.alert('Erro', 'Estabelecimento n√£o identificado');
         return;
       }
 
@@ -723,7 +723,7 @@ export default function EstoqueScreen() {
       Alert.alert('Sucesso', marcaEmEdicao ? 'Marca atualizada com sucesso!' : 'Marca cadastrada com sucesso!');
     } catch (error) {
       logger.error('Erro ao salvar marca:', error);
-      Alert.alert('Erro', 'N„o foi possÌvel salvar a marca');
+      Alert.alert('Erro', 'N√£o foi poss√≠vel salvar a marca');
     }
   };
 
@@ -735,7 +735,7 @@ export default function EstoqueScreen() {
   const handleExcluirMarca = async (marca: MarcaEstoque) => {
     try {
       if (!estabelecimentoId) {
-        Alert.alert('Erro', 'Estabelecimento n„o identificado');
+        Alert.alert('Erro', 'Estabelecimento n√£o identificado');
         return;
       }
 
@@ -748,10 +748,10 @@ export default function EstoqueScreen() {
       if (error) throw error;
 
       await carregarMarcas();
-      Alert.alert('Sucesso', 'Marca excluÌda com sucesso!');
+      Alert.alert('Sucesso', 'Marca exclu√≠da com sucesso!');
     } catch (error) {
       logger.error('Erro ao excluir marca:', error);
-      Alert.alert('Erro', 'N„o foi possÌvel excluir a marca');
+      Alert.alert('Erro', 'N√£o foi poss√≠vel excluir a marca');
     }
   };
 
@@ -766,7 +766,7 @@ export default function EstoqueScreen() {
         <View style={styles.produtoHeader}>
           <View style={styles.produtoInfo}>
             <Text style={styles.produtoNome}>{item.nome}</Text>
-            <Text style={styles.produtoCodigo}>CÛdigo: {item.codigo}</Text>
+            <Text style={styles.produtoCodigo}>C√≥digo: {item.codigo}</Text>
             {item.categoria && (
               <Text style={styles.produtoCategoria}>{item.categoria.nome}</Text>
             )}
@@ -1008,330 +1008,331 @@ export default function EstoqueScreen() {
   );
 }
 
-// FunÁ„o auxiliar para criar estilos din‚micos
-const createStyles = (colors: any) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  filtrosContainer: {
-    backgroundColor: colors.surface,
-    paddingTop: 16,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 12,
-    backgroundColor: colors.surface,
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    height: 40,
-    backgroundColor: colors.background,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    fontSize: 16,
-    color: colors.text,
-  },
-  limparFiltros: {
-    marginLeft: 12,
-    padding: 8,
-    backgroundColor: colors.primary,
-    borderRadius: 8,
-    minWidth: 60,
-    alignItems: 'center',
-  },
-  limparFiltrosTexto: {
-    color: colors.primaryContrast,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  tab: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    marginRight: 8,
-    borderRadius: 8,
-    backgroundColor: colors.background,
-  },
-  tabAtiva: {
-    backgroundColor: colors.primary,
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.textSecondary,
-  },
-  tabTextAtivo: {
-    color: '#FFFFFF',
-  },
-  filtrosScroll: {
-    paddingHorizontal: 16,
-  },
-  filtrosRow: {
-    flexDirection: 'row',
-    paddingBottom: 8,
-  },
-  filtroChip: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: colors.background,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  filtroChipAtivo: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  filtroChipText: {
-    fontSize: 14,
-    color: colors.text,
-  },
-  filtroChipTextAtivo: {
-    color: colors.primaryContrast,
-  },
-  listContent: {
-    padding: 16,
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    backgroundColor: colors.primary,
-    borderRadius: 24,
-    width: 48,
-    height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  produtoCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
+// Fun√ß√£o auxiliar para criar estilos din√¢micos
+function createStyles(colors: any) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  produtoHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  produtoInfo: {
-    flex: 1,
-  },
-  produtoNome: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  produtoCodigo: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  produtoCategoria: {
-    fontSize: 14,
-    color: colors.primary,
-    marginTop: 4,
-  },
-  statusContainer: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  produtoDescricao: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: 12,
-  },
-  produtoFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  produtoDetalhes: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  produtoQuantidade: {
-    fontSize: 14,
-    color: colors.text,
-    marginRight: 16,
-  },
-  produtoPreco: {
-    fontSize: 14,
-    color: colors.text,
-    fontWeight: '600',
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-  },
-  modalContainer: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    minHeight: '50%',
-    maxHeight: '80%',
-    overflow: 'hidden',
-  },
-  modalContent: {
-    flex: 1,
-    paddingBottom: 20,
-  },
-  modalHeader: {
-    paddingTop: 8,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: colors.surface,
-    zIndex: 10,
-    paddingHorizontal: 20,
-    width: '100%',
-  },
-  modalDragIndicator: {
-    width: 40,
-    height: 4,
-    backgroundColor: colors.border,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 12,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: colors.text,
-    textAlign: 'center',
-  },
-  modalTabs: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    marginBottom: 16,
-    paddingHorizontal: 20,
-  },
-  modalTab: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  modalTabAtiva: {
-    borderBottomWidth: 2,
-    borderBottomColor: colors.primary,
-  },
-  modalTabText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  modalTabTextAtiva: {
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  categoriaForm: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 16,
-    marginBottom: 16,
-    paddingHorizontal: 20,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: colors.background,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    height: 44,
-  },
-  button: {
-    borderRadius: 8,
-    alignItems: 'center',
-    minWidth: 100,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    height: 44,
-    justifyContent: 'center',
-  },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  categoriasContainer: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 12,
-  },
-  categoriasList: {
-    flex: 1,
-  },
-  categoriasListContent: {
-    paddingBottom: 20,
-  },
-  categoriaItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  categoriaNome: {
-    fontSize: 16,
-    color: colors.text,
-  },
-  categoriaActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  actionButton: {
-    padding: 8,
-  },
-  emptyText: {
-    color: colors.primary,
-    fontSize: 16,
-    fontWeight: '500',
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  emptyContainer: {
-    paddingVertical: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
-
+    filtrosContainer: {
+      backgroundColor: colors.surface,
+      paddingTop: 16,
+      paddingBottom: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      marginBottom: 12,
+      backgroundColor: colors.surface,
+    },
+    searchIcon: {
+      marginRight: 8,
+    },
+    searchInput: {
+      flex: 1,
+      height: 40,
+      backgroundColor: colors.background,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      fontSize: 16,
+      color: colors.text,
+    },
+    limparFiltros: {
+      marginLeft: 12,
+      padding: 8,
+      backgroundColor: colors.primary,
+      borderRadius: 8,
+      minWidth: 60,
+      alignItems: 'center',
+    },
+    limparFiltrosTexto: {
+      color: colors.primaryContrast,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    tabsContainer: {
+      flexDirection: 'row',
+      paddingHorizontal: 16,
+      marginBottom: 12,
+    },
+    tab: {
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+      marginRight: 8,
+      borderRadius: 8,
+      backgroundColor: colors.background,
+    },
+    tabAtiva: {
+      backgroundColor: colors.primary,
+    },
+    tabText: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: colors.textSecondary,
+    },
+    tabTextAtivo: {
+      color: '#FFFFFF',
+    },
+    filtrosScroll: {
+      paddingHorizontal: 16,
+    },
+    filtrosRow: {
+      flexDirection: 'row',
+      paddingBottom: 8,
+    },
+    filtroChip: {
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 16,
+      backgroundColor: colors.background,
+      marginRight: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    filtroChipAtivo: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    filtroChipText: {
+      fontSize: 14,
+      color: colors.text,
+    },
+    filtroChipTextAtivo: {
+      color: colors.primaryContrast,
+    },
+    listContent: {
+      padding: 16,
+    },
+    fab: {
+      position: 'absolute',
+      bottom: 20,
+      right: 20,
+      backgroundColor: colors.primary,
+      borderRadius: 24,
+      width: 48,
+      height: 48,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    produtoCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 8,
+      padding: 16,
+      marginBottom: 12,
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 1,
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    produtoHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 8,
+    },
+    produtoInfo: {
+      flex: 1,
+    },
+    produtoNome: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.text,
+      marginBottom: 4,
+    },
+    produtoCodigo: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    produtoCategoria: {
+      fontSize: 14,
+      color: colors.primary,
+      marginTop: 4,
+    },
+    statusContainer: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    statusText: {
+      fontSize: 12,
+      fontWeight: '500',
+    },
+    produtoDescricao: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginBottom: 12,
+    },
+    produtoFooter: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    produtoDetalhes: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    produtoQuantidade: {
+      fontSize: 14,
+      color: colors.text,
+      marginRight: 16,
+    },
+    produtoPreco: {
+      fontSize: 14,
+      color: colors.text,
+      fontWeight: '600',
+    },
+    modalOverlay: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    },
+    modalContainer: {
+      backgroundColor: colors.surface,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      minHeight: '50%',
+      maxHeight: '80%',
+      overflow: 'hidden',
+    },
+    modalContent: {
+      flex: 1,
+      paddingBottom: 20,
+    },
+    modalHeader: {
+      paddingTop: 8,
+      paddingBottom: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      backgroundColor: colors.surface,
+      zIndex: 10,
+      paddingHorizontal: 20,
+      width: '100%',
+    },
+    modalDragIndicator: {
+      width: 40,
+      height: 4,
+      backgroundColor: colors.border,
+      borderRadius: 2,
+      alignSelf: 'center',
+      marginBottom: 12,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '600',
+      color: colors.text,
+      textAlign: 'center',
+    },
+    modalTabs: {
+      flexDirection: 'row',
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      marginBottom: 16,
+      paddingHorizontal: 20,
+    },
+    modalTab: {
+      flex: 1,
+      paddingVertical: 12,
+      alignItems: 'center',
+    },
+    modalTabAtiva: {
+      borderBottomWidth: 2,
+      borderBottomColor: colors.primary,
+    },
+    modalTabText: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      fontWeight: '500',
+    },
+    modalTabTextAtiva: {
+      color: colors.primary,
+      fontWeight: '600',
+    },
+    categoriaForm: {
+      flexDirection: 'row',
+      gap: 12,
+      marginTop: 16,
+      marginBottom: 16,
+      paddingHorizontal: 20,
+    },
+    input: {
+      flex: 1,
+      backgroundColor: colors.background,
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      height: 44,
+    },
+    button: {
+      borderRadius: 8,
+      alignItems: 'center',
+      minWidth: 100,
+      backgroundColor: colors.primary,
+      paddingHorizontal: 16,
+      height: 44,
+      justifyContent: 'center',
+    },
+    buttonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#FFFFFF',
+    },
+    categoriasContainer: {
+      flex: 1,
+      paddingHorizontal: 20,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.text,
+      marginBottom: 12,
+    },
+    categoriasList: {
+      flex: 1,
+    },
+    categoriasListContent: {
+      paddingBottom: 20,
+    },
+    categoriaItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 4,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    categoriaNome: {
+      fontSize: 16,
+      color: colors.text,
+    },
+    categoriaActions: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    actionButton: {
+      padding: 8,
+    },
+    emptyText: {
+      color: colors.primary,
+      fontSize: 16,
+      fontWeight: '500',
+      textAlign: 'center',
+      marginTop: 20,
+    },
+    emptyContainer: {
+      paddingVertical: 40,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+  });
+}

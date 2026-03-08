@@ -16,7 +16,7 @@ export default function RelatoriosScreen() {
     { id: 'vendas', icon: 'chart-line', label: 'Vendas' },
     { id: 'agendamentos', icon: 'calendar-alt', label: 'Agendamentos' },
     { id: 'clientes', icon: 'users', label: 'Clientes' },
-    { id: 'comissoes', icon: 'percentage', label: 'Comissões' },
+    { id: 'comissoes', icon: 'percentage', label: 'ComissÃµes' },
   ];
   
   const styles = useMemo(() => StyleSheet.create({
@@ -118,7 +118,7 @@ export default function RelatoriosScreen() {
             <FontAwesome5 name="bars" size={20} color={colors.primary} />
           </TouchableOpacity>
           <View style={styles.headerText}>
-            <ThemedText style={styles.title}>Relatórios</ThemedText>
+            <ThemedText style={styles.title}>RelatÃ³rios</ThemedText>
           </View>
         </View>
       </View>

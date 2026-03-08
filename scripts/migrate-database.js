@@ -122,7 +122,7 @@ async function main() {
       console.log('- Password: postgres');
     }
 
-    console.log('� ETAPA 4: Verificação da Migração\n');
+    console.log(' ETAPA 4: Verificação da Migração\n');
 
     // Verificar status do Supabase local
     const status = runCommand('supabase status', 'Verificando status do Supabase local');

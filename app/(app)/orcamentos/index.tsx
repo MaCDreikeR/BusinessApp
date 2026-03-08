@@ -106,8 +106,8 @@ export default function OrcamentosScreen() {
       setOrcamentos(data);
       setOrcamentosFiltrados(data);
     } catch (error) {
-      logger.error('Erro ao carregar orçamentos:', error);
-      Alert.alert('Erro', 'Não foi possível carregar os orçamentos');
+      logger.error('Erro ao carregar orÃ§amentos:', error);
+      Alert.alert('Erro', 'NÃ£o foi possÃ­vel carregar os orÃ§amentos');
     } finally {
       setLoading(false);
     }
@@ -194,8 +194,8 @@ export default function OrcamentosScreen() {
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
               {busca.length > 0 
-                ? 'Nenhum orçamento encontrado para esta busca'
-                : 'Nenhum orçamento cadastrado'}
+                ? 'Nenhum orÃ§amento encontrado para esta busca'
+                : 'Nenhum orÃ§amento cadastrado'}
             </Text>
           </View>
         )}
@@ -204,7 +204,7 @@ export default function OrcamentosScreen() {
   );
 }
 
-// Função auxiliar para criar estilos dinâmicos
+// FunÃ§Ã£o auxiliar para criar estilos dinÃ¢micos
 const createStyles = (colors: any) => StyleSheet.create({
   list: {
     padding: 16,

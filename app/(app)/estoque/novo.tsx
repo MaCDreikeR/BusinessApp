@@ -85,7 +85,7 @@ export default function NovoProdutoScreen() {
       setCategorias(data || []);
     } catch (error) {
       logger.error('Erro ao carregar categorias:', error);
-      Alert.alert('Erro', 'Não foi possível carregar as categorias');
+      Alert.alert('Erro', 'NÃ£o foi possÃ­vel carregar as categorias');
     }
   };
 
@@ -100,7 +100,7 @@ export default function NovoProdutoScreen() {
       setFornecedores(data || []);
     } catch (error) {
       logger.error('Erro ao carregar fornecedores:', error);
-      Alert.alert('Erro', 'Não foi possível carregar os fornecedores');
+      Alert.alert('Erro', 'NÃ£o foi possÃ­vel carregar os fornecedores');
     }
   };
 
@@ -115,14 +115,14 @@ export default function NovoProdutoScreen() {
       setMarcas(data || []);
     } catch (error) {
       logger.error('Erro ao carregar marcas:', error);
-      Alert.alert('Erro', 'Não foi possível carregar as marcas');
+      Alert.alert('Erro', 'NÃ£o foi possÃ­vel carregar as marcas');
     }
   };
 
   const formatarPreco = (valor: string) => {
-    // Remove caracteres não numéricos
+    // Remove caracteres nÃ£o numÃ©ricos
     const valorNumerico = valor.replace(/\D/g, '');
-    // Converte para número e divide por 100 para considerar os centavos
+    // Converte para nÃºmero e divide por 100 para considerar os centavos
     const valorFormatado = (Number(valorNumerico) / 100).toLocaleString('pt-BR', {
       style: 'currency',
       currency: 'BRL',
@@ -133,8 +133,8 @@ export default function NovoProdutoScreen() {
     const validarEstoque = (): EstoqueFieldErrors => {
     const erros: EstoqueFieldErrors = {};
     
-    if (!nomeProduto.trim()) {
-      erros.nomeProduto = 'Nome do produto é obrigatório';
+    if (!formData.nome.trim()) {
+      erros.nomeProduto = 'Nome do produto Ã© obrigatÃ³rio';
     }
     
     return erros;
@@ -143,28 +143,28 @@ export default function NovoProdutoScreen() {
   const handleSalvar = async () => {
     try {
       if (!estabelecimentoId) {
-        Alert.alert('Erro', 'Estabelecimento não identificado. Entre novamente.');
+        Alert.alert('Erro', 'Estabelecimento nÃ£o identificado. Entre novamente.');
         return;
       }
 
-      // Converter preço de string formatada para número
+      // Converter preÃ§o de string formatada para nÃºmero
       const precoNumerico = parseFloat(formData.preco.replace(/[^\d,]/g, '').replace(',', '.'));
       if (isNaN(precoNumerico)) {
-        Alert.alert('Erro', 'Preço inválido');
+        Alert.alert('Erro', 'PreÃ§o invÃ¡lido');
         return;
       }
 
-      // Converter quantidade para número
+      // Converter quantidade para nÃºmero
       const quantidadeNumerica = parseInt(formData.quantidade);
       if (isNaN(quantidadeNumerica)) {
-        Alert.alert('Erro', 'Quantidade inválida');
+        Alert.alert('Erro', 'Quantidade invÃ¡lida');
         return;
       }
 
-      // Garantir que quantidade_minima seja um número válido
+      // Garantir que quantidade_minima seja um nÃºmero vÃ¡lido
       const quantidadeMinima = parseInt(formData.quantidade_minima) || 0;
       if (isNaN(quantidadeMinima)) {
-        Alert.alert('Erro', 'Quantidade mínima inválida');
+        Alert.alert('Erro', 'Quantidade mÃ­nima invÃ¡lida');
         return;
       }
 
@@ -194,7 +194,7 @@ export default function NovoProdutoScreen() {
       );
     } catch (error) {
       logger.error('Erro ao cadastrar produto:', error);
-      Alert.alert('Erro', 'Não foi possível cadastrar o produto');
+      Alert.alert('Erro', 'NÃ£o foi possÃ­vel cadastrar o produto');
     }
   };
 
@@ -229,7 +229,7 @@ export default function NovoProdutoScreen() {
     <View style={styles.container}>
       <ScrollView style={styles.formContainer}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Informações Básicas</Text>
+          <Text style={styles.sectionTitle}>InformaÃ§Ãµes BÃ¡sicas</Text>
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Nome do Produto *</Text>
@@ -243,12 +243,12 @@ export default function NovoProdutoScreen() {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Código *</Text>
+          <Text style={styles.label}>CÃ³digo *</Text>
           <TextInput
             style={styles.input}
             value={formData.codigo}
             onChangeText={(text) => setFormData({ ...formData, codigo: text })}
-            placeholder="Digite o código do produto"
+            placeholder="Digite o cÃ³digo do produto"
               placeholderTextColor={colors.textTertiary}
           />
         </View>
@@ -297,12 +297,12 @@ export default function NovoProdutoScreen() {
           <Text style={styles.sectionTitle}>Detalhes do Produto</Text>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Observações</Text>
+            <Text style={styles.label}>ObservaÃ§Ãµes</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               value={formData.observacoes}
               onChangeText={(text) => setFormData({ ...formData, observacoes: text })}
-              placeholder="Digite observações adicionais"
+              placeholder="Digite observaÃ§Ãµes adicionais"
               placeholderTextColor={colors.textTertiary}
               multiline
               numberOfLines={4}
@@ -324,7 +324,7 @@ export default function NovoProdutoScreen() {
             </View>
 
             <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
-              <Text style={styles.label}>Quantidade Mínima</Text>
+              <Text style={styles.label}>Quantidade MÃ­nima</Text>
               <TextInput
                 style={styles.input}
                 value={formData.quantidade_minima}
@@ -338,7 +338,7 @@ export default function NovoProdutoScreen() {
 
           <View style={styles.row}>
             <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={styles.label}>Preço *</Text>
+              <Text style={styles.label}>PreÃ§o *</Text>
               <TextInput
                 style={styles.input}
                 value={formData.preco}
@@ -464,7 +464,7 @@ export default function NovoProdutoScreen() {
   );
 }
 
-// Função auxiliar para criar estilos dinâmicos
+// FunÃ§Ã£o auxiliar para criar estilos dinÃ¢micos
 function createStyles(colors: any) {
   return StyleSheet.create({
     container: {
@@ -620,4 +620,3 @@ function createStyles(colors: any) {
     },
   });
 }
-

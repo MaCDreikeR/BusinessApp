@@ -17,7 +17,7 @@ export default function ListaUsuariosScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   
-  // Estilos din‚micos baseados no tema
+  // Estilos din√¢micos baseados no tema
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [usuarios, setUsuarios] = useState<UsuarioLista[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +49,7 @@ export default function ListaUsuariosScreen() {
       if (error) throw error;
       setIsPrincipal(usuario?.is_principal || false);
     } catch (error) {
-      logger.error('Erro ao verificar usu·rio principal:', error);
+      logger.error('Erro ao verificar usu√°rio principal:', error);
     }
   }
 
@@ -60,12 +60,12 @@ export default function ListaUsuariosScreen() {
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        throw new Error('Usu·rio n„o autenticado');
+        throw new Error('Usu√°rio n√£o autenticado');
       }
 
-      // Se for principal, carrega todos os usu·rios do mesmo estabelecimento
+      // Se for principal, carrega todos os usu√°rios do mesmo estabelecimento
       if (isPrincipal) {
-        // Primeiro busca o estabelecimento do usu·rio logado
+        // Primeiro busca o estabelecimento do usu√°rio logado
         const { data: currentUser, error: userError } = await supabase
           .from('usuarios')
           .select('estabelecimento_id')
@@ -76,34 +76,34 @@ export default function ListaUsuariosScreen() {
 
 
 
-        // TESTE TEMPOR¡RIO: Busca TODOS os usu·rios (sem filtro)
-        // Usar funÁ„o RPC para contornar polÌticas RLS
+        // TESTE TEMPOR√ÅRIO: Busca TODOS os usu√°rios (sem filtro)
+        // Usar fun√ß√£o RPC para contornar pol√≠ticas RLS
         const { data, error } = await supabase.rpc('get_usuarios_estabelecimento', {
           estabelecimento_uuid: currentUser.estabelecimento_id
         });
 
-        // Segundo teste: consulta especÌfica para Borges por ID
-        logger.debug('?? DEBUG: Buscando usu·rio Borges por ID...');
+        // Segundo teste: consulta espec√≠fica para Borges por ID
+        logger.debug('üîç DEBUG: Buscando usu√°rio Borges por ID...');
         const { data: borgesData, error: borgesError } = await supabase
           .from('usuarios')
           .select('*')
           .eq('id', '3f09a534-8bd7-4534-9b53-60eb341ca1f3');
         
-        logger.debug('?? DEBUG: Resultado busca Borges por ID:', borgesData);
-        logger.debug('? DEBUG: Erro busca Borges:', borgesError);
+        logger.debug('üîç DEBUG: Resultado busca Borges por ID:', borgesData);
+        logger.debug('‚ùå DEBUG: Erro busca Borges:', borgesError);
 
         // Terceiro teste: busca por email
-        logger.debug('?? DEBUG: Buscando usu·rio Borges por email...');
+        logger.debug('üîç DEBUG: Buscando usu√°rio Borges por email...');
         const { data: borgesEmail, error: emailError } = await supabase
           .from('usuarios')
           .select('*')
           .eq('email', 'fofopereira@gmail.com');
         
-        logger.debug('? DEBUG: Resultado busca por email:', borgesEmail);
-        logger.debug('? DEBUG: Erro busca por email:', emailError);
+        logger.debug('‚ùå DEBUG: Resultado busca por email:', borgesEmail);
+        logger.debug('‚ùå DEBUG: Erro busca por email:', emailError);
 
-        logger.debug('?? DEBUG: Total usu·rios no DB:', data?.length);
-        logger.debug('?? DEBUG: TODOS os usu·rios no DB:', data?.map(u => ({
+        logger.debug('üîç DEBUG: Total usu√°rios no DB:', data?.length);
+        logger.debug('üîç DEBUG: TODOS os usu√°rios no DB:', data?.map(u => ({
           nome: u.nome_completo,
           email: u.email,
           estabelecimento_id: u.estabelecimento_id,
@@ -113,7 +113,7 @@ export default function ListaUsuariosScreen() {
         if (error) throw error;
         setUsuarios(data || []);
       } else {
-        // Se n„o for principal, carrega apenas o prÛprio usu·rio
+        // Se n√£o for principal, carrega apenas o pr√≥prio usu√°rio
         const { data, error } = await supabase
           .from('usuarios')
           .select('*')
@@ -124,8 +124,8 @@ export default function ListaUsuariosScreen() {
         setUsuarios(data ? [data] : []);
       }
     } catch (error) {
-      logger.error('Erro ao carregar usu·rios:', error);
-      setError('Erro ao carregar usu·rios. Por favor, tente novamente.');
+      logger.error('Erro ao carregar usu√°rios:', error);
+      setError('Erro ao carregar usu√°rios. Por favor, tente novamente.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -141,7 +141,7 @@ export default function ListaUsuariosScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <ThemedText style={styles.loadingText}>Carregando usu·rios...</ThemedText>
+        <ThemedText style={styles.loadingText}>Carregando usu√°rios...</ThemedText>
       </View>
     );
   }
@@ -163,16 +163,16 @@ export default function ListaUsuariosScreen() {
 
   return (
     <View style={styles.mainContainer}>
-      {/* Header com bot„o adicionar */}
+      {/* Header com bot√£o adicionar */}
       {isPrincipal && (
         <View style={styles.header}>
-          <ThemedText style={styles.headerTitle}>Usu·rios</ThemedText>
+          <ThemedText style={styles.headerTitle}>Usu√°rios</ThemedText>
           <TouchableOpacity
             style={styles.addButton}
             onPress={() => router.push('/usuarios/novo')}
           >
             <Ionicons name="add" size={20} color={colors.white} />
-            <ThemedText style={styles.addButtonText}>Novo Usu·rio</ThemedText>
+            <ThemedText style={styles.addButtonText}>Novo Usu√°rio</ThemedText>
           </TouchableOpacity>
         </View>
       )}
@@ -192,7 +192,7 @@ export default function ListaUsuariosScreen() {
         {usuarios.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="people-outline" size={48} color={colors.textTertiary} />
-            <ThemedText style={styles.emptyText}>Nenhum usu·rio encontrado</ThemedText>
+            <ThemedText style={styles.emptyText}>Nenhum usu√°rio encontrado</ThemedText>
           </View>
         ) : (
           usuarios.map(usuario => (
@@ -245,7 +245,7 @@ export default function ListaUsuariosScreen() {
   );
 }
 
-// FunÁ„o auxiliar para criar estilos din‚micos
+// Fun√ß√£o auxiliar para criar estilos din√¢micos
 const createStyles = (colors: any) => StyleSheet.create({
   mainContainer: {
     flex: 1,
@@ -401,4 +401,3 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontWeight: '600',
   },
 });
-

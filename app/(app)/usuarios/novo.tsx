@@ -15,7 +15,6 @@ const formatarCelular = (valor: string) => {
   return `(${celular.slice(0, 2)}) ${celular.slice(2, 7)}-${celular.slice(7, 11)}`;
 };
 
-
 type UsuarioFieldErrorKey = 'nomeCompleto' | 'email' | 'senha' | 'confirmarSenha' | 'telefone';
 type UsuarioFieldErrors = Partial<Record<UsuarioFieldErrorKey, string>>;
 
@@ -28,7 +27,7 @@ export default function NovoUsuarioScreen() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<UsuarioFieldErrors>({});
   
-  // Dados do formul·rio
+  // Dados do formul√°rio
   const [nomeCompleto, setNomeCompleto] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -60,17 +59,17 @@ export default function NovoUsuarioScreen() {
 
       if (error) throw error;
 
-      // Permite acesso para admins ou usu·rios principais
-      const podeCrearUsuario = userData?.role === 'admin' || userData?.is_principal === true;
+      // Permite acesso para admins ou usu√°rios principais
+      const podeCriarUsuario = userData?.role === 'admin' || userData?.is_principal === true;
       
-      if (!podeCrearUsuario) {
-        Alert.alert('Acesso Negado', 'Apenas administradores ou usu·rios principais podem criar novos usu·rios.');
+      if (!podeCriarUsuario) {
+        Alert.alert('Acesso Negado', 'Apenas administradores ou usu√°rios principais podem criar novos usu√°rios.');
         router.replace('/usuarios');
         return;
       }
     } catch (error: any) {
-      logger.error('Erro ao verificar permiss„o:', error);
-      Alert.alert('Erro', 'N„o foi possÌvel verificar suas permissıes.');
+      logger.error('Erro ao verificar permiss√£o:', error);
+      Alert.alert('Erro', 'N√£o foi poss√≠vel verificar suas permiss√µes.');
       router.replace('/usuarios');
     }
   };
@@ -79,7 +78,7 @@ export default function NovoUsuarioScreen() {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Erro', 'Precisamos de permiss„o para acessar suas fotos.');
+        Alert.alert('Erro', 'Precisamos de permiss√£o para acessar suas fotos.');
         return;
       }
 
@@ -94,7 +93,7 @@ export default function NovoUsuarioScreen() {
         setAvatarUrl(result.assets[0].uri);
       }
     } catch (error: any) {
-      Alert.alert('Erro', `N„o foi possÌvel selecionar a imagem: ${error.message}`);
+      Alert.alert('Erro', `N√£o foi poss√≠vel selecionar a imagem: ${error.message}`);
     }
   };
 
@@ -130,26 +129,26 @@ export default function NovoUsuarioScreen() {
     const erros: UsuarioFieldErrors = {};
 
     if (!nomeCompleto.trim()) {
-      erros.nomeCompleto = 'Nome completo È obrigatÛrio';
+      erros.nomeCompleto = 'Nome completo √© obrigat√≥rio';
     }
     
     if (!email.trim()) {
-      erros.email = 'Email È obrigatÛrio';
+      erros.email = 'Email √© obrigat√≥rio';
     } else {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
-        erros.email = 'Email deve ter um formato v·lido';
+        erros.email = 'Email deve ter um formato v√°lido';
       }
     }
     
     if (!senha.trim()) {
-      erros.senha = 'Senha È obrigatÛria';
+      erros.senha = 'Senha √© obrigat√≥ria';
     } else if (senha.length < 6) {
       erros.senha = 'Senha deve ter pelo menos 6 caracteres';
     }
     
     if (senha && confirmarSenha && senha !== confirmarSenha) {
-      erros.confirmarSenha = 'Senhas n„o coincidem';
+      erros.confirmarSenha = 'Senhas n√£o coincidem';
     }
 
     return erros;
@@ -165,14 +164,17 @@ export default function NovoUsuarioScreen() {
 
     setFieldErrors({});
     if (!estabelecimentoId) {
-      Alert.alert('Erro', 'Estabelecimento n„o identificado.');
+      Alert.alert('Erro', 'Estabelecimento n√£o identificado.');
       return;
     }
 
     setLoading(true);
     
     try {
-      // 1. Criar usu·rio no Supabase Auth
+      // 1. SALVAR A SESS√ÉO DO ADMIN NO BOLSO ANTES DE TUDO
+      const { data: { session: adminSession } } = await supabase.auth.getSession();
+
+      // 2. Criar usu√°rio no Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password: senha,
@@ -180,22 +182,30 @@ export default function NovoUsuarioScreen() {
 
       if (authError) {
         if (authError.message.includes('already registered')) {
-          throw new Error('Este email j· est· sendo usado por outro usu·rio.');
+          throw new Error('Este email j√° est√° sendo usado por outro usu√°rio.');
         }
         throw authError;
       }
 
       if (!authData.user) {
-        throw new Error('Erro ao criar usu·rio de autenticaÁ„o.');
+        throw new Error('Erro ao criar usu√°rio de autentica√ß√£o.');
       }
 
-      // 2. Upload do avatar (se houver)
+      // 3. RESTAURAR A SESS√ÉO DO ADMIN IMEDIATAMENTE
+      if (adminSession) {
+        await supabase.auth.setSession({
+          access_token: adminSession.access_token,
+          refresh_token: adminSession.refresh_token,
+        });
+      }
+
+      // 4. Upload do avatar (se houver)
       let avatarPublicUrl: string | null = null;
       if (avatarUrl) {
         avatarPublicUrl = await uploadAvatar(avatarUrl, authData.user.id);
       }
 
-      // 3. Criar registro na tabela usuarios
+      // 5. Criar registro na tabela usuarios
       const { error: userError } = await supabase
         .from('usuarios')
         .insert({
@@ -213,7 +223,7 @@ export default function NovoUsuarioScreen() {
 
       if (userError) throw userError;
 
-      Alert.alert('Sucesso!', 'Usu·rio criado com sucesso.', [
+      Alert.alert('Sucesso!', 'Usu√°rio criado com sucesso.', [
         {
           text: 'OK',
           onPress: () => router.replace('/usuarios'),
@@ -221,8 +231,8 @@ export default function NovoUsuarioScreen() {
       ]);
 
     } catch (error: any) {
-      logger.error('Erro ao criar usu·rio:', error);
-      Alert.alert('Erro', error.message || 'N„o foi possÌvel criar o usu·rio.');
+      logger.error('Erro ao criar usu√°rio:', error);
+      Alert.alert('Erro', error.message || 'N√£o foi poss√≠vel criar o usu√°rio.');
     } finally {
       setLoading(false);
     }
@@ -234,10 +244,10 @@ export default function NovoUsuarioScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.title}>Novo Usu·rio</Text>
+        <Text style={styles.title}>Novo Usu√°rio</Text>
       </View>
 
-      {/* SeÁ„o Avatar */}
+      {/* Se√ß√£o Avatar */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Foto de Perfil (Opcional)</Text>
         <View style={styles.avatarContainer}>
@@ -254,9 +264,9 @@ export default function NovoUsuarioScreen() {
         </View>
       </View>
 
-      {/* Dados B·sicos */}
+      {/* Dados B√°sicos */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Dados B·sicos</Text>
+        <Text style={styles.sectionTitle}>Dados B√°sicos</Text>
         
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Nome Completo *</Text>
@@ -309,7 +319,7 @@ export default function NovoUsuarioScreen() {
               style={styles.passwordInput}
               value={senha}
               onChangeText={setSenha}
-              placeholder="MÌnimo 6 caracteres"
+              placeholder="M√≠nimo 6 caracteres"
               placeholderTextColor={colors.textTertiary}
               secureTextEntry={!showSenha}
             />
@@ -353,9 +363,9 @@ export default function NovoUsuarioScreen() {
         </View>
       </View>
 
-      {/* Tipo de Usu·rio */}
+      {/* Tipo de Usu√°rio */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Tipo de Usu·rio</Text>
+        <Text style={styles.sectionTitle}>Tipo de Usu√°rio</Text>
         
         <View style={styles.radioGroup}>
           <TouchableOpacity
@@ -375,7 +385,7 @@ export default function NovoUsuarioScreen() {
               styles.radioLabel,
               tipoUsuario === 'funcionario' && styles.radioLabelActive
             ]}>
-              Funcion·rio
+              Funcion√°rio
             </Text>
           </TouchableOpacity>
 
@@ -415,12 +425,12 @@ export default function NovoUsuarioScreen() {
             )}
           </View>
           <Text style={styles.checkboxLabel}>
-            Este usu·rio faz atendimento
+            Este usu√°rio faz atendimento
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Botıes */}
+      {/* Bot√µes */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity 
           style={styles.cancelButton}
@@ -440,7 +450,7 @@ export default function NovoUsuarioScreen() {
               <Text style={styles.saveButtonText}>Criando...</Text>
             </>
           ) : (
-            <Text style={styles.saveButtonText}>Criar Usu·rio</Text>
+            <Text style={styles.saveButtonText}>Criar Usu√°rio</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -448,7 +458,7 @@ export default function NovoUsuarioScreen() {
   );
 }
 
-// FunÁ„o auxiliar para criar estilos din‚micos
+// Fun√ß√£o auxiliar para criar estilos din√¢micos
 const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
@@ -660,4 +670,3 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: '#FFFFFF',
   },
 });
-

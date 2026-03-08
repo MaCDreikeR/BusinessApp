@@ -24,7 +24,7 @@ export default function UsuariosLayout() {
       <Stack.Screen
         name="index"
         options={{
-          title: 'Usuários',
+          title: 'UsuÃ¡rios',
           headerShown: true,
         }}
       />

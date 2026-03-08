@@ -9,13 +9,13 @@ export default function OrcamentosLayout() {
       <Stack.Screen
         name="index"
         options={{
-          title: 'Orçamentos'
+          title: 'OrÃ§amentos'
         }}
       />
       <Stack.Screen
         name="novo"
         options={{
-          title: 'Novo Orçamento',
+          title: 'Novo OrÃ§amento',
           headerShown: true,
           headerBackTitle: 'Voltar',
           headerStyle: {
@@ -27,7 +27,7 @@ export default function OrcamentosLayout() {
       <Stack.Screen
         name="[id]"
         options={{
-          title: 'Detalhes do Orçamento'
+          title: 'Detalhes do OrÃ§amento'
         }}
       />
     </Stack>
