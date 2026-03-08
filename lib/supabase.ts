@@ -2,7 +2,6 @@ import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
-import { AppState } from 'react-native';
 import { logger } from '../utils/logger';
 import { debugLogger } from '../utils/debugLogger';
 import { withTimeout } from '../utils/withTimeout';
@@ -106,7 +105,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
-    // 🔥 NOVO: Configurações de refresh e timeout
     flowType: 'pkce', // Mais seguro para mobile
     debug: __DEV__, // Logs detalhados em desenvolvimento
   },
@@ -115,7 +113,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       'x-application-name': 'business-app',
       'x-environment': isDevelopment && process.env.EXPO_PUBLIC_SUPABASE_URL_LOCAL ? 'local' : 'production',
     },
-    // 🔥 Timeout global para requisições com tratamento adequado de erros
+    // Timeout global para requisições com tratamento adequado de erros
     fetch: async (url, options = {}) => {
       const requestId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const startedAt = Date.now();
@@ -156,18 +154,15 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
           (error as any)?.message
         );
         
-        // Se foi abort por timeout, lança erro adequado sem tentar criar Response inválida
         if (error instanceof Error && error.name === 'AbortError') {
           console.error(`[SupabaseFetch] TIMEOUT ${requestId} ${shortUrl} (${elapsedMs}ms)`);
           throw new Error('Request timeout: A requisição excedeu o tempo limite de 30 segundos');
         }
         
-        // Re-lança outros erros
         throw error;
       }
     },
   },
-  // 🔥 NOVO: Opções do realtime (se usado)
   realtime: {
     params: {
       eventsPerSecond: 2,
@@ -230,13 +225,10 @@ export async function forceSupabaseReconnect(reason: string = 'manual') {
         attemptId,
       });
       console.error('[SupabaseReconnect] Erro ao obter sessão na reconexão', String(sessionError));
-      // NÃO usar return aqui - deixa o finally limpar o lock
     } else if (!session?.user?.id) {
       debugLogger.warn('SupabaseReconnect', 'Sem sessão ativa durante reconexão');
       console.warn('[SupabaseReconnect] Sem sessão ativa durante reconexão');
-      // NÃO usar return aqui - deixa o finally limpar o lock
     } else {
-      // Health check simples para garantir HTTP ativo após retorno do app.
       const { error: pingError } = await withTimeout(
         supabase
           .from('usuarios')
@@ -275,16 +267,6 @@ export async function forceSupabaseReconnect(reason: string = 'manual') {
   }
 }
 
-// Reconexão automática ao voltar para foreground.
-AppState.addEventListener('change', async (state) => {
-  if (state !== 'active') return;
-  void forceSupabaseReconnect('AppState active');
-});
-
-// ============================================================================
-// FUNÇÕES AUXILIARES
-// ============================================================================
-
 // ============================================================================
 // FUNÇÕES AUXILIARES
 // ============================================================================
@@ -299,7 +281,6 @@ export async function testConnection() {
     
     const { data, error } = await supabase.from('usuarios').select('id').limit(1);
     
-    // Ignora erro de tabela não existente (banco pode estar vazio)
     if (error && !error.message.includes('relation') && !error.message.includes('does not exist')) {
       logger.error('Erro na conexão:', error);
       return false;
@@ -338,33 +319,28 @@ export async function checkSession() {
 }
 
 /**
-/**
  * Verifica e cria a tabela de usuários se não existir
  * @deprecated Esta função pode não ser necessária com migrações adequadas
  * @returns Promise<boolean>
  */
 export async function verificarTabelaUsuarios() {
   try {
-    // Verifica se a tabela existe
     const { data: tableExists, error: checkError } = await supabase
       .from('usuarios')
       .select('id')
       .limit(1);
 
     if (checkError) {
-      // Se a tabela não existe, cria ela
       const { error: createError } = await supabase.rpc('create_usuarios_table');
       if (createError) throw createError;
     }
 
-    // Verifica se existem usuários
     const { data: usuarios, error: selectError } = await supabase
       .from('usuarios')
       .select('*');
 
     if (selectError) throw selectError;
 
-    // Se não houver usuários, cria um admin padrão
     if (!usuarios || usuarios.length === 0) {
       const { error: insertError } = await supabase
         .from('usuarios')
@@ -387,33 +363,6 @@ export async function verificarTabelaUsuarios() {
     return false;
   }
 }
-
-// ============================================================================
-// GERENCIAMENTO DE ESTADO DO APP (DOZE MODE / BACKGROUND)
-// ============================================================================
-
-AppState.addEventListener('change', async (state) => {
-  if (state === 'active') {
-    // App voltou para o primeiro plano (acordou)
-    // 1. Retoma o ciclo de vida da sessão
-    supabase.auth.startAutoRefresh();
-    // 2. Executa a sua função de reconexão já existente
-    void forceSupabaseReconnect('AppState active');
-  } else if (state === 'background' || state === 'inactive') {
-    // App foi minimizado ou a tela desligou (dormiu)
-    // 1. Pausa a renovação de tokens para não falhar sem rede
-    supabase.auth.stopAutoRefresh();
-    
-    // 2. Derruba o WebSocket ativamente antes que o Android o mate.
-    // Isso evita que o Supabase fique esperando uma conexão zumbi.
-    try {
-      supabase.realtime.disconnect();
-      debugLogger.info('SupabaseAppState', 'Realtime desconectado preventivamente no background');
-    } catch (e) {
-       // Ignora silenciosamente
-    }
-  }
-});
 
 // ============================================================================
 // EXPORTAÇÕES
