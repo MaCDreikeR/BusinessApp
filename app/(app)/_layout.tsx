@@ -16,11 +16,11 @@ import { logger } from '../../utils/logger';
 import { useTheme } from '../../contexts/ThemeContext';
 import { SyncIndicator } from '../../components/SyncIndicator';
 
-// FunÁ„o para calcular largura responsiva do drawer
+// Fun√ß√£o para calcular largura responsiva do drawer
 const getDrawerWidth = (): number | `${number}%` => {
   const screenWidth = Dimensions.get('window').width;
   
-  logger.debug('?? Largura da tela:', screenWidth);
+  logger.debug('üìè Largura da tela:', screenWidth);
   
   let width: number | `${number}%`;
   
@@ -32,12 +32,12 @@ const getDrawerWidth = (): number | `${number}%` => {
   else if (screenWidth < 1024) {
     width = 350;
   }
-  // Em telas grandes (desktop): m·ximo 280px
+  // Em telas grandes (desktop): m√°ximo 280px
   else {
     width = 280;
   }
   
-  logger.debug('?? Largura do drawer calculada:', width);
+  logger.debug('üìè Largura do drawer calculada:', width);
   return width;
 };
 
@@ -55,15 +55,15 @@ export default function AppLayout() {
   const [estabelecimento, setEstabelecimento] = useState<any>(null);
   const [loadingAvatar, setLoadingAvatar] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [hasLoadedAvatar, setHasLoadedAvatar] = useState(false); // evita piscadas apÛs primeira carga
+  const [hasLoadedAvatar, setHasLoadedAvatar] = useState(false); // evita piscadas ap√≥s primeira carga
   const { permissions } = usePermissions();
   const { role } = useAuth();
   const { colors, isDark } = useTheme();
   
-  // Estilos din‚micos baseados no tema
+  // Estilos din√¢micos baseados no tema
   const styles = useMemo(() => createStyles(colors), [colors]);
   
-  // Styles din‚micos baseados no tema
+  // Styles din√¢micos baseados no tema
   const dynamicStyles = useMemo(() => StyleSheet.create({
     drawerHeader: {
       padding: 20,
@@ -106,7 +106,7 @@ export default function AppLayout() {
     },
   }), [colors]);
   
-  // Hook de notificaÁ„o de agendamento
+  // Hook de notifica√ß√£o de agendamento
   const { 
     agendamentoAtivo, 
     mostrarNotificacao, 
@@ -117,23 +117,23 @@ export default function AppLayout() {
   // Estado para controlar se o drawer deve ser permanente
   const [isPermanentDrawer, setIsPermanentDrawer] = useState(false);
 
-  // Calcular largura do drawer e tipo de exibiÁ„o - INICIALIZA«√O ⁄NICA
+  // Calcular largura do drawer e tipo de exibi√ß√£o - INICIALIZA√á√ÉO √öNICA
   useEffect(() => {
     const { width, height } = Dimensions.get('window');
     const isLandscape = width > height;
     const isLargeScreen = width >= 1024;
     const shouldBePermanent = isLandscape && isLargeScreen;
     
-    logger.debug('?? Dimensıes iniciais da tela:', { width, height, isLandscape, isLargeScreen });
+    logger.debug('üìè Dimens√µes iniciais da tela:', { width, height, isLandscape, isLargeScreen });
     setIsPermanentDrawer(shouldBePermanent);
     
-    // Listener para mudanÁas de orientaÁ„o
+    // Listener para mudan√ßas de orienta√ß√£o
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
       const newIsLandscape = window.width > window.height;
       const newIsLargeScreen = window.width >= 1024;
       const newShouldBePermanent = newIsLandscape && newIsLargeScreen;
       
-      logger.debug('?? OrientaÁ„o mudou:', { 
+      logger.debug('üìè Orienta√ß√£o mudou:', { 
         width: window.width, 
         height: window.height, 
         isLandscape: newIsLandscape, 
@@ -170,13 +170,13 @@ export default function AppLayout() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        logger.debug('Usu·rio n„o autenticado');
+        logger.debug('Usu√°rio n√£o autenticado');
         return;
       }
 
-      logger.debug('Buscando dados do usu·rio:', user.id);
+      logger.debug('Buscando dados do usu√°rio:', user.id);
       
-      // Busca os dados do usu·rio incluindo o relacionamento com estabelecimento
+      // Busca os dados do usu√°rio incluindo o relacionamento com estabelecimento
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
         .select(`*, estabelecimento:estabelecimentos(*)`)
@@ -184,7 +184,7 @@ export default function AppLayout() {
         .single();
 
       if (userError) {
-        logger.error('Erro ao buscar usu·rio:', userError);
+        logger.error('Erro ao buscar usu√°rio:', userError);
         throw userError;
       }
 
@@ -203,28 +203,32 @@ export default function AppLayout() {
         setEstabelecimento(null);
       }
     } catch (error) {
-      logger.error('Erro ao carregar usu·rio:', error);
+      logger.error('Erro ao carregar usu√°rio:', error);
     }
   }
 
   const CustomDrawerContent = (props: DrawerContentComponentProps) => {
     const { signOut } = useAuth();
+    
     const handleLogout = async () => {
-      logger.debug('[Drawer] Bot„o Sair pressionado');
-      if (typeof window !== 'undefined') {
-        // Ambiente web: logout direto
+      logger.debug('[Drawer] Bot√£o Sair pressionado');
+      
+      // Jeito 100% seguro de verificar se √© Web
+      if (Platform.OS === 'web') {
         try {
           await signOut();
           setUsuario(null);
           setEstabelecimento(null);
-          window.localStorage.clear();
-          window.sessionStorage.clear();
-          window.location.replace('/');
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.clear();
+            window.sessionStorage.clear();
+            window.location.replace('/');
+          }
         } catch (error) {
-          logger.error('Erro ao fazer logout:', error);
+          logger.error('Erro ao fazer logout web:', error);
         }
       } else {
-        // Ambiente mobile: confirmaÁ„o
+        // Ambiente mobile (Android/iOS): exibe o alerta de confirma√ß√£o
         Alert.alert(
           'Sair',
           'Deseja realmente sair da sua conta?',
@@ -243,7 +247,7 @@ export default function AppLayout() {
                   setUsuario(null);
                   setEstabelecimento(null);
                 } catch (error) {
-                  logger.error('Erro ao fazer logout:', error);
+                  logger.error('Erro ao fazer logout mobile:', error);
                   Alert.alert('Erro', 'Ocorreu um erro inesperado. Tente novamente.');
                 }
               }
@@ -325,7 +329,7 @@ export default function AppLayout() {
               onPress={() => router.push('/configuracoes')}
             >
               <FontAwesome5 name="cog" size={20} color={colors.textSecondary} />
-              <Text style={dynamicStyles.footerButtonText}>ConfiguraÁıes</Text>
+              <Text style={dynamicStyles.footerButtonText}>Configura√ß√µes</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity 
@@ -382,7 +386,7 @@ export default function AppLayout() {
         },
         drawerActiveBackgroundColor: isDark ? colors.primaryDark : colors.primaryBackground,
         drawerInactiveBackgroundColor: 'transparent',
-        // Removido drawerItemContainerStyle inv·lido
+        // Removido drawerItemContainerStyle inv√°lido
         headerRight: () => {
           if (isOrcamentos) {
             return (
@@ -460,7 +464,7 @@ export default function AppLayout() {
             );
           }
           
-          // Header padr„o com SyncIndicator
+          // Header padr√£o com SyncIndicator
           return (
             <View style={{ marginRight: 16 }}>
               <SyncIndicator />
@@ -474,7 +478,7 @@ export default function AppLayout() {
         name="index"
         options={{
           title: '',
-          drawerLabel: 'Vis„o Geral',
+          drawerLabel: 'Vis√£o Geral',
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="home" size={20} color={color} />
           ),
@@ -549,7 +553,7 @@ export default function AppLayout() {
           drawerItemStyle: { display: permissions.pode_ver_agenda ? 'flex' : 'none' },
           headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16 }}>
-              {/* Gerenciar presenÁa - disponÌvel para todos */}
+              {/* Gerenciar presen√ßa - dispon√≠vel para todos */}
               <TouchableOpacity 
                 style={{ marginRight: 16 }}
                 onPress={() => {
@@ -571,7 +575,7 @@ export default function AppLayout() {
                 </TouchableOpacity>
               )}
               
-              {/* Configurar hor·rios - apenas para admins */}
+              {/* Configurar hor√°rios - apenas para admins */}
               {role === 'admin' && (
                 <TouchableOpacity 
                   style={{ marginRight: 16 }}
@@ -583,7 +587,7 @@ export default function AppLayout() {
                 </TouchableOpacity>
               )}
               
-              {/* Adicionar agendamento - disponÌvel para todos */}
+              {/* Adicionar agendamento - dispon√≠vel para todos */}
               <TouchableOpacity 
                 onPress={() => router.push('/agenda/novo')}
               >
@@ -626,7 +630,7 @@ export default function AppLayout() {
       <Drawer.Screen
         name="orcamentos"
         options={{
-          title: 'OrÁamentos',
+          title: 'Or√ßamentos',
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="file-invoice-dollar" size={20} color={color} />
           ),
@@ -648,7 +652,7 @@ export default function AppLayout() {
       <Drawer.Screen
         name="servicos"
         options={{
-          title: 'ServiÁos',
+          title: 'Servi√ßos',
           drawerIcon: ({ color, size }) => (
             <Ionicons name="cut" size={size} color={color} />
           ),
@@ -728,7 +732,7 @@ export default function AppLayout() {
       <Drawer.Screen
         name="relatorios"
         options={{
-          title: 'RelatÛrios',
+          title: 'Relat√≥rios',
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="chart-bar" size={20} color={color} />
           ),
@@ -768,14 +772,14 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="birthday-cake" size={20} color={color} />
           ),
-          drawerItemStyle: { display: 'none' }, // Oculto - tela n„o implementada
+          drawerItemStyle: { display: 'none' }, // Oculto - tela n√£o implementada
         }}
       />
 
       <Drawer.Screen
         name="usuarios"
         options={{
-          title: 'Usu·rios',
+          title: 'Usu√°rios',
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="users" size={20} color={color} />
           ),
@@ -803,14 +807,14 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="bullseye" size={20} color={color} />
           ),
-          drawerItemStyle: { display: 'none' }, // Oculto - tela n„o implementada
+          drawerItemStyle: { display: 'none' }, // Oculto - tela n√£o implementada
         }}
       />
 
       <Drawer.Screen
         name="comissoes"
         options={{
-          title: 'Comissıes',
+          title: 'Comiss√µes',
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="percentage" size={20} color={color} />
           ),
@@ -835,7 +839,7 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="calendar-check" size={20} color={color} />
           ),
-          drawerItemStyle: undefined, // Sempre visÌvel
+          drawerItemStyle: undefined, // Sempre vis√≠vel
           headerRight: () => {
             const { estabelecimentoId } = useAuth();
             const [ativo, setAtivo] = React.useState(false);
@@ -916,7 +920,7 @@ export default function AppLayout() {
       <Drawer.Screen
         name="automacao"
         options={{
-          title: 'AutomaÁ„o',
+          title: 'Automa√ß√£o',
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="robot" size={20} color={color} />
           ),
@@ -927,22 +931,22 @@ export default function AppLayout() {
       <Drawer.Screen
         name="configuracoes"
         options={{
-          title: 'ConfiguraÁıes',
+          title: 'Configura√ß√µes',
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="cog" size={20} color={color} />
           ),
-          drawerItemStyle: { display: 'none' }, // Oculto - tela n„o implementada
+          drawerItemStyle: { display: 'none' }, // Oculto - tela n√£o implementada
         }}
       />
 
       <Drawer.Screen
         name="notificacoes"
         options={{
-          title: 'NotificaÁıes',
+          title: 'Notifica√ß√µes',
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="bell" size={20} color={color} />
           ),
-          drawerItemStyle: { display: 'none' }, // Oculto - tela n„o implementada
+          drawerItemStyle: { display: 'none' }, // Oculto - tela n√£o implementada
         }}
       />
 
@@ -953,7 +957,7 @@ export default function AppLayout() {
           drawerIcon: ({ color }) => (
             <FontAwesome5 name="headset" size={20} color={color} />
           ),
-          drawerItemStyle: { display: 'none' }, // Oculto - tela n„o implementada
+          drawerItemStyle: { display: 'none' }, // Oculto - tela n√£o implementada
         }}
       />
 
@@ -974,7 +978,7 @@ export default function AppLayout() {
       />
     </Drawer>
     
-    {/* NotificaÁ„o de agendamento sobreposta */}
+    {/* Notifica√ß√£o de agendamento sobreposta */}
     {agendamentoAtivo && (
       <AgendamentoNotificacao
         visible={mostrarNotificacao}
@@ -993,7 +997,7 @@ export default function AppLayout() {
   );
 }
 
-// FunÁ„o auxiliar para criar estilos din‚micos
+// Fun√ß√£o auxiliar para criar estilos din√¢micos
 const createStyles = (colors: any) => StyleSheet.create({
   drawerHeader: {
     padding: 20,
@@ -1063,5 +1067,4 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginLeft: -10,
     marginTop: -10,
   },
-}); 
-
+});
