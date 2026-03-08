@@ -90,9 +90,6 @@ const MainLayout = () => {
     checkFirstTime();
   }, []);
 
-  // REMOVIDO: esse effect estava causando race conditions ao revalidar com cada mudança de segments
-  // A verificação inicial em checkFirstTime() é suficiente
-
   useEffect(() => {
     // 🔥 NOVO: Força navegação se timeout for atingido
     if (shouldForceLogin && !authLoading) {
@@ -124,11 +121,13 @@ const MainLayout = () => {
       hasBootRendered 
     });
     logger.debug('[MainLayout] Estado atual:', { segments, role, user: !!user, authLoading, isFirstTime, hasBootRendered });
+    
     // ⚠️ AGUARDA VERIFICAÇÃO DE PRIMEIRA VISITA ANTES DE QUALQUER REDIRECIONAMENTO
     if (isCheckingFirstTime) {
       debugLogger.debug('MainLayout', 'Ainda verificando primeira visita...');
       return;
     }
+    
     // 1. PRIMEIRA PRIORIDADE: Se é a primeira vez, força boas-vindas
     if (isFirstTime) {
       const currentPage = (segments as string[])[1];
@@ -226,7 +225,7 @@ const MainLayout = () => {
     }
 
     if (user && role === 'super_admin') {
-      // Superusuário: só pode acessar rotas do grupo (admin)
+      // Superusuário: só pode aceder a rotas do grupo (admin)
       if (!inAdminGroup) {
         debugLogger.info('MainLayout', 'Super admin fora de admin: redirecionando', { segments: segments.join('/') });
         logger.debug('[MainLayout] Super admin detectado, redirecionando para dashboard admin', { segments });
@@ -244,7 +243,7 @@ const MainLayout = () => {
     }
 
     if (user && role && role !== 'super_admin') {
-      // Usuário comum: só pode acessar rotas do grupo (app)
+      // Usuário comum: só pode aceder a rotas do grupo (app)
       if (!inAppGroup) {
         debugLogger.info('MainLayout', 'User comum fora de (app): redirecionando', { role, segments: segments.join('/') });
         logger.debug('[MainLayout] Usuário comum redirecionando para (app)', { role, segments });
@@ -260,20 +259,16 @@ const MainLayout = () => {
     if (!hasBootRendered) setHasBootRendered(true);
   }, [user, role, authLoading, isFirstTime, isCheckingFirstTime, segments, router]);
 
-  // Esconde a splash screen quando não estiver mais carregando
+  // Esconde a splash screen quando não estiver mais a carregar com um leve atraso
   useEffect(() => {
     if (!authLoading && !isCheckingFirstTime && hasBootRendered) {
-      SplashScreen.hideAsync();
+      setTimeout(() => {
+        SplashScreen.hideAsync().catch(() => {});
+      }, 150);
     }
   }, [authLoading, isCheckingFirstTime, hasBootRendered]);
 
-  // Enquanto carrega, mantém a splash nativa e não renderiza nada
-  if ((authLoading && !hasBootRendered) || isCheckingFirstTime) {
-    // Mantém a splash screen nativa visível
-    return null;
-  }
-
-  // Tela de erro de timeout de conexão com logo do app
+  // Tela de erro de timeout de conexão com logótipo do app
   if (loadingTimeout) {
     return (
       <View style={{ 
@@ -283,7 +278,7 @@ const MainLayout = () => {
         backgroundColor: '#ffffff',
         padding: 20 
       }}>
-        {/* Logo do app */}
+        {/* Logótipo do app */}
         <View style={{
           width: 180,
           height: 180,
@@ -342,7 +337,7 @@ const MainLayout = () => {
                 textAlign: 'center', 
                 lineHeight: 20 
               }}>
-                Não foi possível conectar ao servidor. Verifique sua conexão com a internet.
+                Não foi possível ligar ao servidor. Verifique a sua ligação à internet.
               </Text>
             </View>
             <TouchableOpacity 
@@ -407,7 +402,7 @@ const DPIWrapper = ({ children }: { children: React.ReactNode }) => {
   }, [density, is274DPI]);
   
   if (is274DPI) {
-    // Para 274 DPI: aplica escala para ocupar tela completa
+    // Para 274 DPI: aplica escala para ocupar ecrã completo
     return (
       <View style={{
         flex: 1,
@@ -455,10 +450,10 @@ export default function RootLayout() {
         {showTimeoutWarning && (
           <View style={{ marginTop: 20, alignItems: 'center' }}>
             <Text style={{ fontSize: 14, color: '#EF4444', textAlign: 'center', marginBottom: 8 }}>
-              ⚠️ Problema de conexão detectado
+              ⚠️ Problema de conexão detetado
             </Text>
             <Text style={{ fontSize: 12, color: '#6B7280', textAlign: 'center' }}>
-              Verifique sua internet e tente novamente
+              Verifique a sua internet e tente novamente
             </Text>
           </View>
         )}

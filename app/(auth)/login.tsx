@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -50,14 +50,14 @@ const getLocalAuthenticationModule = (): LocalAuthenticationModule | null => {
   }
 
   try {
-    // Tenta carregar o mÃ³dulo de forma segura
+    // Tenta carregar o módulo de forma segura
     const module = require('expo-local-authentication') as LocalAuthenticationModule;
     if (module && typeof module.authenticateAsync === 'function') {
       return module;
     }
     return null;
   } catch (error) {
-    // Biometria indisponÃ­vel neste build (ex: Expo Go)
+    // Biometria indisponível neste build (ex: Expo Go)
     return null;
   }
 };
@@ -67,6 +67,7 @@ export default function LoginScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const passwordInputRef = useRef<TextInput>(null);
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({});
@@ -79,6 +80,20 @@ export default function LoginScreen() {
   const [lockUntil, setLockUntil] = useState<number | null>(null);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'error' | 'success' | 'warning'>('error');
+
+  // 👇 FUNÇÕES ADICIONADAS PARA CORRIGIR O ERRO DA TELA BRANCA 👇
+  const setFieldError = (field: LoginFieldErrorKey, message: string) => {
+    setFieldErrors((prev) => ({ ...prev, [field]: message }));
+  };
+
+  const clearFieldError = (field: LoginFieldErrorKey) => {
+    setFieldErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[field];
+      return newErrors;
+    });
+  };
+  // 👆 FIM DAS FUNÇÕES ADICIONADAS 👆
 
   const shakeOffset = useSharedValue(0);
   const shakeStyle = useAnimatedStyle(() => ({
@@ -93,7 +108,7 @@ export default function LoginScreen() {
         await verificarBiometria();
         await carregarRateLimit();
       } catch (error) {
-        logger.warn('Erro durante inicializaÃ§Ã£o da tela de login:', error);
+        logger.warn('Erro durante inicialização da tela de login:', error);
       }
     })();
   }, []);
@@ -277,14 +292,14 @@ export default function LoginScreen() {
 
   const handleBiometricLogin = async () => {
     if (!biometricAvailable || !biometricEnabled) {
-      await triggerErrorFeedback('Biometria nÃ£o estÃ¡ disponÃ­vel neste dispositivo');
+      await triggerErrorFeedback('Biometria não está disponível neste dispositivo');
       return;
     }
 
     const LocalAuthentication = getLocalAuthenticationModule();
 
     if (!LocalAuthentication) {
-      await triggerErrorFeedback('Biometria indisponÃ­vel neste build. Use login com senha.');
+      await triggerErrorFeedback('Biometria indisponível neste build. Use login com senha.');
       return;
     }
 
@@ -298,14 +313,14 @@ export default function LoginScreen() {
       });
 
       if (!authResult.success) {
-        await triggerErrorFeedback('AutenticaÃ§Ã£o biomÃ©trica cancelada ou falhou');
+        await triggerErrorFeedback('Autenticação biométrica cancelada ou falhou');
         return;
       }
 
       const { data, error } = await supabase.auth.getSession();
 
       if (error || !data.session?.user) {
-        await triggerErrorFeedback('SessÃ£o expirada. FaÃ§a login com e-mail e senha.');
+        await triggerErrorFeedback('Sessão expirada. Faça login com e-mail e senha.');
         return;
       }
 
@@ -318,8 +333,8 @@ export default function LoginScreen() {
       showToast('Login com biometria realizado!', 'success');
       router.replace('/(app)');
     } catch (error) {
-      logger.error('Erro no login biomÃ©trico:', error);
-      await triggerErrorFeedback('NÃ£o foi possÃ­vel autenticar com biometria');
+      logger.error('Erro no login biométrico:', error);
+      await triggerErrorFeedback('Não foi possível autenticar com biometria');
     } finally {
       setBiometricLoading(false);
     }
@@ -345,7 +360,7 @@ export default function LoginScreen() {
   const salvarDados = async () => {
     try {
       if (lembrarMe) {
-        // SeguranÃ§a: nunca salvar senha localmente
+        // Segurança: nunca salvar senha localmente
         await CacheManager.set(
           CacheNamespaces.USER_PREFS,
           'login_data',
@@ -356,6 +371,21 @@ export default function LoginScreen() {
       }
     } catch (error) {
       logger.error('Erro ao salvar dados:', error);
+    }
+  };
+
+  const triggerErrorFeedback = async (message: string) => {
+    showToast(message, 'error');
+    shakeOffset.value = withSequence(
+      withTiming(10, { duration: 50 }),
+      withTiming(-10, { duration: 50 }),
+      withTiming(10, { duration: 50 }),
+      withTiming(0, { duration: 50 })
+    );
+    try {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } catch (e) {
+      // ignore
     }
   };
 
@@ -376,8 +406,8 @@ export default function LoginScreen() {
     }
 
     if (!isValidEmail(normalizedEmail)) {
-      setFieldError('email', 'Digite um e-mail vÃ¡lido');
-      await triggerErrorFeedback('Digite um e-mail vÃ¡lido');
+      setFieldError('email', 'Digite um e-mail válido');
+      await triggerErrorFeedback('Digite um e-mail válido');
       return;
     }
 
@@ -407,9 +437,9 @@ export default function LoginScreen() {
           return;
         }
 
-        setFieldError('email', 'Credenciais invÃ¡lidas');
-        setFieldError('password', 'Credenciais invÃ¡lidas');
-        await triggerErrorFeedback('E-mail ou senha invÃ¡lidos, por favor verifique!');
+        setFieldError('email', 'Credenciais inválidas');
+        setFieldError('password', 'Credenciais inválidas');
+        await triggerErrorFeedback('E-mail ou senha inválidos, por favor verifique!');
         return;
       }
 
@@ -423,8 +453,8 @@ export default function LoginScreen() {
           return;
         }
 
-        setFieldError('email', 'UsuÃ¡rio nÃ£o encontrado');
-        await triggerErrorFeedback('UsuÃ¡rio nÃ£o encontrado apÃ³s login');
+        setFieldError('email', 'Usuário não encontrado');
+        await triggerErrorFeedback('Usuário não encontrado após login');
         return;
       }
 
@@ -448,13 +478,13 @@ export default function LoginScreen() {
 
       showToast('Login realizado com sucesso!', 'success');
       
-      // Redireciona para a tela inicial apÃ³s o login bem-sucedido
+      // Redireciona para a tela inicial após o login bem-sucedido
       router.replace('/(app)');
       
     } catch (error: any) {
       await registrarTentativaFalha();
       await registrarTentativaFalhaBackend(normalizedEmail);
-      await triggerErrorFeedback('E-mail ou senha invÃ¡lidos, por favor verifique!');
+      await triggerErrorFeedback('E-mail ou senha inválidos, por favor verifique!');
     } finally {
       setLoading(false);
     }
@@ -481,7 +511,7 @@ export default function LoginScreen() {
         >
           Bem-vindo ao BusinessApp
         </Text>
-        <Text style={styles.subtitle}>FaÃ§a login para continuar</Text>
+        <Text style={styles.subtitle}>Faça login para continuar</Text>
         </Animated.View>
 
         <Animated.View 
@@ -599,7 +629,7 @@ export default function LoginScreen() {
           <TouchableOpacity
             accessibilityRole="button"
             accessibilityLabel="Esqueci minha senha"
-            accessibilityHint="Abre recuperaÃ§Ã£o de senha"
+            accessibilityHint="Abre recuperação de senha"
           >
             <Text style={[styles.forgotText, { color: colors.primary }]}>Esqueceu a senha?</Text>
           </TouchableOpacity>
@@ -633,7 +663,7 @@ export default function LoginScreen() {
         </Button>
 
         <View style={styles.signupContainer}>
-          <Text style={[styles.signupText, { color: colors.textSecondary }]}>Ainda nÃ£o tem uma conta? </Text>
+          <Text style={[styles.signupText, { color: colors.textSecondary }]}>Ainda não tem uma conta? </Text>
           <Link href="/(auth)/cadastro" asChild>
             <TouchableOpacity
               accessibilityRole="button"
@@ -648,9 +678,9 @@ export default function LoginScreen() {
         <TouchableOpacity
           style={styles.trialButton}
           accessibilityRole="button"
-          accessibilityLabel="Fazer teste grÃ¡tis"
+          accessibilityLabel="Fazer teste grátis"
         >
-          <Text style={[styles.trialText, { color: colors.successDark }]}>FaÃ§a seu teste grÃ¡tis agora!</Text>
+          <Text style={[styles.trialText, { color: colors.successDark }]}>Faça seu teste grátis agora!</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -663,9 +693,9 @@ export default function LoginScreen() {
         </TouchableOpacity>
 
         <Text style={[styles.termsText, { color: colors.textSecondary }]}>
-          Ao realizar login vocÃª concorda com nossos{' '}
+          Ao realizar login você concorda com nossos{' '}
           <Text style={[styles.termsLink, { color: colors.primary }]}>termos de uso</Text> e{' '}
-          <Text style={[styles.termsLink, { color: colors.primary }]}>polÃ­tica de privacidade</Text>
+          <Text style={[styles.termsLink, { color: colors.primary }]}>política de privacidade</Text>
         </Text>
         </Animated.View>
       </LinearGradient>
@@ -829,5 +859,4 @@ const createStyles = (colors: any) => StyleSheet.create({
   inputError: {
     borderColor: colors.error,
   },
-}); 
-
+});
