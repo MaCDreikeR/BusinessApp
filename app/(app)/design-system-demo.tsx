@@ -24,7 +24,7 @@ export default function DesignSystemDemo() {
   const [loading, setLoading] = useState(false);
   
   const handleButtonPress = (label: string) => {
-    Alert.alert('BotÃ£o Clicado', `VocÃª clicou em: ${label}`);
+    Alert.alert('Botão Clicado', `Você clicou em: ${label}`);
   };
   
   const handleLoadingButton = () => {
@@ -37,14 +37,14 @@ export default function DesignSystemDemo() {
       {/* Header */}
       <Text style={styles.title}>Design System v2</Text>
       <Text style={styles.subtitle}>
-        Componentes reutilizÃ¡veis usando COMPONENT_TOKENS
+        Componentes reutilizáveis usando COMPONENT_TOKENS
       </Text>
       
-      {/* SeÃ§Ã£o: BotÃµes - Variantes */}
+      {/* Seção: Botões - Variantes */}
       <Card variant="elevated" style={styles.section}>
-        <Text style={styles.sectionTitle}>BotÃµes - Variantes</Text>
+        <Text style={styles.sectionTitle}>Botões - Variantes</Text>
         <Text style={styles.sectionDescription}>
-          Diferentes estilos visuais para diferentes aÃ§Ãµes
+          Diferentes estilos visuais para diferentes ações
         </Text>
         
         <View style={styles.buttonGroup}>
@@ -85,9 +85,9 @@ export default function DesignSystemDemo() {
         </View>
       </Card>
       
-      {/* SeÃ§Ã£o: BotÃµes - Tamanhos */}
+      {/* Seção: Botões - Tamanhos */}
       <Card variant="elevated" style={styles.section}>
-        <Text style={styles.sectionTitle}>BotÃµes - Tamanhos</Text>
+        <Text style={styles.sectionTitle}>Botões - Tamanhos</Text>
         <Text style={styles.sectionDescription}>
           Large, Medium e Small
         </Text>
@@ -119,9 +119,9 @@ export default function DesignSystemDemo() {
         </View>
       </Card>
       
-      {/* SeÃ§Ã£o: BotÃµes - Com Ãcones */}
+      {/* Seção: Botões - Com Ícones */}
       <Card variant="elevated" style={styles.section}>
-        <Text style={styles.sectionTitle}>BotÃµes - Com Ãcones</Text>
+        <Text style={styles.sectionTitle}>Botões - Com Ícones</Text>
         
         <View style={styles.buttonGroup}>
           <Button 
@@ -151,9 +151,9 @@ export default function DesignSystemDemo() {
         </View>
       </Card>
       
-      {/* SeÃ§Ã£o: BotÃµes - Estados */}
+      {/* Seção: Botões - Estados */}
       <Card variant="elevated" style={styles.section}>
-        <Text style={styles.sectionTitle}>BotÃµes - Estados</Text>
+        <Text style={styles.sectionTitle}>Botões - Estados</Text>
         
         <View style={styles.buttonGroup}>
           <Button 
@@ -182,14 +182,14 @@ export default function DesignSystemDemo() {
         </View>
       </Card>
       
-      {/* SeÃ§Ã£o: Cards - Variantes */}
+      {/* Seção: Cards - Variantes */}
       <Card variant="elevated" style={styles.section}>
         <Text style={styles.sectionTitle}>Cards - Variantes</Text>
         
         <Card variant="default" style={styles.cardExample}>
           <Text style={styles.cardTitle}>Card Default</Text>
           <Text style={styles.cardDescription}>
-            Sombra suave, padding mÃ©dio
+            Sombra suave, padding médio
           </Text>
         </Card>
         
@@ -210,16 +210,16 @@ export default function DesignSystemDemo() {
         <Card 
           variant="default" 
           style={styles.cardExample}
-          onPress={() => Alert.alert('Card Clicado', 'Este card Ã© clicÃ¡vel!')}
+          onPress={() => Alert.alert('Card Clicado', 'Este card é clicável!')}
         >
-          <Text style={styles.cardTitle}>Card ClicÃ¡vel</Text>
+          <Text style={styles.cardTitle}>Card Clicável</Text>
           <Text style={styles.cardDescription}>
             Toque para testar ðŸ‘†
           </Text>
         </Card>
       </Card>
       
-      {/* SeÃ§Ã£o: Design Tokens */}
+      {/* Seção: Design Tokens */}
       <Card variant="elevated" style={styles.section}>
         <Text style={styles.sectionTitle}>Design Tokens</Text>
         <Text style={styles.sectionDescription}>

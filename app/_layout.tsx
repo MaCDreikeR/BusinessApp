@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
-import { View, ActivityIndicator, Dimensions, PixelRatio, Text, TouchableOpacity, Image } from 'react-native';
+import { View, ActivityIndicator, Dimensions, PixelRatio, Text, TouchableOpacity, Image, DeviceEventEmitter } from 'react-native';
 import { useFonts } from 'expo-font';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '../utils/logger';
@@ -27,14 +27,14 @@ const MainLayout = () => {
   const [shouldForceLogin, setShouldForceLogin] = useState(false);
   const roleWaitSinceRef = React.useRef<number | null>(null);
   
-  // 🔥 NOVO: Timeout absoluto com fallback garantido
+  // Timeout absoluto com fallback garantido
   const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const ABSOLUTE_TIMEOUT = 20000; // 20 segundos timeout absoluto
   
   // Hook de limpeza automática de cache
   useCacheCleanup();
   
-  // 🔥 Timeout absoluto com fallback garantido para login
+  // Timeout absoluto com fallback garantido para login
   useEffect(() => {
     if (authLoading && !hasBootRendered) {
       logger.warn('⏱️ Iniciando timeout de segurança...');
@@ -88,10 +88,17 @@ const MainLayout = () => {
       }
     };
     checkFirstTime();
+
+    // 🔥 NOVO: Escuta quando a tela de boas vindas for concluída para destravar o roteador
+    const sub = DeviceEventEmitter.addListener('welcomeCompleted', () => {
+      setIsFirstTime(false);
+    });
+
+    return () => sub.remove();
   }, []);
 
   useEffect(() => {
-    // 🔥 NOVO: Força navegação se timeout for atingido
+    // Força navegação se timeout for atingido
     if (shouldForceLogin && !authLoading) {
       logger.error('🚑 Forçando navegação para login devido a timeout...');
       setHasBootRendered(true);

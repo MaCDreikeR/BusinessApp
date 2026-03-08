@@ -386,7 +386,7 @@ export default function PacotesScreen() {
       setPacotes(pacotesFormatados || []);
     } catch (error) {
       logger.error('Erro ao carregar pacotes:', error);
-      Alert.alert('Erro', 'NÃ£o foi possÃ­vel carregar os pacotes');
+      Alert.alert('Erro', 'Não foi possível carregar os pacotes');
     } finally {
       setLoading(false);
     }
@@ -410,7 +410,7 @@ export default function PacotesScreen() {
       logger.debug('Produtos carregados para pacotes:', data?.length || 0);
     } catch (error) {
       logger.error('Erro ao carregar produtos:', error);
-      Alert.alert('Erro', 'NÃ£o foi possÃ­vel carregar os produtos');
+      Alert.alert('Erro', 'Não foi possível carregar os produtos');
     }
   };
 
@@ -429,10 +429,10 @@ export default function PacotesScreen() {
 
       if (error) throw error;
       setServicos(data || []);
-      logger.debug('ServiÃ§os carregados para pacotes:', data?.length || 0);
+      logger.debug('Serviços carregados para pacotes:', data?.length || 0);
     } catch (error) {
-      logger.error('Erro ao carregar serviÃ§os:', error);
-      Alert.alert('Erro', 'NÃ£o foi possÃ­vel carregar os serviÃ§os');
+      logger.error('Erro ao carregar serviços:', error);
+      Alert.alert('Erro', 'Não foi possível carregar os serviços');
     }
   };
 
@@ -497,7 +497,7 @@ export default function PacotesScreen() {
               await carregarPacotes();
             } catch (error) {
               logger.error('Erro ao excluir pacote:', error);
-              Alert.alert('Erro', 'NÃ£o foi possÃ­vel excluir o pacote');
+              Alert.alert('Erro', 'Não foi possível excluir o pacote');
             }
           },
         },
@@ -509,7 +509,7 @@ export default function PacotesScreen() {
     const erros: PacoteFieldErrors = {};
 
     if (!novoPacote.nome.trim()) {
-      erros.nomePacote = 'Nome do pacote Ã© obrigatÃ³rio';
+      erros.nomePacote = 'Nome do pacote é obrigatório';
     }
 
     return erros;
@@ -527,12 +527,12 @@ export default function PacotesScreen() {
 
     try {
       if (!novoPacote.nome.trim()) {
-        Alert.alert('Erro', 'O nome do pacote Ã© obrigatÃ³rio');
+        Alert.alert('Erro', 'O nome do pacote é obrigatório');
         return;
       }
 
       if (!estabelecimentoId) {
-        Alert.alert('Erro', 'Estabelecimento nÃ£o identificado. Entre novamente.');
+        Alert.alert('Erro', 'Estabelecimento não identificado. Entre novamente.');
         return;
       }
 
@@ -650,7 +650,7 @@ export default function PacotesScreen() {
       Alert.alert(feedback.title, feedback.message);
     } catch (error) {
       logger.error('Erro ao salvar pacote:', error);
-      Alert.alert('Erro', 'NÃ£o foi possÃ­vel salvar o pacote');
+      Alert.alert('Erro', 'Não foi possível salvar o pacote');
     }
   };
 
@@ -752,7 +752,7 @@ export default function PacotesScreen() {
 
   const handleAdicionarServicos = () => {
     if (servicosSelecionados.length === 0) {
-      Alert.alert('Erro', 'Selecione pelo menos um serviÃ§o');
+      Alert.alert('Erro', 'Selecione pelo menos um serviço');
       return;
     }
 
@@ -944,7 +944,7 @@ export default function PacotesScreen() {
 
       {item.servicos && item.servicos.length > 0 && (
         <View style={styles.secaoLista}>
-          <Text style={styles.secaoTitulo}>ServiÃ§os:</Text>
+          <Text style={styles.secaoTitulo}>Serviços:</Text>
           {item.servicos.map((servico) => (
             <View key={servico.id} style={styles.itemListaCompacto}>
               <View style={styles.itemInfoCompacto}>
@@ -968,7 +968,7 @@ export default function PacotesScreen() {
           {item.duracao_total && (
             <View style={styles.duracaoTotalContainer}>
               <Text style={styles.duracaoTotalText}>
-                â± DuraÃ§Ã£o total: {item.duracao_total} minutos
+                â± Duração total: {item.duracao_total} minutos
               </Text>
             </View>
           )}
@@ -1071,19 +1071,19 @@ export default function PacotesScreen() {
                   </View>
 
                   <View style={styles.inputGroup}>
-                    <Text style={styles.label}>DescriÃ§Ã£o</Text>
+                    <Text style={styles.label}>Descrição</Text>
                     <TextInput
                       style={[styles.input, styles.textArea]}
                       value={novoPacote.descricao}
                       onChangeText={(text) => setNovoPacote({ ...novoPacote, descricao: text })}
-                      placeholder="Digite a descriÃ§Ã£o do pacote"
+                      placeholder="Digite a descrição do pacote"
                       placeholderTextColor={colors.textTertiary}
                       multiline
                       numberOfLines={4}
                     />
                   </View>
 
-                  {/* SeÃ§Ã£o de itens - botÃµes lado a lado como em Comandas */}
+                  {/* Seção de itens - botões lado a lado como em Comandas */}
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>Itens do Pacote</Text>
                     <View style={[SELECTION_BUTTON_CONTAINER_STYLE, { paddingHorizontal: 0, justifyContent: 'space-between' }]}>
@@ -1099,7 +1099,7 @@ export default function PacotesScreen() {
                       </View>
                       <View ref={servicosButtonRef} collapsable={false} style={{ width: '48.5%' }}>
                         <SelectionButton
-                          label="ServiÃ§os"
+                          label="Serviços"
                           icon="cut-outline"
                           count={novoPacote.servicos.length}
                           selected={novoPacote.servicos.length > 0}
@@ -1137,10 +1137,10 @@ export default function PacotesScreen() {
                     </View>
                   )}
 
-                  {/* ServiÃ§os adicionados */}
+                  {/* Serviços adicionados */}
                   {novoPacote.servicos.length > 0 && (
                     <View style={styles.inputGroup}>
-                      <Text style={styles.label}>ServiÃ§os Selecionados</Text>
+                      <Text style={styles.label}>Serviços Selecionados</Text>
                       {novoPacote.servicos.map((servico, index) => (
                         <View key={servico.id} style={styles.itemLista}>
                           <View style={styles.itemInfo}>
@@ -1396,7 +1396,7 @@ export default function PacotesScreen() {
         </View>
       </Modal>
 
-      {/* Modal de ServiÃ§os */}
+      {/* Modal de Serviços */}
       <Modal
         visible={mostrarModalServicos}
         transparent={true}
@@ -1436,7 +1436,7 @@ export default function PacotesScreen() {
             ]}
           >
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Adicionar ServiÃ§os</Text>
+              <Text style={styles.modalTitle}>Adicionar Serviços</Text>
             </View>
 
             <View style={styles.searchModalContainer}>
@@ -1445,7 +1445,7 @@ export default function PacotesScreen() {
                 style={styles.searchModalInput}
                 value={buscaServico}
                 onChangeText={setBuscaServico}
-                placeholder="Buscar serviÃ§os..."
+                placeholder="Buscar serviços..."
                 placeholderTextColor={colors.textTertiary}
               />
             </View>
