@@ -1,12 +1,11 @@
-﻿import { View, Text, StyleSheet, Image, Dimensions, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, DeviceEventEmitter } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+﻿import { View, Text, StyleSheet, Dimensions, KeyboardAvoidingView, Platform, ScrollView, DeviceEventEmitter, Image } from 'react-native';
+import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useState, useMemo } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import LottieView from 'lottie-react-native';
 import { logger } from '../../utils/logger';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Button } from '../../components/Button';
@@ -26,11 +25,7 @@ export default function BoasVindas() {
     setIsLoading(true);
     try {
       await AsyncStorage.setItem('@hasSeenWelcome', 'true');
-      
-      // 🔥 AVISA O ROTEADOR QUE A TELA DE BOAS VINDAS TERMINOU
       DeviceEventEmitter.emit('welcomeCompleted');
-      
-      // Use o caminho absoluto com o grupo para evitar conflitos com o guardião do layout
       router.replace('/(auth)/login');
     } catch (error) {
       logger.error('Erro ao salvar estado de boas-vindas:', error);
@@ -61,7 +56,7 @@ export default function BoasVindas() {
           >
             <Text style={styles.title}>BusinessApp</Text>
             <Text style={styles.subtitle}>
-                Todo o seu negócio na palma da mão. Controle de estoque, agendamento de serviços, cadastro de clientes, venda de produtos e muito mais!
+              Todo o seu negócio na palma da mão. Controle de estoque, agendamento de serviços, cadastro de clientes, venda de produtos e muito mais!
             </Text>
           </Animated.View>
 
@@ -69,35 +64,36 @@ export default function BoasVindas() {
             entering={FadeInUp.duration(1000).springify()}
             style={[styles.content, { backgroundColor: colors.surface }]}
           >
-            <LottieView
-              source={require('../../assets/animations/welcome.json')}
-              style={styles.lottieAnimation}
-              autoPlay
-              loop
-            />
+            <View style={styles.imageContainer}>
+              <Image 
+                source={require('../../assets/images/icon.png')}
+                style={styles.welcomeImage}
+                resizeMode="contain"
+              />
+            </View>
 
             <View style={styles.cardsContainer}>
-              <View style={[styles.card, { backgroundColor: colors.background, borderColor: colors.borderLight }] }>
+              <View style={[styles.card, { backgroundColor: colors.background, borderColor: colors.borderLight }]}>
                 <Ionicons name="calendar-outline" size={24} color={colors.primary} />
                 <View style={styles.cardTextContainer}>
                   <Text style={[styles.cardTitle, { color: colors.text }]}>Agenda Inteligente</Text>
                   <Text style={[styles.cardText, { color: colors.textSecondary }]}>
-                      Organize seus horários de forma eficiente e evite conflitos
+                    Organize seus horários de forma eficiente e evite conflitos
                   </Text>
                 </View>
               </View>
 
-              <View style={[styles.card, { backgroundColor: colors.background, borderColor: colors.borderLight }] }>
+              <View style={[styles.card, { backgroundColor: colors.background, borderColor: colors.borderLight }]}>
                 <Ionicons name="people-outline" size={24} color={colors.primary} />
                 <View style={styles.cardTextContainer}>
                   <Text style={[styles.cardTitle, { color: colors.text }]}>Gestão de Clientes</Text>
                   <Text style={[styles.cardText, { color: colors.textSecondary }]}>
-                      Cadastre e acompanhe o histórico de seus clientes
+                    Cadastre e acompanhe o histórico de seus clientes
                   </Text>
                 </View>
               </View>
 
-              <View style={[styles.card, { backgroundColor: colors.background, borderColor: colors.borderLight }] }>
+              <View style={[styles.card, { backgroundColor: colors.background, borderColor: colors.borderLight }]}>
                 <Ionicons name="cash-outline" size={24} color={colors.primary} />
                 <View style={styles.cardTextContainer}>
                   <Text style={[styles.cardTitle, { color: colors.text }]}>Controle Financeiro</Text>
@@ -117,7 +113,7 @@ export default function BoasVindas() {
               fullWidth
               style={{ marginTop: 8 }}
             >
-                Começar Agora
+              Começar Agora
             </Button>
           </Animated.View>
         </ScrollView>
@@ -172,36 +168,24 @@ const createStyles = (colors: any) => StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
-  mockupImage: {
-    width: width * 0.85,
-    height: height * 0.25,
-    marginBottom: 20,
+  imageContainer: {
+    width: width * 0.4,
+    height: width * 0.4,
     alignSelf: 'center',
+    marginBottom: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  gifImage: {
-    width: width * 0.85,
-    height: height * 0.3,
-    marginBottom: 20,
-    alignSelf: 'center',
-  },
-  lottieAnimation: {
-    width: width * 0.85,
-    height: height * 0.3,
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-  videoContainer: {
-    width: width * 0.9,
-    height: width * 0.6,
-    marginBottom: height * 0.03,
-    alignSelf: 'center',
-    borderRadius: 16,
-    overflow: 'hidden',
-    backgroundColor: colors.text,
-  },
-  video: {
-    width: '100%',
-    height: '100%',
+  welcomeImage: {
+    width: '60%',
+    height: '60%',
   },
   cardsContainer: {
     gap: 12,

@@ -113,7 +113,7 @@ serve(async (req) => {
             estabelecimento_id: agendamento.estabelecimento_id,
             status: 'aberta',
             valor_total: 0,
-            created_by_user_id: agendamento.usuario_id,
+            criado_por_nome: 'Agendamento', // Define a origem como automática
             data_abertura: new Date().toISOString(),
           })
           .select()

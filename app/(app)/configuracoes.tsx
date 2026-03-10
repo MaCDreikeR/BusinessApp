@@ -10,8 +10,12 @@ import { supabase } from '../../lib/supabase';
 import { logger } from '../../utils/logger';
 import { CacheManager } from '../../utils/cacheManager';
 import { ACCENT_COLORS, AccentColorId } from '../../utils/accentTheme';
+import * as SecureStore from 'expo-secure-store';
+import * as LocalAuthentication from 'expo-local-authentication';
 
-type TabType = 'aparencia' | 'notificacoes' | 'negocio' | 'sobre';
+const BIOMETRIC_ENABLED_KEY = 'biometric_login_enabled';
+
+type TabType = 'aparencia' | 'notificacoes' | 'negocio' | 'seguranca' | 'sobre';
 
 interface NotificationSettings {
   agendamentos: boolean;
@@ -64,18 +68,33 @@ export default function ConfiguracoesScreen() {
     espacoUsado: 0,
     ultimaSync: null,
   });
+
+  const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
+  const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
   
   const isAdmin = role === 'admin' || role === 'super_admin';
 
   useFocusEffect(
     useCallback(() => {
       loadNotificationSettings();
+      checkBiometricStatus();
       if (isAdmin) {
         loadEmpresaData();
         loadEmpresaStats();
       }
     }, [isAdmin, estabelecimentoId])
   );
+
+  const checkBiometricStatus = async () => {
+    const hasHardware = await LocalAuthentication.hasHardwareAsync();
+    const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+    setIsBiometricAvailable(hasHardware && isEnrolled);
+
+    if (hasHardware && isEnrolled) {
+      const enabled = await SecureStore.getItemAsync(BIOMETRIC_ENABLED_KEY);
+      setIsBiometricEnabled(enabled === 'true');
+    }
+  };
 
   const loadNotificationSettings = async () => {
     try {
@@ -242,6 +261,33 @@ export default function ConfiguracoesScreen() {
     );
   };
 
+  const handleBiometricToggle = async (value: boolean) => {
+    if (value) {
+      // Habilitando biometria
+      await SecureStore.setItemAsync(BIOMETRIC_ENABLED_KEY, 'true');
+      setIsBiometricEnabled(true);
+      Alert.alert('Sucesso', 'Login com biometria ativado!');
+    } else {
+      // Desabilitando biometria
+      Alert.alert(
+        'Desativar Biometria',
+        'Tem certeza que deseja desativar o login com biometria?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Desativar',
+            style: 'destructive',
+            onPress: async () => {
+              await SecureStore.deleteItemAsync(BIOMETRIC_ENABLED_KEY);
+              setIsBiometricEnabled(false);
+              Alert.alert('Sucesso', 'Login com biometria desativado.');
+            },
+          },
+        ]
+      );
+    }
+  };
+
   const NotificationSwitch = ({ label, description, value, onValueChange, icon }: any) => (
     <View style={[styles.settingCard, { backgroundColor: colors.surface }]}>
       <View style={styles.settingRow}>
@@ -281,12 +327,17 @@ export default function ConfiguracoesScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Tabs */}
-      <View style={[styles.tabs, { borderBottomColor: colors.border, backgroundColor: colors.surface }]}>
+      <ScrollView 
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={[styles.tabs, { borderBottomColor: colors.border, backgroundColor: colors.surface }]}
+        contentContainerStyle={{ alignItems: 'center' }}
+      >
         <TouchableOpacity 
           style={[styles.tab, tab === 'aparencia' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]} 
           onPress={() => setTab('aparencia')}
         >
-          <Text style={[styles.tabText, { color: tab === 'aparencia' ? colors.primaryContrast : colors.textSecondary }]}>
+          <Text style={[styles.tabText, { color: tab === 'aparencia' ? colors.primary : colors.textSecondary }]} numberOfLines={1}>
             Aparência
           </Text>
         </TouchableOpacity>
@@ -295,7 +346,7 @@ export default function ConfiguracoesScreen() {
           style={[styles.tab, tab === 'notificacoes' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]} 
           onPress={() => setTab('notificacoes')}
         >
-          <Text style={[styles.tabText, { color: tab === 'notificacoes' ? colors.primaryContrast : colors.textSecondary }]}>
+          <Text style={[styles.tabText, { color: tab === 'notificacoes' ? colors.primary : colors.textSecondary }]} numberOfLines={1}>
             Notificações
           </Text>
         </TouchableOpacity>
@@ -305,21 +356,30 @@ export default function ConfiguracoesScreen() {
             style={[styles.tab, tab === 'negocio' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]} 
             onPress={() => setTab('negocio')}
           >
-            <Text style={[styles.tabText, { color: tab === 'negocio' ? colors.primaryContrast : colors.textSecondary }]}>
+            <Text style={[styles.tabText, { color: tab === 'negocio' ? colors.primary : colors.textSecondary }]} numberOfLines={1}>
               Negócio
             </Text>
           </TouchableOpacity>
         )}
 
         <TouchableOpacity 
+          style={[styles.tab, tab === 'seguranca' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]} 
+          onPress={() => setTab('seguranca')}
+        >
+          <Text style={[styles.tabText, { color: tab === 'seguranca' ? colors.primary : colors.textSecondary }]} numberOfLines={1}>
+            Segurança
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
           style={[styles.tab, tab === 'sobre' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]} 
           onPress={() => setTab('sobre')}
         >
-          <Text style={[styles.tabText, { color: tab === 'sobre' ? colors.primaryContrast : colors.textSecondary }]}>
+          <Text style={[styles.tabText, { color: tab === 'sobre' ? colors.primary : colors.textSecondary }]} numberOfLines={1}>
             Sobre
           </Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* ABA APARÊNCIA */}
@@ -366,6 +426,26 @@ export default function ConfiguracoesScreen() {
                 ))}
               </View>
             </View>
+          </View>
+        )}
+
+        {/* ABA SEGURANÇA */}
+        {tab === 'seguranca' && (
+          <View>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Segurança da Conta</Text>
+            {isBiometricAvailable ? (
+              <NotificationSwitch
+                label="Login com Biometria"
+                description="Use sua impressão digital ou rosto para entrar"
+                value={isBiometricEnabled}
+                onValueChange={handleBiometricToggle}
+                icon="finger-print"
+              />
+            ) : (
+              <View style={[styles.settingCard, { backgroundColor: colors.surface }]}>
+                <Text style={{color: colors.textSecondary}}>Login com biometria não está disponível neste dispositivo.</Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -620,11 +700,15 @@ export default function ConfiguracoesScreen() {
 // Função auxiliar para criar estilos dinâmicos
 const createStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1 },
-  tabs: { flexDirection: 'row', borderBottomWidth: 1 },
-  tab: { paddingVertical: 14, paddingHorizontal: 16, flex: 1, alignItems: 'center' },
-  tabText: { fontWeight: '600', fontSize: 14 },
+  tabs: { 
+    borderBottomWidth: 1, 
+    minHeight: 50, 
+    maxHeight: 50, 
+  },
+  tab: { paddingVertical: 12, paddingHorizontal: 20, alignItems: 'center' },
+  tabText: { fontWeight: '600', fontSize: 13 },
   content: { flex: 1, padding: 16 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12, marginTop: 12 },
+  sectionTitle: { fontSize: 19, fontWeight: '700', marginBottom: 12, marginTop: 12 },
   settingCard: {
     borderRadius: 12,
     padding: 16,

@@ -1,12 +1,13 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Platform, Modal, Pressable } from 'react-native';
-import { useState, useEffect, useCallback } from 'react';
+// 🔥 CORREÇÃO 1: Adicionado o useMemo aqui
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { logger } from '../../../utils/logger';
 import { theme } from '@utils/theme';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, router } from 'expo-router';
 import { 
   Orcamento, 
   carregarOrcamentoPorId,
@@ -104,6 +105,7 @@ export default function DetalhesOrcamentoScreen() {
 
   async function handleImprimir() {
     try {
+      // 🔥 CORREÇÃO 2: As variáveis CSS colors.primary foram corrigidas com ${colors.primary}
       const html = `
         <!DOCTYPE html>
         <html>
@@ -125,7 +127,7 @@ export default function DetalhesOrcamentoScreen() {
                 font-size: 24px; 
                 font-weight: bold; 
                 margin-bottom: 10px; 
-                color: colors.primary;
+                color: ${colors.primary};
               }
               .info { 
                 margin-bottom: 20px;
@@ -167,7 +169,7 @@ export default function DetalhesOrcamentoScreen() {
                 margin-top: 20px; 
                 font-size: 18px;
                 font-weight: bold;
-                color: colors.primary;
+                color: ${colors.primary};
                 padding: 15px;
                 background-color: #F9FAFB;
                 border-radius: 8px;

@@ -10,6 +10,7 @@ interface AgendamentoNotificacaoProps {
   cliente_foto?: string | null;
   servico: string;
   horario: string;
+  profissional_nome?: string;
   onOcultar: () => void;
   onVerAgendamento: () => void;
 }
@@ -20,6 +21,7 @@ export default function AgendamentoNotificacao({
   cliente_foto,
   servico,
   horario,
+  profissional_nome,
   onOcultar,
   onVerAgendamento
 }: AgendamentoNotificacaoProps) {
@@ -62,6 +64,12 @@ export default function AgendamentoNotificacao({
                 </View>
               )}
               <Text style={styles.infoValue}>{cliente}</Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <FontAwesome5 name="user-tie" size={18} color="#6B7280" />
+              <Text style={styles.infoLabel}>Profissional:</Text>
+              <Text style={styles.infoValue}>{profissional_nome}</Text>
             </View>
 
             <View style={styles.infoRow}>

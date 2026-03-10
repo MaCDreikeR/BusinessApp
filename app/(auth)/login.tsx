@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView, Alert } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
@@ -431,10 +431,32 @@ export default function LoginScreen() {
       await limparRateLimitBackend(normalizedEmail);
       await salvarDados();
 
-      if (lembrarMe && biometricAvailable) {
-        await SecureStore.setItemAsync(BIOMETRIC_ENABLED_KEY, 'true');
-        await SecureStore.setItemAsync(BIOMETRIC_EMAIL_KEY, normalizedEmail);
-        setBiometricEnabled(true);
+      if (biometricAvailable) {
+        Alert.alert(
+          'Login Biométrico',
+          'Deseja salvar seus dados para entrar com a biometria no futuro?',
+          [
+            {
+              text: 'Agora não',
+              style: 'cancel',
+              onPress: () => {
+                // Remove a configuração de biometria se o usuário recusar
+                SecureStore.deleteItemAsync(BIOMETRIC_ENABLED_KEY);
+                SecureStore.deleteItemAsync(BIOMETRIC_EMAIL_KEY);
+                setBiometricEnabled(false);
+              },
+            },
+            {
+              text: 'Sim',
+              onPress: async () => {
+                await SecureStore.setItemAsync(BIOMETRIC_ENABLED_KEY, 'true');
+                await SecureStore.setItemAsync(BIOMETRIC_EMAIL_KEY, normalizedEmail);
+                setBiometricEnabled(true);
+                showToast('Login com biometria ativado!', 'success');
+              },
+            },
+          ]
+        );
       }
 
       try {

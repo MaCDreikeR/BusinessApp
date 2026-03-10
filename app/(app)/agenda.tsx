@@ -841,7 +841,7 @@ export default function AgendaScreen() {
     setHorarios(horariosIniciais);
   };
   
-  const atualizarListaHorarios = () => {
+  const atualizarListaHorarios = useCallback(() => {
     try {
       const inicioMinutos = converterHoraParaMinutos(horarioInicio);
       const fimMinutos = converterHoraParaMinutos(horarioFim);
@@ -856,8 +856,18 @@ export default function AgendaScreen() {
       }
       
       const novosHorarios: string[] = [];
-      
+      const isHoje = isToday(selectedDate);
+      const agoraEmMinutos = isHoje 
+        ? new Date().getHours() * 60 + new Date().getMinutes()
+        : -1;
+
       for (let i = inicioMinutos; i < fimMinutos; i += intervalo) {
+        // Se for hoje, pular horários que já passaram
+        if (isHoje && i < agoraEmMinutos) {
+          continue;
+        }
+
+        // Pular horários de intervalo
         if (temIntervalo && i >= intervaloInicioMinutos && i < intervaloFimMinutos) {
           continue;
         }
@@ -870,11 +880,20 @@ export default function AgendaScreen() {
       logger.error('Erro ao atualizar lista de horários:', error);
       inicializarHorariosPadrao();
     }
-  };
+  }, [horarioInicio, horarioFim, intervaloAgendamentos, temIntervalo, horarioIntervaloInicio, horarioIntervaloFim, selectedDate]);
   
   useEffect(() => {
+    // Primeira execução
     atualizarListaHorarios();
-  }, [horarioInicio, horarioFim, intervaloAgendamentos, temIntervalo, horarioIntervaloInicio, horarioIntervaloFim]);
+    
+    // Atualiza a cada minuto para manter a lista de horários relevante
+    const intervalId = setInterval(() => {
+      atualizarListaHorarios();
+    }, 60000); // 60 segundos
+
+    // Limpa o intervalo quando o componente é desmontado ou a data muda
+    return () => clearInterval(intervalId);
+  }, [atualizarListaHorarios]);
   
   const formatarHoraInput = (text: string) => {
     const numeros = text.replace(/[^0-9]/g, '');

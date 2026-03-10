@@ -891,7 +891,8 @@ export default function ComandasScreen() {
           ...comanda,
           cliente_nome: cliente?.nome || 'Cliente não encontrado',
           cliente_foto_url: cliente?.foto_url,
-          itens: itensFormatados
+          itens: itensFormatados,
+          created_by_user_nome: comanda.criado_por_nome || comanda.created_by_user_nome, // Compatibilidade
         };
       }));
 
@@ -1091,7 +1092,7 @@ export default function ComandasScreen() {
         observacoes: observacoes || null,
         estabelecimento_id: estabelecimentoId,
         created_by_user_id: user.id,
-        created_by_user_nome: usuarioData.nome_completo
+        criado_por_nome: usuarioData.nome_completo
       };
 
       logger.debug('Dados da comanda a ser criada:', comandaData);

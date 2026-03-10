@@ -986,6 +986,7 @@ export default function AppLayout() {
         cliente_foto={agendamentoAtivo.cliente_foto}
         servico={agendamentoAtivo.servico}
         horario={agendamentoAtivo.horario}
+        profissional_nome={agendamentoAtivo.profissional_nome}
         onOcultar={ocultarNotificacao}
         onVerAgendamento={() => {
           resetarNotificacao();

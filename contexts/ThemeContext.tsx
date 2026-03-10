@@ -75,24 +75,34 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<ThemeMode>('auto');
   const [accentColor, setAccentColorState] = useState<AccentColorId>(DEFAULT_ACCENT_COLOR);
   const [isReady, setIsReady] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+  const [colors, setColors] = useState(getColorTheme(DEFAULT_ACCENT_COLOR, false));
 
-  // Determina se deve usar dark mode baseado em:
-  // 1. Se modo for 'auto' → segue preferência do dispositivo
-  // 2. Caso contrário → usa o modo explícito
-  const isDark = mode === 'auto' 
-    ? deviceColorScheme === 'dark' 
-    : mode === 'dark';
-
-  // Carrega preferência salva
+  // Efeito para carregar as preferências de tema e cor de destaque
   useEffect(() => {
     loadThemePreference();
   }, []);
 
+  // Efeito para reagir a mudanças no modo ou no esquema de cores do dispositivo
+  useEffect(() => {
+    const newIsDark = mode === 'auto' 
+      ? deviceColorScheme === 'dark' 
+      : mode === 'dark';
+    setIsDark(newIsDark);
+    
+    // Recalcula o tema de cores sempre que isDark ou accentColor mudar
+    const colorTheme = getColorTheme(accentColor, newIsDark);
+    setColors({
+      ...colorTheme,
+      primaryContrast: '#FFFFFF',
+    });
+  }, [mode, deviceColorScheme, accentColor]);
+
   const loadThemePreference = async () => {
     try {
-      const saved = await AsyncStorage.getItem(THEME_STORAGE_KEY);
-      if (saved && ['light', 'dark', 'auto'].includes(saved)) {
-        setMode(saved as ThemeMode);
+      const savedMode = await AsyncStorage.getItem(THEME_STORAGE_KEY);
+      if (savedMode && ['light', 'dark', 'auto'].includes(savedMode)) {
+        setMode(savedMode as ThemeMode);
       }
 
       const savedAccent = await AsyncStorage.getItem(ACCENT_STORAGE_KEY);
@@ -127,15 +137,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Erro ao salvar cor de destaque:', error);
     }
-  };
-
-  // Monta cores baseado no tema e cor de destaque atual
-  // getColorTheme() retorna TODAS as cores (semânticas + marca)
-  const colorTheme = getColorTheme(accentColor, isDark);
-  
-  const colors = {
-    ...colorTheme,
-    primaryContrast: '#FFFFFF',
   };
 
   if (!isReady) {

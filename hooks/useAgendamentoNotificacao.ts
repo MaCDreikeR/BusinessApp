@@ -30,9 +30,10 @@ export function useAgendamentoNotificacao() {
       const cincoMinutosDepois = addMinutesLocal(agora, 5);
 
       // Buscar agendamentos que estão para começar ou acabaram de começar
+      // 🔥 ADICIONADO: valor_total para sabermos se é um pacote com desconto
       const { data: agendamentos, error } = await supabase
         .from('agendamentos')
-        .select('id, cliente, data_hora, servicos, status, usuario_id')
+        .select('id, cliente, data_hora, servicos, status, usuario_id, valor_total')
         .eq('estabelecimento_id', estabelecimentoId)
         .gte('data_hora', cincoMinutosAntes)
         .lte('data_hora', cincoMinutosDepois)
@@ -99,8 +100,9 @@ export function useAgendamentoNotificacao() {
             trigger: null, // Disparar imediatamente
           });
 
-          // Criar comanda automaticamente
-          // Verificar se já existe uma comanda aberta para este cliente hoje
+          // ==========================================
+          // CRIAR COMANDA AUTOMATICAMENTE
+          // ==========================================
           const inicioDoDiaLocal = await import('../lib/timezone').then(m => m.getStartOfDayLocal());
           
           const { data: comandaExistente } = await supabase
@@ -133,13 +135,12 @@ export function useAgendamentoNotificacao() {
                 }
               }
               
-              // Se não encontrou o cliente, não pode criar comanda (cliente_id é obrigatório)
               if (!clienteId) {
                 logger.warn('⚠️ Cliente não encontrado no banco. Não é possível criar comanda automaticamente.');
                 return;
               }
               
-              // Criar comanda
+              // Criar comanda base (preços serão ajustados a seguir)
               const { data: novaComanda, error: comandaError } = await supabase
                 .from('comandas')
                 .insert({
@@ -148,7 +149,9 @@ export function useAgendamentoNotificacao() {
                   estabelecimento_id: estabelecimentoId,
                   status: 'aberta',
                   valor_total: 0,
-                  created_by_user_id: agendamentoParaNotificar.usuario_id || null,
+                  valor_desconto: 0,
+                  created_by_user_id: null,
+                  created_by_user_nome: 'Agendamento',
                   data_abertura: new Date().toISOString(),
                 })
                 .select()
@@ -159,52 +162,51 @@ export function useAgendamentoNotificacao() {
               } else if (novaComanda) {
                 logger.success('✅ Comanda criada automaticamente:', novaComanda.id);
                 
-                // Adicionar itens dos serviços à comanda
-                if (agendamentoParaNotificar.servicos && agendamentoParaNotificar.servicos.length > 0) {
-                  logger.debug('📦 Serviços do agendamento:', JSON.stringify(agendamentoParaNotificar.servicos, null, 2));
+                // Parse servicos
+                let servicosArray = agendamentoParaNotificar.servicos;
+                if (typeof servicosArray === 'string') {
+                  try { servicosArray = JSON.parse(servicosArray); } catch { servicosArray = []; }
+                }
+
+                if (servicosArray && servicosArray.length > 0) {
                   
-                  // Parse servicos se vier como string JSON
-                  let servicosArray = agendamentoParaNotificar.servicos;
-                  if (typeof servicosArray === 'string') {
-                    try {
-                      servicosArray = JSON.parse(servicosArray);
-                    } catch {
-                      servicosArray = [];
-                    }
+                  // 🔥 LÓGICA INTELIGENTE DE PREÇOS
+                  // Buscar TODOS os serviços do estabelecimento para cruzar ID ou Nome
+                  const { data: servicosDb } = await supabase
+                    .from('servicos')
+                    .select('id, nome, preco')
+                    .eq('estabelecimento_id', estabelecimentoId);
+                  
+                  let precosBanco: Record<string, number> = {};
+                  if (servicosDb) {
+                    servicosDb.forEach(s => {
+                      if (s.id) precosBanco[s.id] = Number(s.preco) || 0;
+                      // Salvar também pelo nome em minúsculas para encontrar caso o JSON só tenha o nome
+                      if (s.nome) precosBanco[s.nome.trim().toLowerCase()] = Number(s.preco) || 0;
+                    });
                   }
                   
-                  // Buscar preços dos serviços no banco de dados
-                  const servicoIds = servicosArray
-                    .filter((s: any) => s.servico_id)
-                    .map((s: any) => s.servico_id);
-                  
-                  let precosServicos: {[key: string]: number} = {};
-                  if (servicoIds.length > 0) {
-                    const { data: servicos } = await supabase
-                      .from('servicos')
-                      .select('id, valor')
-                      .in('id', servicoIds);
-                    
-                    if (servicos) {
-                      servicos.forEach(s => {
-                        precosServicos[s.id] = s.valor || 0;
-                      });
-                    }
-                  }
+                  let somaItens = 0;
                   
                   const itens = servicosArray.map((servico: any) => {
-                    // Tentar usar o preço do agendamento, senão buscar do banco
                     let precoNumerico = 0;
                     
-                    if (servico.preco !== undefined && servico.preco !== null && servico.preco > 0) {
-                      // Se tem preço no agendamento, usar esse
-                      precoNumerico = typeof servico.preco === 'string' 
-                        ? parseFloat(servico.preco) 
-                        : servico.preco;
-                    } else if (servico.servico_id && precosServicos[servico.servico_id]) {
-                      // Se não tem preço mas tem servico_id, buscar do banco
-                      precoNumerico = precosServicos[servico.servico_id];
+                    // 1. Tentar o preço que veio do JSON (se for > 0)
+                    if (servico.preco && Number(servico.preco) > 0) {
+                      precoNumerico = Number(servico.preco);
+                    } 
+                    // 2. Tentar pelo ID (se existir no JSON)
+                    else if (servico.servico_id && precosBanco[servico.servico_id] !== undefined) {
+                      precoNumerico = precosBanco[servico.servico_id];
+                    } 
+                    // 3. Tentar pelo Nome exato (muito comum em pacotes)
+                    else if (servico.nome && precosBanco[servico.nome.trim().toLowerCase()] !== undefined) {
+                      precoNumerico = precosBanco[servico.nome.trim().toLowerCase()];
                     }
+
+                    const qtd = servico.quantidade || 1;
+                    const precoTotalItem = precoNumerico * qtd;
+                    somaItens += precoTotalItem;
                     
                     return {
                       comanda_id: novaComanda.id,
@@ -212,8 +214,8 @@ export function useAgendamentoNotificacao() {
                       nome: servico.nome,
                       preco_unitario: precoNumerico,
                       preco: precoNumerico,
-                      quantidade: servico.quantidade || 1,
-                      preco_total: precoNumerico * (servico.quantidade || 1),
+                      quantidade: qtd,
+                      preco_total: precoTotalItem,
                       estabelecimento_id: estabelecimentoId,
                     };
                   });
@@ -228,27 +230,47 @@ export function useAgendamentoNotificacao() {
                   if (itensError) {
                     logger.error('❌ Erro ao adicionar itens:', itensError);
                   } else {
-                    logger.success('✅ Itens adicionados à comanda:', itensInseridos?.length || 0);
-                    logger.debug('📋 Itens inseridos:', JSON.stringify(itensInseridos, null, 2));
+                    logger.success('✅ Itens adicionados à comanda');
                   }
                   
-                  // Atualizar valor total da comanda
-                  const valorTotal = itens.reduce((sum: number, item: any) => sum + item.preco_total, 0);
-                  logger.debug('💰 Valor total calculado:', valorTotal);
+                  // 🔥 CÁLCULO FINAL DE PACOTES E DESCONTOS
+                  const valorAgendamento = Number(agendamentoParaNotificar.valor_total) || 0;
+                  let descontoAplicado = 0;
+                  let valorFinalComanda = somaItens;
+
+                  // Se a soma dos itens for 0 (nenhum preço encontrado), forçamos o valor total do agendamento no primeiro item para não ficar zerado
+                  if (somaItens === 0 && valorAgendamento > 0 && itensInseridos && itensInseridos.length > 0) {
+                      logger.warn('⚠️ Preços zerados. Forçando valor total do agendamento no primeiro item.');
+                      await supabase.from('comandas_itens')
+                        .update({ 
+                          preco: valorAgendamento, 
+                          preco_unitario: valorAgendamento, 
+                          preco_total: valorAgendamento 
+                        })
+                        .eq('id', itensInseridos[0].id);
+                      valorFinalComanda = valorAgendamento;
+                  } 
+                  // Se for um PACOTE (valor cobrado é menor que a soma dos serviços avulsos)
+                  else if (valorAgendamento > 0 && valorAgendamento < somaItens) {
+                    descontoAplicado = somaItens - valorAgendamento;
+                    valorFinalComanda = valorAgendamento;
+                    logger.info(`💰 Detectado desconto de pacote! Desconto: R$ ${descontoAplicado}`);
+                  }
                   
                   const { error: updateError } = await supabase
                     .from('comandas')
-                    .update({ valor_total: valorTotal })
+                    .update({ 
+                      valor_total: valorFinalComanda,
+                      valor_desconto: descontoAplicado
+                    })
                     .eq('id', novaComanda.id);
                   
                   if (updateError) {
                     logger.error('❌ Erro ao atualizar valor total:', updateError);
                   } else {
-                    logger.success('✅ Valor total atualizado');
+                    logger.success(`✅ Valor total: ${valorFinalComanda} (Desconto: ${descontoAplicado})`);
                   }
                 }
-                
-                logger.success('✅ Comanda criada e configurada com sucesso');
               }
             } catch (comandaErr) {
               logger.error('❌ Erro ao criar comanda automaticamente:', comandaErr);
@@ -281,7 +303,7 @@ export function useAgendamentoNotificacao() {
     
     const intervalo = setInterval(() => {
       verificarAgendamentos();
-    }, 30000); // 30 segundos
+    }, 30000);
 
     return () => clearInterval(intervalo);
   }, [verificarAgendamentos]);

@@ -172,8 +172,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 let reconnectInProgress = false;
 let reconnectAttemptSeq = 0;
-const RECONNECT_STEP_TIMEOUT_MS = 12000;
-const RECONNECT_LOCK_TIMEOUT_MS = 45000;
+const RECONNECT_STEP_TIMEOUT_MS = 25000;
+const RECONNECT_LOCK_TIMEOUT_MS = 60000;
 
 export async function forceSupabaseReconnect(reason: string = 'manual') {
   if (reconnectInProgress) {
@@ -211,8 +211,15 @@ export async function forceSupabaseReconnect(reason: string = 'manual') {
       console.warn('[SupabaseReconnect] Falha ao desconectar realtime (seguindo)', String(disconnectError));
     }
 
-    supabase.realtime.connect();
-
+    try {
+      supabase.realtime.connect();
+    } catch (connectError) {
+      debugLogger.error('SupabaseReconnect', 'Falha ao conectar realtime', {
+        error: String(connectError),
+      });
+      console.error('[SupabaseReconnect] Falha ao conectar realtime', String(connectError));
+    }
+    
     const { data: { session }, error: sessionError } = await withTimeout(
       supabase.auth.getSession(),
       RECONNECT_STEP_TIMEOUT_MS,
